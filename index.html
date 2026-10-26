@@ -1119,7 +1119,7 @@
     // mounted at once - the token routes the port to the right overlay)
     // and the channel port itself is pairwise-secure.
     _topPost(
-      { type: READY_TYPE, token: "00484a65-d7a0-486a-abde-d432f5aeec0d" },
+      { type: READY_TYPE, token: "6b0c7311-cee4-48c0-a141-db552c13a15a" },
       "*",
       [channel.port2]
     );
@@ -1727,6 +1727,12 @@ input:focus,textarea:focus,select:focus{outline:2px solid var(--ink);outline-off
 :root{accent-color:var(--ink)}
 .inline-date{font:inherit;font-size:12px;min-height:0;padding:0 8px!important;line-height:18px;border:1px dashed var(--muted);background:transparent;color:inherit;border-radius:999px;vertical-align:baseline}
 .inline-date:hover{border-style:solid;border-color:var(--ink);transform:none!important;box-shadow:none!important}
+
+/* UI chrome is not selectable (avoids accidental long-press selection on phones); report text stays copyable */
+.hero,.hero-rule,.banner,.panel-head,.legend,summary,.card-top,.card-toggle,button,.tag,.tags,.pill,.gantt,.c-track,.mini-bar,.meta,.week-top,.links,.count,.tick,.dow,.bigdate,.logo-box{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+html{-webkit-tap-highlight-color:transparent}
+input,textarea,.week-text,.note,.ev-body p,.done-body p{-webkit-user-select:text;user-select:text}
+body.locked #genWeek{display:none}
 </style>
 </head>
 <body id="artifacts-component-root-html">
@@ -1785,7 +1791,7 @@ input:focus,textarea:focus,select:focus{outline:2px solid var(--ink);outline-off
       <div class="week-top">
         <button class="icon" id="backMain" aria-label="回到主畫面">‹ 返回</button>
         <h2 id="weekH" style="flex:1">每週更新概述<span class="en">WEEKLY</span></h2>
-        <button class="edit-only gen-btn" id="genWeek">自動產生週報</button>
+        <button class="gen-btn" id="genWeek">自動產生週報</button>
         <button class="ghost edit-only" id="addWeek">＋ 新增週報</button>
       </div>
       <div id="weekList"></div>
@@ -2076,13 +2082,34 @@ function save(){
   try{localStorage.setItem(KEY,JSON.stringify(state));localOK=true;toast("已儲存並定型")}catch(e){localOK=false;toast("這個瀏覽器無法保存，請按「備份可編輯檔」")}
   editing=false;dirty=false;openIds.clear();render();
 }
-function exportHTML(locked){
+async function exportHTML(locked){
   const s=JSON.parse(JSON.stringify(state));s.locked=locked;if(!s.savedAt)s.savedAt=nowStr();
   const doc=TEMPLATE.replace(/(<script id="state" type="application\/json">)[\s\S]*?(<\/script>)/,(_,a,b)=>a+"\n"+JSON.stringify(s).replace(/</g,"\\u003c")+"\n"+b);
-  const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([doc],{type:"text/html"}));
-  a.download=`${state.title.replace(/[\\/:*?"<>|]/g,"_")}_${locked?"定型版":"可編輯"}_${today()}.html`;
-  document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),3000);
-  toast(locked?"已匯出定型版，可直接傳給他人":"已下載可編輯備份");
+  const name=locked?`${(state.boardDate||today()).replaceAll("-",".")}.html`:`${state.title.replace(/[\\/:*?"<>|]/g,"_")}_可編輯_${today()}.html`;
+  const label=locked?"定型版":"可編輯備份";
+  /* 1) real "Save as" dialog where the browser supports it: we know for sure whether it was saved */
+  if(window.showSaveFilePicker){
+    try{
+      const h=await showSaveFilePicker({suggestedName:name,types:[{description:"HTML",accept:{"text/html":[".html"]}}]});
+      const w=await h.createWritable();await w.write(doc);await w.close();
+      toast(`已儲存${label}：${h.name||name}`);return;
+    }catch(e){if(e&&e.name==="AbortError")return;/* blocked here: fall through */}
+  }
+  /* 2) classic download link; we cannot verify it, so offer fallbacks instead of claiming success */
+  const url=URL.createObjectURL(new Blob([doc],{type:"text/html"}));
+  try{const a=document.createElement("a");a.href=url;a.download=name;document.body.append(a);a.click();a.remove()}catch(_){}
+  const f=$("#dlgForm"),d=$("#dlg");d.classList.remove("wide");
+  f.innerHTML=`<b>匯出${label}</b><p class="sub" style="margin:0">已嘗試下載「${esc(name)}」。如果沒有看到檔案（有些檢視器或手機會擋下載），可以改用下面方式：</p>
+    <div style="display:grid;gap:8px"><button type="button" data-x="open">在新分頁開啟 → 再用瀏覽器「另存新檔」</button><button type="button" data-x="copy">複製整份 HTML 原始碼</button></div>
+    <div class="dlg-actions"><button type="button" class="primary" data-x="close">好，已經有檔案了</button></div>`;
+  f.querySelectorAll("[data-x]").forEach(b=>b.onclick=async()=>{
+    const x=b.dataset.x;
+    if(x==="open"){const w=window.open(url,"_blank");if(!w)toast("新分頁被擋住了，請改用「複製原始碼」")}
+    if(x==="copy"){await copyText(doc);toast("已複製原始碼：貼到文字編輯器存成 .html 即可")}
+    if(x==="close")d.close();
+  });
+  d.onclose=()=>setTimeout(()=>URL.revokeObjectURL(url),60000);
+  d.showModal();
 }
 async function copyText(t){
   try{await navigator.clipboard.writeText(t);toast("已複製")}
@@ -2102,6 +2129,7 @@ const goMain=()=>pager.scrollTo({left:0,behavior:"smooth"});
 $("#weekBtn").onclick=goWeek;$("#backMain").onclick=goMain;
 
 /* ---------- weekly report generator ---------- */
+const addDays=(s,n)=>{const d=pd(s);d.setDate(d.getDate()+n);return ymd(d)};
 function snapshotBase(date){
   const issues={};state.issues.forEach(i=>issues[i.id]={progress:i.progress,stage:i.tags[i.cur]||"",note:i.note||""});
   state.reportBase={date,issues};
@@ -2190,6 +2218,16 @@ function flipCards(mutate){
   });
 }
 
+/* open link buttons robustly: new tab first, fall back to same tab when a viewer blocks pop-ups */
+document.addEventListener("click",e=>{
+  const a=e.target.closest("a.link[href]");if(!a||editing)return;
+  const url=a.getAttribute("href");if(!url||url==="#")return;
+  e.preventDefault();e.stopPropagation();
+  let w=null;try{w=window.open(url,"_blank")}catch(_){}
+  if(w){try{w.opener=null}catch(_){}}
+  else{try{window.top.location.href=url}catch(_){location.href=url}}
+},true);
+
 /* ---------- events ---------- */
 document.addEventListener("click",async e=>{
   const t=e.target;
@@ -2204,6 +2242,10 @@ document.addEventListener("click",async e=>{
   if(t.closest("#exportEdit")){exportHTML(false);return}
   if(t.closest("#importBtn")){$("#importFile").click();return}
   if(t.closest("[data-copyweek]")){const w=state.weeks.find(x=>x.id===t.closest("[data-week]").dataset.week);copyText(w.text);return}
+  if(t.closest("#genWeek")&&!state.locked){
+    const r=buildWeekly();
+    const v=await ask("自動產生週報",[{name:"date",label:"日期",type:"date",value:r.end},{name:"text",label:`統計期間 ${fmt(r.start)} 之後 – ${fmt(r.end)}：已依即時回報與議題更新自動歸納，可直接修改後按確定`,type:"textarea",value:r.text}],{wide:true});
+    if(v&&v.text){state.weeks.push({id:uid("w"),date:v.date||r.end,text:v.text,auto:true});snapshotBase(v.date||r.end);if(editing)changed();else save();toast("已產生並存成週報")}return}
   if(!editing)return;
 
   const dd=t.closest("[data-donedate]");
@@ -2215,10 +2257,7 @@ document.addEventListener("click",async e=>{
     const last=[...state.weeks].sort((a,b)=>b.date.localeCompare(a.date))[0];
     const v=await ask("新增週報",[{name:"date",label:"日期",type:"date",value:today()},{name:"text",label:last?"內容（已預帶上一週內容當底稿，可直接改或全部清掉）":"內容",type:"textarea",value:last?last.text:"",ph:"貼上本週概述文字"}],{wide:true});
     if(v&&v.text){state.weeks.push({id:uid("w"),date:v.date||today(),text:v.text});snapshotBase(v.date||today());changed()}return}
-  if(t.closest("#genWeek")){
-    const r=buildWeekly();
-    const v=await ask("自動產生週報",[{name:"date",label:"日期",type:"date",value:r.end},{name:"text",label:`統計期間 ${fmt(r.start)} 之後 – ${fmt(r.end)}：已依即時回報與議題更新自動歸納，可直接修改後按確定`,type:"textarea",value:r.text}],{wide:true});
-    if(v&&v.text){state.weeks.push({id:uid("w"),date:v.date||r.end,text:v.text,auto:true});snapshotBase(v.date||r.end);changed();toast("已產生並存成週報")}return}
+
   const wk=t.closest("[data-week]");
   if(wk&&t.closest("[data-editweek]")){const w=state.weeks.find(x=>x.id===wk.dataset.week);
     const v=await ask("編輯週報",[{name:"date",label:"日期",type:"date",value:w.date},{name:"text",label:"內容",type:"textarea",value:w.text}],{wide:true,danger:"刪除此週"});
