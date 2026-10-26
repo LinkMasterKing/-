@@ -1119,7 +1119,7 @@
     // mounted at once - the token routes the port to the right overlay)
     // and the channel port itself is pairwise-secure.
     _topPost(
-      { type: READY_TYPE, token: "6b0c7311-cee4-48c0-a141-db552c13a15a" },
+      { type: READY_TYPE, token: "4aa50181-d89f-433a-b80d-155f69f7a7e1" },
       "*",
       [channel.port2]
     );
@@ -1732,7 +1732,6 @@ input:focus,textarea:focus,select:focus{outline:2px solid var(--ink);outline-off
 .hero,.hero-rule,.banner,.panel-head,.legend,summary,.card-top,.card-toggle,button,.tag,.tags,.pill,.gantt,.c-track,.mini-bar,.meta,.week-top,.links,.count,.tick,.dow,.bigdate,.logo-box{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
 html{-webkit-tap-highlight-color:transparent}
 input,textarea,.week-text,.note,.ev-body p,.done-body p{-webkit-user-select:text;user-select:text}
-body.locked #genWeek{display:none}
 </style>
 </head>
 <body id="artifacts-component-root-html">
@@ -2242,6 +2241,10 @@ document.addEventListener("click",async e=>{
   if(t.closest("#exportEdit")){exportHTML(false);return}
   if(t.closest("#importBtn")){$("#importFile").click();return}
   if(t.closest("[data-copyweek]")){const w=state.weeks.find(x=>x.id===t.closest("[data-week]").dataset.week);copyText(w.text);return}
+  if(t.closest("#genWeek")&&state.locked){
+    const r=buildWeekly();
+    const v=await ask("產生本週概述",[{name:"text",label:`統計期間 ${fmt(r.start)} 之後 – ${fmt(r.end)}（唯讀版不會儲存，按確定即複製全文）`,type:"textarea",value:r.text}],{wide:true});
+    if(v&&v.text)copyText(v.text);return}
   if(t.closest("#genWeek")&&!state.locked){
     const r=buildWeekly();
     const v=await ask("自動產生週報",[{name:"date",label:"日期",type:"date",value:r.end},{name:"text",label:`統計期間 ${fmt(r.start)} 之後 – ${fmt(r.end)}：已依即時回報與議題更新自動歸納，可直接修改後按確定`,type:"textarea",value:r.text}],{wide:true});
