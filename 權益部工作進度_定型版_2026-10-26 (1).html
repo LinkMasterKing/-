@@ -1,0 +1,2353 @@
+<!doctype html>
+<html lang="zh-Hant"><head>
+    <script>
+      (function() {
+        // Capture host references before any artifact code runs: Window.parent
+        // is [Replaceable] (a top-level `var parent` in artifact code would
+        // replace the accessor with a data property), and a top-level
+        // `const crypto` would shadow the global — either would otherwise
+        // silently break the bridge for artifacts that worked before.
+        const realParent = window.parent;
+        const cryptoObj = window.crypto;
+        const RealURL = URL;
+        const realDecodeURIComponent = decodeURIComponent;
+        const RealTextEncoder = TextEncoder;
+        const realAtob = atob;
+        const RealString = String;
+        // html-to-image is only used by takeScreenshot: fetched on first use, not as a
+        // parser-blocking tag. Native fetch, captured before the proxy override below.
+        const realFetch = typeof window.fetch === 'function' ? window.fetch.bind(window) : null;
+        const HTML_TO_IMAGE_SRC = "https://cdnjs.cloudflare.com/ajax/libs/html-to-image/1.11.13/html-to-image.min.js";
+        const HTML_TO_IMAGE_INTEGRITY = "sha512-iZ2ORl595Wx6miw+GuadDet4WQbdSWS3JLMoNfY8cRGoEFy6oT3G9IbcrBeL6AfkgpA51ETt/faX6yLV+/gFJg==";
+        let htmlToImageLoad = null;
+        const loadHtmlToImage = () => {
+          if (!htmlToImageLoad) {
+            htmlToImageLoad = (realFetch
+              ? realFetch(HTML_TO_IMAGE_SRC, { integrity: HTML_TO_IMAGE_INTEGRITY, credentials: 'omit', referrerPolicy: 'no-referrer' })
+              : Promise.reject(new Error('fetch unavailable'))
+            )
+              .then((res) => {
+                if (!res.ok) throw new Error('html-to-image failed to load (' + res.status + ')');
+                return res.text();
+              })
+              .then((source) => {
+                // UMD bundle: hide the artifact's AMD/CommonJS globals so it takes the
+                // window-global branch; inline script text runs synchronously on insert.
+                const hidden = ['define', 'module', 'exports'].map((k) => {
+                  const entry = { k, own: Object.prototype.hasOwnProperty.call(window, k), v: window[k] };
+                  try { window[k] = undefined; } catch (e) {}
+                  return entry;
+                });
+                try {
+                  const el = document.createElement('script');
+                  el.text = source;
+                  (document.head || document.documentElement).appendChild(el);
+                } finally {
+                  hidden.forEach(({ k, own, v }) => {
+                    try { if (own) { window[k] = v; } else { delete window[k]; } } catch (e) {}
+                  });
+                }
+                if (!window.htmlToImage) throw new Error('html-to-image unavailable after load');
+                return window.htmlToImage;
+              });
+            // A failed load may be transient; let the next screenshot retry.
+            htmlToImageLoad.catch(() => { htmlToImageLoad = null; });
+          }
+          return htmlToImageLoad;
+        };
+        // crypto.randomUUID exists only in Secure Contexts; fall back to a
+        // unique non-crypto id elsewhere (http://LAN-IP dev flows) —
+        // uniqueness is what the bridge needs, unpredictability is
+        // defense-in-depth on top of the source guards.
+        const newRequestId =
+          cryptoObj && typeof cryptoObj.randomUUID === "function"
+            ? function () { return cryptoObj.randomUUID(); }
+            : function () { return Date.now() + "-" + Math.random(); };
+
+        // Bridge request ids are crypto-random (not sequential) so they
+        // cannot be predicted by other frames in the tab.
+        let callbacksMap = new Map();
+        let streamControllers = new Map();
+        
+        window.claude = {
+          complete: (prompt) => {
+            return new Promise((resolve, reject) => {
+              const id = newRequestId();
+              callbacksMap.set(id, { resolve, reject });
+              realParent.postMessage({ type: 'claudeComplete', id, prompt }, '*');
+            });
+          }
+        };
+
+        // storage.get and .list calls not yet answered, read by the parent at this frame's 'load' (an answer may restyle the page); counted
+        // here, not there, because WebKit can run this frame's 'load' in the parent before a message posted while parsing has arrived.
+        let storageReadsOut = 0;
+        try { Object.defineProperty(window, '__storageReadsOut', { configurable: true, get: () => storageReadsOut }); } catch (e) {}
+        window.storage = {
+          get: (key, shared = false) => {
+            return new Promise((resolve, reject) => {
+              const id = newRequestId();
+              callbacksMap.set(id, { resolve, reject });
+              realParent.postMessage({ type: 'storageGet', id, key, shared }, '*');
+              storageReadsOut += 1;
+            });
+          },
+          set: (key, value, shared = false) => {
+            return new Promise((resolve, reject) => {
+              const id = newRequestId();
+              callbacksMap.set(id, { resolve, reject });
+              realParent.postMessage({ type: 'storageSet', id, key, value, shared }, '*');
+            });
+          },
+          delete: (key, shared = false) => {
+            return new Promise((resolve, reject) => {
+              const id = newRequestId();
+              callbacksMap.set(id, { resolve, reject });
+              realParent.postMessage({ type: 'storageDelete', id, key, shared }, '*');
+            });
+          },
+          list: (prefix, shared = false) => {
+            return new Promise((resolve, reject) => {
+              const id = newRequestId();
+              callbacksMap.set(id, { resolve, reject });
+              realParent.postMessage({ type: 'storageList', id, prefix, shared }, '*');
+              storageReadsOut += 1;
+            });
+          }
+        };
+
+        let pendingBlobs = new Map();
+        URL.createObjectURL = (blob) => {
+          // Store the blob and create an ID and URL for it
+          const blobId = `blob-${Date.now()}-${Math.random()}`;
+          pendingBlobs.set(blobId, blob);
+          return `blob-request://${blobId}`;
+        };
+
+        URL.revokeObjectURL = (url) => {
+          // Remove the blob from our store
+          const blobId = url.replace("blob-request://", "");
+          pendingBlobs.delete(blobId);
+        };
+
+        const getBlobFromURL = (url) => {
+          const blobId = url.replace("blob-request://", "");
+          return pendingBlobs.get(blobId);
+        };
+
+        // Override global fetch with streaming support
+        window.fetch = (url, init = {}) => {
+          return new Promise((resolve, reject) => {
+            const id = newRequestId();
+            const channelId = `fetch-${id}-${Date.now()}`;
+            
+            callbacksMap.set(id, { 
+              resolve: (response) => {
+                // Null-body statuses: Response(stream, {status: 204}) throws
+                // per the Fetch spec, which would escape this resolver and
+                // hang the artifact's await forever.
+                if (response.status === 204 || response.status === 205 || response.status === 304) {
+                  try {
+                    resolve(new Response(null, {
+                      status: response.status,
+                      statusText: response.statusText,
+                      headers: response.headers
+                    }));
+                  } catch (err) {
+                    // Invalid statusText/header bytes can throw here too.
+                    reject(new TypeError(
+                      'Bridge fetch: unconstructable response (status ' + response.status + ')'
+                    ));
+                  }
+                  return;
+                }
+                // Create a ReadableStream for the response body
+                const stream = new ReadableStream({
+                  start(controller) {
+                    streamControllers.set(channelId, controller);
+                  },
+                  cancel() {
+                    streamControllers.delete(channelId);
+                  }
+                });
+                
+                // Create and return the Response with the stream. Response()
+                // requires status in [200, 599]; an opaque/no-cors fetch
+                // forwards status 0, which would throw here and escape the
+                // resolver, hanging the artifact's await. Surface it as a
+                // network-error-shaped rejection instead.
+                try {
+                  resolve(new Response(stream, {
+                    status: response.status,
+                    statusText: response.statusText,
+                    headers: response.headers
+                  }));
+                } catch (err) {
+                  streamControllers.delete(channelId);
+                  reject(new TypeError(
+                    'Bridge fetch: unconstructable response (status ' + response.status + ')'
+                  ));
+                }
+              },
+              reject,
+              channelId
+            });
+            
+            realParent.postMessage({
+              type: 'proxyFetch',
+              id,
+              url,
+              init,
+              channelId
+            }, '*');
+          });
+        };
+
+        window.addEventListener('message', async (event) => {
+          // Only the embedding parent may drive the bridge — sibling and
+          // nested frames can also postMessage into this window.
+          if (event.source !== realParent) return;
+          if (event.data.type === 'takeScreenshot') {
+            // Echo the request's nonce so the requester can correlate the
+            // reply to ITS request — a reply without the expected nonce
+            // (e.g. from a stale pre-remount artifact) is ignored upstream.
+            const screenshotNonce = event.data.nonce;
+            const rootElement = document.getElementById('artifacts-component-root-html');
+            if (!rootElement) {
+              realParent.postMessage({
+                type: 'screenshotError',
+                nonce: screenshotNonce,
+                error: new Error('Root element not found'),
+              }, '*');
+              return;
+            }
+            // Catch CDN load failures and toPng errors so the parent always
+            // gets a response instead of hanging forever.
+            try {
+              const htmlToImage = await loadHtmlToImage();
+              const screenshot = await htmlToImage.toPng(rootElement, {
+                imagePlaceholder:
+                  "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAAAXNSR0IArs4c6QAAAA1JREFUGFdjePDgwX8ACOQDoNsk0PMAAAAASUVORK5CYII=",
+              });
+              realParent.postMessage({
+                type: 'screenshotData',
+                nonce: screenshotNonce,
+                data: screenshot,
+              }, '*');
+            } catch (err) {
+              realParent.postMessage({
+                type: 'screenshotError',
+                nonce: screenshotNonce,
+                error: err instanceof Error ? err : new Error(String(err)),
+              }, '*');
+            }
+          } else if (event.data.type === 'claudeComplete') {
+            const callback = callbacksMap.get(event.data.id);
+            if (!callback) return;
+            if (event.data.error) {
+              callback.reject(new Error(event.data.error));
+            } else {
+              callback.resolve(event.data.completion);
+            }
+            callbacksMap.delete(event.data.id);
+          } else if (event.data.type === 'proxyFetchResponse') {
+            const callback = callbacksMap.get(event.data.id);
+            if (!callback) return;
+            if (event.data.error) {
+              callback.reject(new Error(event.data.error));
+              callbacksMap.delete(event.data.id);
+            } else {
+              // Initial response with headers, status, etc.
+              callback.resolve({
+                status: event.data.status,
+                statusText: event.data.statusText,
+                headers: event.data.headers
+              });
+              // Don't delete the callback yet if streaming
+              if (!event.data.body) {
+                callbacksMap.delete(event.data.id);
+              }
+            }
+          } else if (event.data.type === 'proxyFetchStream') {
+            // Handle streaming data chunks
+            const controller = streamControllers.get(event.data.channelId);
+            if (controller) {
+              if (event.data.error) {
+                controller.error(new Error(event.data.error));
+                streamControllers.delete(event.data.channelId);
+              } else if (event.data.done) {
+                controller.close();
+                streamControllers.delete(event.data.channelId);
+                // Clean up the callback
+                const callback = Array.from(callbacksMap.entries()).find(
+                  ([_, value]) => value.channelId === event.data.channelId
+                );
+                if (callback) {
+                  callbacksMap.delete(callback[0]);
+                }
+              } else if (event.data.chunk) {
+                controller.enqueue(new Uint8Array(event.data.chunk));
+              }
+            }
+          } else if (event.data.type === 'storageGet') {
+            const callback = callbacksMap.get(event.data.id);
+            if (!callback) return;
+            storageReadsOut -= 1;
+            if (event.data.error) {
+              callback.reject(new Error(event.data.error));
+            } else {
+              callback.resolve(event.data.result);
+            }
+            callbacksMap.delete(event.data.id);
+          } else if (event.data.type === 'storageSet') {
+            const callback = callbacksMap.get(event.data.id);
+            if (!callback) return;
+            if (event.data.error) {
+              callback.reject(new Error(event.data.error));
+            } else {
+              callback.resolve(event.data.result);
+            }
+            callbacksMap.delete(event.data.id);
+          } else if (event.data.type === 'storageDelete') {
+            const callback = callbacksMap.get(event.data.id);
+            if (!callback) return;
+            if (event.data.error) {
+              callback.reject(new Error(event.data.error));
+            } else {
+              callback.resolve(event.data.result);
+            }
+            callbacksMap.delete(event.data.id);
+          } else if (event.data.type === 'storageList') {
+            const callback = callbacksMap.get(event.data.id);
+            if (!callback) return;
+            storageReadsOut -= 1;
+            if (event.data.error) {
+              callback.reject(new Error(event.data.error));
+            } else {
+              callback.resolve(event.data.result);
+            }
+            callbacksMap.delete(event.data.id);
+          }
+        });
+
+        // An SVG <a> exposes href as an SVGAnimatedString; its baseVal is the attribute
+        // as written, so resolve it against the base URL as the browser does for an HTML <a>.
+        const resolvedHref = (linkEl) => {
+          if (typeof linkEl.href === "string") return linkEl.href;
+          const written = linkEl.href?.baseVal;
+          // A same-document SVG link, such as one that begins an animation, stays with the browser.
+          if (!written || written.trim().startsWith("#")) return "";
+          try {
+            return new RealURL(written, linkEl.baseURI).href;
+          } catch (error) {
+            return written;
+          }
+        };
+
+        // This frame's URL is about:srcdoc, so the browser resolves "#id" against the renderer
+        // page and would load that page in the frame instead of scrolling.
+        const sameDocumentFragment = (linkEl) => {
+          const written = linkEl.getAttribute("href")?.trim();
+          if (!written?.startsWith("#") || document.querySelector("base[href]")) return null;
+          return written.slice(1);
+        };
+
+        const scrollToFragment = (fragment) => {
+          let decoded = fragment;
+          try {
+            decoded = realDecodeURIComponent(fragment);
+          } catch (error) {}
+          let target = document.getElementById(fragment) ?? document.getElementById(decoded);
+          for (const named of target ? [] : document.getElementsByName(decoded)) {
+            if (named.localName === "a") {
+              target = named;
+              break;
+            }
+          }
+          if (target) {
+            target.scrollIntoView();
+          } else if (decoded.toLowerCase() === "top") {
+            window.scrollTo(0, 0);
+          } else {
+            return false;
+          }
+          return true;
+        };
+
+        // Same decoder as dataUrlFile in app/page.tsx; change both together.
+        const hexPair = /^[0-9a-f]{2}$/i;
+        const dataUrlFile = (href) => {
+          const hash = href.indexOf("#");
+          const url = hash === -1 ? href : href.slice(0, hash);
+          const comma = url.indexOf(",");
+          if (comma === -1) return null;
+          const header = url.slice(0, comma);
+          const payload = url.slice(comma + 1);
+          const mimeMatch = header.match(/data:([^;]+)/);
+          const mimeType = mimeMatch ? mimeMatch[1] : "application/octet-stream";
+          const declaredBase64 = header
+            .split(";")
+            .slice(1)
+            .some((param) => param.trim().toLowerCase() === "base64");
+          const type = mimeMatch ? mimeMatch[1].trim().toLowerCase() : "";
+          const binaryType = type !== "" && !type.startsWith("text/");
+          if (declaredBase64 || (binaryType && !payload.includes("%"))) {
+            let binary = null;
+            try {
+              binary = realAtob(
+                payload.replace(/%([0-9a-f]{2})/gi, (_, hex) => String.fromCharCode(parseInt(hex, 16))),
+              );
+            } catch (error) {
+              if (declaredBase64) return null;
+            }
+            if (binary !== null) {
+              const bytes = new Uint8Array(binary.length);
+              for (let i = 0; i < binary.length; i++) {
+                bytes[i] = binary.charCodeAt(i);
+              }
+              return { mimeType, data: bytes.buffer };
+            }
+          }
+          const input = new RealTextEncoder().encode(payload);
+          const bytes = new Uint8Array(input.length);
+          let length = 0;
+          for (let i = 0; i < input.length; i++) {
+            if (input[i] === 0x25 && i + 2 < input.length) {
+              const pair = String.fromCharCode(input[i + 1], input[i + 2]);
+              if (hexPair.test(pair)) {
+                bytes[length++] = parseInt(pair, 16);
+                i += 2;
+                continue;
+              }
+            }
+            bytes[length++] = input[i];
+          }
+          return { mimeType, data: bytes.slice(0, length).buffer };
+        };
+
+        const onLinkClick = (event) => {
+          // Not instanceof Element: an artifact's own top-level class Element shadows the global.
+          if (typeof event.target?.closest !== "function") return;
+    
+          const linkEl = event.target.closest("a");
+          const href = linkEl && resolvedHref(linkEl);
+          if (!href) return;
+
+          const fragment = sameDocumentFragment(linkEl);
+          if (fragment !== null) {
+            const handledByArtifact = event.defaultPrevented;
+            event.preventDefault();
+            if (handledByArtifact || fragment === "" || scrollToFragment(fragment)) return;
+            // A fragment that names nothing in the artifact may name something in the host,
+            // such as a project thread. The artifact's own listeners still see the click.
+            realParent.postMessage({ type: 'openExternal', href }, '*');
+            return;
+          }
+          const filename = linkEl.getAttribute("download") ?? "";
+    
+          event.preventDefault();
+          event.stopImmediatePropagation();
+    
+          if (href.startsWith("blob-request:")) {
+            const blob = getBlobFromURL(href);
+            if (!blob) return;
+            void blob.arrayBuffer().then((data) => {
+              realParent.postMessage({
+                type: "downloadFile",
+                filename,
+                data,
+                mimeType: blob.type || "application/octet-stream",
+              });
+            });
+          } else if (href.startsWith("data:")) {
+            const file = dataUrlFile(href);
+            if (!file) return;
+            realParent.postMessage({
+              type: "downloadFile",
+              filename,
+              data: file.data,
+              mimeType: file.mimeType,
+            });
+          } else {
+            let linkUrl;
+            try {
+              linkUrl = new URL(href);
+            } catch (error) {
+              return;
+            }
+    
+            if (linkUrl.hostname === window.location.hostname) return;
+      
+            realParent.postMessage({
+              type: 'openExternal',
+              href,
+            }, '*');
+          }
+        };
+        window.addEventListener('click', onLinkClick);
+
+        // HACK: a click on an <a download> that is not in the document, or a dispatched click that does not bubble, never reaches the window
+        // listener, so the link gets a listener of its own while its click() or dispatchEvent() runs, after the artifact's. Change with app/page.tsx.
+        const RealAnchor = window.HTMLAnchorElement;
+        const RealMouseEvent = window.MouseEvent;
+        const anchorProto = RealAnchor?.prototype;
+        const superProto = anchorProto && Object.getPrototypeOf(anchorProto);
+        if (typeof RealAnchor === 'function' && typeof RealMouseEvent === 'function' && typeof superProto?.click === 'function' && typeof superProto?.dispatchEvent === 'function') {
+          const onMissedClick = (event) => {
+            if (!event.defaultPrevented) onLinkClick(event);
+          };
+          // Links whose click() or dispatchEvent() is running, so a call made during it leaves the outer call's listener in place.
+          const listening = new WeakSet();
+          const callHearingMissed = (anchor, bubbles, call) => {
+            if (!(anchor instanceof RealAnchor) || !anchor.hasAttribute('download') || (anchor.isConnected && bubbles) || listening.has(anchor)) {
+              return call();
+            }
+            listening.add(anchor);
+            anchor.addEventListener('click', onMissedClick);
+            try {
+              return call();
+            } finally {
+              listening.delete(anchor);
+              anchor.removeEventListener('click', onMissedClick);
+            }
+          };
+          anchorProto.click = function () {
+            return callHearingMissed(this, true, () => superProto.click.call(this));
+          };
+          anchorProto.dispatchEvent = function (event) {
+            const call = () => superProto.dispatchEvent.call(this, event);
+            return event instanceof RealMouseEvent && event.type === 'click' ? callHearingMissed(this, event.bubbles, call) : call();
+          };
+        }
+
+        const originalOpen = window.open;
+        window.open = function (url) {
+          realParent.postMessage({
+            type: "openExternal",
+            href: url,
+          }, "*");
+        };
+
+        window.addEventListener('error', (event) => {
+          realParent.postMessage({ type: 'console', message: 'Uncaught Error: ' + event.message }, '*');
+        });
+
+        // Last, so that a throw here leaves the bridge laid.
+        // As join(' ') words each argument, but for a Symbol or an object with no toString, at which join throws in the page's own call.
+        const worded = (arg) => {
+          try {
+            return RealString(arg ?? '');
+          } catch {
+            return '[object Object]';
+          }
+        };
+        [['log', ''], ['error', 'Error: '], ['warn', 'Warning: ']].forEach(([method, prefix]) => {
+          if (typeof window.console?.[method] !== 'function') return;
+          const native = window.console[method].bind(window.console);
+          window.console[method] = (...args) => {
+            native(...args);
+            realParent.postMessage({ type: 'console', message: prefix + args.map(worded).join(' ') }, '*');
+          };
+        });
+      })();
+    </script>
+  <style id="claude-scrollbar">@layer claude-scrollbar{*{scrollbar-width:thin}html{scrollbar-color:rgb(128 128 128 / 50%) transparent}}</style><script>
+(function () {
+  "use strict";
+  if (window.__coworkHtmlReviewGuest) return;
+  window.__coworkHtmlReviewGuest = true;
+
+  var READY_TYPE = "__cowork_html_review_ready__";
+  var SEL_CLASS = "__cwhr-sel";
+  var CONTEXT_LEN = 32;
+  var EXACT_CAP = 1000;
+  var port = null;
+  var mode = false;
+  var pins = [];
+  var quotes = [];
+  // Resolved Range per quote id; invalidated on DOM mutation and on a
+  // fresh quotes set. Scroll/resize re-reports just re-read
+  // getClientRects() from the cached Range. Null prototype - ids are
+  // collaborator-writable and must not collide with Object.prototype.
+  var quoteRanges = Object.create(null);
+  var hoverEl = null;
+  var selected = null;
+  var hasTextSel = false;
+  var rafPending = false;
+  // Capture before page body scripts can shadow them; start() defers
+  // to DOMContentLoaded which page code can race.
+  var _MessageChannel = window.MessageChannel;
+  var _topPost = window.top.postMessage.bind(window.top);
+
+  function visibleText(el) {
+    // innerText drops display:none/visibility:hidden subtrees; keep an
+    // empty innerText (icon-only el) rather than falling through to
+    // textContent which would re-include hidden text.
+    var t = typeof el.innerText === "string" ? el.innerText : (el.textContent || "");
+    return t.replace(/\s+/g, " ").trim();
+  }
+
+  // Comment-mode cursor: see HTML_PREVIEW_COMMENT_CURSOR above.
+  var BUBBLE_CURSOR = "url(\"data:image/svg+xml,%3Csvg%20xmlns%3D'http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg'%20width%3D'24'%20height%3D'24'%20viewBox%3D'0%200%2024%2024'%3E%3Cpath%20d%3D'M12%20.5h0A11.5%2011.5%200%200%201%2023.5%2012v0A11.5%2011.5%200%200%201%2012%2023.5H2.5a2%202%200%200%201-2-2V12A11.5%2011.5%200%200%201%2012%20.5Z'%20fill%3D'%23fff'%20stroke%3D'rgba(0%2C0%2C0%2C0.22)'%20stroke-width%3D'1'%2F%3E%3C%2Fsvg%3E\") 1 23, url(\"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAACjklEQVR4AbRWS2gaURR9TGpiFTUEWpKQkA+EruqizWcRSBRT/G8KKpXiyo0ra1fVNiDFLmypFUo3iht/iO4Uay1FGwtFECl1p6KWLly4CGqrSMTY+wRFQ7WhGYd7Zu697845b+7M8B6BJh+UxcXFG3a7XeTxeHQAC+C12+1+ZLPZhHgMbp8FjLWxAkaj8U48Hg8lEomfIpEoLBaLLTKZTAd4LJFI3kD8HsZ+xGKxoMFgYI9T+JvAtUAg8FylUn3hcDj8ra0t6vLyMmKxWIhCofSAfZyDMRqXy+Wr1eqvPp/vKYjMAEZsRMDpdN6MRCKf+Xz+8cbGBm2kckIAtXShUGgKh8Mnfr9/Ybh0IKDT6a4vLS19EggE+wwGY7jmUj6TyUTQyv35+fmP0MbBexkISKVS+97e3u1LsU0oAo67Go3G1i/pCZjN5t3Nzc0H/zPzPlH/ip8EWvbQYrHs4hwWmN3e3n62traGfZy7MtbX12fYbPYTIKIQOzs7C6urq/cgINVWVlaO4EtjEXq9nken06mksgMZtJthtVp5xNzcHBsEIEWu0Wg0RKVS2USz2WTigFx6hPCkMTfRarXgB6WQzd/j63Q6bdK+nB7j0KnRaCCCIMpTE4D2oEql8m1qAvV6/VSr1U5PIJvN+qFjv6fyBIVC4ZfD4XgJAmekC9RqNZROp1+FQqESCCDSBWCVO1EoFC8wOQZpAnjm0Wj0O/xX94H4HNAzotvtNnreFU6lUgllMplAMpnclcvlp8NURC6Xi8BLGc5N9NvtNqpWq6hcLqN8Pn8OLUkAMe/g4EAOG4WzizcTJpPpA6zFIpfL9Ra2I45/IRgM2lKp1LtisXjs9XpvHR4eHimVythF4n78BwAA//8r8OPFAAAABklEQVQDAPCY8Oae0TJxAAAAAElFTkSuQmCC\") 1 23, default";
+
+  function injectStyle() {
+    var style = document.createElement("style");
+    // Hover box is painted by the host (from streamed rects); the guest
+    // marks the selected element and, in comment mode, swaps the native
+    // cursor for the comment bubble (forced, so page cursor styles don't
+    // fight the picker). While a composer or thread card is open the arrow
+    // returns, so the bubble cursor and the pin just placed never show at
+    // once. Keyed on <html> data attributes, which page scripts that
+    // rewrite body.className leave alone; ":not(#_)" lifts the rules to
+    // id-level specificity so a page's own !important cursor rules lose.
+    var ANY = ":not(#__cwhr_)";
+    var MODE = "html[data-cwhr-mode]";
+    var COMPOSING = MODE + "[data-cwhr-composing]";
+    style.textContent =
+      "." + SEL_CLASS + "{outline:1px solid hsl(40 70% 40%) !important;outline-offset:0;}" +
+      MODE + ANY + "," + MODE + " " + ANY + "{cursor:" + BUBBLE_CURSOR + " !important;}" +
+      COMPOSING + ANY + "," + COMPOSING + " " + ANY + "{cursor:default !important;}";
+    (document.head || document.documentElement).appendChild(style);
+  }
+
+  function isUnique(sel) {
+    try {
+      return document.querySelectorAll(sel).length === 1;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  // Mirrors the host's stripInvisibles ranges. The host strips these
+  // from stored selectors, so a selector built on a value containing
+  // them would validate here but never match again - skip those rungs
+  // and fall through to the structural ladder instead.
+  function hasInvisibles(s) {
+    for (var i = 0; i < s.length; i++) {
+      var c = s.codePointAt(i);
+      if (c > 0xffff) i++;
+      if (
+        c <= 0x1f ||
+        c === 0x061c ||
+        c === 0x070f ||
+        c === 0xad ||
+        (c >= 0x7f && c <= 0x9f) ||
+        c === 0x115f ||
+        c === 0x1160 ||
+        c === 0x180e ||
+        (c >= 0x200b && c <= 0x200f) ||
+        (c >= 0x202a && c <= 0x202e) ||
+        (c >= 0x2060 && c <= 0x2064) ||
+        (c >= 0x2066 && c <= 0x2069) ||
+        c === 0x3164 ||
+        c === 0xfeff ||
+        (c >= 0xfff9 && c <= 0xfffb) ||
+        c === 0xffa0 ||
+        (c >= 0xe0000 && c <= 0xe007f)
+      ) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  function escapeAttr(v) {
+    return String(v).replace(/\\/g, "\\\\").replace(/"/g, '\\"');
+  }
+
+  // Selector ladder: unique #id -> unique [data-*] -> structural
+  // tag:nth-of-type path rooted at the nearest unique-id ancestor.
+  function selectorFor(el) {
+    if (el.id && !hasInvisibles(el.id) && isUnique("#" + CSS.escape(el.id))) {
+      return "#" + CSS.escape(el.id);
+    }
+    for (var i = 0; i < el.attributes.length; i++) {
+      var attr = el.attributes[i];
+      if (
+        attr.name.indexOf("data-") === 0 &&
+        attr.value &&
+        !hasInvisibles(attr.value)
+      ) {
+        var dataSel = "[" + attr.name + '="' + escapeAttr(attr.value) + '"]';
+        if (isUnique(dataSel)) return dataSel;
+      }
+    }
+    var parts = [];
+    var cur = el;
+    while (cur && cur !== document.body && cur.nodeType === 1 && parts.length < 10) {
+      var sel = cur.tagName.toLowerCase();
+      var parent = cur.parentElement;
+      if (parent) {
+        var sameTag = [];
+        for (var c = 0; c < parent.children.length; c++) {
+          if (parent.children[c].tagName === cur.tagName) sameTag.push(parent.children[c]);
+        }
+        if (sameTag.length > 1) {
+          sel += ":nth-of-type(" + (sameTag.indexOf(cur) + 1) + ")";
+        }
+      }
+      parts.unshift(sel);
+      if (
+        parent &&
+        parent.id &&
+        !hasInvisibles(parent.id) &&
+        isUnique("#" + CSS.escape(parent.id))
+      ) {
+        parts.unshift("#" + CSS.escape(parent.id));
+        return parts.join(" > ");
+      }
+      cur = parent;
+    }
+    if (cur === document.body) {
+      parts.unshift("body");
+      return parts.join(" > ");
+    }
+    // Depth cap hit without a root - an unrooted chain would match the
+    // first structural pattern anywhere in the document. Mark the pin
+    // detached instead of attaching it to the wrong element.
+    return ":not(*)";
+  }
+
+  function descriptorFor(el) {
+    var tag = "<" + el.tagName.toLowerCase() + ">";
+    var idPart = el.id ? " #" + el.id : "";
+    var text = visibleText(el).slice(0, 60);
+    var textPart = text ? ' "' + text + '"' : "";
+    // Nearest id'd ancestor, skipping the UCR-injected
+    // #artifacts-component-root-* wrapper which is implementation noise.
+    var section = el.parentElement;
+    while (
+      section &&
+      (!section.id || section.id.indexOf("artifacts-component-root") === 0)
+    ) {
+      section = section.parentElement;
+    }
+    var sectionPart = section && section.id ? " in #" + section.id : "";
+    return (tag + idPart + textPart + sectionPart).slice(0, 400);
+  }
+
+  // textContent offset of (node, offset) within body - the coordinate
+  // system text-quote anchors are stored in. -1 when the boundary
+  // isn't under body (shadow root, detached).
+  function textOffset(node, offset) {
+    var body = document.body;
+    if (!body) return -1;
+    try {
+      var pre = document.createRange();
+      pre.selectNodeContents(body);
+      pre.setEnd(node, offset);
+      return pre.toString().length;
+    } catch (e) {
+      return -1;
+    }
+  }
+
+  // Inverse: build a Range covering [start, end) in body.textContent.
+  function rangeForOffsets(start, end) {
+    var body = document.body;
+    if (!body) return null;
+    var walker = document.createTreeWalker(body, NodeFilter.SHOW_TEXT);
+    var acc = 0;
+    var range = document.createRange();
+    var haveStart = false;
+    var t;
+    while ((t = walker.nextNode())) {
+      var next = acc + t.length;
+      if (!haveStart && start < next) {
+        range.setStart(t, start - acc);
+        haveStart = true;
+      }
+      if (haveStart && end <= next) {
+        range.setEnd(t, end - acc);
+        return range;
+      }
+      acc = next;
+    }
+    return null;
+  }
+
+  // Context-scored search (W3C text-quote resolution): slice-check the
+  // hint, else pick the occurrence whose surrounding chars best match
+  // prefix/suffix. MIRRORS locateTextQuote() above line-for-line - the
+  // tested export is the contract; this copy is what the sandbox runs.
+  function locateQuote(text, q) {
+    var ex = q.exact;
+    if (!ex) return null;
+    var hint = q.startOffset >= 0 ? q.startOffset : 0;
+    if (text.slice(hint, hint + ex.length) === ex) {
+      return { start: hint, end: hint + ex.length };
+    }
+    var best = -1;
+    var bestScore = -1;
+    var bestDist = Infinity;
+    var scanned = 0;
+    for (var idx = text.indexOf(ex); idx !== -1 && ++scanned <= 1000; idx = text.indexOf(ex, idx + 1)) {
+      var before = text.slice(Math.max(0, idx - CONTEXT_LEN), idx);
+      var after = text.slice(idx + ex.length, idx + ex.length + CONTEXT_LEN);
+      var sc = 0;
+      for (var i = 1; i <= q.prefix.length && i <= before.length; i++) {
+        if (q.prefix[q.prefix.length - i] !== before[before.length - i]) break;
+        sc++;
+      }
+      for (var j = 0; j < q.suffix.length && j < after.length; j++) {
+        if (q.suffix[j] !== after[j]) break;
+        sc++;
+      }
+      var dist = Math.abs(idx - hint);
+      if (sc > bestScore || (sc === bestScore && dist < bestDist)) {
+        best = idx;
+        bestScore = sc;
+        bestDist = dist;
+      }
+    }
+    return best === -1 ? null : { start: best, end: best + ex.length };
+  }
+
+  function collectLineRects(range, cap) {
+    var out = [];
+    var rects = range.getClientRects();
+    for (var i = 0; i < rects.length && out.length < cap; i++) {
+      var r = rects[i];
+      if (r.width > 0 && r.height > 0) {
+        out.push({ x: r.left, y: r.top, w: r.width, h: r.height });
+      }
+    }
+    return out;
+  }
+
+  function reportTextSel(full) {
+    if (!port) return;
+    var sel = window.getSelection();
+    var r = sel && !sel.isCollapsed && sel.rangeCount > 0 ? sel.getRangeAt(0) : null;
+    if (!r || !document.body || !document.body.contains(r.commonAncestorContainer)) {
+      if (hasTextSel) {
+        hasTextSel = false;
+        port.postMessage({ type: "textClear" });
+      }
+      return;
+    }
+    hasTextSel = true;
+    var br = r.getBoundingClientRect();
+    var msg = {
+      type: "textCapture",
+      rect: { x: br.left, y: br.top, w: br.width, h: br.height },
+      lineRects: collectLineRects(r, 80),
+    };
+    if (full) {
+      var live = document.body.textContent || "";
+      var so = textOffset(r.startContainer, r.startOffset);
+      var eo = textOffset(r.endContainer, r.endOffset);
+      if (so < 0 || eo < 0 || eo <= so) {
+        // Unanchorable selection (shadow root, foreign node). A
+        // rect-only post here would make the host pair the new rect
+        // with a stale prior anchor - clear instead.
+        hasTextSel = false;
+        port.postMessage({ type: "textClear" });
+        return;
+      }
+      // Denomination invariant: exact/prefix/suffix are byte-identical
+      // slices of body.textContent. Truncation adjusts endOffset so
+      // the host's (endOffset - startOffset === exact.length) shape
+      // check holds. Cut points back off surrogate halves - a lone
+      // surrogate would never relocate and fails UTF-8 persist.
+      var capped = Math.min(eo, so + EXACT_CAP);
+      if (capped < eo) {
+        var hc = live.charCodeAt(capped - 1);
+        if (hc >= 0xd800 && hc <= 0xdbff) capped--;
+      }
+      if (capped <= so) {
+        port.postMessage(msg);
+        return;
+      }
+      var pStart = Math.max(0, so - CONTEXT_LEN);
+      var pc = live.charCodeAt(pStart);
+      if (pc >= 0xdc00 && pc <= 0xdfff) pStart++;
+      var sEnd = Math.min(live.length, capped + CONTEXT_LEN);
+      if (sEnd < live.length) {
+        var sc = live.charCodeAt(sEnd - 1);
+        if (sc >= 0xd800 && sc <= 0xdbff) sEnd--;
+      }
+      msg.exact = live.slice(so, capped);
+      msg.prefix = live.slice(pStart, so);
+      msg.suffix = live.slice(capped, sEnd);
+      msg.startOffset = so;
+      msg.endOffset = capped;
+    }
+    port.postMessage(msg);
+  }
+
+  function clearSelection() {
+    if (selected) {
+      selected.classList.remove(SEL_CLASS);
+      selected = null;
+    }
+  }
+
+  // rAF-throttled cursor + hover-rect stream so the host can paint the
+  // inspector hover box (and knows the pointer is present) in comment mode.
+  var cursorPending = false;
+  var cursorX = -1;
+  var cursorY = -1;
+  function flushCursor() {
+    cursorPending = false;
+    if (!port) return;
+    var hover = null;
+    if (
+      hoverEl &&
+      hoverEl.nodeType === 1 &&
+      hoverEl !== document.body &&
+      hoverEl !== document.documentElement
+    ) {
+      var r = hoverEl.getBoundingClientRect();
+      if (r.width > 0 || r.height > 0) {
+        hover = { x: r.left, y: r.top, w: r.width, h: r.height };
+      }
+    }
+    port.postMessage({ type: "cursor", x: cursorX, y: cursorY, hover: hover });
+  }
+  function scheduleCursor() {
+    if (!cursorPending) {
+      cursorPending = true;
+      requestAnimationFrame(flushCursor);
+    }
+  }
+  function onMouseMove(ev) {
+    if (!mode || !port) return;
+    // Over the scrollbar gutter (clientX/Y past the content box) - hide
+    // the hover box like a leave.
+    var de = document.documentElement;
+    if (ev.clientX >= de.clientWidth || ev.clientY >= de.clientHeight) {
+      cursorX = -1;
+      cursorY = -1;
+      hoverEl = null;
+      scheduleCursor();
+      return;
+    }
+    cursorX = ev.clientX;
+    cursorY = ev.clientY;
+    hoverEl = ev.target;
+    scheduleCursor();
+  }
+  function onMouseLeave() {
+    if (!mode || !port) return;
+    cursorX = -1;
+    cursorY = -1;
+    hoverEl = null;
+    scheduleCursor();
+  }
+
+  function onClick(ev) {
+    if (!port) return;
+    if (!mode) {
+      // Mode off: don't intercept the page, just let the host close any
+      // open popover (thread card click-away). A non-collapsed selection
+      // means the click ended a drag-select - not a click-away.
+      var s = window.getSelection();
+      if (!s || s.isCollapsed) port.postMessage({ type: "clickAway" });
+      return;
+    }
+    ev.preventDefault();
+    ev.stopImmediatePropagation();
+    var el = ev.target;
+    if (!el || el.nodeType !== 1 || el === document.documentElement) return;
+    if (el === document.body && el.firstElementChild) {
+      // Pin on body is rarely intentional; keep it anyway but as body.
+    }
+    clearSelection();
+    selected = el;
+    el.classList.add(SEL_CLASS);
+    var rect = el.getBoundingClientRect();
+    var pinX = rect.width > 0 ? (ev.clientX - rect.left) / rect.width : 0.5;
+    var pinY = rect.height > 0 ? (ev.clientY - rect.top) / rect.height : 0.5;
+    port.postMessage({
+      type: "capture",
+      selector: selectorFor(el).slice(0, 1000),
+      textHint: visibleText(el).slice(0, 300),
+      descriptor: descriptorFor(el),
+      pinX: Math.min(1, Math.max(0, pinX)),
+      pinY: Math.min(1, Math.max(0, pinY)),
+      clientX: ev.clientX,
+      clientY: ev.clientY,
+      rectLeft: rect.left,
+      rectTop: rect.top,
+    });
+  }
+
+  function reportRects() {
+    rafPending = false;
+    if (!port) return;
+    // Selected element's live bounds - keeps the host's draft pin /
+    // inspector tag / composer glued through scroll and reflow.
+    if (selected) {
+      var sr = selected.getBoundingClientRect();
+      port.postMessage({
+        type: "selRect",
+        left: sr.left,
+        top: sr.top,
+        w: sr.width,
+        h: sr.height,
+        found:
+          (sr.width > 0 || sr.height > 0) &&
+          document.documentElement.contains(selected),
+      });
+    }
+    var rects = [];
+    for (var i = 0; i < pins.length; i++) {
+      var p = pins[i];
+      var el = null;
+      try {
+        el = document.querySelector(p.selector);
+      } catch (e) {
+        el = null;
+      }
+      if (!el) {
+        rects.push({ id: p.id, x: 0, y: 0, found: false });
+        continue;
+      }
+      var r = el.getBoundingClientRect();
+      if (r.width === 0 && r.height === 0) {
+        rects.push({ id: p.id, x: 0, y: 0, found: false });
+        continue;
+      }
+      rects.push({
+        id: p.id,
+        x: r.left + p.pinX * r.width,
+        y: r.top + p.pinY * r.height,
+        found: true,
+      });
+    }
+    var quoteRects = [];
+    if (quotes.length > 0) {
+      var live = null;
+      for (var qi = 0; qi < quotes.length; qi++) {
+        var q = quotes[qi];
+        var qr = quoteRanges[q.id];
+        if (qr === undefined) {
+          if (live === null) {
+            live = (document.body && document.body.textContent) || "";
+          }
+          var loc = locateQuote(live, q);
+          qr = (loc && rangeForOffsets(loc.start, loc.end)) || null;
+          quoteRanges[q.id] = qr;
+        }
+        // Zero paintable rects (display:none subtree) reports as
+        // not-found so the host docks it as detached instead of
+        // rendering nothing clickable.
+        var qlr = qr ? collectLineRects(qr, 80) : [];
+        quoteRects.push(
+          qlr.length > 0
+            ? { id: q.id, found: true, lineRects: qlr }
+            : { id: q.id, found: false, lineRects: [] }
+        );
+      }
+    }
+    port.postMessage({
+      type: "rects",
+      rects: rects,
+      quoteRects: quoteRects,
+      scrollY: window.scrollY || 0,
+    });
+  }
+
+  function scheduleRects() {
+    if (rafPending) return;
+    rafPending = true;
+    var done = false;
+    function run() {
+      if (done) return;
+      done = true;
+      reportRects();
+    }
+    // rAF for paint alignment, with a timeout fallback - rAF is
+    // suspended entirely in hidden tabs and pins must still settle
+    // when the tab becomes visible after background loading.
+    requestAnimationFrame(run);
+    setTimeout(run, 150);
+  }
+
+  function setMode(on) {
+    mode = !!on;
+    document.documentElement.toggleAttribute("data-cwhr-mode", mode);
+    if (!mode) {
+      hoverEl = null;
+      clearSelection();
+    }
+  }
+
+  function setComposing(open) {
+    document.documentElement.toggleAttribute("data-cwhr-composing", !!open);
+  }
+
+  function onPortMessage(ev) {
+    var data = ev.data;
+    if (!data) return;
+    if (data.type === "mode") setMode(data.on);
+    else if (data.type === "composing") setComposing(data.open);
+    else if (data.type === "pins") {
+      pins = Array.isArray(data.pins) ? data.pins : [];
+      scheduleRects();
+    } else if (data.type === "quotes") {
+      quotes = Array.isArray(data.quotes) ? data.quotes : [];
+      quoteRanges = Object.create(null);
+      scheduleRects();
+    } else if (data.type === "clearSelection") {
+      clearSelection();
+    } else if (data.type === "clearTextSel") {
+      var ts = window.getSelection();
+      if (ts) ts.removeAllRanges();
+      hasTextSel = false;
+    } else if (data.type === "restoreScroll") {
+      var ry = Number(data.y);
+      if (isFinite(ry) && ry > 0) {
+        // Apply now and again at load - late images/fonts can grow the
+        // document after the first attempt clamps short.
+        window.scrollTo(0, ry);
+        window.addEventListener("load", function () {
+          window.scrollTo(0, ry);
+        });
+      }
+    }
+  }
+
+  function start() {
+    injectStyle();
+    var channel = new _MessageChannel();
+    port = channel.port1;
+    port.onmessage = onPortMessage;
+    // Sandboxed srcdoc origins can be opaque; "*" is required. The
+    // payload carries only the mount token (multiple sandboxes can be
+    // mounted at once - the token routes the port to the right overlay)
+    // and the channel port itself is pairwise-secure.
+    _topPost(
+      { type: READY_TYPE, token: "00484a65-d7a0-486a-abde-d432f5aeec0d" },
+      "*",
+      [channel.port2]
+    );
+    document.addEventListener("mousemove", onMouseMove, true);
+    // documentElement (not document, capture) so this fires only when the
+    // pointer leaves the viewport - capture-phase on document would fire for
+    // every intra-document element-boundary crossing.
+    document.documentElement.addEventListener("mouseleave", onMouseLeave);
+    document.addEventListener("click", onClick, true);
+    // Text-selection capture: commit on mouseup/keyup (Shift+Arrow),
+    // clear on collapse. Not mode-gated; highlight-to-comment is
+    // always on.
+    function onSelCommit() { reportTextSel(true); }
+    document.addEventListener("mouseup", onSelCommit, true);
+    document.addEventListener("keyup", onSelCommit, true);
+    document.addEventListener("selectionchange", function () {
+      var s = window.getSelection();
+      if (hasTextSel && (!s || s.isCollapsed)) reportTextSel(false);
+    });
+    document.addEventListener("keydown", function (ev) {
+      if (ev.key === "Escape" && port) port.postMessage({ type: "dismiss" });
+    }, true);
+    // Scroll/resize move the hovered element under a stationary pointer -
+    // re-report its rect so the host's inspector box tracks it. Mutations
+    // stay rects-only (animating pages would chatter the cursor stream).
+    var textSelPending = false;
+    function scheduleTextSel() {
+      if (textSelPending) return;
+      textSelPending = true;
+      requestAnimationFrame(function () {
+        textSelPending = false;
+        reportTextSel(false);
+      });
+    }
+    function onLayoutChange() {
+      scheduleRects();
+      if (mode && hoverEl) scheduleCursor();
+      if (hasTextSel) scheduleTextSel();
+    }
+    window.addEventListener("scroll", onLayoutChange, true);
+    window.addEventListener("resize", onLayoutChange);
+    // Full-cache invalidate per childList mutation is acceptable: CSS
+    // animation doesn't fire the observer; JS writers at frame rate
+    // would re-relocate every frame but are rare. characterData isn't
+    // observed, so .data= edits leave highlights stale until the next
+    // childList mutation.
+    var observer = new MutationObserver(function () {
+      quoteRanges = Object.create(null);
+      scheduleRects();
+      if (hasTextSel) scheduleTextSel();
+    });
+    function observe() {
+      if (document.body) observer.observe(document.body, { childList: true, subtree: true });
+    }
+    if (document.body) observe();
+    else document.addEventListener("DOMContentLoaded", observe);
+    // Settle pins after late layout (fonts, images).
+    setInterval(scheduleRects, 2000);
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", start);
+  } else {
+    start();
+  }
+})();
+</script>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>工作看板</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+<link href="https://fonts.googleapis.com/css2?family=Jost:wght@200;300;400;500&amp;family=Noto+Sans+TC:wght@400;500;700&amp;display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#fafafa;--surface:#fff;--ink:#111114;--muted:#5d5d66;--line:#e2e2e8;--grid:#f0f0f4;
+  --teal:#111114;--teal-soft:#ececf2;--lime:#e0342a;--warn:#e0342a;--onteal:#fff;--done:#3ccf7f;
+  --red:#e0342a;--green:#3ccf7f;--rest:#c9c9d0;
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#000;--surface:#16161b;--ink:#f1f1f4;--muted:#a3a3ae;--line:#2c2c34;--grid:#1f1f26;
+  --teal:#f1f1f4;--teal-soft:#26262e;--lime:#ff5a4e;--warn:#ff5a4e;--onteal:#111114;--done:#3ccf7f;--red:#ff5a4e;--green:#3ccf7f;--rest:#4a4a54;color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#000;--surface:#16161b;--ink:#f1f1f4;--muted:#a3a3ae;--line:#2c2c34;--grid:#1f1f26;
+  --teal:#f1f1f4;--teal-soft:#26262e;--lime:#ff5a4e;--warn:#ff5a4e;--onteal:#111114;--done:#3ccf7f;--red:#ff5a4e;--green:#3ccf7f;--rest:#4a4a54;color-scheme:dark}
+*,*::before,*::after{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;overflow:hidden;background:var(--bg);color:var(--ink);font:15px/1.6 "Noto Sans TC",system-ui,"PingFang TC","Microsoft JhengHei",sans-serif}
+.num{font-family:"Barlow Condensed","Noto Sans TC",sans-serif;font-weight:700}
+.sub{color:var(--muted);font-size:13px}
+h1{margin:0;font-size:24px;line-height:1.3}
+h2{margin:0;font-size:16px;padding-left:10px;border-left:4px solid var(--lime)}
+button{font:inherit;cursor:pointer;border-radius:8px;border:1px solid var(--line);background:var(--surface);color:var(--ink);padding:7px 13px;min-height:36px}
+button.primary{background:var(--teal);border-color:var(--teal);color:var(--onteal)}
+button.ghost{border-style:dashed;color:var(--muted)}
+button.icon{padding:3px 10px;min-height:30px;font-size:13px}
+button.danger,.danger-btn{color:var(--warn)}
+button:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-visible,a:focus-visible,summary:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+input,textarea,select{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:6px 10px;width:100%}
+textarea{resize:vertical;line-height:1.7}
+
+/* ===== horizontal pager: main | weekly (swipe right) ===== */
+.pager{display:flex;height:100vh;height:100dvh;overflow-x:auto;overflow-y:hidden;scroll-snap-type:x mandatory;overscroll-behavior-x:contain;scrollbar-width:thin}
+.page{flex:none;height:100%;overflow-y:auto;scroll-snap-align:start}
+.page-main{width:100vw}
+.page-week{width:min(620px,94vw);background:var(--surface);border-left:1px solid var(--line);scroll-snap-align:end;box-shadow:-8px 0 24px rgba(0,0,0,.06)}
+.peek{position:fixed;right:0;top:50%;transform:translateY(-50%);z-index:8;writing-mode:vertical-rl;letter-spacing:.15em;border-radius:10px 0 0 10px;border-right:0;padding:14px 8px;background:var(--teal);color:var(--onteal);border-color:var(--teal);box-shadow:0 2px 10px rgba(0,0,0,.15);transition:opacity .2s}
+.peek.hide{opacity:0;pointer-events:none}
+
+.wrap{max-width:1500px;margin:0 auto;padding:20px 16px 64px}
+.top{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:12px;margin-bottom:14px}
+.title-in{font-size:20px;font-weight:700;max-width:420px}
+.actions{display:flex;gap:8px;flex-wrap:wrap}
+.banner{display:none;position:sticky;top:0;z-index:6;background:var(--lime);color:#1b2a05;padding:8px 14px;border-radius:10px;margin-bottom:14px;font-size:13.5px}
+body.edit .banner{display:block}
+
+.layout{display:grid;grid-template-columns:240px minmax(0,1fr);gap:16px;align-items:start}
+.main-col{display:grid;gap:16px;min-width:0}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px 16px}
+.panel-head{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap}
+#donePanel{position:sticky;top:12px;max-height:calc(100dvh - 24px);display:flex;flex-direction:column}
+#donePanel .scroll{overflow-y:auto;flex:1;margin:0 -6px;padding:0 6px}
+@media (max-width:900px){.layout{grid-template-columns:minmax(0,1fr)}#donePanel{position:static;max-height:none;order:2}}
+.empty{color:var(--muted);font-size:13.5px;margin:6px 0}
+.count{font-size:12px;color:var(--muted);background:var(--bg);border-radius:999px;padding:1px 8px;margin-left:6px}
+
+/* ===== weekly page ===== */
+.week-wrap{padding:20px 18px 64px}
+.week-top{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:14px;flex-wrap:wrap;position:sticky;top:0;background:var(--surface);padding:6px 0;z-index:2}
+.week{border:1px solid var(--line);border-radius:10px;margin-bottom:10px;background:var(--surface)}
+.week summary{cursor:pointer;padding:8px 12px;display:flex;align-items:center;gap:8px;list-style:none}
+.week summary::-webkit-details-marker{display:none}
+.week summary::before{content:"▸";color:var(--muted);transition:transform .15s}
+.week[open] summary::before{transform:rotate(90deg)}
+.week summary .num{font-size:18px}
+.badge{font-size:11.5px;background:var(--teal);color:var(--onteal);border-radius:999px;padding:0 8px}
+.week-tools{display:flex;gap:6px;justify-content:flex-end;padding:0 12px;flex-wrap:wrap}
+.week-text{white-space:pre-wrap;line-height:1.85;padding:6px 14px 14px;font-size:14.5px;word-break:break-word}
+
+/* ===== 1. Gantt overview ===== */
+.range{display:none;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:10px;font-size:13px;color:var(--muted)}
+body.edit .range{display:flex}
+.range input{width:auto}
+.gantt{overflow-x:auto;border-top:1px solid var(--line)}
+.g-row{display:grid;grid-template-columns:170px 1fr;border-bottom:1px solid var(--line)}
+.g-name{position:sticky;left:0;z-index:2;background:var(--surface);padding:8px 10px 8px 0;font-size:13.5px;font-weight:500;line-height:1.35;display:flex;flex-direction:column;justify-content:center;border-right:1px solid var(--line)}
+.g-name a{color:var(--ink);text-decoration:none}
+.g-name a:hover{text-decoration:underline}
+.g-axis{position:relative;height:28px}
+.g-axis span{position:absolute;top:5px;font-size:12px;color:var(--muted);transform:translateX(5px);white-space:nowrap}
+.g-track{position:relative;height:58px}
+.vgrid{position:absolute;top:0;bottom:0;width:1px;background:var(--grid)}
+.today{position:absolute;top:0;bottom:0;width:2px;background:var(--warn);opacity:.55}
+.g-bar{position:absolute;top:27px;height:14px;border-radius:7px;background:var(--teal-soft);overflow:hidden}
+.g-bar .fill{height:100%;background:var(--teal)}
+.g-pct{position:absolute;top:24px;font-size:12.5px;padding-left:6px;white-space:nowrap}
+.g-mk{position:absolute;top:0;bottom:0;width:0}
+.g-mk .dot{position:absolute;left:-5px;top:29px;width:10px;height:10px;border-radius:50%;background:var(--mc);box-shadow:0 0 0 1.5px var(--surface),0 0 0 2.5px var(--ink)}
+.g-mk .lbl{position:absolute;top:4px;left:0;transform:translateX(-50%);font-size:11.5px;white-space:nowrap;max-width:130px;overflow:hidden;text-overflow:ellipsis;background:var(--surface);border:1px solid var(--line);padding:0 5px;border-radius:4px;line-height:17px}
+.g-mk .stem{position:absolute;left:-.5px;width:1px;background:var(--mc)}
+.g-mk.edgeL .lbl{transform:translateX(-8px)}
+.g-mk.edgeR .lbl{transform:translateX(calc(-100% + 8px))}
+/* stage log */
+.log summary{cursor:pointer;font-size:12.5px;color:var(--muted);list-style:none;display:flex;align-items:center;gap:4px}
+.log summary::-webkit-details-marker{display:none}
+.log summary::before{content:"▸";transition:transform .15s}
+.log[open] summary::before{transform:rotate(90deg)}
+.log ol{list-style:none;margin:6px 0 0 6px;padding:0}
+.log li{position:relative;display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px;padding:3px 0 7px 16px;border-left:2px solid var(--line);font-size:13.5px;line-height:1.45}
+.log li:last-child{border-left-color:transparent}
+.log-dot{position:absolute;left:-7px;top:6px;width:12px;height:12px;border-radius:50%;box-shadow:0 0 0 2px var(--surface),0 0 0 3px var(--ink)}
+.log-d{min-width:74px;font-size:14px}
+.log-p{margin-left:auto;font-size:12px}
+.marker .lbl,.g-mk .lbl{z-index:3}.marker .stem,.g-mk .stem{z-index:1}.marker .dot,.g-mk .dot{z-index:2}
+/* small events */
+.events{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:10px}
+.ev{border:1px solid var(--line);border-radius:10px;padding:10px 12px;background:var(--bg);display:flex;gap:8px;align-items:flex-start}
+.ev-body{flex:1;min-width:0}
+.ev b{display:block;font-size:14.5px;line-height:1.4}
+.ev p{margin:3px 0 0;font-size:13px;color:var(--muted);white-space:pre-wrap;word-break:break-word}
+/* collapsible issue cards */
+.cards{align-items:start}
+.card-top{display:flex;align-items:center;gap:6px}
+.card-toggle{flex:1;min-width:0;display:flex;align-items:center;gap:8px;border:0;background:none;padding:2px 0;text-align:left;border-radius:6px}
+.card-toggle .card-title{flex:1;min-width:0}
+.hpct{font-size:22px;color:var(--teal);line-height:1}
+.chev{color:var(--muted);transition:transform .15s;font-size:14px}
+.card.open .chev{transform:rotate(180deg)}
+.mini-bar{height:10px;border-radius:5px;background:var(--teal-soft);overflow:hidden}
+.mini-bar .fill{height:100%;background:var(--teal);transition:width .2s}
+.tag.sm{font-size:11px;min-height:20px;line-height:18px;padding:0 7px}
+
+/* ===== 2. per-issue cards ===== */
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,400px),1fr));gap:14px}
+.card{border:1px solid var(--line);border-radius:12px;padding:14px;background:var(--surface);display:flex;flex-direction:column;gap:8px;scroll-margin-top:60px}
+
+.card.done-card{border-color:var(--teal)}
+.card-head{display:flex;justify-content:space-between;align-items:flex-start;gap:8px}
+.card-title{font-weight:700;font-size:16px;line-height:1.4}
+.card-tools{display:none;gap:4px;flex:none}
+body.edit .card-tools{display:flex}
+.big{font-size:34px;line-height:1;color:var(--teal)}
+.meta{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.tags{display:flex;flex-wrap:wrap;gap:5px}
+.tag{font-size:12px;padding:1px 9px;border-radius:999px;border:1px solid var(--line);color:var(--muted);background:var(--surface);min-height:24px;line-height:20px}
+.tag.past{background:var(--teal-soft);border-color:transparent;color:var(--ink)}
+.tag.cur{background:var(--teal);border-color:var(--teal);color:var(--onteal);font-weight:500}
+.tag-x{margin-left:5px;opacity:.75}
+.c-track{position:relative;height:84px;margin:0 8px}
+.c-bar{position:absolute;left:0;right:0;top:34px;height:16px;border-radius:8px;background:var(--teal-soft);overflow:hidden}
+.c-bar .fill{height:100%;background:var(--teal);transition:width .2s}
+.tick{position:absolute;top:52px;font-size:10.5px;color:var(--muted);transform:translateX(-50%)}
+.tick::before{content:"";position:absolute;left:50%;top:-4px;width:1px;height:4px;background:var(--line)}
+.marker{position:absolute;top:0;bottom:0;width:0;touch-action:none}
+.marker .stem{position:absolute;left:-.5px;width:1px;background:var(--mc)}
+.marker.up .stem{top:22px;height:14px}
+.marker.down .stem{top:48px;height:16px}
+.marker .dot{position:absolute;left:-7px;top:35px;width:14px;height:14px;border-radius:50%;background:var(--mc);border:2px solid var(--surface);box-shadow:0 0 0 1px var(--ink)}
+.marker .lbl{position:absolute;left:0;transform:translateX(-50%);font-size:12px;white-space:nowrap;background:var(--surface);border:1px solid var(--line);padding:0 6px;border-radius:5px;max-width:160px;overflow:hidden;text-overflow:ellipsis;line-height:18px}
+.marker.up .lbl{top:2px}
+.marker.down .lbl{top:62px}
+.marker.edgeL .lbl{transform:translateX(-10px)}
+.marker.edgeR .lbl{transform:translateX(calc(-100% + 10px))}
+body.edit .marker{cursor:grab}
+body.edit .c-track{cursor:copy}
+.att{border-top:1px dashed var(--line);padding-top:8px}
+.att-h{font-size:12px;color:var(--muted);margin-bottom:4px}
+.links{display:flex;flex-wrap:wrap;gap:6px}
+a.link{display:inline-flex;align-items:center;min-height:32px;text-decoration:none;color:#fff;padding:3px 12px;border-radius:8px;font-size:13.5px;border:1px solid rgba(0,0,0,.08)}
+a.link:hover{filter:brightness(1.1)}
+.edit-block{display:none;gap:8px;grid-template-columns:1fr 1fr;background:var(--bg);border-radius:10px;padding:10px}
+body.edit .edit-block{display:grid}
+.edit-block label{font-size:12px;color:var(--muted);display:grid;gap:3px}
+.edit-block .full{grid-column:1/-1}
+.edit-block input{background:var(--surface)}
+.prog{display:grid;grid-template-columns:1fr 76px;gap:8px;align-items:center}
+.hint{font-size:12px;color:var(--muted)}
+.edit-only{display:none!important}
+body.edit .edit-only{display:inline-flex!important}
+
+/* done list */
+.done-item{border:1px solid var(--line);border-radius:10px;margin-bottom:8px}
+.done-item summary{cursor:pointer;padding:8px 10px;list-style:none;display:grid;gap:1px}
+.done-item summary::-webkit-details-marker{display:none}
+.done-item .t{font-weight:700;font-size:14px;line-height:1.4}
+.done-item .t::before{content:"✓ ";color:var(--done)}
+.done-body{padding:0 10px 10px;font-size:13px;display:grid;gap:6px}
+.done-body ul{margin:0;padding-left:18px}
+
+/* dialog */
+dialog{border:1px solid var(--line);border-radius:14px;background:var(--surface);color:var(--ink);width:min(440px,94vw);padding:18px}
+dialog.wide{width:min(720px,94vw)}
+dialog::backdrop{background:rgba(0,0,0,.35)}
+dialog form{display:grid;gap:10px}
+dialog label{font-size:12.5px;color:var(--muted);display:grid;gap:4px}
+.swatches{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.swatches button{width:30px;height:30px;min-height:0;padding:0;border-radius:50%}
+.swatches button[aria-pressed="true"]{outline:3px solid var(--ink);outline-offset:2px}
+.dlg-actions{display:flex;flex-direction:row-reverse;gap:8px}
+.dlg-actions .danger-btn{margin-right:auto}
+.toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:8px 14px;border-radius:8px;font-size:13.5px;opacity:0;transition:opacity .2s;pointer-events:none;z-index:30}
+.toast.show{opacity:1}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;scroll-behavior:auto!important}}
+@media print{body{overflow:visible}.pager{display:block;height:auto;overflow:visible}.page{height:auto;overflow:visible;width:auto!important}.peek,.actions,.banner,.week-tools{display:none!important}}
+
+/* ===== visual style: monochrome line + spectrum accent ===== */
+.num{font-family:"Jost","Noto Sans TC",sans-serif;font-weight:400;letter-spacing:.02em}
+h2{border-left:0;padding:0;display:flex;align-items:center;gap:12px;font-weight:500;font-size:16px;letter-spacing:.1em;flex:1;min-width:180px}
+h2::after,.arrow-line{content:"";flex:1;min-width:44px;height:26px;background:var(--ink);
+  -webkit-mask:linear-gradient(#000,#000) left center/calc(100% - 3px) 1.2px no-repeat,url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='127.49 16.61 16.13 31.41'%3E%3Cpath d='M129.07,17.38v-.77h-1.58l.06,1.53a16.13,16.13,0,0,0,11.16,14.55,16.14,16.14,0,0,0-11.160,14.55l-.06,1.54h1.58V48a14.57,14.57,0,0,1,14.55-14.55V31.93A14.57,14.57,0,0,1,129.07,17.38Z'/%3E%3C/svg%3E") right center/12.4px 24.2px no-repeat;
+  mask:linear-gradient(#000,#000) left center/calc(100% - 3px) 1.2px no-repeat,url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='127.49 16.61 16.13 31.41'%3E%3Cpath d='M129.07,17.38v-.77h-1.58l.06,1.53a16.13,16.13,0,0,0,11.16,14.55,16.14,16.14,0,0,0-11.160,14.55l-.06,1.54h1.58V48a14.57,14.57,0,0,1,14.55-14.55V31.93A14.57,14.57,0,0,1,129.07,17.38Z'/%3E%3C/svg%3E") right center/12.4px 24.2px no-repeat}
+.panel-head{flex-wrap:nowrap}
+button{border-radius:999px;padding:6px 16px;transition:border-color .15s}
+button:hover{border-color:var(--ink)}
+button.icon{padding:3px 12px}
+button.primary:hover{opacity:.85}
+input,textarea,select{border-radius:10px}
+.panel{border-radius:18px;padding:16px 18px}
+.card{border-radius:16px;transition:border-color .15s}
+.card:hover{border-color:var(--muted)}
+.card.done-card{border-color:var(--lime)}
+
+
+.c-bar,.g-bar,.mini-bar{background:var(--teal-soft)}
+.hpct{font-family:"Jost",sans-serif;font-weight:300;font-size:30px;color:var(--ink);letter-spacing:-.01em}
+.tag{border-color:var(--ink);color:var(--ink)}
+.tag.past{background:var(--teal-soft);border-color:transparent;color:var(--muted)}
+.count{border:1px solid var(--ink);background:none;color:var(--ink);font-family:"Jost",sans-serif;letter-spacing:0}
+.badge{background:var(--ink);color:var(--surface)}
+.banner{background:var(--surface);color:var(--ink);border:1px solid var(--line);border-radius:999px;padding:9px 18px;align-items:center;gap:10px}
+body.edit .banner{display:flex}
+.banner b{font-weight:500;letter-spacing:.08em;flex:none}
+.banner .sub{font-size:12.5px}
+.peek{background:var(--ink);color:var(--surface);border-color:var(--ink);border-radius:14px 0 0 14px}
+.today{background:var(--warn);opacity:.8;width:1.5px}
+.week,.done-item,.ev{border-radius:14px}
+.ev{background:var(--surface);border-color:var(--line);}
+.g-mk .lbl,.marker .lbl{border-radius:999px;padding:0 8px}
+.log-dot{box-shadow:0 0 0 2px var(--surface),0 0 0 3px var(--ink)}
+dialog{border-radius:18px}
+.toast{border-radius:999px}
+
+.en{font-family:"Jost",sans-serif;font-size:11.5px;letter-spacing:.18em;color:var(--muted);font-weight:400;margin-left:-4px}
+.zh-sm{font-family:"Noto Sans TC",sans-serif;font-size:12px;letter-spacing:.3em;margin-left:10px;color:var(--muted)}
+.pill-zh{font-family:"Noto Sans TC",sans-serif;font-size:12px;letter-spacing:.1em;margin-left:8px;padding-left:8px;border-left:1px solid var(--ink);line-height:1.2}
+h2{white-space:nowrap}#donePanel h2{min-width:0}#donePanel h2::after{min-width:16px}
+.events .empty{grid-column:1/-1}
+/* done panel: inverted */
+#donePanel{--surface:#111114;--bg:#1b1b21;--ink:#f4f4f6;--muted:#a9a9b3;--line:#34343c;--teal:#f4f4f6;--onteal:#111114;--teal-soft:#2a2a32;--lime:#b9a3ff;--done:#b9a3ff;background:var(--surface);color:var(--ink);border-color:#111114}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) #donePanel{--surface:#f4f4f6;--bg:#fff;--ink:#111114;--muted:#5d5d66;--line:#dcdce2;--teal:#111114;--onteal:#fff;--teal-soft:#e6e6ec;--lime:#7a5cf0;--done:#6a4fd8;border-color:#f4f4f6}}
+:root[data-theme="dark"] #donePanel{--surface:#f4f4f6;--bg:#fff;--ink:#111114;--muted:#5d5d66;--line:#dcdce2;--teal:#111114;--onteal:#fff;--teal-soft:#e6e6ec;--lime:#7a5cf0;--done:#6a4fd8;border-color:#f4f4f6}
+/* hero header */
+.hero{display:grid;grid-template-columns:auto max-content minmax(0,1fr);align-items:center;gap:14px 40px;padding-top:6px}
+.hero-l{min-width:0}
+.eyebrow{display:flex;align-items:center;gap:12px;font-family:"Jost",sans-serif;font-size:15px;letter-spacing:.14em;font-weight:400;margin-bottom:6px}
+.eyebrow .arrow-line{display:inline-block;flex:1;min-width:60px}
+.hero-title{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.pill{display:inline-flex;align-items:center;border:1.5px solid var(--ink);border-radius:999px;padding:1px 16px;font-family:"Jost",sans-serif;font-size:17px;letter-spacing:.06em;line-height:1.6}
+h1,.title-in{font-size:clamp(26px,3.2vw,38px);font-weight:400;letter-spacing:.08em;line-height:1.2}
+.title-in{max-width:520px;padding:2px 10px}
+.logo-box{align-self:center;height:76px;display:flex;align-items:center;padding-right:36px;border-right:1px solid var(--ink)}
+.hero-r{justify-self:end}
+.hero-l{display:flex;flex-direction:column;justify-content:center;gap:8px}
+.hero-l .eyebrow{margin-bottom:0;line-height:1}
+.hero-title{line-height:1}
+.hero-title h1{line-height:1.1}
+.logo{display:block;height:46px;width:auto;color:var(--ink)}
+
+.wave svg{display:block;width:100%;height:100%}
+.hero-r{text-align:right}
+.bigdate{font-family:"Jost",sans-serif;font-weight:200;font-size:clamp(52px,7vw,92px);line-height:.85;letter-spacing:.01em}
+.dow{display:flex;justify-content:flex-end;align-items:center;gap:6px;font-family:"Jost",sans-serif;font-size:13px;letter-spacing:.1em;margin-top:6px}
+.circ{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border:1px solid var(--ink);border-radius:50%;font-size:11.5px;letter-spacing:0;font-family:"Noto Sans TC",sans-serif}
+.hero-rule{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;border-top:1.5px solid var(--ink);margin:14px 0 18px;padding-top:10px}
+.hero-rule .sub{letter-spacing:.12em}
+@media (max-width:760px){.hero{grid-template-columns:1fr auto}.hero{grid-template-columns:1fr auto}.logo-box{grid-column:1/-1;border-right:0;padding:0}.logo{height:38px}.eyebrow{white-space:nowrap;font-size:12px;gap:8px}.eyebrow .zh-sm{display:none}.bigdate{font-size:46px}.hero{gap:14px}.eyebrow .arrow-line{width:60px}}
+
+/* ===== motion: hover zoom + glowing edges ===== */
+:root{--glow:0 0 0 1.5px rgba(255,255,255,.95),0 0 18px 2px rgba(255,255,255,.55),0 8px 26px -6px rgba(0,0,0,.18);--glow-soft:0 0 0 1px rgba(255,255,255,.8),0 0 26px -4px rgba(255,255,255,.45),0 10px 30px -14px rgba(0,0,0,.18);--glow-bar:0 0 14px rgba(255,255,255,.85);--ease:cubic-bezier(.2,.8,.2,1)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--glow:0 0 0 1.5px #fff,0 0 22px 3px rgba(255,255,255,.55),0 0 50px -6px rgba(255,255,255,.35);--glow-soft:0 0 0 1px rgba(255,255,255,.7),0 0 34px -6px rgba(255,255,255,.4)}}
+:root[data-theme="dark"]{--glow:0 0 0 1.5px #fff,0 0 22px 3px rgba(255,255,255,.55),0 0 50px -6px rgba(255,255,255,.35);--glow-soft:0 0 0 1px rgba(255,255,255,.7),0 0 34px -6px rgba(255,255,255,.4)}
+.card,.ev,.done-item,.week,.panel,button,a.link,.tag,.pill,.logo-box,.g-row,.log li{transition:transform .22s var(--ease),box-shadow .22s var(--ease),border-color .22s var(--ease),background-color .2s,opacity .2s}
+@media (hover:hover){
+  .card:hover,.ev:hover,.done-item:hover,.week:hover{transform:scale(1.015);box-shadow:var(--glow);border-color:transparent;z-index:1;position:relative}
+  .panel:hover{box-shadow:var(--glow-soft)}
+  #donePanel:hover{box-shadow:0 0 0 1.5px #fff,0 0 28px 2px rgba(255,255,255,.55),0 12px 30px -10px rgba(0,0,0,.35)}
+  button:hover,.tag:hover{transform:scale(1.05);box-shadow:var(--glow);border-color:transparent}
+  a.link:hover{transform:translateY(-2px) scale(1.04);box-shadow:0 6px 18px -4px rgba(0,0,0,.35),0 0 0 1px rgba(255,255,255,.4) inset;filter:brightness(1.08)}
+  .pill:hover{box-shadow:var(--glow)}
+  .logo-box:hover{transform:scale(1.03)}
+  .g-row:hover{background:linear-gradient(90deg,rgba(128,128,140,.07),rgba(128,128,140,.03))}
+  .g-row:hover .g-bar,.c-track:hover .c-bar{box-shadow:var(--glow-bar)}
+  .log li:hover{transform:translateX(3px)}
+  .marker:hover .dot,.g-mk:hover .dot{transform:scale(1.35);box-shadow:0 0 0 2px var(--surface),0 0 10px 2px var(--mc)}
+  .marker:hover .lbl,.g-mk:hover .lbl{border-color:var(--mc);box-shadow:0 0 10px -2px var(--mc)}
+  .peek:hover{padding-right:16px;box-shadow:var(--glow)}
+}
+.card-toggle:hover,.card-toggle:focus-visible{transform:none;box-shadow:none}
+button:active,.tag:active,a.link:active{transform:scale(.96)}
+.card:focus-within{box-shadow:var(--glow)}
+.marker .dot,.g-mk .dot,.marker .lbl,.g-mk .lbl,.c-bar,.g-bar,.peek{transition:transform .18s var(--ease),box-shadow .18s,border-color .18s,padding .2s}
+/* expanding cards */
+.card.open>*:not(.card-top){animation:rise .32s var(--ease) both}
+.card.open>*:nth-child(3){animation-delay:.03s}.card.open>*:nth-child(4){animation-delay:.06s}.card.open>*:nth-child(5){animation-delay:.09s}.card.open>*:nth-child(6){animation-delay:.12s}
+@keyframes rise{from{opacity:0;transform:translateY(8px)}}
+.chev{display:inline-block;transition:transform .3s var(--ease)}
+/* bars grow in on first load */
+body.intro .fill{animation:grow 1s var(--ease) both}
+@keyframes grow{from{width:0}}
+body.intro .card,body.intro .ev,body.intro .g-row,body.intro .done-item{animation:rise .5s var(--ease) both}
+/* dialog / toast / banner */
+dialog[open]{animation:pop .24s var(--ease)}
+dialog[open]::backdrop{animation:fade .24s ease}
+@keyframes pop{from{opacity:0;transform:translateY(10px) scale(.96)}}
+@keyframes fade{from{opacity:0}}
+.toast{transform:translate(-50%,12px);transition:opacity .25s,transform .25s var(--ease)}
+.toast.show{transform:translate(-50%,0)}
+body.edit .banner{animation:rise .3s var(--ease)}
+.ev,.week{position:relative}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}.card:hover,.ev:hover,.done-item:hover,.week:hover,button:hover,.tag:hover,a.link:hover{transform:none!important}}
+.add-row{width:100%;justify-content:center;align-items:center;margin-top:12px;border-radius:14px;min-height:46px}
+.note{margin:2px 0 0;padding:10px 12px;border-radius:12px;background:var(--bg);border:1px solid var(--line);font-size:14px;line-height:1.7;white-space:pre-wrap;word-break:break-word}
+.note-h{display:block;font-size:11.5px;letter-spacing:.12em;color:var(--muted);margin-bottom:2px}
+.edit-block textarea{background:var(--surface);min-height:0}
+.chev-btn{display:inline-flex;align-items:center;gap:4px;font-size:12px;color:var(--muted);border:1px solid var(--line);border-radius:999px;padding:2px 10px;white-space:nowrap}
+.card-toggle:hover .chev-btn{color:var(--ink);border-color:var(--ink)}
+.mini-bar{cursor:pointer}
+a.link{border-color:rgba(127,127,140,.35)}
+
+/* ===== line-style progress (track + knob), red <50%, green >=50% ===== */
+.c-bar,.g-bar,.mini-bar{background:none!important;overflow:visible!important;border-radius:0}
+.c-bar::before,.g-bar::before,.mini-bar::before{content:"";position:absolute;left:0;right:0;top:50%;height:2.5px;transform:translateY(-50%);background:var(--rest);border-radius:2px}
+.mini-bar{position:relative;height:16px}
+.c-bar .fill,.g-bar .fill,.mini-bar .fill{position:absolute;left:0;top:50%;height:4px!important;transform:translateY(-50%);background:var(--acc,var(--ink));border-radius:2px;max-width:100%}
+.c-bar .fill::after,.g-bar .fill::after,.mini-bar .fill::after{content:"";position:absolute;right:-2px;top:50%;width:4px;height:18px;transform:translateY(-50%);border-radius:2px;background:var(--acc,var(--ink));box-shadow:5px 0 0 0 var(--surface)}
+.g-bar .fill::after{height:14px;width:3.5px;right:-1.75px}
+.mini-bar .fill::after{height:16px}
+.c-track:hover .c-bar,.g-row:hover .g-bar{box-shadow:none!important}
+.c-track:hover .fill,.g-row:hover .fill{filter:drop-shadow(0 0 6px var(--acc))}
+.hpct{color:var(--acc,var(--ink))}
+.card.done-card{border-color:var(--green)}
+/* slider in edit block */
+.prog input[type=range]{-webkit-appearance:none;appearance:none;background:transparent;border:0;padding:0;height:28px;cursor:pointer}
+.prog input[type=range]::-webkit-slider-runnable-track{height:4px;border-radius:2px;background:linear-gradient(90deg,var(--acc) 0 var(--p),var(--rest) var(--p))}
+.prog input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:4px;height:20px;margin-top:-8px;border-radius:2px;background:var(--acc);border:0;box-shadow:4px 0 0 0 var(--bg)}
+.prog input[type=range]::-moz-range-track{height:2.5px;background:var(--rest);border-radius:2px}
+.prog input[type=range]::-moz-range-progress{height:4px;background:var(--acc);border-radius:2px}
+.prog input[type=range]::-moz-range-thumb{width:4px;height:20px;border-radius:2px;background:var(--acc);border:0}
+/* weekly button in toolbar */
+.week-btn{background:#3ccf7f;color:#0b0b0b;border-color:#3ccf7f;font-weight:500}
+.week-btn:hover{box-shadow:0 0 0 1.5px #3ccf7f,0 0 22px 2px rgba(60,207,127,.55)!important}
+.badge{background:var(--red);color:#fff}
+.tag.cur{background:var(--ink);border-color:var(--ink)}
+
+/* ===== mobile ===== */
+.main-col{grid-template-columns:minmax(0,1fr)}
+@media (max-width:640px){
+  .wrap{padding:14px 14px 48px}
+  .panel{padding:14px 14px;border-radius:16px}
+  .panel-head{flex-wrap:wrap;row-gap:6px}
+  .panel-head>.sub{font-size:11.5px;flex-basis:100%}
+  h2{min-width:0;font-size:15px;gap:8px}
+  h2::after{min-width:24px}
+  .hero{grid-template-columns:minmax(0,1fr) auto;gap:10px 12px;padding-top:0}
+  .hero-l{gap:6px}
+  .hero-title{gap:8px}
+  h1,.title-in{font-size:24px;letter-spacing:.04em}
+  .pill{font-size:14px;padding:0 12px}
+  .bigdate{font-size:40px}
+  .dow{font-size:11px}
+  .hero-rule{margin:10px 0 14px;gap:8px}
+  .hero-rule>span:first-child{width:100%}
+  .hero-rule .actions{width:100%;gap:6px}
+  .hero-rule .actions button{flex:1 1 auto;padding:6px 10px;font-size:14px}
+  .week-btn{flex-basis:100%!important;min-height:44px}
+  .banner{position:static;border-radius:14px;font-size:12px;padding:8px 12px}
+  .g-row{grid-template-columns:104px 1fr}
+  .g-name{font-size:12.5px;padding-right:6px}
+  .card{padding:12px}
+  .card-top{flex-wrap:wrap}
+  .card-toggle{gap:6px}
+  .card-title{font-size:15px}
+  .hpct{font-size:24px}
+  .chev-btn{padding:2px 8px}
+  .card-toggle .tag.sm{display:none}
+  .card-tools{width:100%;justify-content:flex-end}
+  .edit-block{grid-template-columns:1fr;padding:10px}
+  .edit-block .full>span[style*="justify-content:flex-end"]{justify-content:stretch}
+  .events{grid-template-columns:1fr}
+  .page-week{width:100vw}
+  .week-wrap{padding:16px 14px 48px}
+  .week-text{font-size:14px}
+  dialog{padding:16px}
+  .marker .lbl{max-width:120px;font-size:11px}
+}
+
+/* pending marker, gantt legend, clickable rows */
+.marker.pending .lbl{border-style:dashed;border-color:var(--acc);color:var(--acc)}
+.marker.pending .dot{animation:pulse 1.1s ease-in-out infinite}
+@keyframes pulse{50%{transform:scale(1.35);box-shadow:0 0 0 2px var(--surface),0 0 12px 3px var(--mc)}}
+body.edit .c-track{touch-action:none}
+.legend{display:flex;flex-wrap:wrap;align-items:center;gap:6px 16px;font-size:12px;color:var(--muted);margin:-2px 0 10px}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.legend i{display:inline-block;flex:none}
+.lg-today{width:2px;height:14px;background:var(--red);border-radius:1px}
+.lg-line{width:22px;height:4px;border-radius:2px;background:var(--c)}
+.lg-rest{width:22px;height:2.5px;border-radius:2px;background:var(--rest)}
+.lg-dot{width:9px;height:9px;border-radius:50%;background:#8a6cf2;box-shadow:0 0 0 1.5px var(--surface),0 0 0 2.5px var(--ink)}
+.lg-hint{margin-left:auto;font-size:11.5px}
+.g-axis{height:40px}
+.today-tag{top:21px!important;transform:translateX(-50%)!important;color:#fff!important;background:var(--red);border-radius:999px;padding:0 7px;font-size:11px!important;line-height:16px;z-index:3;font-weight:500}
+.g-issue{cursor:pointer}
+@media (max-width:640px){.lg-hint{margin-left:0;flex-basis:100%}}
+
+/* live reports: red dot, title only, click to expand */
+.events{align-items:start}
+.ev{display:block;padding:0}
+.ev summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:10px;padding:12px 14px;border-radius:14px}
+.ev summary::-webkit-details-marker{display:none}
+.ev summary b{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:14.5px}
+.ev[open] summary b{white-space:normal}
+.live-dot{position:relative;flex:none;width:9px;height:9px;border-radius:50%;background:var(--red)}
+.live-dot::after{content:"";position:absolute;inset:0;border-radius:50%;background:var(--red);animation:ping 1.8s cubic-bezier(0,0,.2,1) infinite}
+@keyframes ping{75%,100%{transform:scale(2.4);opacity:0}}
+.ev-chev{color:var(--muted);font-size:12px;transition:transform .25s var(--ease)}
+.ev[open] .ev-chev{transform:rotate(180deg)}
+.ev-body{padding:0 14px 12px 33px;animation:rise .25s var(--ease)}
+.ev-body p{margin:0;font-size:13.5px;line-height:1.75;color:var(--ink);white-space:pre-wrap;word-break:break-word}
+.ev-tools{display:flex;gap:6px;justify-content:flex-end;margin-top:10px}
+.ev-links{margin-top:10px}
+.ev-tools{flex-wrap:wrap}
+
+/* opened live report: inverted */
+.ev[open]{--surface:#111114;--bg:#1b1b21;--ink:#f4f4f6;--muted:#a9a9b3;--line:#34343c;--teal:#f4f4f6;--onteal:#111114;--teal-soft:#2a2a32;background:var(--surface);color:var(--ink);border-color:var(--surface)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .ev[open]{--surface:#f4f4f6;--bg:#fff;--ink:#111114;--muted:#5d5d66;--line:#dcdce2;--teal:#111114;--onteal:#fff;--teal-soft:#e6e6ec}}
+:root[data-theme="dark"] .ev[open]{--surface:#f4f4f6;--bg:#fff;--ink:#111114;--muted:#5d5d66;--line:#dcdce2;--teal:#111114;--onteal:#fff;--teal-soft:#e6e6ec}
+.ev{transition:background-color .25s,color .25s,transform .22s var(--ease),box-shadow .22s var(--ease),border-color .22s}
+
+/* markers: dots in the bar's own color */
+.marker,.g-mk{--mc:var(--acc)!important}
+.marker .dot{width:10px;height:10px;left:-5px;border:0;box-shadow:0 0 0 2.5px var(--surface)}
+.g-mk .dot{width:8px;height:8px;left:-4px;box-shadow:0 0 0 2px var(--surface)}
+.marker .stem,.g-mk .stem{opacity:.55}
+.log-dot{background:var(--acc,var(--ink))!important;width:10px;height:10px;left:-6px;top:7px;box-shadow:0 0 0 2.5px var(--surface)}
+@media (max-width:640px){body.edit .banner{flex-wrap:wrap;row-gap:4px}.banner .sub{flex-basis:100%}}
+
+/* glow inside scroll areas: keep it inside the box so it is never clipped */
+.week:hover,.done-item:hover{transform:none!important;box-shadow:inset 0 0 0 1.5px var(--ink),inset 0 0 18px -4px rgba(255,255,255,.35)!important}
+.week-top{z-index:5;margin:-20px -18px 14px;padding:20px 18px 12px;border-bottom:1px solid var(--line)}
+@media (max-width:640px){.week-top{margin:-16px -14px 14px;padding:16px 14px 10px}}
+
+/* done list: editable date + motion */
+#donePanel{--done:#3ccf7f}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) #donePanel{--done:#18a058}}
+:root[data-theme="dark"] #donePanel{--done:#18a058}
+.done-date{align-items:center;gap:8px;font-size:12.5px;color:var(--muted)}
+.done-date input{width:auto;padding:3px 8px;background:var(--bg)}
+.done-item .t::before{display:inline-block;transition:transform .35s cubic-bezier(.3,1.6,.5,1)}
+.done-item:hover .t::before{transform:scale(1.35) rotate(-12deg)}
+.done-item[open] .done-body{animation:rise .3s var(--ease)}
+.done-item summary .sub{transition:color .2s}
+.done-item:hover summary .sub{color:var(--ink)}
+.done-item.new{animation:doneIn .9s var(--ease) both}
+.done-item.new .t::before{animation:tick .6s .25s cubic-bezier(.3,1.6,.5,1) both}
+@keyframes doneIn{0%{opacity:0;transform:translateX(-18px) scale(.96);box-shadow:inset 0 0 0 2px var(--done)}55%{opacity:1;transform:none;box-shadow:inset 0 0 0 2px var(--done)}100%{box-shadow:inset 0 0 0 0 var(--done)}}
+@keyframes tick{0%{transform:scale(0) rotate(-45deg)}100%{transform:none}}
+body.intro .done-item{animation:rise .45s var(--ease) both}
+body.intro .done-item:nth-child(2){animation-delay:.05s}body.intro .done-item:nth-child(3){animation-delay:.1s}body.intro .done-item:nth-child(4){animation-delay:.15s}body.intro .done-item:nth-child(5){animation-delay:.2s}body.intro .done-item:nth-child(6){animation-delay:.25s}body.intro .done-item:nth-child(n+7){animation-delay:.3s}
+
+/* done items: green light, same logic as the live red dot */
+.done-item .t::before{content:none!important}
+.done-item .t{display:flex;align-items:center;gap:9px}
+.ok-dot{position:relative;flex:none;width:9px;height:9px;border-radius:50%;background:var(--done);box-shadow:0 0 8px 1px var(--done);transition:transform .35s cubic-bezier(.3,1.6,.5,1)}
+.ok-dot::after{content:"";position:absolute;inset:0;border-radius:50%;background:var(--done);animation:ping 2.4s cubic-bezier(0,0,.2,1) infinite}
+.done-item:hover .ok-dot{transform:scale(1.3)}
+.done-item.new .ok-dot{animation:tick .6s .25s cubic-bezier(.3,1.6,.5,1) both}
+.done-item summary>.sub{padding-left:18px;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+/* done list: flush colour blocks, no borders / shadows / gaps */
+#donePanel{overflow:hidden;--alt:#1d1d24;--hov:#2a2a33}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) #donePanel{--alt:#e3e3ea;--hov:#d4d4dd}}
+:root[data-theme="dark"] #donePanel{--alt:#e3e3ea;--hov:#d4d4dd}
+#donePanel .scroll{margin:0 -18px -16px;padding:0}
+#donePanel .done-item{margin:0;border:0!important;border-radius:0!important;background:var(--surface);box-shadow:none!important;transform:none!important;transition:background-color .25s}
+#donePanel .done-item:nth-child(even){background:var(--alt)}
+#donePanel .done-item:hover,#donePanel .done-item[open]{background:var(--hov)}
+#donePanel .done-item summary{padding:14px 18px}
+#donePanel .done-body{padding:0 18px 16px 36px}
+#donePanel .empty{padding:0 18px 16px}
+#donePanel .done-item.new{animation:doneFlash 1.1s var(--ease) both}
+@keyframes doneFlash{0%{opacity:0;transform:translateX(-14px)}40%{opacity:1;transform:none;background:color-mix(in srgb,var(--done) 28%,var(--surface))}100%{}}
+
+/* live reports: full pill when collapsed */
+.events .ev:not([open]),.events .ev:not([open]) summary{border-radius:999px}
+.ev:not([open]) summary{padding-left:18px;padding-right:18px}
+.events .ev[open]{border-radius:18px}
+.ev{transition:border-radius .3s var(--ease),background-color .25s,color .25s,transform .22s var(--ease),box-shadow .22s var(--ease),border-color .22s}
+
+/* done list: one surface, hairline separators */
+#donePanel .done-item,#donePanel .done-item:nth-child(even){background:transparent}
+#donePanel .done-item+.done-item{border-top:1px solid var(--line)!important}
+#donePanel .done-item:hover,#donePanel .done-item[open]{background:color-mix(in srgb,var(--ink) 5%,transparent)}
+@keyframes doneFlash{0%{opacity:0;transform:translateX(-14px)}40%{opacity:1;transform:none;background:color-mix(in srgb,var(--done) 22%,transparent)}100%{}}
+
+/* live reports: solid red block, white dot + text; opened = inverted to white */
+.ev:not([open]){background:var(--red)!important;border-color:var(--red)!important;color:#fff}
+.ev:not([open]) .live-dot,.ev:not([open]) .live-dot::after{background:#fff}
+.ev:not([open]) .ev-chev{color:rgba(255,255,255,.85)}
+.ev[open]{--surface:#f6f6f8!important;--bg:#fff!important;--ink:#111114!important;--muted:#5d5d66!important;--line:#dcdce2!important;--teal:#111114!important;--onteal:#fff!important;--teal-soft:#e6e6ec!important;background:#f6f6f8!important;color:#111114;border-color:#f6f6f8!important}
+@media (hover:hover){.ev:not([open]):hover{box-shadow:0 0 0 1.5px #fff,0 0 22px 2px color-mix(in srgb,var(--red) 60%,transparent)!important}}
+
+.ev{transition:background-color .3s,color .3s,transform .22s var(--ease),box-shadow .22s var(--ease),border-color .3s!important}
+.ev-body,.done-item[open] .done-body,.week-text,.week-tools{animation:fadeUp .38s .08s var(--ease) both}
+@keyframes fadeUp{from{opacity:0;transform:translateY(6px)}}
+.card.open>*:not(.card-top){animation:fadeUp .4s var(--ease) both}
+
+/* neon green light */
+.ok-dot,.ok-dot::after{background:#2bff88!important}
+.ok-dot{box-shadow:0 0 4px 1px #2bff88,0 0 12px 3px rgba(43,255,136,.65),0 0 22px 6px rgba(43,255,136,.3)!important}
+.danger-solid{background:var(--red)!important;border-color:var(--red)!important;color:#fff!important}
+
+/* ===== gentle top-down reveal (only when something is being opened) ===== */
+@keyframes dropIn{from{opacity:0;transform:translateY(-10px)}}
+.card.open>*:not(.card-top),.ev-body,.done-item[open] .done-body,.week-text,.week-tools,.ev[open] .ev-body,.done-item[open] .done-body{animation:none}
+.card.opening>*:not(.card-top){animation:dropIn .6s var(--ease) both}
+.card.opening>*:nth-child(2){animation-delay:0.07s}.card.opening>*:nth-child(3){animation-delay:0.14s}.card.opening>*:nth-child(4){animation-delay:0.21s}.card.opening>*:nth-child(5){animation-delay:0.28s}.card.opening>*:nth-child(6){animation-delay:0.35s}.card.opening>*:nth-child(7){animation-delay:0.42s}.card.opening>*:nth-child(8){animation-delay:0.49s}.card.opening>*:nth-child(9){animation-delay:0.56s}.card.opening>*:nth-child(10){animation-delay:0.63s}.card.opening>*:nth-child(11){animation-delay:0.70s}
+.opening>.ev-body>*,.opening>.done-body>*,.week.opening>.week-tools,.week.opening>.week-text,.log.opening>ol>li{animation:dropIn .55s var(--ease) both}
+.opening>.ev-body>*:nth-child(2){animation-delay:0.14s}.opening>.ev-body>*:nth-child(3){animation-delay:0.22s}.opening>.ev-body>*:nth-child(4){animation-delay:0.30s}.opening>.ev-body>*:nth-child(5){animation-delay:0.38s}.opening>.ev-body>*:nth-child(6){animation-delay:0.46s}.opening>.done-body>*:nth-child(2){animation-delay:0.13s}.opening>.done-body>*:nth-child(3){animation-delay:0.20s}.opening>.done-body>*:nth-child(4){animation-delay:0.27s}.opening>.done-body>*:nth-child(5){animation-delay:0.34s}.opening>.done-body>*:nth-child(6){animation-delay:0.41s}.opening>.done-body>*:nth-child(7){animation-delay:0.48s}.opening>.done-body>*:nth-child(8){animation-delay:0.55s}.log.opening>ol>li:nth-child(2){animation-delay:0.09s}.log.opening>ol>li:nth-child(3){animation-delay:0.14s}.log.opening>ol>li:nth-child(4){animation-delay:0.19s}.log.opening>ol>li:nth-child(5){animation-delay:0.24s}.log.opening>ol>li:nth-child(6){animation-delay:0.29s}.log.opening>ol>li:nth-child(7){animation-delay:0.34s}.log.opening>ol>li:nth-child(8){animation-delay:0.39s}.log.opening>ol>li:nth-child(9){animation-delay:0.44s}.log.opening>ol>li:nth-child(10){animation-delay:0.49s}
+.ev.opening>.ev-body>*:first-child,.done-item.opening>.done-body>*:first-child{animation-delay:.06s}
+.week.opening>.week-tools{animation-delay:.06s}.week.opening>.week-text{animation-delay:.14s}
+
+/* jump target: white glowing edge, blinks twice */
+.card.flash{animation:flash2 .7s ease-in-out .35s 2 both}
+@keyframes flash2{0%,100%{box-shadow:0 0 0 0 rgba(255,255,255,0)}45%{box-shadow:0 0 0 2px var(--flash,#fff),0 0 26px 4px color-mix(in srgb,var(--flash,#fff) 55%,transparent)}}
+:root{--flash:#111114}@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--flash:#fff}}:root[data-theme="dark"]{--flash:#fff}
+
+.inline-date{width:auto!important;display:inline-block;padding:1px 6px!important;font-size:12px;border-radius:6px;background:transparent;border:1px dashed var(--muted);color:inherit;vertical-align:middle;cursor:pointer}
+.inline-date:hover{border-style:solid;border-color:var(--ink)}
+#donePanel .done-item summary>.sub{overflow:visible}
+.gen-btn{background:var(--ink);color:var(--surface);border-color:var(--ink)}
+.week-top{flex-wrap:wrap}
+
+input:focus,textarea:focus,select:focus{outline:2px solid var(--ink);outline-offset:1px}
+:root{accent-color:var(--ink)}
+.inline-date{font:inherit;font-size:12px;min-height:0;padding:0 8px!important;line-height:18px;border:1px dashed var(--muted);background:transparent;color:inherit;border-radius:999px;vertical-align:baseline}
+.inline-date:hover{border-style:solid;border-color:var(--ink);transform:none!important;box-shadow:none!important}
+</style>
+</head>
+<body id="artifacts-component-root-html">
+<div class="pager" id="pager">
+  <!-- main page -->
+  <div class="page page-main" id="pageMain">
+    <div class="wrap">
+      <header class="hero">
+        <div class="logo-box"><svg class="logo" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="南臺科技大學學生會權益部" viewBox="6 12.33 140.81 39.96"><g fill="currentColor"><path d="M41.24,12.33H18.83a3.2,3.2,0,0,0-3.2,3.19v8.72a5.37,5.37,0,0,1,3.73,1.09,4.84,4.84,0,0,1,1.93,5,39.37,39.37,0,0,1-1.05,4.47,40.87,40.87,0,0,0-1.65,7.93h2.62a2.73,2.73,0,0,1,2.72,2.5h.46a2.84,2.84,0,0,1,2.83,2.84v.71h14a3.2,3.2,0,0,0,3.2-3.2V15.52A3.19,3.19,0,0,0,41.24,12.33ZM25.62,18.16A6.51,6.51,0,0,1,27,17.11a6.3,6.3,0,0,1,2.93-.78H30a6.23,6.23,0,0,1,6.22,6.23V27a6.23,6.23,0,0,1-12.18,1.83A6.3,6.3,0,0,0,27,28,6.51,6.51,0,0,0,28.4,27a6.22,6.22,0,0,0,1.81-4.39h-6.4A6.26,6.26,0,0,1,25.62,18.16ZM22.75,35.22H34.08a.44.44,0,1,1,0,.88H22.75a.44.44,0,1,1,0-.88Zm9.33,3.33a.45.45,0,0,1-.45.44H26.3a.45.45,0,0,1,0-.89h5.33A.45.45,0,0,1,32.08,38.55Zm-9.33-.45h1.33a.45.45,0,0,1,0,.89H22.75a.45.45,0,1,1,0-.89Zm13.1,3.78H22.75a.45.45,0,1,1,0-.89h13.1a.45.45,0,1,1,0,.89ZM31,20.79v-.07a.75.75,0,0,0-.75-.75.67.67,0,0,0-.28.06.82.82,0,0,0-.2.12.74.74,0,0,0-.27.57v0a.77.77,0,0,0,.07.26.73.73,0,0,0,.59.45h.09A.75.75,0,0,0,31,20.79Z"></path><path d="M19.67,30.34a34.52,34.52,0,0,1-1,4.07A38.2,38.2,0,0,0,17.14,42H14c0-.14,0-.29,0-.43a50.4,50.4,0,0,0-1.49-7c-.32-1.2-.65-2.45-.92-3.68-.52-2.39.24-4.16,2.15-5l.26-.11a5.45,5.45,0,0,1,.62-.19,4.76,4.76,0,0,1,.62-.11,4.2,4.2,0,0,1,3,.86A3.68,3.68,0,0,1,19.67,30.34Z"></path><path d="M23.92,51v1.16a.13.13,0,0,1-.13.13H7.37a.13.13,0,0,1-.13-.13V51Z"></path><path d="M22.11,45.27H9a1.71,1.71,0,0,1,1.7-1.51h9.68A1.71,1.71,0,0,1,22.11,45.27Z"></path><path d="M25.19,48.35V50H6V48.35a1.82,1.82,0,0,1,1.82-1.81h15.6A1.81,1.81,0,0,1,25.19,48.35Z"></path><path d="M52.92,51.49a1.34,1.34,0,0,1-.51-.74v0s0,0,0,0l.56-.13a.05.05,0,0,1,.06,0,.78.78,0,0,0,.27.37.81.81,0,0,0,.46.12.78.78,0,0,0,.44-.1.33.33,0,0,0,.17-.3.39.39,0,0,0-.15-.32,2,2,0,0,0-.47-.24L53.46,50c-.64-.22-1-.59-1-1.1a.94.94,0,0,1,.17-.54,1.12,1.12,0,0,1,.45-.38,1.62,1.62,0,0,1,.64-.13,1.41,1.41,0,0,1,.81.23,1.17,1.17,0,0,1,.47.68,0,0,0,0,1,0,0,0,0,0,0,1,0,.05l-.54.14s0,0,0,0h0s0,0-.06-.05a.68.68,0,0,0-.23-.32.61.61,0,0,0-.36-.1.68.68,0,0,0-.4.1.3.3,0,0,0-.14.26.38.38,0,0,0,.15.3,1.76,1.76,0,0,0,.48.24l.26.09a1.61,1.61,0,0,1,.77.44,1,1,0,0,1,.24.72,1,1,0,0,1-.16.55,1.18,1.18,0,0,1-.47.38,1.67,1.67,0,0,1-.69.14A1.45,1.45,0,0,1,52.92,51.49Z"></path><path d="M57.11,51.65a.08.08,0,0,1,0,0v-3H55.93a.06.06,0,0,1,0,0,.06.06,0,0,1,0,0V48c0-.05,0-.07.06-.07h3s.07,0,.07.07v.52a.08.08,0,0,1,0,0s0,0,0,0H57.78v3s0,.07-.07.07h-.56Z"></path><path d="M61,51.65a1.31,1.31,0,0,1-.48-.26,1.26,1.26,0,0,1-.35-.51,1.85,1.85,0,0,1-.13-.74V48c0-.05,0-.07.06-.07h.56s.06,0,.06.07v2a1.2,1.2,0,0,0,.23.79.76.76,0,0,0,.6.26.78.78,0,0,0,.61-.27,1.17,1.17,0,0,0,.23-.78V48c0-.05,0-.07.06-.07H63a.06.06,0,0,1,.07.07v2.15a2,2,0,0,1-.13.74,1.38,1.38,0,0,1-.36.51,1.45,1.45,0,0,1-.47.26,1.79,1.79,0,0,1-.57.09A1.71,1.71,0,0,1,61,51.65Z"></path><path d="M64.31,51.6V48c0-.05,0-.07.07-.07h1.24A2,2,0,0,1,67,51.18a1.87,1.87,0,0,1-1.41.49H64.38S64.31,51.65,64.31,51.6Zm2.17-.9a1.2,1.2,0,0,0,.32-.9,1.23,1.23,0,0,0-.32-.91,1.26,1.26,0,0,0-.93-.32H65V51h.55A1.26,1.26,0,0,0,66.48,50.7Z"></path><path d="M68.68,51.6V48c0-.05,0-.07.07-.07h2.36s.07,0,.07.07v.52a.08.08,0,0,1,0,0s0,0,0,0H69.37v.85h1.57l0,0s0,0,0,.05V50a0,0,0,0,1,0,0l0,0H69.37v1h1.8s.07,0,.07.07v.51s0,.07-.07.07H68.75S68.68,51.65,68.68,51.6Z"></path><path d="M72.31,51.6V48a.06.06,0,0,1,.07-.07H73a.11.11,0,0,1,.09,0l1.66,2.55V48c0-.05,0-.07.06-.07h.55c.05,0,.07,0,.07.07V51.6s0,.07-.07.07h-.58a.09.09,0,0,1-.08-.05L73,49.06V51.6s0,.07-.06.07h-.55A.06.06,0,0,1,72.31,51.6Z"></path><path d="M77.65,51.65a.07.07,0,0,1,0,0v-3H76.48s0,0,0,0a.08.08,0,0,1,0,0V48a.06.06,0,0,1,.07-.07h3a.06.06,0,0,1,.07.07v.52a.08.08,0,0,1,0,0s0,0,0,0H78.33v3s0,.07-.07.07H77.7Z"></path><path d="M82.68,51.6V48c0-.05,0-.07.07-.07h1.13c1,0,1.48.44,1.48,1.31a1.19,1.19,0,0,1-.54,1.08l.7,1.28v0s0,.05-.06.05h-.63s0,0-.07-.05l-.61-1.1-.28,0h-.51V51.6s0,.07-.07.07h-.55S82.68,51.65,82.68,51.6Zm1.78-1.86a.63.63,0,0,0,.19-.51.62.62,0,0,0-.19-.51,1,1,0,0,0-.61-.16h-.48V49.9h.48A1,1,0,0,0,84.46,49.74Z"></path><path d="M87.23,51.67h-.55c-.05,0-.07,0-.07-.07V48c0-.05,0-.07.07-.07h.55s.07,0,.07.07V51.6S87.28,51.67,87.23,51.67Z"></path><path d="M89.34,51.5a1.7,1.7,0,0,1-.65-.68,2.25,2.25,0,0,1-.23-1,2.08,2.08,0,0,1,.24-1,1.75,1.75,0,0,1,.66-.69,2,2,0,0,1,2,0,1.57,1.57,0,0,1,.6.74v0a.05.05,0,0,1,0,.06l-.55.15h0a.05.05,0,0,1-.06,0,1,1,0,0,0-.37-.4,1.1,1.1,0,0,0-.55-.14,1.24,1.24,0,0,0-.62.16,1.09,1.09,0,0,0-.4.45,1.57,1.57,0,0,0-.13.67,1.54,1.54,0,0,0,.13.67,1.07,1.07,0,0,0,.4.44,1.24,1.24,0,0,0,.62.16,1.15,1.15,0,0,0,.7-.22.87.87,0,0,0,.32-.61h-.94l0,0s0,0,0,0v-.51s0,0,0,0l0,0H92l0,0a.06.06,0,0,1,0,0v.43a1.8,1.8,0,0,1-.2.84,1.42,1.42,0,0,1-.6.59,1.83,1.83,0,0,1-.93.22A1.91,1.91,0,0,1,89.34,51.5Z"></path><path d="M95.63,49.42V48c0-.05,0-.07.07-.07h.55s.07,0,.07.07V51.6s0,.07-.07.07H95.7s-.07,0-.07-.07V50.07H93.9V51.6a.06.06,0,0,1-.07.07h-.56s-.06,0-.06-.07V48c0-.05,0-.07.06-.07h.56a.06.06,0,0,1,.07.07v1.43Z"></path><path d="M98.59,51.65a.08.08,0,0,1,0,0v-3H97.41s0,0,0,0a0,0,0,0,1,0,0V48c0-.05,0-.07.06-.07h3s.07,0,.07.07v.52a.08.08,0,0,1,0,0s0,0,0,0H99.26v3s0,.07-.07.07h-.55Z"></path><path d="M101.72,51.49a1.38,1.38,0,0,1-.5-.74v0s0,0,0,0l.56-.13a.05.05,0,0,1,.06,0,.72.72,0,0,0,.27.37.81.81,0,0,0,.46.12.82.82,0,0,0,.44-.1.32.32,0,0,0,.16-.3.39.39,0,0,0-.15-.32,1.74,1.74,0,0,0-.46-.24l-.33-.11c-.64-.22-1-.59-1-1.1a.87.87,0,0,1,.17-.54,1.06,1.06,0,0,1,.45-.38,1.62,1.62,0,0,1,.64-.13,1.41,1.41,0,0,1,.81.23,1.22,1.22,0,0,1,.47.68v0s0,.05,0,.05l-.54.14h0s0,0-.06-.05a.68.68,0,0,0-.23-.32.61.61,0,0,0-.36-.1.68.68,0,0,0-.4.1.28.28,0,0,0-.14.26.38.38,0,0,0,.15.3,1.76,1.76,0,0,0,.48.24l.26.09a1.61,1.61,0,0,1,.77.44,1,1,0,0,1,.24.72,1,1,0,0,1-.17.55,1.06,1.06,0,0,1-.47.38,1.65,1.65,0,0,1-.68.14A1.48,1.48,0,0,1,101.72,51.49Z"></path><path d="M107.08,51.6V48c0-.05,0-.07.07-.07h1.24a1.91,1.91,0,0,1,1.41.49,1.88,1.88,0,0,1-1.41,3.26h-1.24C107.1,51.67,107.08,51.65,107.08,51.6Zm2.17-.9a1.17,1.17,0,0,0,.32-.9,1.19,1.19,0,0,0-.32-.91,1.26,1.26,0,0,0-.93-.32h-.55V51h.55A1.26,1.26,0,0,0,109.25,50.7Z"></path><path d="M111.45,51.6V48a.06.06,0,0,1,.07-.07h2.37s.06,0,.06.07v.52a.06.06,0,0,1,0,0,.06.06,0,0,1,0,0h-1.75v.85h1.58l0,0a.08.08,0,0,1,0,.05V50a.08.08,0,0,1,0,0l0,0h-1.58v1H114s.06,0,.06.07v.51s0,.07-.06.07h-2.43A.06.06,0,0,1,111.45,51.6Z"></path><path d="M115.09,51.6V48c0-.05,0-.07.06-.07h1.14a1.58,1.58,0,0,1,1.1.34,1.43,1.43,0,0,1,0,1.94,1.63,1.63,0,0,1-1.1.34h-.51V51.6a.08.08,0,0,1,0,0l-.05,0h-.56S115.09,51.65,115.09,51.6Zm2-2.39a.58.58,0,0,0-.21-.49.9.9,0,0,0-.59-.16h-.48V49.9h.48C116.79,49.9,117.06,49.67,117.06,49.21Z"></path><path d="M120.79,50.92h-1.55l-.27.7a.09.09,0,0,1-.08.05h-.64s-.06,0-.06,0,0,0,0-.05L119.7,48a.09.09,0,0,1,.08,0h.47a.08.08,0,0,1,.07,0l1.5,3.61a.1.1,0,0,0,0,0s0,.05-.06.05h-.63a.09.09,0,0,1-.08-.05Zm-1.31-.64h1.07L120,48.86Z"></path><path d="M122.81,51.6V48a.06.06,0,0,1,.07-.07H124c1,0,1.49.44,1.49,1.31a1.2,1.2,0,0,1-.55,1.08l.7,1.28a0,0,0,0,1,0,0s0,.05-.06.05H125a.1.1,0,0,1-.08-.05l-.6-1.1-.29,0h-.51V51.6s0,.07-.06.07h-.56A.06.06,0,0,1,122.81,51.6Zm1.78-1.86a.63.63,0,0,0,.19-.51.62.62,0,0,0-.19-.51,1,1,0,0,0-.6-.16h-.49V49.9H124A1,1,0,0,0,124.59,49.74Z"></path><path d="M127.62,51.65a.08.08,0,0,1,0,0v-3h-1.16a0,0,0,0,1,0,0,.08.08,0,0,1,0,0V48c0-.05,0-.07.06-.07h3s.06,0,.06.07v.52a.06.06,0,0,1,0,0,.06.06,0,0,1-.05,0H128.3v3a.06.06,0,0,1-.07.07h-.56Z"></path><path d="M130.55,51.6V48c0-.05,0-.07.07-.07h.58a.1.1,0,0,1,.08,0l1.3,2.15L133.85,48a.11.11,0,0,1,.09,0h.57s.06,0,.06.07V51.6s0,.07-.06.07H134a.05.05,0,0,1,0,0s0,0,0,0V49.07l-1.1,1.84s0,0-.08,0h-.34a.08.08,0,0,1-.08,0l-1.1-1.82V51.6s0,.07-.07.07h-.52C130.57,51.67,130.55,51.65,130.55,51.6Z"></path><path d="M135.86,51.6V48c0-.05,0-.07.07-.07h2.36c.05,0,.07,0,.07.07v.52a.08.08,0,0,1,0,0s0,0-.05,0h-1.74v.85h1.57l.06,0a.07.07,0,0,1,0,.05V50a.06.06,0,0,1,0,0,.11.11,0,0,1-.06,0h-1.57v1h1.8c.05,0,.07,0,.07.07v.51s0,.07-.07.07h-2.42C135.88,51.67,135.86,51.65,135.86,51.6Z"></path><path d="M139.5,51.6V48c0-.05,0-.07.06-.07h.59a.1.1,0,0,1,.08,0l1.66,2.55V48c0-.05,0-.07.07-.07h.54c.05,0,.07,0,.07.07V51.6s0,.07-.07.07h-.58a.1.1,0,0,1-.08-.05l-1.66-2.56V51.6a.06.06,0,0,1-.07.07h-.55S139.5,51.65,139.5,51.6Z"></path><path d="M144.84,51.65s0,0,0,0v-3h-1.16a.06.06,0,0,1,0,0,.06.06,0,0,1,0,0V48c0-.05,0-.07.06-.07h3c.05,0,.07,0,.07.07v.52a.08.08,0,0,1,0,0s0,0-.05,0h-1.15v3s0,.07-.07.07h-.56Z"></path><path d="M54.11,26.1H52.72a.19.19,0,0,1-.21-.21V16.74a.19.19,0,0,1,.21-.21h4.79V15.47H52.15a.19.19,0,0,1-.21-.21V14c0-.14.07-.2.21-.2h5.36v-.84c0-.14.06-.2.2-.2h1.6a.18.18,0,0,1,.2.2v.84H65a.18.18,0,0,1,.2.2v1.29a.18.18,0,0,1-.2.21H59.51v1.06h4.84a.18.18,0,0,1,.2.21V23.8a3.05,3.05,0,0,1-.27,1.43,1.43,1.43,0,0,1-.87.67,6.15,6.15,0,0,1-1.69.18.78.78,0,0,1-.24,0s-.09-.06-.12-.13l-.54-1.39a.2.2,0,0,1,0-.09c0-.09.07-.14.21-.14a5.86,5.86,0,0,0,1.15-.06.77.77,0,0,0,.49-.24.71.71,0,0,0,.11-.45V18H54.31v7.86A.18.18,0,0,1,54.11,26.1Zm.77-2.49V22.55a.18.18,0,0,1,.21-.2h2.53v-1H55.29a.18.18,0,0,1-.2-.21v-1a.18.18,0,0,1,.2-.2h1.16a5.76,5.76,0,0,0-.58-1.13.28.28,0,0,1,0-.12c0-.07,0-.11.16-.13l1.25-.22h0a.23.23,0,0,1,.22.13,8.79,8.79,0,0,1,.63,1.47H59a6.51,6.51,0,0,0,.69-1.45c0-.13.13-.18.25-.15l1.25.22a.21.21,0,0,1,.15.1.16.16,0,0,1,0,.16,5.13,5.13,0,0,1-.63,1.12h1.07a.18.18,0,0,1,.21.2v1a.19.19,0,0,1-.21.21H59.44v1H62a.18.18,0,0,1,.21.2v1.06c0,.14-.07.2-.21.2H59.44v1.78a.18.18,0,0,1-.21.2h-1.4a.18.18,0,0,1-.21-.2V23.81H55.09C55,23.81,54.88,23.75,54.88,23.61Z"></path><path d="M78.48,22.92a2.94,2.94,0,0,0-.35-.45l-1.79.08-.77,0v.49h4.65c.14,0,.21.06.21.2v.6a.19.19,0,0,1-.21.21H75.57v.55H81a.18.18,0,0,1,.2.21v.75a.18.18,0,0,1-.2.2H68.36a.18.18,0,0,1-.21-.2v-.75a.19.19,0,0,1,.21-.21h5.33v-.55H69.08a.19.19,0,0,1-.21-.21v-.6c0-.14.07-.2.21-.2h4.61v-.43c-1.43,0-2.6.05-3.5.05A.22.22,0,0,1,70,22.5l-.13-.59,0-.1a.18.18,0,0,1,.15-.18,5,5,0,0,0,1.11-.56H69.72a.18.18,0,0,1-.2-.17h-1a.18.18,0,0,1-.2-.21V19a.18.18,0,0,1,.2-.2H80.77a.18.18,0,0,1,.2.2v1.73a.18.18,0,0,1-.2.2h-.88c0,.13-.07.19-.21.19H78.55a11.59,11.59,0,0,1,1.34,1.18.18.18,0,0,1,.06.14.16.16,0,0,1-.12.15L78.76,23h-.1A.19.19,0,0,1,78.48,22.92ZM68.87,15.7v-.57a.19.19,0,0,1,.21-.21h4.55v-.51H68.54a.18.18,0,0,1-.21-.2v-.68c0-.14.07-.2.21-.2h5.09v-.41a.19.19,0,0,1,.21-.21h1.55a.19.19,0,0,1,.21.21v.41h5.18c.14,0,.21.06.21.2v.68a.18.18,0,0,1-.21.2H75.6v.51h4.64c.14,0,.2.07.2.21v.57c0,.14-.06.2-.2.2H69.08C68.94,15.9,68.87,15.84,68.87,15.7Zm.44,2.45V16.49c0-.14.07-.2.21-.2H79.8c.14,0,.2.06.2.2v1.66a.18.18,0,0,1-.2.2H69.52A.18.18,0,0,1,69.31,18.15Zm10,2v-.44H70.06v.44Zm-1.18-2.62v-.48H71.25v.48ZM74.8,21.69c1,0,1.84-.06,2.48-.1a6.4,6.4,0,0,0-.59-.52H73a5.42,5.42,0,0,1-1,.66C72.86,21.73,73.79,21.72,74.8,21.69Z"></path><path d="M55.91,43.56l-.23-.62a.25.25,0,0,0,0-.07.18.18,0,0,1,0-.1.2.2,0,0,1,.14,0l.85,0a5.6,5.6,0,0,0,1.07-.08.73.73,0,0,0,.5-.26,1,1,0,0,0,.14-.57v-.7h-6c-.11,0-.17-.06-.17-.18v-.54c0-.12.06-.18.17-.18h6v-.32a.18.18,0,0,1,.15-.19,9.24,9.24,0,0,0,2.56-1H54.68a.16.16,0,0,1-.18-.18V38a.16.16,0,0,1,.18-.18h7.88c.12,0,.17.06.17.18v.41a.28.28,0,0,1-.1.22,9.8,9.8,0,0,1-1.54.92,10.18,10.18,0,0,1-1.72.67h5.3a.17.17,0,0,1,.17.18V41c0,.12,0,.18-.17.18h-5.3V42a2.37,2.37,0,0,1-.11.77,1.08,1.08,0,0,1-.32.5,2.14,2.14,0,0,1-1.21.41c-.29,0-.72.05-1.29.05h-.33A.25.25,0,0,1,55.91,43.56Zm-3.59-5.14V36.28a.16.16,0,0,1,.18-.18h.55V31.2c0-.12.06-.18.16-.18a10.49,10.49,0,0,0,1.27-.21,7.21,7.21,0,0,0,1.15-.35l.27-.08a.17.17,0,0,1,.14.1l.25.44,0,.1a.15.15,0,0,1-.1.13,5.22,5.22,0,0,1-1.08.38,9.06,9.06,0,0,1-1.22.24v.86H56c.11,0,.17.06.17.18v.39c0,.12-.06.18-.17.18H53.92v.94H56a.15.15,0,0,1,.17.17v.4a.15.15,0,0,1-.17.17H53.92v1h9.23v-1H61c-.12,0-.18-.05-.18-.17v-.4c0-.11.06-.17.18-.17h2.11v-.94H61a.16.16,0,0,1-.18-.18v-.39a.16.16,0,0,1,.18-.18h2.11v-1H60.86a.16.16,0,0,1-.18-.18V31a.16.16,0,0,1,.18-.18h3c.12,0,.17.06.17.18V36.1h.58c.11,0,.17.06.17.18V38.4a.21.21,0,0,1,0,.13.18.18,0,0,1-.12,0H64a.16.16,0,0,1-.18-.18V37H53.3v1.47a.15.15,0,0,1-.17.17H52.5C52.38,38.59,52.32,38.53,52.32,38.42Zm4.73-2.49a.11.11,0,0,1-.11-.06l-.31-.34c-.05-.05-.08-.09-.08-.13s.05-.12.15-.15A5.91,5.91,0,0,0,58,34.57c-.44-.25-.8-.43-1.07-.56a.16.16,0,0,1-.12-.15.18.18,0,0,1,.06-.13l.25-.28a.15.15,0,0,1,.21-.06c.48.25.91.48,1.27.71a8.79,8.79,0,0,0,.85-.88c.08-.1.15-.12.23-.06l.35.22a.19.19,0,0,1,.1.12.13.13,0,0,1,0,.13,7.07,7.07,0,0,1-.83.88c.37.25.69.49.95.7a.13.13,0,0,1,.07.12.19.19,0,0,1-.07.13l-.31.31a.17.17,0,0,1-.11.06.29.29,0,0,1-.15-.06,6.71,6.71,0,0,0-1-.76,7,7,0,0,1-1.56.9Zm0-2.77a.29.29,0,0,1-.15-.06l-.28-.32a.24.24,0,0,1-.06-.15c0-.07.05-.12.14-.14a5.39,5.39,0,0,0,1.22-.65c-.35-.18-.69-.35-1-.5-.09,0-.14-.08-.14-.14a.3.3,0,0,1,.06-.14l.25-.29a.15.15,0,0,1,.21,0,8.82,8.82,0,0,1,1.28.63,4.76,4.76,0,0,0,.8-.87.13.13,0,0,1,.09-.07.28.28,0,0,1,.13,0l.38.2a.14.14,0,0,1,.09.11.11.11,0,0,1,0,.13,5.4,5.4,0,0,1-.79.87c.35.21.66.43,1,.64a.28.28,0,0,1,.07.13.2.2,0,0,1-.06.14l-.29.3a.17.17,0,0,1-.12.06.28.28,0,0,1-.13-.06c-.28-.22-.62-.46-1-.71a7.46,7.46,0,0,1-1.52.9Z"></path><path d="M68.11,36.29a.3.3,0,0,1,0-.11,11,11,0,0,0,1.58-2.38,14.16,14.16,0,0,0,1-2.76.2.2,0,0,1,.08-.12.14.14,0,0,1,.13,0l.77.15a.15.15,0,0,1,.14.2,17.22,17.22,0,0,1-.69,2.11h3V30.49a.17.17,0,0,1,0-.12.18.18,0,0,1,.12-.05h.84a.17.17,0,0,1,.12.05.14.14,0,0,1,.06.12v2.86h5a.21.21,0,0,1,.13,0,.19.19,0,0,1,0,.13v.76a.17.17,0,0,1-.18.17h-5v3.08h4.26a.17.17,0,0,1,.12.05.15.15,0,0,1,0,.12v.74a.17.17,0,0,1-.17.17H75.38V42h5.81a.17.17,0,0,1,.12,0,.18.18,0,0,1,.06.13v.76a.14.14,0,0,1-.06.12.13.13,0,0,1-.12.05h-13a.17.17,0,0,1-.18-.17v-.76a.17.17,0,0,1,.18-.18h6V38.62H69.9a.17.17,0,0,1-.18-.17v-.74a.18.18,0,0,1,0-.12.21.21,0,0,1,.13-.05h4.29V34.46h-3.5a11.2,11.2,0,0,1-1.55,2.4.17.17,0,0,1-.14.06.2.2,0,0,1-.11,0l-.71-.48A.15.15,0,0,1,68.11,36.29Z"></path><path d="M84.49,34.36a.17.17,0,0,1-.18-.13L84,33.54l0-.07c0-.08,0-.13.14-.15a15.49,15.49,0,0,0,3.42-1.23,9.85,9.85,0,0,0,2.54-1.73.24.24,0,0,1,.2-.09h.94a.33.33,0,0,1,.22.08,11.48,11.48,0,0,0,2.65,1.74,16.75,16.75,0,0,0,3.34,1.19c.09,0,.13.06.13.13a.31.31,0,0,1,0,.12l-.31.67a.16.16,0,0,1-.22.1,18.51,18.51,0,0,1-3.65-1.48v.54c0,.12-.06.18-.17.18H88.4a.16.16,0,0,1-.18-.18v-.48a21.79,21.79,0,0,1-3.67,1.47Zm.82,3.52V34.54c0-.12.06-.18.17-.18H96a.16.16,0,0,1,.18.18v3.34c0,.11-.06.17-.18.17H85.48A.15.15,0,0,1,85.31,37.88Zm.57,5.28V39.09a.15.15,0,0,1,.17-.17h9.41a.15.15,0,0,1,.17.17v4.07c0,.12-.06.18-.17.18H86.05C85.94,43.34,85.88,43.28,85.88,43.16Zm4.45-5.94v-2h-4.1v2Zm4.35,3.47v-.95H86.83v.95Zm0,1.8v-1H86.83v1ZM88.78,37s-.08,0-.13-.08A6.43,6.43,0,0,0,87.37,36a.21.21,0,0,1-.09-.14.17.17,0,0,1,.06-.11l.33-.32a.19.19,0,0,1,.13-.08.16.16,0,0,1,.11,0,6,6,0,0,1,1.34,1,.19.19,0,0,1,.07.13.16.16,0,0,1-.07.11l-.35.3Zm2-5.92a12,12,0,0,1-2.24,1.63h4.6A14.52,14.52,0,0,1,90.74,31.08Zm4.56,6.14v-2H91.21v2ZM92.85,37a.16.16,0,0,1-.12,0l-.36-.28a.14.14,0,0,1-.08-.12c0-.05,0-.09.09-.13a4.18,4.18,0,0,0,1.14-1,.19.19,0,0,1,.25,0l.41.22c.11,0,.13.13,0,.23A5.92,5.92,0,0,1,93,37Z"></path><path d="M102.44,43.51l0-8a23.32,23.32,0,0,1-.76,2.21,19.73,19.73,0,0,1-1,2,.11.11,0,0,1-.11.09.26.26,0,0,1-.12-.07l-.45-.55a.17.17,0,0,1-.06-.13.49.49,0,0,1,0-.12,20.19,20.19,0,0,0,1.29-2.45,17,17,0,0,0,1-2.63h-1.58a.15.15,0,0,1-.17-.17v-.63c0-.12,0-.18.17-.18h1.74V30.49c0-.11.06-.17.18-.17h.57c.12,0,.18.06.18.17v2.39h1.26c.11,0,.17.06.17.18v.63a.15.15,0,0,1-.17.17h-1.19a11.48,11.48,0,0,0,1.66,2.93.21.21,0,0,1,0,.12.41.41,0,0,1,0,.12l-.41.52a.14.14,0,0,1-.12.08s-.08,0-.13-.08a13.77,13.77,0,0,1-1.1-2.31l.06,8.27a.16.16,0,0,1-.18.18h-.63A.16.16,0,0,1,102.44,43.51Zm3.39-.27V38.89a9.86,9.86,0,0,1-1,1,.21.21,0,0,1-.11.05.23.23,0,0,1-.14-.08l-.38-.47a.12.12,0,0,1,0-.08.19.19,0,0,1,.1-.15,7.6,7.6,0,0,0,1.38-1.34,5.93,5.93,0,0,0,.92-1.53.18.18,0,0,1,.22-.12l.59.12c.13,0,.18.1.13.22s-.28.52-.41.74h2.22a5.72,5.72,0,0,0-.38-.74.62.62,0,0,0,0-.1.11.11,0,0,1,.11-.12l.67-.12h0a.16.16,0,0,1,.15.12,7.1,7.1,0,0,1,.4,1h2.85a.16.16,0,0,1,.18.18v.44a.16.16,0,0,1-.18.18h-2.85v1h2.53a.16.16,0,0,1,.18.18v.42a.16.16,0,0,1-.18.18h-2.53v.95h2.53a.16.16,0,0,1,.18.18v.42a.16.16,0,0,1-.18.18h-2.53v1.08h3.09c.11,0,.17.06.17.18v.44a.15.15,0,0,1-.17.17H106A.15.15,0,0,1,105.83,43.24Zm-1.09-11.31v-.51a.16.16,0,0,1,.18-.18h2.52v-.75a.15.15,0,0,1,.17-.17h.61a.15.15,0,0,1,.17.17v2.3a.21.21,0,0,1,0,.13.18.18,0,0,1-.12,0h-.61a.18.18,0,0,1-.12,0,.21.21,0,0,1,0-.13V32.1h-2.52C104.8,32.1,104.74,32.05,104.74,31.93Zm.56,3.82V33.38a.16.16,0,0,1,.18-.18h3.16a.16.16,0,0,1,.18.18v2.37a.16.16,0,0,1-.18.18h-3.16A.16.16,0,0,1,105.3,35.75ZM108,35.2V33.91h-1.81V35.2Zm1.33,3.85v-1h-2.53v1Zm0,1.73v-1h-2.53v1Zm0,1.86V41.52h-2.53v1.13Zm.25-6.89V33.38c0-.12.06-.18.17-.18h3.21a.16.16,0,0,1,.18.18v2.37a.16.16,0,0,1-.18.18h-3.21C109.61,35.93,109.55,35.87,109.55,35.75Zm.47-2.83a.21.21,0,0,1,0-.13v-2.3c0-.11.06-.17.18-.17h.6c.12,0,.18.06.18.17v.75h2.43c.11,0,.17.06.17.18v.51a.15.15,0,0,1-.17.17h-2.43v.69a.18.18,0,0,1-.06.13.17.17,0,0,1-.12,0h-.6A.21.21,0,0,1,110,32.92Zm2.22,2.28V33.91H110.4V35.2Z"></path><path d="M127.13,35.84a9.15,9.15,0,0,0,2.32,1.33.16.16,0,0,1,.11.13.26.26,0,0,1,0,.11l-.4.67a.17.17,0,0,1-.23.09l-.84-.41v4.39h1.29a.16.16,0,0,1,.18.18V43a.16.16,0,0,1-.18.18H116.64a.16.16,0,0,1-.18-.18v-.64a.16.16,0,0,1,.18-.18h1.3V37.76a4.09,4.09,0,0,1-.42.2l-.43.19-.09,0a.21.21,0,0,1-.14-.09l-.38-.6a.17.17,0,0,1,0-.1.14.14,0,0,1,.11-.13,8.35,8.35,0,0,0,2.29-1.32,6.66,6.66,0,0,0,1.57-1.83H117a.16.16,0,0,1-.18-.18v-.66c0-.12.06-.17.18-.17h3.31a9.26,9.26,0,0,0-.62-1.08,11,11,0,0,0-.81-1.11.37.37,0,0,1,0-.11q0-.11.12-.12l.76-.21h.09a.15.15,0,0,1,.14.09,9.74,9.74,0,0,1,.86,1.21,11.79,11.79,0,0,1,.71,1.34h2.9a8.8,8.8,0,0,0,1.5-2.58.15.15,0,0,1,.16-.12l.14,0,.72.13a.14.14,0,0,1,.12.08.17.17,0,0,1,0,.14,10.46,10.46,0,0,1-.63,1.25,11,11,0,0,1-.75,1.08h3.4c.12,0,.17,0,.17.17v.66c0,.12,0,.18-.17.18h-3.53A7,7,0,0,0,127.13,35.84Zm-1.42.15a9.05,9.05,0,0,1-1.46-1.89h-2.57A8.22,8.22,0,0,1,120.27,36a9.16,9.16,0,0,1-2,1.53h9.46A10.52,10.52,0,0,1,125.71,36ZM121,38.51h-2v3.64h2Zm3,0h-2v3.64h2Zm3.05,0H125v3.64H127Z"></path><path d="M132.91,31.72H136a9.14,9.14,0,0,0-.44-1,.26.26,0,0,1,0-.11c0-.07,0-.12.13-.15l.72-.16h0a.19.19,0,0,1,.19.13,9.8,9.8,0,0,1,.44,1.3h2.81a.16.16,0,0,1,.18.18v.63a.16.16,0,0,1-.18.18h-.88a16.84,16.84,0,0,1-.73,2.82h1.91c.11,0,.17.06.17.18v.66a.15.15,0,0,1-.17.17h-7.53c-.12,0-.18-.06-.18-.17v-.66a.16.16,0,0,1,.18-.18h1.9a15.63,15.63,0,0,0-.69-2.82h-.89a.16.16,0,0,1-.18-.18V31.9A.16.16,0,0,1,132.91,31.72Zm.56,6.3h5.78a.16.16,0,0,1,.18.18V43a.16.16,0,0,1-.18.18h-5.78a.16.16,0,0,1-.18-.18V38.2A.16.16,0,0,1,133.47,38Zm4.95,1H134.3v3.07h4.12ZM138,32.71h-3.12a23.93,23.93,0,0,1,.67,2.82h1.72A17,17,0,0,0,138,32.71ZM141,30.82h4.34c.12,0,.18.05.18.17v.65a.65.65,0,0,1,0,.22L144,35.68a4.7,4.7,0,0,1,1.64,3.41v0a2.52,2.52,0,0,1-.75,1.95,3.14,3.14,0,0,1-2.13.72.2.2,0,0,1-.21-.15l-.26-.74a.19.19,0,0,0,0-.08c0-.08.06-.13.17-.13a2.39,2.39,0,0,0,1.61-.4,1.67,1.67,0,0,0,.54-1.38A4.12,4.12,0,0,0,143,36.07a.17.17,0,0,1-.06-.23l1.54-4h-2.65v11.7a.16.16,0,0,1-.18.18H141c-.11,0-.17-.06-.17-.18V31A.15.15,0,0,1,141,30.82Z"></path><path d="M88.74,24.42a4.31,4.31,0,0,1-1.6-2.35l0-.09a.14.14,0,0,1,.15-.16L89,21.4a.18.18,0,0,1,.18.15,2.47,2.47,0,0,0,.87,1.17,2.54,2.54,0,0,0,1.45.37A2.73,2.73,0,0,0,93,22.77a1,1,0,0,0,.51-.95,1.24,1.24,0,0,0-.47-1,5.21,5.21,0,0,0-1.47-.75l-1-.37q-3-1-3-3.47A3,3,0,0,1,88,14.49a3.43,3.43,0,0,1,1.43-1.19,4.84,4.84,0,0,1,2-.43,4.5,4.5,0,0,1,2.58.72,3.87,3.87,0,0,1,1.48,2.18.14.14,0,0,1,0,.09.18.18,0,0,1-.15.17l-1.72.43-.08,0h-.07q-.12,0-.18-.15a2.28,2.28,0,0,0-.75-1A1.93,1.93,0,0,0,91.42,15a2.22,2.22,0,0,0-1.26.31,1,1,0,0,0-.46.84,1.22,1.22,0,0,0,.47.94,4.71,4.71,0,0,0,1.53.75l.84.28A5.59,5.59,0,0,1,95,19.52a3.33,3.33,0,0,1,.77,2.3,3.08,3.08,0,0,1-.53,1.75,3.6,3.6,0,0,1-1.49,1.21,5.24,5.24,0,0,1-2.18.43A4.72,4.72,0,0,1,88.74,24.42Z"></path><path d="M102,24.93a.18.18,0,0,1-.06-.15V15.16H98.29a.18.18,0,0,1-.14-.06A.25.25,0,0,1,98.1,15V13.31c0-.14.06-.21.19-.21h9.53a.19.19,0,0,1,.21.21V15a.25.25,0,0,1,0,.15.21.21,0,0,1-.16.06h-3.65v9.62c0,.14-.07.21-.22.21h-1.77A.2.2,0,0,1,102,24.93Z"></path><path d="M114.27,24.93a4.1,4.1,0,0,1-1.5-.84,4.21,4.21,0,0,1-1.13-1.6,6.17,6.17,0,0,1-.41-2.35V13.31a.19.19,0,0,1,.21-.21h1.76a.19.19,0,0,1,.21.21v6.44a3.75,3.75,0,0,0,.72,2.5,2.59,2.59,0,0,0,3.83,0,3.68,3.68,0,0,0,.73-2.49V13.31a.19.19,0,0,1,.21-.21h1.77a.19.19,0,0,1,.21.21v6.83a6,6,0,0,1-.42,2.35,4.19,4.19,0,0,1-1.12,1.6,4.27,4.27,0,0,1-1.52.84,5.51,5.51,0,0,1-1.77.28A5.66,5.66,0,0,1,114.27,24.93Z"></path><path d="M125.7,24.42a4.36,4.36,0,0,1-1.6-2.35V22a.14.14,0,0,1,.15-.16L126,21.4a.18.18,0,0,1,.18.15,2.42,2.42,0,0,0,.88,1.17,2.48,2.48,0,0,0,1.44.37,2.68,2.68,0,0,0,1.41-.32,1,1,0,0,0,.52-.95,1.25,1.25,0,0,0-.48-1,5.27,5.27,0,0,0-1.46-.75l-1.05-.37q-3-1-3-3.47a3,3,0,0,1,.52-1.72,3.45,3.45,0,0,1,1.44-1.19,4.79,4.79,0,0,1,2-.43,4.45,4.45,0,0,1,2.58.72,3.89,3.89,0,0,1,1.49,2.18s0,0,0,.09a.18.18,0,0,1-.15.17l-1.71.43-.08,0h-.08c-.07,0-.13,0-.17-.15a2.28,2.28,0,0,0-.75-1,1.94,1.94,0,0,0-1.14-.31,2.16,2.16,0,0,0-1.25.31,1,1,0,0,0-.47.84,1.2,1.2,0,0,0,.48.94,4.71,4.71,0,0,0,1.53.75l.83.28a5.47,5.47,0,0,1,2.43,1.4,3.28,3.28,0,0,1,.77,2.3,3,3,0,0,1-.53,1.75,3.54,3.54,0,0,1-1.49,1.21,5.17,5.17,0,0,1-2.18.43A4.72,4.72,0,0,1,125.7,24.42Z"></path><path d="M139,24.93a.18.18,0,0,1-.06-.15V15.16h-3.68a.17.17,0,0,1-.14-.06.2.2,0,0,1-.05-.15V13.31c0-.14.06-.21.19-.21h9.53a.19.19,0,0,1,.21.21V15a.2.2,0,0,1-.06.15.18.18,0,0,1-.15.06h-3.65v9.62c0,.14-.08.21-.23.21h-1.76A.2.2,0,0,1,139,24.93Z"></path></g></svg></div>
+        <div class="hero-l">
+          <div class="eyebrow">WORK&nbsp;&nbsp;BOARD<span class="zh-sm">工作看板</span> <span class="arrow-line" aria-hidden="true"></span> <span id="yearTxt"></span></div>
+          <div class="hero-title"><span class="pill"><span id="weekPill"></span><span class="pill-zh" id="weekZh"></span></span><span id="titleSlot"></span></div>
+        </div>
+
+        <div class="hero-r">
+          <div class="bigdate" id="bigDate"></div>
+          <div class="dow"><span id="dowEn"></span><span class="circ" id="dowZh"></span></div>
+        </div>
+      </header>
+      <div class="hero-rule"><span style="display:flex;gap:14px;align-items:center;flex-wrap:wrap"><span class="sub" id="saveInfo"></span><label class="sub edit-only" style="align-items:center;gap:6px" title="留空＝自動使用儲存當天的日期">看板日期 <input type="date" id="dateIn" style="width:auto;padding:3px 8px"></label><label class="sub edit-only" style="align-items:center;gap:6px">學年 <input id="yearIn" style="width:110px;padding:3px 8px"></label><label class="sub edit-only" style="align-items:center;gap:6px">開學日 <input type="date" id="termIn" style="width:auto;padding:3px 8px"></label></span><span class="actions"><span class="actions" id="actions"></span><button class="week-btn" id="weekBtn">每週概述 <span aria-hidden="true">→</span></button></span></div>
+      <div class="banner"><span class="live-dot" aria-hidden="true"></span><b>編輯中</b><span class="sub">在進度條上按住拖曳新增註記 · 拖曳註記調整位置 · 點註記可修改 · 填開始／結束日的議題會出現在甘特圖 · 完成後按「儲存並定型」</span></div>
+
+      <div class="layout">
+        <aside class="panel" id="donePanel" aria-labelledby="doneH">
+          <div class="panel-head"><h2 id="doneH">完成紀錄<span class="en">DONE</span><span class="count" id="doneCount">0</span></h2></div>
+          <div class="scroll" id="doneList"></div>
+        </aside>
+
+        <div class="main-col">
+          <section class="panel" aria-labelledby="evH">
+            <div class="panel-head"><h2 id="evH">即時回報<span class="en">LIVE</span></h2></div>
+            <div class="events" id="events"></div>
+            <button class="ghost edit-only add-row" id="addEvent">＋ 新增即時回報</button>
+          </section>
+
+          <section class="panel" aria-labelledby="ganttH">
+            <div class="panel-head"><h2 id="ganttH">時間甘特圖<span class="en">TIMELINE</span></h2></div>
+            <div class="legend" aria-label="圖例"><span><i class="lg-today" aria-hidden="true"></i>目前時間</span><span><i class="lg-line" style="--c:var(--green)" aria-hidden="true"></i>完成進度</span><span><i class="lg-rest" aria-hidden="true"></i>尚未完成</span><span class="lg-hint">點議題列可跳到該議題 · 左右滑動瀏覽月份</span></div>
+            <div class="range">時間軸 <input type="month" id="rStart" aria-label="起始月份"> 到 <input type="month" id="rEnd" aria-label="結束月份"> <button class="icon" id="autoRange">依議題自動調整</button></div>
+            <div class="gantt" id="gantt"></div>
+          </section>
+
+          <section class="panel" aria-labelledby="cardsH">
+            <div class="panel-head"><h2 id="cardsH">個別進度<span class="en">PROGRESS</span></h2></div>
+            <div class="cards" id="cards"></div>
+            <button class="ghost edit-only add-row" id="addIssue">＋ 新增議題</button>
+          </section>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- weekly page (swipe right) -->
+  <aside class="page page-week" id="pageWeek" aria-labelledby="weekH">
+    <div class="week-wrap">
+      <div class="week-top">
+        <button class="icon" id="backMain" aria-label="回到主畫面">‹ 返回</button>
+        <h2 id="weekH" style="flex:1">每週更新概述<span class="en">WEEKLY</span></h2>
+        <button class="edit-only gen-btn" id="genWeek">自動產生週報</button>
+        <button class="ghost edit-only" id="addWeek">＋ 新增週報</button>
+      </div>
+      <div id="weekList"></div>
+    </div>
+  </aside>
+</div>
+
+
+<input type="file" id="importFile" accept=".html,.htm,.json" hidden="">
+<dialog id="dlg"><form method="dialog" id="dlgForm"></form></dialog>
+<div class="toast" id="toast" role="status"></div>
+
+<script id="state" type="application/json">
+{"v":2,"id":"board-main","title":"權益部工作進度","locked":true,"savedAt":"2026-10-26 23:30","range":{"start":"2026-09","end":"2027-09"},"weeks":[{"id":"wmvpdug9y1o7q","date":"2026-10-19","text":"權益部 本週例行回報  \n日期：【2026.10.19】 \n\n一、會議與對談\n校務會議：簡單回報\n高教深耕季管考會議：權益部臨時代表由雜草代理出席。\n學生代表推派一覽表：已完成初版。\n學生會法規彙編：已完成初版。\n圖資處：秘書處安排對談。 \n\n二、議題追蹤\n六宿停車場雜物處理：已將公告內容提供行銷部，並移除現場過期公告。\n生理用品補給站：已至現場訪查並確認相關資訊；衛生用品資訊待衛保組以郵件提供，每週三持續追蹤。\n數位校務：圖資處對談，後續持續追蹤進度。 \n\n三、社群資訊  本週預計製作內容：投票指南、國際學生日、野草莓相關內容。\n\n  四、待處理事項 \n進修學制學生會：洽詢學生社團審議小組會議狀況；學務處預計於 10 月中旬處理。 \n畢聯會：待前學生會長提供詳細資料。\n選課系統：介面調整建議撰擬中。\n學權表單：案件列管流程規劃中。"},{"id":"wmvpduxd4qx7s","date":"2026-10-26","text":"權益部 本週例行回報\n日期：【2026.10.26】\n一、會議與對談\n❏ 高教深耕季管考會議：需確認外國人讀書會詳情\n❏ 臺學聯：\n・個人收到工作小組加入邀請。\n・理事詢問本校加入意願，待本會裁示。\n❏ 學生代表推派一覽表：初版完成，確認校課程委員會與教務會議代表之定位差異中。\n❏ 法規彙編：已完成，待線上化公開。\n❏ 停車場公告：移除部分過期公告\n\n二、議題追蹤\n❏ 六宿停車場雜物：過期公告已移除；【補：清理時程】。\n❏ 生理用品補給站：用量統計表已建立；衛保組資訊【補：已回覆／持續追蹤】。\n❏ 數位校務改革：秘書處安排與圖資處對談，選課介面建議方案已備妥。\n❏ 社群內容排程：\n・世新學運報導：11/01 產出、11/04 發布\n・回家投票指南：11/20 產出、11/25 發布、11/27 限動提醒\n・衛生棉補給站：11/22 產出、11/30 發布\n\n三、待處理事項\n❏ 確認冷氣機等疑似學校財產之報廢單位與時程\n❏ 總務會議學生會代表爭取\n❏ 社團參與課程退場：待教務處書面公告。\n❏ 進修學制學生會：【補：學務處 10 月中旬是否已處理】\n❏ 畢聯會：待前學生會長提供詳細資料。\n❏ 學權表單：案件列管流程規劃中。"},{"id":"wmvpdvvjrnfnw","date":"2026-09-13","text":"本周回報\n\n每週例行性回報\n1.校務代表名單已處理完畢\n2.場地收費之亂、停車場雜物處理\n\n各部門協作事項\n0"},{"id":"wmvpdwjfii0y2","date":"2026-09-07","text":"本周回報\n\n每週例行性回報\n1.校務代表於負責人會議投票產生\n2.場地收費之亂進度確認\n3.用雲端時分恨少(學權權限)\n4.我的學權表單權限在哪\n\n各部門協作事項\n1.需要和課外組 / 負責人會議協調系會代表投票時間"},{"id":"wmvpdx46rslaq","date":"2026-10-12","text":"本周回報\n每週例行性回報\n\n1.校務會議會前會\n開完了\n\n會議學生代表已初步統整\n\n\n2.各議題追蹤\n\n停車場與學務長約談完畢\n\n生理用品補給 已確定衛保組提供地點將一一場勘確認實際位置和資源\n\n3.權益部資訊\n兩則社群資訊規劃中"},{"id":"wmvpdxg0hg6d7","date":"2026-10-05","text":"本周回報\n每週例行性回報\n\n1.校務會議會前會\n開好約時間連結\n\n請校代們選取時間，求求了\n取消社團學分之亂，社務部需要哪些協助*2\n\n高教深耕季管考代表名單已交付\n\n\n2.各議題追蹤\n\n停車場雜物處理，已安排與課外組/保管組/學務長協商時間\n已場勘6宿\n\n10/7周四下午四點約談\n\n生理用品補給 已確定衛保組提供地點將一一場勘確認實際位置和資源"},{"id":"wmvpdxqg5gjqu","date":"2026-09-28","text":"本周回報\n每週例行性回報\n\n1.校務會議會前會\n請校代們選取時間，求求了\n取消社團學分之亂，社務部需要哪些協助\n\n2.各議題追蹤\n校內場地費用，透過學務和副校\n\n停車場雜物處理，正在安排與課外組/保管組/學務長協商時間\n\n衛生用品待衛保組郵件提供資訊，每周三持續關心\n\n3.夜間部 \n社團審議小組，試問會議狀況\n\n4.教育部信箱\n畢聯會\n待前學生會長提供舉報材料\n\n5.學代一覽表 / 校內資源整合\n意見統合，組織專案團隊中\n\n6.列管流程再設計"},{"id":"wmvpdy2x82c3l","date":"2026-09-21","text":"本周回報\n每週例行性回報\n\n1.校務會議\n資料收到9/30  學生代表有沒有要提案\n學生們要集中投票給誰  委員會會審查哪些提案可以進會議討論 \n\n2.請求指示\n場地收費之亂\n停車場雜物處理  \n#有無相關處室聯絡必要 #其他事前工作\n\n*若無就與子清確認\n\n3.夜間部 \n社團審議小組 學生會長是召集人 \n\n4.教育部信箱\n畢聯會\n待前學生會長提供舉報材料\n\n場地費用\n擬稿 確認傳送\n\n5.衛生棉廠商贊助可能\n\n6.學代一覽表 / 列管流程再設計 / 校內資源整合\n*與子清確認 \n\n\n各部門協作事項\n\n1.LINE帳號\n請求公關部協助登入 \n\n2.衛生棉廠商贊助可能"}],"issues":[{"id":"imvpc3f0dcpi6","title":"六宿停車場雜物","tags":["收案","處理中","待回覆","結案"],"cur":2,"start":"2026-10-01","end":"2027-03-01","progress":0,"doneAt":null,"markers":[{"id":"mmvpdi0dzvdwv","text":"等待保管組報廢進度","stage":"待回覆","at":25,"date":"2026-10-26","pos":"up"}],"links":[],"note":"過期公告已移除\n待處室(保管組)說明報廢進度"},{"id":"imvpdb6ytyi3s","title":"選課五告方便","tags":["收案","處理中","待回覆","結案"],"cur":1,"start":"2026-11-07","end":"2027-05-01","progress":25,"doneAt":null,"markers":[{"id":"mmvpdc43qy0pz","text":"備妥初步建議方案","stage":"處理中","at":25,"date":"2026-10-26","pos":"up"}],"links":[],"note":"等待秘書處安排校方單位會晤"},{"id":"imvpc1cuefjii","title":"月經平權","tags":["收案","處理中","待回覆","結案"],"cur":1,"start":"2026-09-14","end":"2027-06-30","progress":50,"doneAt":null,"markers":[],"links":[],"note":"已確認校內所有補給站具體位置\n建立用量統計表；衛保組對接窗口待確認。"},{"id":"imvpddh3153m1","title":"何生場地費","tags":["收案","處理中","待回覆","結案"],"cur":3,"start":"2026-09-07","end":"2027-03-30","progress":75,"doneAt":null,"markers":[{"id":"mmvpdelj7uikl","text":"等待下次副校約談","stage":"待回覆","at":75,"date":"2026-09-21","pos":"up"}],"links":[],"note":"等待大型活動與副校長/學務長約談"}],"events":[{"id":"emvpcssozjfv1","name":"臺學聯","desc":"・個人收到工作小組加入邀請。\n・理事詢問本校加入意願，待本會裁示。","doneAt":null},{"id":"emvpd2q3bes2i","name":"停車場公告：","desc":"移除部分過期公告"},{"id":"emvpd2zcx95t3","name":"高教深耕季管考會議","desc":"需確認外國人讀書會詳情"},{"id":"emvpd4765r0ch","name":"數位校務改革","desc":"秘書處確認會晤確切時間\n權益部已將選課介面建議方案已備妥。"},{"id":"emvpd6qonvam7","name":"社群內容排程","desc":"世新學運報導：11/01 產出、11/04 發布\n・回家投票指南：11/20 產出、11/25 發布、11/27 限動提醒\n・衛生棉補給站：11/22 產出、11/30 發布"},{"id":"emvpd82rr1kit","name":"進修學制學生會","desc":"學務處 10 月中旬是否已處理"},{"id":"emvpd90c3a8l9","name":"施政計畫","desc":"編撰與報告","doneAt":"2026-09-10","links":[{"id":"lmvpd9xt1x72z","name":"施政計畫","url":"https://drive.google.com/file/d/18TaqsomcQHKDDiIK316WBcnvXEbhP16m/view?usp=drive_link","color":"#2f8f84"}]},{"id":"emvpdjy1qige9","name":"校務會議會前會","desc":"與系會議會學生代表會晤洽談社團學分存廢事宜之影響","doneAt":"2026-10-12"},{"id":"emvpdk8nf5mxh","name":"校務會議","desc":"出席參與","doneAt":"2026-10-14"},{"id":"emvpdlkubpzoe","name":"系學會校務會議代表投票","desc":"系會代表互推產生，已順利舉行","doneAt":"2026-09-09"},{"id":"emvpdmkvs29s1","name":"法規彙編","desc":"由雜草整合四大法規檔案為統一法規彙編"},{"id":"emvpdnwp0gola","name":"停車場腳踏車認領公告","desc":"已請求行銷部協助發布社群限動通知同學","doneAt":"2026-10-20"},{"id":"emvpdp6p3hitj","name":"衛生棉補給站點","desc":"已確認具體位置","doneAt":"2026-10-22"},{"id":"emvpdq4rpx6v8","name":"六宿停車場場勘","desc":"已拍照整理資訊","doneAt":"2026-09-30"},{"id":"emvpdros6mg9o","name":"與學務長會有約","desc":"已會晤課外組/保管組/學務長確認現場狀況和討論後續\n保管組未出席","doneAt":"2026-10-07"}],"yearLabel":"115學年","termStart":"2026-09-07","reportBase":null}
+</script>
+<script>
+const TEMPLATE='<!doctype html>\n'+document.documentElement.outerHTML;
+const COLORS=["#6a4fd8","#3d7fe0","#a24fc0","#d84f92","#2f8f84","#c26a12","#6b6b75","#111114"];
+const MARK_COLORS=["#8a6cf2","#6ea2f2","#b993f2","#f39ac8","#7fd0c8","#111114"];
+const $=s=>document.querySelector(s);
+const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const uid=p=>p+Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+const pad=n=>String(n).padStart(2,"0");
+const ymd=d=>`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+const ym=d=>`${d.getFullYear()}-${pad(d.getMonth()+1)}`;
+const pd=s=>{const [y,m,d]=String(s).split("-").map(Number);return new Date(y,(m||1)-1,d||1)};
+const today=()=>ymd(new Date());
+const nowStr=()=>{const d=new Date();return `${ymd(d)} ${pad(d.getHours())}:${pad(d.getMinutes())}`};
+const fmt=s=>s?String(s).slice(0,10).replaceAll("-","/"):"";
+const safeUrl=u=>!u?"#":/^https?:\/\//i.test(u)?u:"https://"+u;
+const clamp=(v,a=0,b=100)=>Math.min(b,Math.max(a,v));
+const toast=m=>{const t=$("#toast");t.textContent=m;t.classList.add("show");clearTimeout(t._h);t._h=setTimeout(()=>t.classList.remove("show"),2000)};
+const hasDates=i=>!!(i.start&&i.end);
+
+function defaultRange(){const d=new Date();return{start:ym(new Date(d.getFullYear(),d.getMonth()-1,1)),end:ym(new Date(d.getFullYear(),d.getMonth()+4,1))}}
+function normalize(s){
+  s.weeks=s.weeks||[];s.issues=s.issues||[];s.events=s.events||[];s.reportBase=s.reportBase||null;if(s.yearLabel===undefined)s.yearLabel="115學年";if(s.termStart===undefined)s.termStart="2026-09-07";s.range=s.range||defaultRange();s.title=s.title||"工作看板";
+  s.issues.forEach(i=>{i.tags=i.tags||[];i.markers=i.markers||[];i.links=i.links||[];i.cur=i.cur||0;i.progress=+i.progress||0;i.start=i.start||"";i.end=i.end||"";
+    i.markers.forEach(m=>{if(m.at==null){m.at=(hasDates(i)&&m.date)?Math.round(clamp((pd(m.date)-pd(i.start))/((pd(i.end)-pd(i.start))||1)*100)):50}m.date=m.date||""})});
+  return s;
+}
+
+let state=normalize(JSON.parse($("#state").textContent));
+const KEY="workboard:"+state.id;
+let localOK=true;
+if(!state.locked){
+  try{const s=JSON.parse(localStorage.getItem(KEY)||"null");if(s&&s.issues&&(s.savedAt||"")>=(state.savedAt||""))state=normalize(s)}catch(e){localOK=false}
+}
+let prevDone=null,openDone=new Set(),openEv=new Set(),editing=false,dirty=false,snapshot="",keepIds=new Set(),openIds=new Set();
+
+/* ---------- timeline math ---------- */
+function rangeMs(){const s=pd(state.range.start+"-01");const e=pd(state.range.end+"-01");e.setMonth(e.getMonth()+1);return[s.getTime(),e.getTime()]}
+function pos(date){const[s,e]=rangeMs();return clamp((pd(date).getTime()-s)/(e-s)*100)}
+function months(){const out=[];const d=pd(state.range.start+"-01");const end=pd(state.range.end+"-01");while(d<=end){out.push(new Date(d));d.setMonth(d.getMonth()+1)}return out}
+
+const activeIssues=()=>state.issues.filter(i=>i.progress<100||(editing&&keepIds.has(i.id)));
+const doneIssues=()=>state.issues.filter(i=>i.progress>=100&&!(editing&&keepIds.has(i.id))).sort((a,b)=>(b.doneAt||"").localeCompare(a.doneAt||""));
+
+/* ---------- render ---------- */
+let rendering=false;
+function render(){
+  if(rendering)return;rendering=true;
+  try{
+    document.body.classList.toggle("edit",editing);
+    document.body.classList.toggle("locked",!!state.locked);
+    renderHeader();renderWeeks();renderGantt();renderEvents();renderCards();renderDone();layoutAll();
+  }finally{rendering=false}
+}
+
+function renderHeader(){
+  $("#titleSlot").innerHTML=editing?`<input id="titleIn" class="title-in" value="${esc(state.title)}" aria-label="看板名稱">`:`<h1>${esc(state.title)}</h1>`;
+  document.title=state.title;renderHero();
+  $("#saveInfo").textContent=state.locked?`唯讀版 · 更新於 ${fmt(state.savedAt)}`
+    :(state.savedAt?`上次儲存 ${state.savedAt}`:"尚未儲存")+(localOK?"":" · 這個瀏覽器無法本機保存，請用「備份可編輯檔」");
+  $("#actions").innerHTML=state.locked?"":editing
+    ?`<button id="cancelBtn">取消</button><button class="primary" id="saveBtn">儲存並定型</button>`
+    :`<button class="primary" id="editBtn">✎ 編輯</button><button id="exportLocked">匯出定型版</button><button class="ghost" id="exportEdit">備份可編輯檔</button><button class="ghost" id="importBtn">匯入備份</button>`;
+}
+
+function isoWeek(d){const t=new Date(Date.UTC(d.getFullYear(),d.getMonth(),d.getDate()));const day=t.getUTCDay()||7;t.setUTCDate(t.getUTCDate()+4-day);const y=new Date(Date.UTC(t.getUTCFullYear(),0,1));return Math.ceil(((t-y)/864e5+1)/7)}
+function termWeek(d){if(!state.termStart)return 0;const diff=Math.floor((pd(ymd(d))-pd(state.termStart))/864e5);return diff<0?0:Math.floor(diff/7)+1}
+function renderHero(){
+  const d=state.boardDate?pd(state.boardDate):state.savedAt?pd(state.savedAt.slice(0,10)):new Date();
+  $("#dateIn").value=state.boardDate||"";
+  $("#yearTxt").textContent=state.yearLabel||"";$("#yearIn").value=state.yearLabel||"";
+  const tw=termWeek(d);
+  $("#weekPill").textContent=tw>0?"W"+pad(tw):"PRE";$("#weekZh").textContent=tw>0?`開學第${tw}週`:"開學前";
+  $("#termIn").value=state.termStart||"";
+  $("#bigDate").textContent=`${d.getMonth()+1}.${pad(d.getDate())}`;
+  $("#dowEn").textContent=["SUN","MON","TUE","WED","THU","FRI","SAT"][d.getDay()];
+  $("#dowZh").textContent="日一二三四五六"[d.getDay()];
+
+}
+
+function renderWeeks(){
+  const ws=[...state.weeks].sort((a,b)=>b.date.localeCompare(a.date));
+  $("#weekList").innerHTML=ws.map((w,k)=>`<details class="week" data-week="${w.id}" ${k===0?"open":""}>
+      <summary><span class="num">${fmt(w.date)}</span>${k===0?'<span class="badge">最新</span>':""}</summary>
+      <div class="week-tools"><button type="button" class="icon" data-copyweek>複製文字</button><button type="button" class="icon edit-only" data-editweek>✎ 編輯</button><button type="button" class="icon danger edit-only" data-delweek>刪除</button></div>
+      <div class="week-text">${esc(w.text)}</div></details>`).join("")
+    ||`<p class="empty">還沒有週報。${state.locked?"":"按「編輯」→「＋ 新增週報」貼上本週文字。"}</p>`;
+}
+
+function renderGantt(){
+  $("#rStart").value=state.range.start;$("#rEnd").value=state.range.end;
+  const ms=months(),tp=pos(today()),[s0,e0]=rangeMs(),inRange=Date.now()>s0&&Date.now()<e0;
+  const list=activeIssues().filter(hasDates);
+  const narrow=innerWidth<640,nameW=narrow?104:170;const width=Math.max(narrow?360:640,ms.length*(narrow?84:130));
+  const grid=ms.map(m=>`<span class="vgrid" style="left:${pos(ymd(m))}%"></span>`).join("")+(inRange?`<span class="today" style="left:${tp}%" title="今天"></span>`:"");
+  let h=`<div style="min-width:${width+nameW}px"><div class="g-row"><div class="g-name sub" style="font-weight:400">議題</div><div class="g-axis">${inRange?`<span class="today-tag" style="left:${tp}%">今天 ${fmt(today()).slice(5)}</span>`:""}${ms.map((m,k)=>`<span style="left:${pos(ymd(m))}%">${k===0||m.getMonth()===0?m.getFullYear()+"/":""}${m.getMonth()+1}月</span>`).join("")}</div></div>`;
+  h+=list.map(it=>{
+    let s=it.start,e=it.end;if(e<s)[s,e]=[e,s];
+    const l=pos(s),w=Math.max(.8,pos(e)-l);
+    const mk=it.markers.filter(m=>m.date).map(m=>{const p=pos(m.date);return `<span class="g-mk ${p<6?"edgeL":p>94?"edgeR":""}" style="left:${p}%;--mc:${esc(m.color||MARK_COLORS[0])}" title="${esc(fmt(m.date))} ${m.stage?"【"+esc(m.stage)+"】":""}${esc(m.text)}"><span class="stem"></span><span class="dot"></span><span class="lbl">${esc(m.text)}</span></span>`}).join("");
+    return `<div class="g-row g-issue" data-jump="${it.id}" title="點一下跳到「${esc(it.title)}」" style="--acc:var(--${it.progress>=50?"green":"red"})"><div class="g-name"><a href="#card-${it.id}" data-jump="${it.id}">${esc(it.title)}</a><span class="sub" style="font-size:11.5px">${fmt(s).slice(5)} – ${fmt(e).slice(5)}</span></div>
+      <div class="g-track">${grid}<div class="g-bar" style="left:${l}%;width:${w}%"><div class="fill" style="width:${it.progress}%"></div></div><span class="g-pct num" style="left:${l+w}%">${it.progress}%</span>${mk}</div></div>`;
+  }).join("");
+  h+="</div>";
+  if(!list.length)h+=`<p class="empty">還沒有排定時間的議題。${state.locked?"":"在下方個別進度裡填入開始日與結束日，就會出現在這裡。"}</p>`;
+  $("#gantt").innerHTML=h;
+}
+
+function tagsHTML(it){
+  return it.tags.map((g,k)=>{
+    const cls=k===it.cur?"cur":k<it.cur?"past":"";
+    return editing
+      ?`<button type="button" class="tag ${cls}" data-tag="${k}" title="點選設為目前階段，雙擊改名">${esc(g)}<span class="tag-x" data-deltag="${k}" aria-label="刪除標籤 ${esc(g)}">×</span></button>`
+      :`<span class="tag ${cls}">${esc(g)}</span>`;
+  }).join("")+(editing?'<button type="button" class="tag" data-addtag>＋ 標籤</button>':"");
+}
+function linkHTML(l,iid){
+  return editing
+    ?`<a href="#" class="link" style="background:${esc(l.color)}" data-editlink="${l.id}" data-iid="${iid}">${esc(l.name)} ✎</a>`
+    :`<a class="link" style="background:${esc(l.color)}" href="${esc(safeUrl(l.url))}" target="_blank" rel="noopener">${esc(l.name)}</a>`;
+}
+function markerHTML(m){
+  const edge=m.at<10?"edgeL":m.at>90?"edgeR":"";
+  return `<div class="marker ${m.pos==="down"?"down":"up"} ${edge}" style="left:${m.at}%;--mc:${esc(m.color||MARK_COLORS[0])}" data-marker="${m.id}" title="${m.date?esc(fmt(m.date))+" ":""}${esc(m.text)}"><span class="stem"></span><span class="dot"></span><span class="lbl">${m.date?`<span class="num">${fmt(m.date).slice(5)}</span> `:""}${esc(m.text)}</span></div>`;
+}
+
+const sortedMarkers=it=>[...it.markers].sort((a,b)=>(a.date||"9999").localeCompare(b.date||"9999")||a.at-b.at);
+function logHTML(it){
+  const ms=sortedMarkers(it);if(!ms.length)return "";
+  return `<details class="log" open><summary>處理紀錄<span class="count">${ms.length}</span></summary><ol>${ms.map(m=>`<li><span class="log-dot" style="background:${esc(m.color||MARK_COLORS[0])}"></span><span class="num log-d">${m.date?fmt(m.date):"—"}</span>${m.stage?`<span class="tag cur sm">${esc(m.stage)}</span>`:""}<span>${esc(m.text)}</span><span class="sub log-p">${m.at}%</span>${editing?`<button type="button" class="icon" data-logmk="${m.id}" aria-label="編輯這筆註記">✎</button>`:""}</li>`).join("")}</ol></details>`;
+}
+
+/* stack marker labels into lanes so many markers never overlap */
+const LH=22;
+function layoutTrack(tr){
+  const isG=tr.classList.contains("g-track"),W=tr.clientWidth;if(!W)return;
+  const barH=isG?14:16,dotH=isG?8:10;
+  const lanes={up:[],down:[]},info=[];
+  [...tr.querySelectorAll(isG?".g-mk":".marker")].sort((a,b)=>parseFloat(a.style.left)-parseFloat(b.style.left)).forEach(m=>{
+    const side=!isG&&m.classList.contains("down")?"down":"up";
+    const lbl=m.querySelector(".lbl"),w=lbl.offsetWidth,x=parseFloat(m.style.left)/100*W;
+    const s=m.classList.contains("edgeL")?x-(isG?8:10):m.classList.contains("edgeR")?x-w+(isG?8:10):x-w/2;
+    const L=lanes[side];let k=L.findIndex(end=>end+6<=s);if(k<0){k=L.length;L.push(0)}L[k]=s+w;
+    info.push({m,lbl,side,k});
+  });
+  const nUp=lanes.up.length,nDown=lanes.down.length;
+  const barTop=(isG?6:8)+nUp*LH+(nUp?6:(isG?14:18));
+  const below=barTop+barH+(isG?6:20);
+  tr.querySelector(isG?".g-bar":".c-bar").style.top=barTop+"px";
+  tr.querySelectorAll(".tick").forEach(t=>t.style.top=(barTop+barH+3)+"px");
+  const pct=tr.querySelector(".g-pct");if(pct)pct.style.top=(barTop-3)+"px";
+  info.forEach(({m,lbl,side,k})=>{
+    const dot=m.querySelector(".dot"),stem=m.querySelector(".stem");
+    dot.style.top=(barTop+barH/2-dotH/2)+"px";
+    if(side==="up"){const top=barTop-6-(k+1)*LH+2;lbl.style.top=top+"px";stem.style.top=(top+18)+"px";stem.style.height=Math.max(0,barTop-top-18)+"px"}
+    else{const top=below+k*LH;lbl.style.top=top+"px";stem.style.top=(barTop+barH)+"px";stem.style.height=Math.max(0,top-barTop-barH)+"px"}
+  });
+  tr.style.height=(nDown?below+nDown*LH+4:below+(isG?0:4))+"px";
+}
+const layoutAll=()=>document.querySelectorAll(".c-track,.g-track").forEach(layoutTrack);
+let _rz;window.addEventListener("resize",()=>{clearTimeout(_rz);_rz=setTimeout(layoutAll,120)});
+document.fonts?.ready.then(layoutAll);
+
+function renderCards(){
+  const list=activeIssues();
+  $("#cards").innerHTML=list.map(it=>`<article class="card ${it.progress>=100?"done-card":""} ${openIds.has(it.id)?"open":""}" id="card-${it.id}" data-issue="${it.id}" style="--acc:var(--${it.progress>=50?"green":"red"})">
+    <div class="card-top">
+      <button type="button" class="card-toggle" data-toggle aria-expanded="${openIds.has(it.id)}"><span class="card-title">${esc(it.title)}</span>${it.tags[it.cur]?`<span class="tag cur sm">${esc(it.tags[it.cur])}</span>`:""}<span class="hpct num" data-hpct>${it.progress}%</span><span class="chev-btn">${openIds.has(it.id)?"收合":"展開"}<span class="chev" aria-hidden="true">▾</span></span></button>
+      <div class="card-tools"><button type="button" class="icon" data-move="-1" aria-label="往前移">↑</button><button type="button" class="icon" data-move="1" aria-label="往後移">↓</button></div>
+    </div>
+    ${openIds.has(it.id)?`
+    ${editing?`<label class="sub" style="display:grid;gap:3px">議題名稱<input data-f="title" value="${esc(it.title)}"></label>`:""}
+    <div class="meta"><span class="sub">${hasDates(it)?`${fmt(it.start)} – ${fmt(it.end)}`:"未排入甘特圖"}</span></div>
+    <div class="tags">${tagsHTML(it)}</div>
+    ${!editing&&it.note?`<p class="note"><span class="note-h">目前進度</span>${esc(it.note)}</p>`:""}
+    <div class="c-track" data-track>
+      <div class="c-bar"><div class="fill" style="width:${it.progress}%"></div></div>
+      ${[0,25,50,75,100].map(v=>`<span class="tick" style="left:${v}%">${v}</span>`).join("")}
+      ${it.markers.map(markerHTML).join("")}
+    </div>
+    <div class="edit-block">
+      <label class="full">完成度（100% 儲存後移到左側完成紀錄）<span class="prog"><input type="range" min="0" max="100" step="5" data-f="progress" value="${it.progress}" style="--p:${it.progress}%" aria-label="完成度滑桿"><input type="number" min="0" max="100" data-f="progress" value="${it.progress}" aria-label="完成度數值"></span></label>
+      <label class="full">目前進度說明<textarea data-f="note" rows="3" placeholder="例如：已和總務處確認，等待書面回覆">${esc(it.note||"")}</textarea></label>
+      <label>開始日<input type="date" data-f="start" value="${it.start}"></label>
+      <label>結束日<input type="date" data-f="end" value="${it.end}"></label>
+      <span class="hint full">兩個日期都填才會顯示在甘特圖；清空即從甘特圖移除。</span>
+      <div class="full" style="display:flex;justify-content:flex-end;gap:6px;flex-wrap:wrap"><button type="button" data-addlink="${it.id}">＋ 超連結按鈕</button><button type="button" class="ghost" data-addmarker>＋ 註記</button><button type="button" class="danger" data-delissue>刪除議題</button></div>
+    </div>
+    ${logHTML(it)}
+    <div class="att"${!it.links.length?' hidden':""}>
+      <div class="att-h">相關連結${editing?"（點按鈕可修改或刪除）":""}</div>
+      <div class="links">${it.links.map(x=>linkHTML(x,it.id)).join("")}</div>
+    </div>`:`<div class="mini-bar" data-toggle title="點一下展開"><div class="fill" style="width:${it.progress}%"></div></div>`}
+  </article>`).join("")
+  ||`<p class="empty">${state.locked?"目前沒有進行中的議題。":"還沒有議題，按「編輯」→「＋ 新增議題」開始。"}</p>`;
+}
+
+function renderEvents(){
+  $("#events").innerHTML=state.events.filter(ev=>!ev.doneAt).map(ev=>`<details class="ev" data-ev="${ev.id}" ${openEv.has(ev.id)?"open":""}>
+      <summary><span class="live-dot" aria-hidden="true"></span><b>${esc(ev.name)}</b><span class="ev-chev" aria-hidden="true">▾</span></summary>
+      <div class="ev-body">${ev.desc?`<p>${esc(ev.desc)}</p>`:`<p class="sub">（沒有說明）</p>`}
+        ${(ev.links||[]).length?`<div class="links ev-links">${ev.links.map(l=>editing?`<a href="#" class="link" style="background:${esc(l.color)}" data-editevlink="${l.id}">${esc(l.name)} ✎</a>`:`<a class="link" style="background:${esc(l.color)}" href="${esc(safeUrl(l.url))}" target="_blank" rel="noopener">${esc(l.name)}</a>`).join("")}</div>`:""}
+        ${editing?`<span class="ev-tools"><button type="button" class="icon" data-addevlink>＋ 超連結</button><button type="button" class="icon" data-evdone>✓ 完成</button><button type="button" class="icon" data-editev>✎ 編輯</button></span>`:""}</div>
+    </details>`).join("")
+    ||`<p class="empty">${state.locked?"目前沒有即時回報。":"需要即時回報的事項放這裡，只要名稱和說明。按「編輯」→「＋ 新增即時回報」。"}</p>`;
+}
+
+function renderDone(){
+  const ds=doneIssues();
+  const de=state.events.filter(ev=>ev.doneAt);
+  const ids=new Set([...ds.map(i=>i.id),...de.map(e=>e.id)]);
+  const dnew=id=>prevDone&&!prevDone.has(id)?"new":"";
+  $("#doneCount").textContent=ds.length+de.length;
+  $("#doneList").innerHTML=ds.map(it=>{
+    const mk=[...it.markers].sort((a,b)=>a.at-b.at);
+    return `<details class="done-item ${dnew(it.id)}" data-issue="${it.id}" ${openDone.has(it.id)?"open":""}>
+      <summary><span class="t"><span class="ok-dot" aria-hidden="true"></span>${esc(it.title)}</span><span class="sub">議題 · ${editing?`<button type="button" class="inline-date" data-donedate aria-label="修改完成日期">${fmt(it.doneAt)||"—"} ✎</button>`:fmt(it.doneAt)||"—"}</span></summary>
+      <div class="done-body">
+        ${hasDates(it)?`<div class="sub">期間 ${fmt(it.start)} – ${fmt(it.end)}</div>`:""}
+        ${it.note?`<p style="margin:0;white-space:pre-wrap">${esc(it.note)}</p>`:""}
+        ${it.tags.length?`<div class="tags">${it.tags.map((g,k)=>`<span class="tag ${k===it.cur?"cur":k<it.cur?"past":""}">${esc(g)}</span>`).join("")}</div>`:""}
+        ${mk.length?`<ul>${sortedMarkers(it).map(m=>`<li>${m.date?`<span class="num">${fmt(m.date)}</span> `:""}${m.stage?`【${esc(m.stage)}】`:""}${esc(m.text)}</li>`).join("")}</ul>`:""}
+        ${it.links.length?`<div class="links">${it.links.map(l=>`<a class="link" style="background:${esc(l.color)}" href="${esc(safeUrl(l.url))}" target="_blank" rel="noopener">${esc(l.name)}</a>`).join("")}</div>`:""}
+<span class="edit-only" style="gap:6px"><button type="button" class="icon" data-restore>移回進行中</button><button type="button" class="icon danger" data-deldone>刪除</button></span>
+      </div></details>`;
+  }).map((h,k)=>({h,d:ds[k].doneAt||""})).concat(de.map(ev=>({d:ev.doneAt,h:`<details class="done-item ${dnew(ev.id)}" data-ev="${ev.id}" ${openDone.has(ev.id)?"open":""}>
+      <summary><span class="t"><span class="ok-dot" aria-hidden="true"></span>${esc(ev.name)}</span><span class="sub">即時回報 · ${editing?`<button type="button" class="inline-date" data-donedate aria-label="修改完成日期">${fmt(ev.doneAt)} ✎</button>`:fmt(ev.doneAt)}</span></summary>
+      <div class="done-body">${ev.desc?`<p style="margin:0;white-space:pre-wrap">${esc(ev.desc)}</p>`:""}${(ev.links||[]).length?`<div class="links">${ev.links.map(l=>`<a class="link" style="background:${esc(l.color)}" href="${esc(safeUrl(l.url))}" target="_blank" rel="noopener">${esc(l.name)}</a>`).join("")}</div>`:""}
+<span class="edit-only" style="gap:6px"><button type="button" class="icon" data-evundo>移回即時回報</button><button type="button" class="icon danger" data-evdel>刪除</button></span>
+      </div></details>`}))).sort((a,b)=>b.d.localeCompare(a.d)).map(x=>x.h).join("")||`<p class="empty">完成度達 100% 的議題和完成的即時回報會收進這裡。</p>`;
+  prevDone=ids;
+}
+
+/* ---------- dialog ---------- */
+function fieldHTML(x){
+  if(x.type==="textarea")return `<label>${esc(x.label)}<textarea name="${x.name}" rows="16" placeholder="${esc(x.ph||"")}">${esc(x.value||"")}</textarea></label>`;
+  if(x.type==="select")return `<label>${esc(x.label)}<select name="${x.name}">${x.options.map(([v,t])=>`<option value="${esc(v)}" ${v===x.value?"selected":""}>${esc(t)}</option>`).join("")}</select></label>`;
+  if(x.type==="color")return `<label>${esc(x.label)}<span class="swatches">${(x.palette||COLORS).map(c=>`<button type="button" style="background:${c}" data-sw="${c}" aria-pressed="${c===x.value}" aria-label="顏色 ${c}"></button>`).join("")}<input type="color" name="${x.name}" value="${esc(x.value)}" style="width:46px;height:32px;padding:2px" aria-label="自訂顏色"></span></label>`;
+  const t=x.type==="url"?"text":(x.type||"text");
+  return `<label>${esc(x.label)}<input name="${x.name}" type="${t}" value="${esc(x.value??"")}" ${x.ph?`placeholder="${esc(x.ph)}"`:""} ${x.type==="url"?'inputmode="url"':""} ${t==="number"?'min="0" max="100"':""}></label>`;
+}
+function ask(title,fields,{danger,wide}={}){
+  return new Promise(res=>{
+    const d=$("#dlg"),f=$("#dlgForm");
+    d.classList.toggle("wide",!!wide);
+    f.innerHTML=`<b>${esc(title)}</b>`+fields.map(fieldHTML).join("")
+      +(!fields.length&&danger
+        ?`<div class="dlg-actions"><button type="button" data-act="delete" class="danger-solid">${esc(danger)}</button><button type="button" data-act="cancel">取消</button></div>`
+        :`<div class="dlg-actions"><button type="button" data-act="ok" class="primary">確定</button><button type="button" data-act="cancel">取消</button>${danger?`<button type="button" data-act="delete" class="danger-btn">${esc(danger)}</button>`:""}</div>`);
+    f.querySelectorAll("[data-sw]").forEach(b=>b.onclick=()=>{f.querySelectorAll("[data-sw]").forEach(x=>x.setAttribute("aria-pressed",x===b));f.querySelector("input[type=color]").value=b.dataset.sw});
+    /* no form submission: works inside sandboxed previews too */
+    f.querySelectorAll("[data-act]").forEach(b=>b.onclick=()=>d.close(b.dataset.act));
+    f.onsubmit=ev=>{ev.preventDefault();d.close(!fields.length&&danger?"delete":"ok")};
+    f.onkeydown=ev=>{if(ev.key==="Enter"&&!ev.isComposing&&ev.target.tagName==="INPUT"&&ev.target.type!=="color"){ev.preventDefault();d.close("ok")}};
+    d.onclose=()=>{const v=d.returnValue;if(v==="ok"){const o={};new FormData(f).forEach((val,k)=>o[k]=f.querySelector(`textarea[name="${k}"]`)?String(val).replace(/\s+$/,""):String(val).trim());res(o)}else res(v==="delete"?"delete":null)};
+    d.returnValue="";d.showModal();(f.querySelector("textarea")||f.querySelector("input"))?.focus();
+  });
+}
+const markerFields=(m,it)=>[
+  {name:"text",label:"註記文字",value:m.text||"",ph:"例如：校務會議"},
+  {name:"stage",label:"對應階段（選填）",type:"select",value:m.stage||"",options:[["","（不指定）"],...[...new Set([...it.tags,...(m.stage?[m.stage]:[])])].map(t=>[t,t])]},
+  {name:"date",label:"日期（選填，填了也會顯示在甘特圖）",type:"date",value:m.date??today()},
+  {name:"at",label:"位置（進度條上的 %）",type:"number",value:m.at},
+  {name:"pos",label:"文字放在",type:"select",value:m.pos||"up",options:[["up","進度條上方"],["down","進度條下方"]]}];
+const applyMarker=(m,v)=>Object.assign(m,{text:v.text||m.text,stage:v.stage||"",at:clamp(Math.round(+v.at||0)),date:v.date||"",pos:v.pos,color:v.color||m.color});
+async function editMarker(it,mk){
+  const v=await ask("編輯註記",markerFields(mk,it),{danger:"刪除註記"});
+  if(v==="delete")it.markers=it.markers.filter(x=>x!==mk);else if(v)applyMarker(mk,v);if(v)changed();
+}
+
+/* ---------- save / export ---------- */
+function save(){
+  state.savedAt=nowStr();
+  try{localStorage.setItem(KEY,JSON.stringify(state));localOK=true;toast("已儲存並定型")}catch(e){localOK=false;toast("這個瀏覽器無法保存，請按「備份可編輯檔」")}
+  editing=false;dirty=false;openIds.clear();render();
+}
+function exportHTML(locked){
+  const s=JSON.parse(JSON.stringify(state));s.locked=locked;if(!s.savedAt)s.savedAt=nowStr();
+  const doc=TEMPLATE.replace(/(<script id="state" type="application\/json">)[\s\S]*?(<\/script>)/,(_,a,b)=>a+"\n"+JSON.stringify(s).replace(/</g,"\\u003c")+"\n"+b);
+  const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([doc],{type:"text/html"}));
+  a.download=`${state.title.replace(/[\\/:*?"<>|]/g,"_")}_${locked?"定型版":"可編輯"}_${today()}.html`;
+  document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),3000);
+  toast(locked?"已匯出定型版，可直接傳給他人":"已下載可編輯備份");
+}
+async function copyText(t){
+  try{await navigator.clipboard.writeText(t);toast("已複製")}
+  catch(e){const ta=document.createElement("textarea");ta.value=t;document.body.append(ta);ta.select();try{document.execCommand("copy");toast("已複製")}catch(_){toast("無法複製，請手動選取")}ta.remove()}
+}
+const findIssue=el=>state.issues.find(i=>i.id===el.closest("[data-issue]")?.dataset.issue);
+const changed=()=>{dirty=true;render()};
+function setProgress(it,v){
+  it.progress=clamp(Math.round(+v||0));
+  if(it.progress>=100){if(!it.doneAt)it.doneAt=today()}else it.doneAt=null;
+}
+
+/* ---------- pager ---------- */
+const pager=$("#pager");
+const goWeek=()=>pager.scrollTo({left:pager.scrollWidth,behavior:"smooth"});
+const goMain=()=>pager.scrollTo({left:0,behavior:"smooth"});
+$("#weekBtn").onclick=goWeek;$("#backMain").onclick=goMain;
+
+/* ---------- weekly report generator ---------- */
+function snapshotBase(date){
+  const issues={};state.issues.forEach(i=>issues[i.id]={progress:i.progress,stage:i.tags[i.cur]||"",note:i.note||""});
+  state.reportBase={date,issues};
+}
+function buildWeekly(){
+  const end=state.boardDate||today();
+  const lastWeek=[...state.weeks].map(w=>w.date).filter(d=>d<end).sort().pop();
+  const start=state.reportBase?.date&&state.reportBase.date<end?state.reportBase.date:(lastWeek||addDays(end,-7));
+  const inP=d=>!!d&&d>start&&d<=end;
+  const base=state.reportBase?.issues||{};
+  const clean=t=>String(t||"").split(/\n+/).map(x=>x.replace(/^\s*[・•\-❏*．·]\s*/,"").trim().replace(/[。；，,.]+$/,"")).filter(Boolean).join("；").replace(/[。；]+$/,"");
+  const L=[];const dept=(state.title||"").replace(/(工作)?(看板|進度|進度看板)$/,"").trim()||state.title;
+  L.push(`${dept} 本週例行回報`,`日期：【${end.replaceAll("-",".")}】`,"");
+  // 一、即時回報：未完成的 + 本期間新增的（尚未完成）
+  const evOpen=state.events.filter(e=>!e.doneAt);
+  L.push("一、即時回報");
+  if(evOpen.length)evOpen.forEach(e=>{const d=clean(e.desc);L.push(`❏ ${e.name}${inP(e.createdAt)?"（本週新增）":""}${d?"："+d:""}`)});else L.push("❏ 本週無即時回報");
+  L.push("");
+  // 二 / 四：議題
+  const active=state.issues.filter(i=>i.progress<100);
+  const upd=[],idle=[];
+  active.forEach(i=>{
+    const b=base[i.id],stage=i.tags[i.cur]||"";
+    const mk=sortedMarkers(i).filter(m=>inP(m.date));
+    const pc=b&&b.progress!==i.progress, sc=b&&b.stage!==stage, nc=b&&(b.note||"")!==(i.note||"");
+    const isNew=!b&&!!state.reportBase;
+    const changed=mk.length||pc||sc||nc||isNew;
+    const head=`❏ ${i.title}（${sc?`${b.stage} → ${stage}`:stage}${stage?"，":""}${pc?`${b.progress}% → ${i.progress}%`:i.progress+"%"}）`;
+    const parts=[];
+    if(isNew)parts.push("本週新增議題");
+    mk.forEach(m=>parts.push(`${fmt(m.date).slice(5)} ${m.text}`));
+    if(i.note)parts.push(clean(i.note));
+    if(changed||!state.reportBase)upd.push(head+(parts.length?"："+parts.join("；"):""));
+    else idle.push(head+"："+(i.note?clean(i.note)+"（本週無新進度）":"本週無新進度"));
+  });
+  L.push("二、議題追蹤");
+  if(upd.length)L.push(...upd);else L.push("❏ 本週議題無新進度");
+  L.push("");
+  // 三、本週完成
+  const doneI=state.issues.filter(i=>i.progress>=100&&inP(i.doneAt));
+  const doneE=state.events.filter(e=>inP(e.doneAt));
+  L.push("三、本週完成");
+  if(doneI.length+doneE.length){
+    doneI.forEach(i=>L.push(`❏ ${i.title}${i.note?"："+clean(i.note):"：已完成"}`));
+    doneE.forEach(e=>{const d=clean(e.desc);L.push(`❏ ${e.name}${d?"："+d:"：已處理"}`)});
+  }else L.push("❏ 本週無完成項目");
+  // 四、待處理事項
+  if(idle.length){L.push("","四、待處理事項",...idle)}
+  return {start,end,text:L.join("\n")};
+}
+
+/* ---------- expand / collapse motion (app-launch style) ---------- */
+const EXPAND={duration:560,easing:"cubic-bezier(.2,.9,.25,1)"};
+const reduceMotion=()=>matchMedia("(prefers-reduced-motion: reduce)").matches;
+function animateDetails(d,open){
+  if(d._anim){d._anim.cancel();d._anim=null}
+  if(reduceMotion()){d.open=open;return}
+  const cs=()=>getComputedStyle(d);
+  const rad=(r,h)=>Math.min(parseFloat(r)||0,h/2)+"px";
+  const h0=d.offsetHeight,r0=rad(cs().borderRadius,h0);
+  d.open=open;const h1=d.offsetHeight,r1=rad(cs().borderRadius,h1);
+  if(!open)d.open=true;                       // keep content visible while it shrinks
+  d.style.overflow="hidden";
+  if(open){d.classList.add("opening");clearTimeout(d._ot);d._ot=setTimeout(()=>d.classList.remove("opening"),1400)}
+  const a=d.animate([{height:h0+"px",borderRadius:r0},{height:h1+"px",borderRadius:r1}],EXPAND);
+  d._anim=a;
+  const done=()=>{d.style.overflow="";d._anim=null;if(!open)d.open=false};
+  a.onfinish=done;a.oncancel=()=>{d.style.overflow=""};
+}
+document.addEventListener("click",e=>{
+  const sm=e.target.closest("summary");if(!sm)return;
+  const d=sm.parentElement;if(!d||!d.matches(".ev,.done-item,.week,.log"))return;
+  if(e.target.closest("input,button,a")){if(e.target.closest("summary button,summary input"))e.preventDefault();return}
+  e.preventDefault();animateDetails(d,!d.open);
+},true);
+function flipCards(mutate){
+  const before=new Map([...document.querySelectorAll(".card")].map(c=>[c.id,c.offsetHeight]));
+  const wasOpen=new Set(openIds);
+  mutate();render();
+  document.querySelectorAll(".card.open").forEach(c=>{if(!wasOpen.has(c.dataset.issue)){c.classList.add("opening");setTimeout(()=>c.classList.remove("opening"),1600)}});
+  if(reduceMotion())return;
+  document.querySelectorAll(".card").forEach(c=>{
+    const h0=before.get(c.id),h1=c.offsetHeight;if(h0==null||Math.abs(h0-h1)<2)return;
+    c.style.overflow="hidden";
+    c.animate([{height:h0+"px"},{height:h1+"px"}],EXPAND).onfinish=()=>{c.style.overflow=""};
+  });
+}
+
+/* ---------- events ---------- */
+document.addEventListener("click",async e=>{
+  const t=e.target;
+  const jump=t.closest("[data-jump]");
+  const tgl=t.closest("[data-toggle]");
+  if(tgl){const id=tgl.closest("[data-issue]").dataset.issue;flipCards(()=>{if(openIds.has(id))openIds.delete(id);else{if(!editing)openIds.clear();openIds.add(id)}});return}
+  if(jump&&!t.closest("[data-marker]")){e.preventDefault();flipCards(()=>{if(!editing)openIds.clear();openIds.add(jump.dataset.jump)});const c=document.getElementById("card-"+jump.dataset.jump);if(c){c.scrollIntoView({behavior:"smooth",block:"center"});c.classList.add("flash");setTimeout(()=>c.classList.remove("flash"),1900)}return}
+  if(t.closest("#editBtn")){editing=true;snapshot=JSON.stringify(state);keepIds=new Set(state.issues.filter(i=>i.progress<100).map(i=>i.id));render();return}
+  if(t.closest("#cancelBtn")){if(dirty)state=normalize(JSON.parse(snapshot));editing=false;dirty=false;render();return}
+  if(t.closest("#saveBtn")){save();return}
+  if(t.closest("#exportLocked")){exportHTML(true);return}
+  if(t.closest("#exportEdit")){exportHTML(false);return}
+  if(t.closest("#importBtn")){$("#importFile").click();return}
+  if(t.closest("[data-copyweek]")){const w=state.weeks.find(x=>x.id===t.closest("[data-week]").dataset.week);copyText(w.text);return}
+  if(!editing)return;
+
+  const dd=t.closest("[data-donedate]");
+  if(dd){const box=dd.closest(".done-item");const obj=box.dataset.issue?state.issues.find(i=>i.id===box.dataset.issue):state.events.find(x=>x.id===box.dataset.ev);
+    const v=await ask(`「${box.dataset.issue?obj.title:obj.name}」完成日期`,[{name:"d",label:"完成日期",type:"date",value:obj.doneAt||today()}]);
+    if(v&&v.d){obj.doneAt=v.d;changed();toast("完成日期已更新")}return}
+  /* weekly */
+  if(t.closest("#addWeek")){
+    const last=[...state.weeks].sort((a,b)=>b.date.localeCompare(a.date))[0];
+    const v=await ask("新增週報",[{name:"date",label:"日期",type:"date",value:today()},{name:"text",label:last?"內容（已預帶上一週內容當底稿，可直接改或全部清掉）":"內容",type:"textarea",value:last?last.text:"",ph:"貼上本週概述文字"}],{wide:true});
+    if(v&&v.text){state.weeks.push({id:uid("w"),date:v.date||today(),text:v.text});snapshotBase(v.date||today());changed()}return}
+  if(t.closest("#genWeek")){
+    const r=buildWeekly();
+    const v=await ask("自動產生週報",[{name:"date",label:"日期",type:"date",value:r.end},{name:"text",label:`統計期間 ${fmt(r.start)} 之後 – ${fmt(r.end)}：已依即時回報與議題更新自動歸納，可直接修改後按確定`,type:"textarea",value:r.text}],{wide:true});
+    if(v&&v.text){state.weeks.push({id:uid("w"),date:v.date||r.end,text:v.text,auto:true});snapshotBase(v.date||r.end);changed();toast("已產生並存成週報")}return}
+  const wk=t.closest("[data-week]");
+  if(wk&&t.closest("[data-editweek]")){const w=state.weeks.find(x=>x.id===wk.dataset.week);
+    const v=await ask("編輯週報",[{name:"date",label:"日期",type:"date",value:w.date},{name:"text",label:"內容",type:"textarea",value:w.text}],{wide:true,danger:"刪除此週"});
+    if(v==="delete")state.weeks=state.weeks.filter(x=>x!==w);else if(v)Object.assign(w,{date:v.date||w.date,text:v.text});if(v)changed();return}
+  if(wk&&t.closest("[data-delweek]")){const w=state.weeks.find(x=>x.id===wk.dataset.week);const v=await ask(`刪除 ${fmt(w.date)} 的週報？`,[],{danger:"刪除"});if(v==="delete"){state.weeks=state.weeks.filter(x=>x!==w);changed()}return}
+
+  /* small events */
+  if(t.closest("#addEvent")){const v=await ask("新增即時回報",[{name:"name",label:"名稱",ph:"例如：飲水機故障通報"},{name:"desc",label:"說明",type:"textarea",ph:"簡短說明"}]);
+    if(v&&v.name){state.events.push({id:uid("e"),name:v.name,desc:v.desc||"",createdAt:today()});changed()}return}
+  const evAct=t.closest("[data-evdone],[data-evundo],[data-evdel]");
+  if(evAct){const ev=state.events.find(x=>x.id===evAct.closest("[data-ev]").dataset.ev);
+    if(evAct.dataset.evdone!==undefined){ev.doneAt=today();changed();toast("已移到完成紀錄")}
+    else if(evAct.dataset.evundo!==undefined){ev.doneAt=null;changed()}
+    else{const v=await ask(`刪除「${ev.name}」？`,[],{danger:"刪除"});if(v==="delete"){state.events=state.events.filter(x=>x!==ev);changed()}}
+    return}
+  const evLinkAdd=t.closest("[data-addevlink]");
+  if(evLinkAdd){const ev=state.events.find(x=>x.id===evLinkAdd.closest("[data-ev]").dataset.ev);
+    const v=await ask("新增超連結按鈕",[{name:"name",label:"按鈕名稱",ph:"例如：公文連結"},{name:"url",label:"連結網址",type:"url",ph:"https://"},{name:"color",label:"按鈕顏色",type:"color",value:COLORS[0]}]);
+    if(v&&v.name){(ev.links=ev.links||[]).push({id:uid("l"),name:v.name,url:v.url,color:v.color});openEv.add(ev.id);changed()}return}
+  const evLink=t.closest("[data-editevlink]");
+  if(evLink){e.preventDefault();const ev=state.events.find(x=>x.id===evLink.closest("[data-ev]").dataset.ev);const l=ev.links.find(x=>x.id===evLink.dataset.editevlink);
+    const v=await ask("編輯超連結按鈕",[{name:"name",label:"按鈕名稱",value:l.name},{name:"url",label:"連結網址",type:"url",value:l.url},{name:"color",label:"按鈕顏色",type:"color",value:l.color}],{danger:"刪除按鈕"});
+    if(v==="delete")ev.links=ev.links.filter(x=>x!==l);else if(v)Object.assign(l,{name:v.name||l.name,url:v.url,color:v.color});if(v)changed();return}
+  const evEl=t.closest("[data-editev]");
+  if(evEl){const ev=state.events.find(x=>x.id===evEl.closest("[data-ev]").dataset.ev);
+    const v=await ask("編輯即時回報",[{name:"name",label:"名稱",value:ev.name},{name:"desc",label:"說明",type:"textarea",value:ev.desc}],{danger:"刪除"});
+    if(v==="delete")state.events=state.events.filter(x=>x!==ev);else if(v)Object.assign(ev,{name:v.name||ev.name,desc:v.desc||""});if(v)changed();return}
+
+  /* issues */
+  if(t.closest("#addIssue")){const it={id:uid("i"),title:"新議題",tags:["收案","處理中","待回覆","結案"],cur:0,start:"",end:"",progress:0,doneAt:null,markers:[],links:[]};state.issues.push(it);keepIds.add(it.id);openIds.add(it.id);changed();document.getElementById("card-"+it.id)?.classList.add("opening");
+    const c=document.getElementById("card-"+it.id);c?.scrollIntoView({behavior:"smooth",block:"center"});c?.querySelector('[data-f="title"]')?.select();return}
+  if(t.closest("#autoRange")){const ds=state.issues.flatMap(i=>[i.start,i.end,...i.markers.map(m=>m.date)]).filter(Boolean).sort();if(!ds.length){toast("還沒有填日期的議題");return}state.range={start:ds[0].slice(0,7),end:ds[ds.length-1].slice(0,7)};changed();return}
+  const addLink=t.closest("[data-addlink]");
+  if(addLink){const it=state.issues.find(i=>i.id===addLink.dataset.addlink);
+    const v=await ask("新增超連結按鈕",[{name:"name",label:"按鈕名稱",ph:"例如：會議紀錄"},{name:"url",label:"連結網址",type:"url",ph:"https://"},{name:"color",label:"按鈕顏色",type:"color",value:COLORS[0]}]);
+    if(v&&v.name){it.links.push({id:uid("l"),name:v.name,url:v.url,color:v.color});changed()}return}
+  const el=t.closest("[data-editlink]");
+  if(el){e.preventDefault();const it=state.issues.find(i=>i.id===el.dataset.iid);const l=it.links.find(x=>x.id===el.dataset.editlink);
+    const v=await ask("編輯超連結按鈕",[{name:"name",label:"按鈕名稱",value:l.name},{name:"url",label:"連結網址",type:"url",value:l.url},{name:"color",label:"按鈕顏色",type:"color",value:l.color}],{danger:"刪除按鈕"});
+    if(v==="delete")it.links=it.links.filter(x=>x!==l);else if(v)Object.assign(l,{name:v.name||l.name,url:v.url,color:v.color});if(v)changed();return}
+  const it=findIssue(t);if(!it)return;
+  if(t.closest("[data-restore]")){setProgress(it,90);keepIds.add(it.id);changed();toast("已移回進行中（90%）");return}
+  if(t.closest("[data-deldone]")||t.closest("[data-delissue]")){const v=await ask(`刪除「${it.title}」？`,[],{danger:"刪除議題"});if(v==="delete"){state.issues=state.issues.filter(x=>x!==it);changed()}return}
+  const mv=t.closest("[data-move]");
+  if(mv){const list=activeIssues();const k=list.indexOf(it),o=list[k+(+mv.dataset.move)];if(o){const a=state.issues.indexOf(it),b=state.issues.indexOf(o);[state.issues[a],state.issues[b]]=[o,it];changed()}return}
+  const dt=t.closest("[data-deltag]");
+  if(dt){e.stopPropagation();const k=+dt.dataset.deltag;it.tags.splice(k,1);if(it.cur>=it.tags.length)it.cur=Math.max(0,it.tags.length-1);else if(k<it.cur)it.cur--;changed();return}
+  if(t.closest("[data-addtag]")){const v=await ask("新增階段標籤",[{name:"t",label:"標籤名稱",ph:"例如：公告"}]);if(v&&v.t){it.tags.push(v.t);changed()}return}
+  const tg=t.closest("[data-tag]");if(tg){it.cur=+tg.dataset.tag;changed();return}
+  const lm=t.closest("[data-logmk]");if(lm){const mk=it.markers.find(x=>x.id===lm.dataset.logmk);if(mk)editMarker(it,mk);return}
+  if(t.closest("[data-addmarker]")){const tr=t.closest("[data-issue]").querySelector(".c-track");tr.scrollIntoView({behavior:"smooth",block:"center"});makePending(tr,it.progress);toast("把虛線標記拖到想要的位置後放開");return}
+});
+document.addEventListener("toggle",e=>{const d=e.target;if(d.classList&&d.classList.contains("done-item")){const id=d.dataset.issue||d.dataset.ev;d.open?openDone.add(id):openDone.delete(id)}if(d.classList&&d.classList.contains("ev")){d.open?openEv.add(d.dataset.ev):openEv.delete(d.dataset.ev)}},true);
+document.addEventListener("dblclick",async e=>{
+  if(!editing)return;const tg=e.target.closest("[data-tag]");if(!tg)return;const it=findIssue(tg);const k=+tg.dataset.tag;
+  const v=await ask("修改標籤",[{name:"t",label:"標籤名稱",value:it.tags[k]}]);if(v&&v.t){it.tags[k]=v.t;changed()}
+});
+document.addEventListener("input",e=>{
+  if(!editing)return;
+  if(e.target.id==="titleIn"){state.title=e.target.value;dirty=true;return}
+  if(e.target.id==="dateIn"){state.boardDate=e.target.value;dirty=true;renderHero();return}
+  if(e.target.id==="yearIn"){state.yearLabel=e.target.value;dirty=true;$("#yearTxt").textContent=state.yearLabel;return}
+  if(e.target.id==="termIn"){state.termStart=e.target.value;dirty=true;renderHero();return}
+  const f=e.target.dataset.f;if(!f)return;const it=findIssue(e.target);if(!it)return;
+  if(f==="progress"){setProgress(it,e.target.value);const card=e.target.closest("[data-issue]");
+    card.querySelectorAll('[data-f="progress"]').forEach(x=>{if(x!==e.target)x.value=it.progress});
+    card.querySelectorAll(".fill").forEach(x=>x.style.width=it.progress+"%");card.style.setProperty("--acc",`var(--${it.progress>=50?"green":"red"})`);card.querySelector("input[type=range]").style.setProperty("--p",it.progress+"%");card.querySelector("[data-hpct]").textContent=it.progress+"%";card.classList.toggle("done-card",it.progress>=100)}
+  else it[f]=e.target.value;
+  dirty=true;
+});
+document.addEventListener("change",e=>{
+  if(!editing)return;
+  if(e.target.matches("[data-donedate]")){const box=e.target.closest(".done-item");const obj=box.dataset.issue?state.issues.find(i=>i.id===box.dataset.issue):state.events.find(x=>x.id===box.dataset.ev);if(obj&&e.target.value){obj.doneAt=e.target.value;changed();toast("完成日期已更新")}return}const f=e.target.dataset.f;
+  if(f==="start"||f==="end"||(f==="progress"))render();
+});
+["rStart","rEnd"].forEach(id=>$("#"+id).addEventListener("change",e=>{const k=id==="rStart"?"start":"end";if(e.target.value){state.range[k]=e.target.value;if(state.range.end<state.range.start)state.range.end=state.range.start;changed()}}));
+
+/* markers on cards: press-and-drag to place a new one, drag to move, click to edit */
+let drag=null;
+function makePending(tr,pct){
+  tr.querySelector(".marker.pending")?.remove();
+  const el=document.createElement("div");el.className="marker up pending";el.dataset.marker="__pending";
+  el.style.left=pct+"%";el.style.setProperty("--mc","var(--acc)");
+  el.innerHTML='<span class="stem"></span><span class="dot"></span><span class="lbl">拖到位置後放開</span>';
+  tr.append(el);layoutTrack(tr);return el;
+}
+async function finishPending(it,at){
+  const v=await ask("新增註記",markerFields({at:Math.round(at),pos:"up",stage:it.tags[it.cur]||""},it));
+  if(v&&v.text){it.markers.push(applyMarker({id:uid("m")},v));changed()}else render();
+}
+document.addEventListener("pointerdown",e=>{
+  if(!editing||e.button>0)return;
+  const m=e.target.closest("[data-marker]");
+  if(m){e.preventDefault();const tr=m.closest("[data-track]");drag={m,tr,it:findIssue(m),id:m.dataset.marker,x0:e.clientX,moved:false,pending:m.classList.contains("pending"),pct:parseFloat(m.style.left)};m.setPointerCapture(e.pointerId);return}
+  const tr=e.target.closest(".c-track");if(!tr)return;
+  e.preventDefault();const r=tr.getBoundingClientRect();const pct=clamp((e.clientX-r.left)/r.width*100);
+  const el=makePending(tr,pct);drag={m:el,tr,it:findIssue(tr),x0:e.clientX,moved:true,pending:true,pct};tr.setPointerCapture(e.pointerId);
+});
+document.addEventListener("pointermove",e=>{
+  if(!drag)return;if(Math.abs(e.clientX-drag.x0)>3)drag.moved=true;if(!drag.moved)return;
+  const r=drag.tr.getBoundingClientRect();drag.pct=clamp((e.clientX-r.left)/r.width*100);drag.m.style.left=drag.pct+"%";
+  const lbl=drag.pending&&drag.m.querySelector(".lbl");if(lbl)lbl.textContent=Math.round(drag.pct)+"%";
+});
+document.addEventListener("pointerup",async()=>{
+  if(!drag)return;const d=drag;drag=null;
+  if(d.pending){finishPending(d.it,d.pct);return}
+  const mk=d.it.markers.find(x=>x.id===d.id);
+  if(d.moved){mk.at=Math.round(d.pct);changed();return}
+  editMarker(d.it,mk);
+});
+/* import data from a backup / older version file */
+$("#importFile").addEventListener("change",async e=>{
+  const f=e.target.files[0];e.target.value="";if(!f)return;
+  try{
+    const txt=await f.text();
+    const m=txt.match(/<script id="state" type="application\/json">([\s\S]*?)<\/script>/);
+    const data=normalize(JSON.parse(m?m[1]:txt));
+    if(!data.issues)throw 0;
+    const v=await ask(`匯入「${f.name}」？`,[],{});
+    if(v===null)return;
+    data.locked=false;data.id=state.id;state=data;state.savedAt=nowStr();
+    try{localStorage.setItem(KEY,JSON.stringify(state))}catch(_){}
+    editing=false;dirty=false;openIds.clear();render();
+    toast(`已匯入：${state.issues.length} 個議題、${state.events.length} 則即時回報、${state.weeks.length} 份週報`);
+  }catch(err){toast("這個檔案讀不到看板資料")}
+});
+window.addEventListener("beforeunload",e=>{if(editing&&dirty){e.preventDefault();e.returnValue=""}});
+
+document.body.classList.add("intro");
+render();
+setTimeout(()=>document.body.classList.remove("intro"),1400);
+</script></body></html>
