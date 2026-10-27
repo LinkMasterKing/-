@@ -3,7 +3,7 @@
  "id": "board-main",
  "title": "權益部工作進度",
  "locked": false,
- "savedAt": "2026-10-27 21:48",
+ "savedAt": "2026-10-27 21:55",
  "range": {
   "start": "2026-09",
   "end": "2027-09"
@@ -340,10 +340,22 @@
    "name": "白菜",
    "desc": "567",
    "createdAt": "2026-10-27"
+  },
+  {
+   "id": "emvqqzqi3txfe",
+   "name": "新生網站",
+   "desc": "",
+   "createdAt": "2026-10-27"
   }
  ],
  "yearLabel": "115學年",
  "termStart": "2026-09-07",
  "reportBase": null,
- "pwHash": "1ld8nq08ahm"
+ "sync": {
+  "owner": "linkmasterking",
+  "repo": "-",
+  "branch": "main",
+  "path": "data.json"
+ },
+ "pwKdf": "kXE8qUxQj5MrxfSGnkopmA==:mcoU+VnoktVEIlRco2alO2CWRMSk+N0yxWA0OxijBFY="
 }
