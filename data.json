@@ -3,7 +3,7 @@
  "id": "board-main",
  "title": "權益部工作進度",
  "locked": false,
- "savedAt": "2026-10-27 21:55",
+ "savedAt": "2026-10-27 22:01",
  "range": {
   "start": "2026-09",
   "end": "2027-09"
@@ -344,6 +344,12 @@
   {
    "id": "emvqqzqi3txfe",
    "name": "新生網站",
+   "desc": "",
+   "createdAt": "2026-10-27"
+  },
+  {
+   "id": "emvqr7147lw2y",
+   "name": "第 1 組 馬英九還我牛",
    "desc": "",
    "createdAt": "2026-10-27"
   }
