@@ -3,7 +3,7 @@
  "id": "board-main",
  "title": "權益部工作進度",
  "locked": false,
- "savedAt": "2026-10-27 22:02",
+ "savedAt": "2026-10-27 22:08",
  "range": {
   "start": "2026-09",
   "end": "2027-09"
@@ -172,8 +172,8 @@
    "cur": 3,
    "start": "2026-09-07",
    "end": "2027-03-30",
-   "progress": 75,
-   "doneAt": null,
+   "progress": 100,
+   "doneAt": "2026-10-27",
    "markers": [
     {
      "id": "mmvpdelj7uikl",
