@@ -3,7 +3,7 @@
  "id": "board-main",
  "title": "權益部工作進度",
  "locked": false,
- "savedAt": "2026-10-28 14:05",
+ "savedAt": "2026-10-28 17:08",
  "range": {
   "start": "2026-09",
   "end": "2027-09"
@@ -100,6 +100,15 @@
      "pos": "up",
      "text": "六宿停車場場勘",
      "date": "2026-09-30"
+    },
+    {
+     "id": "mmvrw76kv2um5",
+     "evId": "emvpd2q3bes2i",
+     "at": 25,
+     "stage": "待回覆",
+     "pos": "up",
+     "text": "停車場公告：",
+     "date": "2026-10-28"
     }
    ],
    "links": [],
@@ -200,7 +209,7 @@
    "name": "停車場公告：",
    "desc": "移除部分過期公告",
    "issueId": "imvpc3f0dcpi6",
-   "doneAt": null
+   "doneAt": "2026-10-28"
   },
   {
    "id": "emvpd2zcx95t3",
