@@ -3,7 +3,7 @@
  "id": "board-main",
  "title": "權益部工作進度",
  "locked": false,
- "savedAt": "2026-10-28 17:08",
+ "savedAt": "2026-10-29 12:31",
  "range": {
   "start": "2026-09",
   "end": "2027-09"
@@ -100,15 +100,6 @@
      "pos": "up",
      "text": "六宿停車場場勘",
      "date": "2026-09-30"
-    },
-    {
-     "id": "mmvrw76kv2um5",
-     "evId": "emvpd2q3bes2i",
-     "at": 25,
-     "stage": "待回覆",
-     "pos": "up",
-     "text": "停車場公告：",
-     "date": "2026-10-28"
     }
    ],
    "links": [],
@@ -206,10 +197,10 @@
   },
   {
    "id": "emvpd2q3bes2i",
-   "name": "停車場公告：",
-   "desc": "移除部分過期公告",
+   "name": "移除部分過期公告",
+   "desc": "停車場公告",
    "issueId": "imvpc3f0dcpi6",
-   "doneAt": "2026-10-28"
+   "doneAt": null
   },
   {
    "id": "emvpd2zcx95t3",
@@ -343,6 +334,30 @@
    "name": "獎助學金第三次常會",
    "desc": "1600 - 1700\nL003",
    "createdAt": "2026-10-27"
+  },
+  {
+   "id": "emvt1lnzfh1kf",
+   "name": "部門會議",
+   "desc": "部門例會召開",
+   "createdAt": "2026-10-29"
+  },
+  {
+   "id": "emvt1nac1jf6f",
+   "name": "獎助學金系統構想",
+   "desc": "討論執行面版構思",
+   "createdAt": "2026-10-29"
+  },
+  {
+   "id": "emvt1ohjjrkyg",
+   "name": "權益部網站線上化",
+   "desc": "法規公開\n衛生棉補給站即時更新\n加入學代名單與系統\n申訴案件線上化考量\n提案單產生器",
+   "createdAt": "2026-10-29"
+  },
+  {
+   "id": "emvt1pwvqrhyw",
+   "name": "停車場冷氣機報廢後續",
+   "desc": "求追蹤",
+   "createdAt": "2026-10-29"
   }
  ],
  "yearLabel": "115學年",
