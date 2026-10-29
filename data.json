@@ -3,7 +3,7 @@
  "id": "board-main",
  "title": "權益部工作進度",
  "locked": false,
- "savedAt": "2026-10-29 16:07",
+ "savedAt": "2026-10-29 18:26",
  "range": {
   "start": "2026-09",
   "end": "2027-09"
@@ -366,6 +366,12 @@
    "id": "emvt1pwvqrhyw",
    "name": "停車場冷氣機報廢後續",
    "desc": "求追蹤",
+   "createdAt": "2026-10-29"
+  },
+  {
+   "id": "emvteefflmm61",
+   "name": "六宿女宿舍通道安全",
+   "desc": "三樓安全門未關閉上鎖",
    "createdAt": "2026-10-29"
   }
  ],
