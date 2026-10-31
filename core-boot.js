@@ -17,6 +17,7 @@ const dataReady=SEEDED&&location.protocol!=="file:"?fetch(CFG.data.path,{cache:"
   if(d&&(d.savedAt||"")>=(state.savedAt||"")){const keep=state.sync;state=normalize(d);if(!state.sync&&keep)state.sync=keep;try{localStorage.setItem(KEY,JSON.stringify(state))}catch(_){}}
 }).catch(()=>{netFail=true}):Promise.resolve();
 dataReady.then(()=>{
+setBaseline();
 render();
 if(cloudOn())(async()=>{
   const r=await cloudPull({force:true});

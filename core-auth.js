@@ -21,17 +21,17 @@ async function rememberToken(tok,pw){
   if((pw||"").length<8)return "weak";
   state.sync=Object.assign({},state.sync||{},{tokenEnc:await encToken(tok,pw)});return "ok";
 }
-async function unlockEdit(){
+async function unlockShared(title){
   for(;;){
-    const v=await ask("輸入編輯密碼",[{name:"pw",label:"密碼",type:"password"}],{alt:"更改密碼"});
-    if(v===null)return false;
+    const v=await ask(title||"輸入部門共用密碼",[{name:"pw",label:"共用密碼",type:"password"}],state.members.length?{}:{alt:"更改密碼"});
+    if(v===null)return null;
     if(v==="alt"){await changePassword();continue}
     if(await checkPw(v.pw||"")){
       sessionPw=v.pw||"";
       if(!state.pwKdf&&hasSubtle()){try{await setPw(sessionPw)}catch(_){}}
       const te=state.sync&&state.sync.tokenEnc;
-      if(te&&!ghToken()&&hasSubtle()){try{localStorage.setItem(TOKEN_KEY,await decToken(te,sessionPw));toast("已用編輯密碼自動連上雲端")}catch(_){}}
-      return true;
+      if(te&&!ghToken()&&hasSubtle()){try{localStorage.setItem(TOKEN_KEY,await decToken(te,sessionPw))}catch(_){}}
+      return v.pw||"";
     }
     toast("密碼錯誤");
   }

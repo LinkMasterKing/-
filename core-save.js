@@ -24,7 +24,7 @@ async function persist(msg){
   try{localStorage.setItem(KEY,JSON.stringify(state));localOK=true;toast(msg||"已儲存並定型");return true}catch(e){localOK=false;toast("這個瀏覽器無法保存，請按「匯出備份」");return false}
 }
 function save(){
-  state.savedAt=nowStr();
+  state.savedAt=nowStr();if(meName())state.savedBy=meName();
   editing=false;dirty=false;openIds.clear();render();
   persist();
 }
@@ -49,6 +49,7 @@ function bundleTemplate(){
 }
 async function exportHTML(locked){
   const s=JSON.parse(JSON.stringify(state));s.locked=locked;if(!s.savedAt)s.savedAt=nowStr();
+  if(locked){delete s.pwKdf;delete s.pwHash;if(s.sync)delete s.sync.tokenEnc;s.members=(s.members||[]).map(m=>({id:m.id,name:m.name,role:m.role}))}
   /* 定型版 = 單一 HTML（打開就能看）；備份 = JSON（只有資料，用「匯入備份」還原） */
   const kind=locked?{mime:"text/html",ext:".html",desc:"HTML"}:{mime:"application/json",ext:".json",desc:"JSON"};
   let doc;
@@ -110,6 +111,7 @@ async function cloudSettings(){
     if(!v)return false;
     state.sync={owner:v.owner,repo:v.repo,branch:v.branch||"main",path:v.path||"data.json"};dirty=true;
     try{const nt=(v.token||"").trim();if(nt)localStorage.setItem(TOKEN_KEY,nt);else if(v.tokact==="clear")localStorage.removeItem(TOKEN_KEY)}catch(_){}
+    {const nt=(v.token||"").trim(),me=meMember();if(nt&&me&&sessionPw)me.tok=await encToken(nt,sessionPw);if(nt&&sharedPwSession)await rememberToken(nt,sharedPwSession)}
     cloud={sha:null,etag:null,status:"",last:""};
     let res=await cloudPull({force:true});
     if(res==="pending"&&cloud.pending){const ok=await ask("雲端已經有看板資料，要載入雲端的內容嗎？",[],{danger:"載入雲端內容"});
@@ -129,7 +131,9 @@ async function saveFlow(){
   }
   /* remember the token for every device, encrypted with the edit password */
   let weak=false;
-  if(ghToken()&&!(state.sync&&state.sync.tokenEnc)&&sessionPw){const r=await rememberToken(ghToken(),sessionPw);weak=r==="weak"}
+  const me=meMember();
+  if(ghToken()&&me&&!me.tok&&sessionPw)me.tok=await encToken(ghToken(),sessionPw);
+  if(ghToken()&&sharedPwSession&&!(state.sync&&state.sync.tokenEnc)){const r=await rememberToken(ghToken(),sharedPwSession);weak=r==="weak"}
   morph(()=>save());
-  if(weak)setTimeout(()=>toast("提醒：編輯密碼少於 8 碼，權杖只記在這台裝置；改成 8 碼以上的密碼後，其他裝置輸入密碼就能自動同步"),2600);
+  if(weak)setTimeout(()=>toast("提醒：部門共用密碼太短，新成員建立身分時拿不到上傳權限；請管理員到「身分與專員」把共用密碼改成 12 碼以上"),2600);
 }

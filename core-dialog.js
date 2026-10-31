@@ -1,8 +1,10 @@
 /* 核心｜對話框 */
 /* ---------- dialog ---------- */
 function fieldHTML(x){
+  if(x.type==="multi")return `<fieldset class="multi"><legend>${esc(x.label)}</legend><div class="chips">${x.options.map(([v,t])=>`<label class="chip"><input type="checkbox" name="${x.name}" value="${esc(v)}" ${(x.value||[]).includes(v)?"checked":""}><span>${esc(t)}</span></label>`).join("")}</div></fieldset>`;
   if(x.type==="textarea")return `<label>${esc(x.label)}<textarea name="${x.name}" rows="16" placeholder="${esc(x.ph||"")}">${esc(x.value||"")}</textarea></label>`;
-  if(x.type==="select")return `<label>${esc(x.label)}<select name="${x.name}">${x.options.map(([v,t])=>`<option value="${esc(v)}" ${v===x.value?"selected":""}>${esc(t)}</option>`).join("")}</select></label>`;
+  if(x.type==="select"){const cur=x.options.find(o=>o[0]===x.value)||x.options[0]||["",""];
+    return `<div class="fld"><span class="fld-l">${esc(x.label)}</span><div class="csel"><input type="hidden" name="${x.name}" value="${esc(cur[0])}"><button type="button" class="csel-btn" aria-haspopup="listbox" aria-expanded="false"><span class="csel-v">${esc(cur[1])}</span><svg class="csel-chev" viewBox="0 0 12 8" width="11" height="7" aria-hidden="true"><path d="M1.5 1.5 6 6l4.5-4.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></button><div class="csel-list" role="listbox" hidden>${x.options.map(([v,t])=>`<button type="button" role="option" class="csel-opt" data-v="${esc(v)}" aria-selected="${v===cur[0]}">${esc(t)}</button>`).join("")}</div></div></div>`}
   if(x.type==="color")return `<label>${esc(x.label)}<span class="swatches">${(x.palette||COLORS).map(c=>`<button type="button" style="background:${c}" data-sw="${c}" aria-pressed="${c===x.value}" aria-label="顏色 ${c}"></button>`).join("")}<input type="color" name="${x.name}" value="${esc(x.value)}" style="width:46px;height:32px;padding:2px" aria-label="自訂顏色"></span></label>`;
   const t=x.type==="url"?"text":(x.type||"text");
   return `<label>${esc(x.label)}<input name="${x.name}" type="${t}" value="${esc(x.value??"")}" ${x.ph?`placeholder="${esc(x.ph)}"`:""} ${x.type==="url"?'inputmode="url"':""} ${t==="number"?'min="0" max="100"':""}></label>`;
@@ -19,8 +21,8 @@ function ask(title,fields,{danger,wide,alt}={}){
     /* no form submission: works inside sandboxed previews too */
     f.querySelectorAll("[data-act]").forEach(b=>b.onclick=()=>d.close(b.dataset.act));
     f.onsubmit=ev=>{ev.preventDefault();d.close(!fields.length&&danger?"delete":"ok")};
-    f.onkeydown=ev=>{if(ev.key==="Enter"&&!ev.isComposing&&ev.target.tagName==="INPUT"&&ev.target.type!=="color"){ev.preventDefault();d.close("ok")}};
-    d.onclose=()=>{const v=d.returnValue;if(v==="ok"){const o={};new FormData(f).forEach((val,k)=>o[k]=f.querySelector(`textarea[name="${k}"]`)?String(val).replace(/\s+$/,""):String(val).trim());res(o)}else res(v==="delete"?"delete":v==="alt"?"alt":null)};
+    f.onkeydown=ev=>{if(ev.key==="Enter"&&!ev.isComposing&&ev.target.tagName==="INPUT"&&ev.target.type!=="color"&&ev.target.type!=="checkbox"){ev.preventDefault();d.close("ok")}};
+    d.onclose=()=>{const v=d.returnValue;if(v==="ok"){const o={},fd=new FormData(f);fd.forEach((val,k)=>o[k]=f.querySelector(`textarea[name="${k}"]`)?String(val).replace(/\s+$/,""):String(val).trim());fields.filter(x=>x.type==="multi").forEach(x=>o[x.name]=fd.getAll(x.name).map(String));res(o)}else res(v==="delete"?"delete":v==="alt"?"alt":null)};
     d.returnValue="";d.showModal();(f.querySelector("textarea")||f.querySelector("input"))?.focus();
   });
 }
@@ -36,3 +38,34 @@ async function editMarker(it,mk){
   if(v==="delete")it.markers=it.markers.filter(x=>x!==mk);else if(v)applyMarker(mk,v);if(v)changed();
 }
 
+
+/* ---------- 自製下拉選單：外觀在每個瀏覽器都一樣 ---------- */
+function cselClose(c,focus){
+  const l=c.querySelector(".csel-list"),b=c.querySelector(".csel-btn");if(!c.classList.contains("open"))return;
+  c.classList.remove("open");b.setAttribute("aria-expanded","false");
+  const done=()=>{if(!c.classList.contains("open")){l.hidden=true;c.classList.remove("up")}};
+  if(reduceMotion())done();else l.animate([{opacity:1,transform:"none"},{opacity:0,transform:`translateY(${c.classList.contains("up")?6:-6}px) scale(.98)`}],{duration:140,easing:"cubic-bezier(.4,0,1,1)"}).onfinish=done;
+  if(focus)b.focus();
+}
+function cselOpen(c){
+  document.querySelectorAll(".csel.open").forEach(o=>o!==c&&cselClose(o));
+  const l=c.querySelector(".csel-list"),b=c.querySelector(".csel-btn");
+  l.hidden=false;c.classList.add("open");c.classList.remove("up");b.setAttribute("aria-expanded","true");
+  const r=l.getBoundingClientRect();if(r.bottom>innerHeight-12&&b.getBoundingClientRect().top>r.height+20)c.classList.add("up");
+  if(!reduceMotion())l.animate([{opacity:0,transform:`translateY(${c.classList.contains("up")?8:-8}px) scale(.97)`},{opacity:1,transform:"none"}],{duration:240,easing:"cubic-bezier(.2,.9,.25,1.1)"});
+  (l.querySelector('[aria-selected="true"]')||l.querySelector(".csel-opt")).focus({preventScroll:true});
+}
+document.addEventListener("click",e=>{
+  const t=e.target;if(!t.closest)return;
+  const b=t.closest(".csel-btn");if(b){const c=b.closest(".csel");c.classList.contains("open")?cselClose(c):cselOpen(c);return}
+  const o=t.closest(".csel-opt");if(o){const c=o.closest(".csel");c.querySelector("input").value=o.dataset.v;c.querySelector(".csel-v").textContent=o.textContent;c.querySelectorAll(".csel-opt").forEach(x=>x.setAttribute("aria-selected",x===o));cselClose(c,true);return}
+  document.querySelectorAll(".csel.open").forEach(c=>{if(!c.contains(t))cselClose(c)});
+});
+document.addEventListener("keydown",e=>{
+  const c=document.querySelector(".csel.open");
+  if(!c){const b=e.target.closest&&e.target.closest(".csel-btn");if(b&&(e.key==="ArrowDown"||e.key==="ArrowUp")){e.preventDefault();cselOpen(b.closest(".csel"))}return}
+  const os=[...c.querySelectorAll(".csel-opt")],i=os.indexOf(document.activeElement);
+  if(e.key==="Escape"){e.preventDefault();e.stopPropagation();cselClose(c,true)}
+  else if(e.key==="ArrowDown"||e.key==="ArrowUp"){e.preventDefault();os[(i+(e.key==="ArrowDown"?1:os.length-1)+os.length)%os.length].focus()}
+  else if(e.key==="Tab")cselClose(c);
+},true);

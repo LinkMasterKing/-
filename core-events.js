@@ -22,7 +22,7 @@ document.addEventListener("click",async e=>{
   if(t.closest("#exportLocked")){exportHTML(true);return}
   if(t.closest("#exportEdit")){exportHTML(false);return}
   if(t.closest("#importBtn")){$("#importFile").click();return}
-  if(t.closest("[data-copyweek]")){const bt=t.closest("[data-copyweek]");const w=state.weeks.find(x=>x.id===t.closest("[data-week]").dataset.week);copyText(w.text);bt.classList.add("copied");bt.textContent="已複製 ✓";clearTimeout(bt._t);bt._t=setTimeout(()=>{bt.classList.remove("copied");bt.textContent="複製文字"},1500);return}
+  if(t.closest("[data-copyweek]")){const bt=t.closest("[data-copyweek]");const w=state.weeks.find(x=>x.id===t.closest("[data-week]").dataset.week);copyText(w.text);bt.classList.add("copied");bt.innerHTML="已複製"+ico("check","sm");clearTimeout(bt._t);bt._t=setTimeout(()=>{bt.classList.remove("copied");bt.textContent="複製文字"},1500);return}
   if(t.closest("#genWeek")&&readOnly()){
     const r=buildWeekly();
     const v=await ask("生成週報",[{name:"text",label:`統計期間 ${fmt(r.start)} 之後 – ${fmt(r.end)}（唯讀版不會儲存，按確定即複製全文）`,type:"textarea",value:r.text}],{wide:true});
@@ -50,8 +50,8 @@ document.addEventListener("click",async e=>{
   if(wk&&t.closest("[data-delweek]")){const w=state.weeks.find(x=>x.id===wk.dataset.week);const v=await ask(`刪除 ${fmt(w.date)} 的週報？`,[],{danger:"刪除"});if(v==="delete"){state.weeks=state.weeks.filter(x=>x!==w);changed()}return}
 
   /* small events */
-  if(t.closest("#addEvent")){const v=await ask("新增即時回報",[{name:"name",label:"名稱",ph:"例如：飲水機故障通報"},{name:"desc",label:"說明",type:"textarea",ph:"簡短說明"}]);
-    if(v&&v.name){state.events.push({id:uid("e"),name:v.name,desc:v.desc||"",createdAt:today()});changed()}return}
+  if(t.closest("#addEvent")){const v=await ask("新增即時回報",[{name:"name",label:"名稱",ph:"例如：飲水機故障通報"},{name:"desc",label:"說明",type:"textarea",ph:"簡短說明"},...staffField([])]);
+    if(v&&v.name){state.events.push({id:uid("e"),name:v.name,desc:v.desc||"",createdAt:today(),staff:v.staff||[]});changed()}return}
   const evAct=t.closest("[data-evdone],[data-evundo],[data-evdel]");
   if(evAct){const ev=state.events.find(x=>x.id===evAct.closest("[data-ev]").dataset.ev);
     if(evAct.dataset.evdone!==undefined){ev.doneAt=today();syncLink(ev);changed();toast(parentOf(ev)?`已完成，並記錄到「${parentOf(ev).title}」`:"已移到完成紀錄")}
@@ -73,8 +73,8 @@ document.addEventListener("click",async e=>{
     if(v==="delete")ev.links=ev.links.filter(x=>x!==l);else if(v)Object.assign(l,{name:v.name||l.name,url:v.url,color:v.color});if(v)changed();return}
   const evEl=t.closest("[data-editev]");
   if(evEl){const ev=state.events.find(x=>x.id===evEl.closest("[data-ev]").dataset.ev);
-    const v=await ask("編輯即時回報",[{name:"name",label:"名稱",value:ev.name},{name:"desc",label:"說明",type:"textarea",value:ev.desc}],{danger:"刪除"});
-    if(v==="delete"){state.issues.forEach(i=>i.markers.forEach(m=>{if(m.evId===ev.id)delete m.evId}));state.events=state.events.filter(x=>x!==ev)}else if(v){Object.assign(ev,{name:v.name||ev.name,desc:v.desc||""});syncLink(ev)}if(v)changed();return}
+    const v=await ask("編輯即時回報",[{name:"name",label:"名稱",value:ev.name},{name:"desc",label:"說明",type:"textarea",value:ev.desc},...staffField(ev.staff)],{danger:"刪除"});
+    if(v==="delete"){state.issues.forEach(i=>i.markers.forEach(m=>{if(m.evId===ev.id)delete m.evId}));state.events=state.events.filter(x=>x!==ev)}else if(v){Object.assign(ev,{name:v.name||ev.name,desc:v.desc||""});if(v.staff)ev.staff=v.staff;syncLink(ev)}if(v)changed();return}
 
   /* issues */
   if(t.closest("#addIssue")){const it={id:uid("i"),title:"新議題",tags:[...CFG.stageTags],cur:0,start:"",end:"",progress:0,doneAt:null,markers:[],links:[]};state.issues.push(it);keepIds.add(it.id);openIds.add(it.id);changed();document.getElementById("card-"+it.id)?.classList.add("opening");
@@ -95,6 +95,7 @@ document.addEventListener("click",async e=>{
   if(mv){const list=activeIssues();const k=list.indexOf(it),o=list[k+(+mv.dataset.move)];if(o){const a=state.issues.indexOf(it),b=state.issues.indexOf(o);[state.issues[a],state.issues[b]]=[o,it];changed()}return}
   const dt=t.closest("[data-deltag]");
   if(dt){e.stopPropagation();const k=+dt.dataset.deltag;it.tags.splice(k,1);if(it.cur>=it.tags.length)it.cur=Math.max(0,it.tags.length-1);else if(k<it.cur)it.cur--;changed();return}
+  if(t.closest("[data-editstaff]")){if(!state.staff.length){toast("還沒有專員名單：先到「身分與專員」新增");return}const v=await ask(`「${it.title}」的專員`,staffField(it.staff));if(v){it.staff=v.staff||[];changed()}return}
   if(t.closest("[data-addtag]")){const v=await ask("新增階段標籤",[{name:"t",label:"標籤名稱",ph:"例如：公告"}]);if(v&&v.t){it.tags.push(v.t);changed()}return}
   const tg=t.closest("[data-tag]");if(tg){it.cur=+tg.dataset.tag;changed();return}
   const lm=t.closest("[data-logmk]");if(lm){const mk=it.markers.find(x=>x.id===lm.dataset.logmk);if(mk)editMarker(it,mk);return}

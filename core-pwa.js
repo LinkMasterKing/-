@@ -37,7 +37,7 @@ async function shareSettings(){
   if(!v)return;
   const t=(v.t||"").trim(),d=(v.d||"").trim();
   if(!t){toast("標題不能空白");return}
-  if(!cloudOn()||!ghToken()){toast("要先在「☁ 雲端設定」連上 GitHub 才能更新預覽");return}
+  if(!cloudOn()||!ghToken()){toast("要先在「雲端設定」連上 GitHub 才能更新預覽");return}
   const c=cloudCfg(),pc={...c,path:CFG.data.page||"index.html"},h={Accept:"application/vnd.github+json",Authorization:"Bearer "+ghToken()};
   toast("更新中…");
   let r;try{r=await fetch(apiURL(pc)+"?ref="+encodeURIComponent(c.branch)+"&t="+Date.now(),{headers:h,cache:"no-store"})}catch(_){toast("連不上 GitHub，沒有更新");return}
