@@ -3,7 +3,7 @@
  "id": "board-main",
  "title": "權益部工作進度",
  "locked": false,
- "savedAt": "2026-11-01 10:07",
+ "savedAt": "2026-11-01 13:15",
  "range": {
   "start": "2026-09",
   "end": "2027-09"
@@ -469,6 +469,11 @@
    }
   }
  ],
- "staff": [],
+ "staff": [
+  {
+   "id": "smvxdme50hkg2",
+   "name": "雜草"
+  }
+ ],
  "savedBy": "戴銨霆"
 }
