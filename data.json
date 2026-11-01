@@ -3,7 +3,7 @@
  "id": "board-main",
  "title": "權益部工作進度",
  "locked": false,
- "savedAt": "2026-11-01 19:20",
+ "savedAt": "2026-11-02 00:23",
  "range": {
   "start": "2026-09",
   "end": "2027-09"
@@ -69,7 +69,6 @@
    "cur": 2,
    "start": "2026-10-01",
    "end": "2027-03-01",
-   "progress": 25,
    "doneAt": null,
    "markers": [
     {
@@ -133,7 +132,6 @@
    "cur": 1,
    "start": "2026-11-07",
    "end": "2027-05-01",
-   "progress": 25,
    "doneAt": null,
    "markers": [
     {
@@ -161,7 +159,6 @@
    "cur": 1,
    "start": "2026-09-14",
    "end": "2027-06-30",
-   "progress": 50,
    "doneAt": null,
    "markers": [
     {
@@ -190,7 +187,6 @@
    "cur": 3,
    "start": "2026-09-07",
    "end": "2027-03-30",
-   "progress": 90,
    "doneAt": null,
    "markers": [
     {
@@ -553,7 +549,7 @@
   }
  },
  "pwKdf": "bHArgaGywMuqExjsHz6wqQ==:ToDdfKkqEWWeZkIcY7d1LlyFUmgL0bb/axDeF5lI8cY=",
- "schemaVersion": 5,
+ "schemaVersion": 6,
  "members": [
   {
    "id": "mmvx2r1i3ffnm",
