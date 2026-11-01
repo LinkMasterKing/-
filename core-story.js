@@ -77,17 +77,21 @@ function storyPause(p){
 /* ---------- 動畫模式視窗 ---------- */
 document.addEventListener("visibilitychange",()=>{if(document.hidden)storyPause(true)});
 function openAnim(){
+  if(setOpen)closeSettings(true);
   animOpen=true;const ov=$("#animOv");ov.hidden=false;
   $("#animTitle").textContent=state.title;$("#animDate").textContent=fmt(state.boardDate||today());
   ov.classList.remove("closing");void ov.offsetWidth;ov.classList.add("show");
   story.running=false;
   const fs=ov.requestFullscreen?ov.requestFullscreen():Promise.reject();
   fs.catch(()=>{}).finally(()=>setTimeout(()=>storySync(),120));
+  /* 工具列跟著進全螢幕，留在原位 */
+  const tb=$("#tabbar");if(tb){ov.append(tb);tb.classList.add("in-anim");renderTabbar()}
 }
 document.addEventListener("fullscreenchange",()=>{if(!document.fullscreenElement&&animOpen)closeAnim()});
 function closeAnim(){
   if(!animOpen)return;animOpen=false;const ov=$("#animOv");ov.classList.remove("show");ov.classList.add("closing");
   storySync();if(document.fullscreenElement)document.exitFullscreen().catch(()=>{});
   setTimeout(()=>{if(!animOpen){ov.hidden=true;ov.classList.remove("closing")}},420);
+  const tb=$("#tabbar");if(tb){tb.classList.remove("in-anim");document.body.append(tb);renderTabbar()}
 }
 document.addEventListener("keydown",e=>{if(e.key==="Escape"&&animOpen&&!$("#dlg").open)closeAnim()});

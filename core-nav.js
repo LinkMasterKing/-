@@ -1,29 +1,5 @@
-/* 核心｜底部工具列（液態玻璃）、設定頁、檢視模式切換、簡化模式動畫、對話框動畫、拉到底回彈 */
+/* 核心｜底部工具列、設定頁、拉到底回彈、工具列依背景反轉 */
 const IS_IOS=/iPhone|iPad|iPod/.test(navigator.userAgent)||(navigator.platform==="MacIntel"&&navigator.maxTouchPoints>1);
-/* SVG 折射在 Chrome 會把邊緣外的內容拉進來形成一條光帶，先關閉；保留毛玻璃＋邊緣反光＋高光 */
-const LG_REFRACT=false;
-const SVGNS="http://www.w3.org/2000/svg";
-
-/* ---------- 液態玻璃材質 ---------- */
-let lgDefs=null,lgN=0;
-function lgMapURL(w,h,band){
-  const bx=Math.min(.45,band/w),by=Math.min(.45,band/h);
-  return "data:image/svg+xml;charset=utf-8,"+encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}"><defs><linearGradient id="x" x1="0" x2="1"><stop offset="0" stop-color="rgb(232,0,0)"/><stop offset="${bx}" stop-color="rgb(128,0,0)"/><stop offset="${1-bx}" stop-color="rgb(128,0,0)"/><stop offset="1" stop-color="rgb(24,0,0)"/></linearGradient><linearGradient id="y" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="rgb(0,232,0)"/><stop offset="${by}" stop-color="rgb(0,128,0)"/><stop offset="${1-by}" stop-color="rgb(0,128,0)"/><stop offset="1" stop-color="rgb(0,24,0)"/></linearGradient></defs><rect width="${w}" height="${h}" fill="url(#x)"/><rect width="${w}" height="${h}" fill="url(#y)" style="mix-blend-mode:screen"/></svg>`);
-}
-function glassify(el,{band=16,scale=24}={}){
-  if(!el||el._lg)return;el._lg={};el.classList.add("glass");
-  el.addEventListener("pointermove",e=>{const r=el.getBoundingClientRect();el.style.setProperty("--mx",((e.clientX-r.left)/r.width*100).toFixed(1)+"%");el.style.setProperty("--my",((e.clientY-r.top)/r.height*100).toFixed(1)+"%")},{passive:true});
-  if(!LG_REFRACT)return;
-  if(!lgDefs){lgDefs=document.createElementNS(SVGNS,"svg");lgDefs.setAttribute("aria-hidden","true");lgDefs.setAttribute("width","0");lgDefs.setAttribute("height","0");lgDefs.style.cssText="position:absolute;width:0;height:0;overflow:hidden";document.body.append(lgDefs)}
-  const id="lgf"+(++lgN),f=document.createElementNS(SVGNS,"filter");
-  f.id=id;["x","y"].forEach(k=>f.setAttribute(k,"0"));f.setAttribute("width","100%");f.setAttribute("height","100%");f.setAttribute("color-interpolation-filters","sRGB");
-  f.innerHTML=`<feImage x="0" y="0" width="100%" height="100%" preserveAspectRatio="none" result="m"/><feDisplacementMap in="SourceGraphic" in2="m" scale="${scale}" xChannelSelector="R" yChannelSelector="G"/>`;
-  lgDefs.append(f);const img=f.querySelector("feImage");
-  const upd=()=>{const w=Math.round(el.offsetWidth),h=Math.round(el.offsetHeight);if(w&&h&&(w!==el._lg.w||h!==el._lg.h)){el._lg.w=w;el._lg.h=h;img.setAttribute("href",lgMapURL(w,h,band))}};
-  if(window.ResizeObserver)new ResizeObserver(upd).observe(el);upd();
-  el.style.setProperty("--lg",`url(#${id})`);el.classList.add("lg-refract");
-}
-
 /* ---------- 底部工具列 ---------- */
 let setOpen=false;
 const TABS=()=>[["home","首頁","home"],...(CFG.sections.animation?[["anim","動畫","play"]]:[]),...(!readOnly()?[["edit","編輯","edit"]]:[])];
@@ -71,15 +47,10 @@ function tabGo(k){
 }
 function setupTabbar(tb){
   const main=tb.querySelector(".tb-main");
-  glassify(main,{band:14,scale:22});glassify(tb.querySelector(".tb-gear"),{band:12,scale:18});
+  glassify(main);glassify(tb.querySelector(".tb-gear"));
   let st=null,suppress=false,lastX=0,lastT=0;
-  /* 動畫模式時工具列會沉到下面；碰一下浮上來 */
-  tb.addEventListener("pointerdown",e=>{
-    if(tb.classList.contains("peek")){e.preventDefault();e.stopPropagation();tb.classList.remove("peek");suppress=true;setTimeout(()=>suppress=false,500);schedulePeek();return}
-    if(tb.classList.contains("in-anim"))schedulePeek();
-  },true);
   tb.addEventListener("click",e=>{if(suppress&&e.isTrusted){e.stopPropagation();e.preventDefault()}},true);
-  main.addEventListener("pointerdown",e=>{if(e.button>0||editing||tb.classList.contains("peek"))return;st={x:e.clientX,lx:lens.x,id:e.pointerId,moved:false};lastX=e.clientX;lastT=performance.now()});
+  main.addEventListener("pointerdown",e=>{if(e.button>0||editing)return;st={x:e.clientX,lx:lens.x,id:e.pointerId,moved:false};lastX=e.clientX;lastT=performance.now()});
   main.addEventListener("pointermove",e=>{
     if(!st||e.pointerId!==st.id)return;
     if(e.pointerType==="mouse"&&e.buttons===0){end();return}
@@ -103,7 +74,6 @@ function setupTabbar(tb){
   addEventListener("resize",()=>lensTo(tbActive(),true));
   document.fonts?.ready.then(()=>lensTo(tbActive(),true));
 }
-function schedulePeek(){}
 document.addEventListener("click",e=>{
   const t=e.target;if(!t.closest)return;
   /* 用滑鼠／手指點的：先放掉焦點，關掉對話框後才不會在按鈕上留下焦點框 */
@@ -112,12 +82,6 @@ document.addEventListener("click",e=>{
   if(t.closest("#setBtn")){if(animOpen){closeAnim();setTimeout(openSettings,60);return}setOpen?closeSettings():openSettings();return}
   if(t.closest('#tabbar .tab[data-tab="edit"]')){if(editing){e.stopPropagation();e.preventDefault();if(animOpen)closeAnim();if(setOpen)closeSettings();goMain();return}if(animOpen)closeAnim()}
 },true);
-
-/* 動畫模式：工具列跟著進全螢幕，一直留在原位 */
-{const _open=openAnim,_close=closeAnim;
-  openAnim=function(){if(setOpen)closeSettings(true);_open();const tb=$("#tabbar");if(tb){$("#animOv").append(tb);tb.classList.add("in-anim");renderTabbar()}};
-  closeAnim=function(){const was=animOpen;_close();const tb=$("#tabbar");if(tb&&was){clearTimeout(tb._pk);tb.classList.remove("peek","in-anim");document.body.append(tb);renderTabbar()}};
-}
 
 /* ---------- 設定頁 ---------- */
 function settingsHTML(){
@@ -149,72 +113,6 @@ function closeSettings(instant){
 }
 document.addEventListener("click",e=>{const v=e.target.closest&&e.target.closest("#setOv [data-view]");if(v)setViewMode(v.dataset.view==="simple")});
 document.addEventListener("keydown",e=>{if(e.key==="Escape"&&setOpen&&!($("#dlg")||{}).open&&!($("#logOv")&&!$("#logOv").hidden))closeSettings()});
-
-/* ---------- 完整／簡化切換：淡出 → 換版面 → 淡入 ---------- */
-function setViewMode(want){
-  if(want===simple)return;
-  const L=document.querySelector(".layout");
-  const go=()=>{
-    simple=want;try{localStorage.setItem(SIMPLE_KEY,simple?"1":"0")}catch(_){}
-    simpleOpen.clear();document.body.classList.add("simple-enter");render();if(!simple)layoutAll();renderSettings();
-    if(!reduceMotion()&&!setOpen)[L,$("#simpleBar")].forEach(el=>el&&el.animate([{opacity:0,transform:"translateY(10px)"},{opacity:1,transform:"none"}],{duration:360,easing:"cubic-bezier(.2,.9,.25,1)"}));
-    setTimeout(()=>document.body.classList.remove("simple-enter"),900);
-  };
-  renderSettings();
-  if(setOpen)return setTimeout(go,280);   /* 在設定頁裡切換：先讓卡片的過渡跑完，背後的版面再換 */
-  if(reduceMotion()||!L)return go();
-  const a=L.animate([{opacity:1,transform:"none"},{opacity:0,transform:"translateY(-6px)"}],{duration:150,easing:"cubic-bezier(.4,0,1,1)",fill:"forwards"});
-  a.onfinish=()=>{go();a.cancel()};
-}
-
-/* ---------- 簡化模式：按鈕不重畫、區塊交叉淡入（不再動高度） ---------- */
-function syncPills(){document.querySelectorAll("#simpleBar .spill").forEach(b=>{const on=simpleOpen.has(b.dataset.simple);b.classList.toggle("on",on);b.setAttribute("aria-expanded",on)})}
-function renderSimple(){
-  document.body.classList.toggle("simple",simple);
-  document.querySelectorAll(".sgroup").forEach(g=>g.classList.toggle("sopen",simpleOpen.has(g.dataset.sec)));
-  if(!simple)return;
-  const act=state.issues.filter(i=>i.progress<100).length,live=state.events.filter(e=>!e.doneAt).length;
-  const done=state.issues.filter(i=>i.progress>=100).length+state.events.filter(e=>e.doneAt).length;
-  const pills=[["live","即時回報",live,"red"],["progress","進度",act,""],["done","完成紀錄",done,"green"]].filter(([k])=>secOn(k));
-  const bar=$("#simpleBar"),sig=pills.map(p=>p.join(":")).join("|");
-  if(bar._sig!==sig){bar._sig=sig;bar.innerHTML=pills.map(([k,t,n,c])=>`<button type="button" class="spill ${c}" data-simple="${k}" aria-expanded="false"><span class="sdot" aria-hidden="true"></span><span class="st">${t}</span><span class="sn">${n}</span><span class="schev" aria-hidden="true"><svg viewBox="0 0 12 8" width="11" height="7"><path d="M1.5 1.5 6 6l4.5-4.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></span></button>`).join("")}
-  syncPills();
-}
-let sgTok=0;
-function toggleSimpleGroup(k){
-  const cur=[...simpleOpen][0]||null,next=cur===k?null:k,tok=++sgTok;
-  const out=cur&&document.querySelector(`.sgroup[data-sec="${cur}"]`),inn=next&&document.querySelector(`.sgroup[data-sec="${next}"]`);
-  simpleOpen.clear();if(next)simpleOpen.add(next);syncPills();
-  const show=()=>{
-    if(tok!==sgTok)return;
-    document.querySelectorAll(".sgroup").forEach(g=>g.classList.toggle("sopen",simpleOpen.has(g.dataset.sec)));
-    if(inn){layoutAll();if(!reduceMotion())inn.animate([{opacity:0,transform:"translateY(14px)"},{opacity:1,transform:"none"}],{duration:340,easing:"cubic-bezier(.2,.9,.25,1)"})}
-  };
-  if(out&&out.classList.contains("sopen")&&!reduceMotion()){
-    const a=out.animate([{opacity:1,transform:"none"},{opacity:0,transform:"translateY(-8px)"}],{duration:140,easing:"cubic-bezier(.4,0,1,1)",fill:"forwards"});
-    a.onfinish=()=>{show();a.cancel()};
-  }else show();
-}
-
-/* ---------- 對話框：玻璃質地＋開關都有過渡 ---------- */
-(function(){
-  const d=$("#dlg");if(!d)return;glassify(d,{band:22,scale:20});
-  const nativeClose=HTMLDialogElement.prototype.close;
-  d.close=function(v){
-    if(!this.open)return;
-    if(reduceMotion())return nativeClose.call(this,v);
-    const r=this.getBoundingClientRect(),g=this.cloneNode(true);
-    g.removeAttribute("id");g.querySelectorAll("[id]").forEach(x=>x.removeAttribute("id"));
-    this.querySelectorAll("input,textarea,select").forEach((x,i)=>{const y=g.querySelectorAll("input,textarea,select")[i];if(y&&x.type!=="password")y.value=x.value});
-    g.classList.add("dlg-ghost");g.setAttribute("aria-hidden","true");g.setAttribute("open","");
-    Object.assign(g.style,{position:"fixed",left:r.left+"px",top:r.top+"px",width:r.width+"px",height:r.height+"px",margin:"0",zIndex:"2147483000"});
-    const bd=document.createElement("div");bd.className="dlg-ghost-bd";
-    (document.fullscreenElement||document.body).append(bd,g);
-    nativeClose.call(this,v);
-    g.animate([{opacity:1,transform:"none"},{opacity:0,transform:"translateY(8px) scale(.96)"}],{duration:200,easing:"cubic-bezier(.4,0,1,1)",fill:"forwards"}).onfinish=()=>g.remove();
-    bd.animate([{opacity:1},{opacity:0}],{duration:220,fill:"forwards"}).onfinish=()=>bd.remove();
-  };
-})();
 
 /* ---------- 拉到底的回彈（iPhone 本來就有，就不重複） ---------- */
 function elastic(sc,inner){

@@ -52,12 +52,6 @@ const SHELL_HTML=`<div class="pager" id="pager">
           </section>
           </div>
         </div>
-        <div class="sgroup" data-sec="weekly">
-          <section class="panel" aria-labelledby="swH">
-            <div class="panel-head"><h2 id="swH">每週概述<span class="en">WEEKLY</span></h2></div>
-            <div id="simpleWeek"></div>
-          </section>
-        </div>
       </div>
     </div>
   </div>

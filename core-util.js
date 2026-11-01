@@ -19,3 +19,8 @@ const safeUrl=u=>!u?"#":/^https?:\/\//i.test(u)?u:"https://"+u;
 const clamp=(v,a=0,b=100)=>Math.min(b,Math.max(a,v));
 const toast=m=>{const t=$("#toast");t.textContent=m;t.classList.add("show");clearTimeout(t._h);t._h=setTimeout(()=>t.classList.remove("show"),2000)};
 const hasDates=i=>!!(i.start&&i.end);
+/* 液態玻璃材質：加上 .glass，並讓高光跟著指標位置走 */
+function glassify(el){
+  if(!el||el._glass)return;el._glass=true;el.classList.add("glass");
+  el.addEventListener("pointermove",e=>{const r=el.getBoundingClientRect();el.style.setProperty("--mx",((e.clientX-r.left)/r.width*100).toFixed(1)+"%");el.style.setProperty("--my",((e.clientY-r.top)/r.height*100).toFixed(1)+"%")},{passive:true});
+}

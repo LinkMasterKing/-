@@ -23,42 +23,49 @@ function render(){
 const SIMPLE_KEY="workboard:simple";
 let simple=false;try{simple=CFG.sections.simple&&localStorage.getItem(SIMPLE_KEY)==="1"}catch(_){}
 const simpleOpen=new Set();
-const MODES=[["full","完整模式","所有區塊一次看完"],["simple","傻瓜模式","四個按鈕，一次只看一區"]];
-const simpleBtnHTML=()=>"";
-const _oldModeHTML=()=>`${CFG.sections.animation?`<button id="animBtn">▶ 動畫模式</button>`:""}${`<span class="mode-dd"><button type="button" id="modeBtn" aria-haspopup="menu" aria-expanded="false" aria-controls="modeMenu"><span>${CFG.sections.simple?(simple?"傻瓜模式":"完整模式"):"更多"}</span><span class="chev" aria-hidden="true">▾</span></button><div class="mode-menu" id="modeMenu" role="menu" aria-label="檢視方式" hidden>${(CFG.sections.simple?MODES:[]).map(([k,t,d])=>`<button type="button" role="menuitemradio" data-pick-mode="${k}" aria-checked="${(k==="simple")===simple}"><span class="mm-dot" aria-hidden="true"></span><span class="mm-t">${t}</span><small>${d}</small></button>`).join("")}${CFG.sections.simple?'<div class="mm-sep" role="separator"></div>':""}<button type="button" role="menuitem" class="mm-link" data-open-log><span class="mm-ico" aria-hidden="true">↺</span><span class="mm-t">編輯紀錄</span><small>誰在什麼時候改了什麼</small></button></div></span>`}`;
-/* 檢視模式下拉選單：由按鈕往下展開 */
-function modeMenu(open){
-  const btn=document.getElementById("modeBtn"),m=document.getElementById("modeMenu");if(!btn||!m)return;
-  if(open===undefined)open=m.hidden;
-  if(m._a)m._a.cancel();
-  if(open){
-    m.hidden=false;btn.setAttribute("aria-expanded","true");
-    m.style.left="";m.style.right="";
-    const r=m.getBoundingClientRect();
-    if(r.left<12||r.right>innerWidth-12){const d=m.parentElement.getBoundingClientRect();
-      const L=Math.min(Math.max(d.left+d.width/2-r.width/2,12),innerWidth-12-r.width);m.style.left=(L-d.left)+"px";m.style.right="auto"}
-    if(!reduceMotion())m._a=m.animate([{opacity:0,transform:"translateY(-10px) scaleY(.9)"},{opacity:1,transform:"none"}],{duration:300,easing:"cubic-bezier(.2,.9,.25,1)"});
-    (m.querySelector('[aria-checked="true"]')||m.querySelector("button")).focus({preventScroll:true});
-  }else{
-    btn.setAttribute("aria-expanded","false");
-    const done=()=>{m.hidden=true;m._a=null};
-    if(reduceMotion()){done();return}
-    m._a=m.animate([{opacity:1,transform:"none"},{opacity:0,transform:"translateY(-8px) scaleY(.94)"}],{duration:170,easing:"cubic-bezier(.4,0,.2,1)"});m._a.onfinish=done;
-  }
+
+/* ---------- 簡化模式：三顆按鈕不重畫；區塊交叉淡入（不動高度） ---------- */
+function syncPills(){document.querySelectorAll("#simpleBar .spill").forEach(b=>{const on=simpleOpen.has(b.dataset.simple);b.classList.toggle("on",on);b.setAttribute("aria-expanded",on)})}
+function renderSimple(){
+  document.body.classList.toggle("simple",simple);
+  document.querySelectorAll(".sgroup").forEach(g=>g.classList.toggle("sopen",simpleOpen.has(g.dataset.sec)));
+  if(!simple)return;
+  const act=state.issues.filter(i=>i.progress<100).length,live=state.events.filter(e=>!e.doneAt).length;
+  const done=state.issues.filter(i=>i.progress>=100).length+state.events.filter(e=>e.doneAt).length;
+  const pills=[["live","即時回報",live,"red"],["progress","進度",act,""],["done","完成紀錄",done,"green"]].filter(([k])=>secOn(k));
+  const bar=$("#simpleBar"),sig=pills.map(p=>p.join(":")).join("|");
+  if(bar._sig!==sig){bar._sig=sig;bar.innerHTML=pills.map(([k,t,n,c])=>`<button type="button" class="spill ${c}" data-simple="${k}" aria-expanded="false"><span class="sdot" aria-hidden="true"></span><span class="st">${t}</span><span class="sn">${n}</span><span class="schev" aria-hidden="true"><svg viewBox="0 0 12 8" width="11" height="7"><path d="M1.5 1.5 6 6l4.5-4.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></span></button>`).join("")}
+  syncPills();
 }
-document.addEventListener("click",e=>{
-  const t=e.target;if(!t.closest)return;
-  if(t.closest("#modeBtn")){modeMenu();return}
-  if(t.closest("[data-open-log]")){modeMenu(false);return}
-  const pick=t.closest("[data-pick-mode]");
-  if(pick){const want=pick.dataset.pickMode==="simple";modeMenu(false);
-    if(want===simple)return;
-    setTimeout(()=>{simple=want;try{localStorage.setItem(SIMPLE_KEY,simple?"1":"0")}catch(_){}render();if(!simple)layoutAll()},reduceMotion()?0:140);return}
-  const m=document.getElementById("modeMenu");if(m&&!m.hidden&&!t.closest(".mode-dd"))modeMenu(false);
-});
-document.addEventListener("keydown",e=>{
-  const m=document.getElementById("modeMenu");if(!m||m.hidden)return;
-  if(e.key==="Escape"){e.stopPropagation();modeMenu(false);document.getElementById("modeBtn")?.focus();return}
-  if(e.key==="ArrowDown"||e.key==="ArrowUp"){e.preventDefault();const bs=[...m.querySelectorAll("button")],i=bs.indexOf(document.activeElement);bs[(i+(e.key==="ArrowDown"?1:bs.length-1))%bs.length].focus()}
-},true);
-/* renderSimple / toggleSimpleGroup → nav.js */
+let sgTok=0;
+function toggleSimpleGroup(k){
+  const cur=[...simpleOpen][0]||null,next=cur===k?null:k,tok=++sgTok;
+  const out=cur&&document.querySelector(`.sgroup[data-sec="${cur}"]`),inn=next&&document.querySelector(`.sgroup[data-sec="${next}"]`);
+  simpleOpen.clear();if(next)simpleOpen.add(next);syncPills();
+  const show=()=>{
+    if(tok!==sgTok)return;
+    document.querySelectorAll(".sgroup").forEach(g=>g.classList.toggle("sopen",simpleOpen.has(g.dataset.sec)));
+    if(inn){layoutAll();if(!reduceMotion())inn.animate([{opacity:0,transform:"translateY(14px)"},{opacity:1,transform:"none"}],{duration:340,easing:"cubic-bezier(.2,.9,.25,1)"})}
+  };
+  if(out&&out.classList.contains("sopen")&&!reduceMotion()){
+    const a=out.animate([{opacity:1,transform:"none"},{opacity:0,transform:"translateY(-8px)"}],{duration:140,easing:"cubic-bezier(.4,0,1,1)",fill:"forwards"});
+    a.onfinish=()=>{show();a.cancel()};
+  }else show();
+}
+
+/* ---------- 完整／簡化切換：淡出 → 換版面 → 淡入 ---------- */
+function setViewMode(want){
+  if(want===simple)return;
+  const L=document.querySelector(".layout");
+  const go=()=>{
+    simple=want;try{localStorage.setItem(SIMPLE_KEY,simple?"1":"0")}catch(_){}
+    simpleOpen.clear();document.body.classList.add("simple-enter");render();if(!simple)layoutAll();renderSettings();
+    if(!reduceMotion()&&!setOpen)[L,$("#simpleBar")].forEach(el=>el&&el.animate([{opacity:0,transform:"translateY(10px)"},{opacity:1,transform:"none"}],{duration:360,easing:"cubic-bezier(.2,.9,.25,1)"}));
+    setTimeout(()=>document.body.classList.remove("simple-enter"),900);
+  };
+  renderSettings();
+  if(setOpen)return setTimeout(go,280);   /* 在設定頁裡切換：先讓卡片的過渡跑完，背後的版面再換 */
+  if(reduceMotion()||!L)return go();
+  const a=L.animate([{opacity:1,transform:"none"},{opacity:0,transform:"translateY(-6px)"}],{duration:150,easing:"cubic-bezier(.4,0,1,1)",fill:"forwards"});
+  a.onfinish=()=>{go();a.cancel()};
+}

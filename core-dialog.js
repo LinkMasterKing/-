@@ -69,3 +69,23 @@ document.addEventListener("keydown",e=>{
   else if(e.key==="ArrowDown"||e.key==="ArrowUp"){e.preventDefault();os[(i+(e.key==="ArrowDown"?1:os.length-1)+os.length)%os.length].focus()}
   else if(e.key==="Tab")cselClose(c);
 },true);
+
+/* ---------- 對話框：玻璃質地＋開關都有過渡 ---------- */
+(function(){
+  const d=$("#dlg");if(!d)return;glassify(d);
+  const nativeClose=HTMLDialogElement.prototype.close;
+  d.close=function(v){
+    if(!this.open)return;
+    if(reduceMotion())return nativeClose.call(this,v);
+    const r=this.getBoundingClientRect(),g=this.cloneNode(true);
+    g.removeAttribute("id");g.querySelectorAll("[id]").forEach(x=>x.removeAttribute("id"));
+    this.querySelectorAll("input,textarea,select").forEach((x,i)=>{const y=g.querySelectorAll("input,textarea,select")[i];if(y&&x.type!=="password")y.value=x.value});
+    g.classList.add("dlg-ghost");g.setAttribute("aria-hidden","true");g.setAttribute("open","");
+    Object.assign(g.style,{position:"fixed",left:r.left+"px",top:r.top+"px",width:r.width+"px",height:r.height+"px",margin:"0",zIndex:"2147483000"});
+    const bd=document.createElement("div");bd.className="dlg-ghost-bd";
+    (document.fullscreenElement||document.body).append(bd,g);
+    nativeClose.call(this,v);
+    g.animate([{opacity:1,transform:"none"},{opacity:0,transform:"translateY(8px) scale(.96)"}],{duration:200,easing:"cubic-bezier(.4,0,1,1)",fill:"forwards"}).onfinish=()=>g.remove();
+    bd.animate([{opacity:1},{opacity:0}],{duration:220,fill:"forwards"}).onfinish=()=>bd.remove();
+  };
+})();

@@ -2,15 +2,12 @@
 /* ---------- events ---------- */
 document.addEventListener("click",async e=>{
   const t=e.target;
-  const segB=t.closest(".seg [data-mode]");if(segB){const want=segB.dataset.mode==="simple";if(want===simple)return;simple=want;try{localStorage.setItem(SIMPLE_KEY,simple?"1":"0")}catch(_){}render();if(!simple)layoutAll();return}
   const sp=t.closest("[data-simple]");if(sp){toggleSimpleGroup(sp.dataset.simple);return}
   if(t.closest("#animBtn")){openAnim();return}
   if(t.closest("#animClose")){closeAnim();return}
   if(t.closest("#animFs")){const ov=$("#animOv");if(document.fullscreenElement)document.exitFullscreen().catch(()=>{});else (ov.requestFullscreen?ov.requestFullscreen():Promise.reject()).catch(()=>toast("這個環境不支援全螢幕"));return}
   const sd=t.closest("[data-story]");if(sd){storyPlay(+sd.dataset.story);return}
   if(t.closest("#storyStage")){storyPause(!story.paused);return}
-  if(t.closest("[data-goweek]")){goWeek();return}
-  if(t.closest("[data-copylast]")){const w=[...state.weeks].sort((a,b)=>b.date.localeCompare(a.date))[0];if(w)copyText(w.text);return}
   const jump=t.closest("[data-jump]");
   const tgl=t.closest("[data-toggle]");
   if(tgl){const id=tgl.closest("[data-issue]").dataset.issue;flipCards(()=>{if(openIds.has(id))openIds.delete(id);else{if(!editing)openIds.clear();openIds.add(id)}});return}
