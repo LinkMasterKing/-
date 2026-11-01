@@ -49,7 +49,8 @@ document.addEventListener("click",async e=>{
   if(wk&&t.closest("[data-delweek]")){e.preventDefault();const w=state.weeks.find(x=>x.id===wk.dataset.week);const v=await ask(`刪除 ${fmt(w.date)} 的週報？`,[],{danger:"刪除"});if(v==="delete"){state.weeks=state.weeks.filter(x=>x!==w);changed()}return}
 
   /* small events（即時回報） */
-  const evOf=el=>state.events.find(x=>x.id===el.closest("[data-ev]").dataset.ev);
+  /* 左右兩欄時直接新增一筆空白的，選到它、在右側填寫 */
+  if(t.closest("#addEvent")&&mdOn("live")){const ev={id:uid("e"),name:"新的即時回報",desc:"",createdAt:today(),staff:[],links:[],times:[],round:1,touched:[]};evTouch(ev);state.events.push(ev);selEv=ev.id;changed();mdPaneIn($("#evDetail"));const n=$('#evDetail [data-evf="name"]');n?.focus();n?.select();return}
   if(t.closest("#addEvent")){const v=await ask("新增即時回報",[{name:"name",label:"名稱",ph:"例如：飲水機故障通報"},{name:"desc",label:"說明",type:"textarea",ph:"簡短說明"},...staffField([])]);
     if(v&&v.name){const ev={id:uid("e"),name:v.name,desc:v.desc||"",createdAt:today(),staff:v.staff||[],links:[],times:[],round:1,touched:[]};evTouch(ev);state.events.push(ev);changed()}return}
   const evAct=t.closest("[data-evdone],[data-evundo],[data-evdel]");
@@ -58,6 +59,18 @@ document.addEventListener("click",async e=>{
     else if(evAct.dataset.evundo!==undefined){ev.doneAt=null;evTouch(ev);syncLink(ev);changed()}
     else{const v=await ask(`刪除「${ev.name}」？`,[],{danger:"刪除"});if(v==="delete"){unlinkEv(ev);state.events=state.events.filter(x=>x!==ev);changed()}}
     return}
+  /* 右側詳情（編輯中）的按鈕 */
+  const evd=t.closest("#evDetail [data-evd]");
+  if(evd){const ev=evOf(evd),k=evd.dataset.evd,box=$("#evDetail .evd-round");
+    if(k==="round"){box.hidden=false;box.animate([{opacity:0,transform:"translateY(-6px)"},{opacity:1,transform:"none"}],{duration:240,easing:"cubic-bezier(.2,.9,.25,1)"});box.querySelector("textarea").focus();return}
+    if(k==="roundcancel"){box.hidden=true;return}
+    if(k==="roundok"){evRoundDone(ev,box.querySelector('[data-rf="done"]').value.trim(),box.querySelector('[data-rf="next"]').value.trim());return}
+    if(k==="addtime"){const tm={id:uid("t"),label:"",start:today(),end:"",toIssue:false};ev.times.push(tm);evTouch(ev);changed();$(`#evDetail [data-tm="${tm.id}"] [data-tmf="label"]`)?.focus();return}
+    if(k==="deltime"){const id=evd.closest("[data-tm]").dataset.tm;ev.times=ev.times.filter(x=>x.id!==id);evTouch(ev);syncLink(ev);changed();return}
+    if(k==="addlink"){const l={id:uid("l"),name:"",url:"",color:COLORS[ev.links.length%COLORS.length]};ev.links.push(l);evTouch(ev);changed();$(`#evDetail [data-lk="${l.id}"] [data-lkf="name"]`)?.focus();return}
+    if(k==="dellink"){const id=evd.closest("[data-lk]").dataset.lk;ev.links=ev.links.filter(x=>x.id!==id);evTouch(ev);changed();return}
+    if(k==="linkcolor"){const l=ev.links.find(x=>x.id===evd.closest("[data-lk]").dataset.lk);l.color=COLORS[(COLORS.indexOf(l.color)+1)%COLORS.length];changed();return}
+    return}
   /* 完成這一段：把這段的內容複製一份到完成紀錄，卡片留著進入下一段 */
   const evRound=t.closest("[data-evround]");
   if(evRound){const ev=evOf(evRound);
@@ -65,11 +78,7 @@ document.addEventListener("click",async e=>{
       {name:"done",label:"這一段完成了什麼（存進完成紀錄）",type:"textarea",rows:4,value:ev.desc||""},
       {name:"next",label:"下一段要追蹤什麼（取代卡片上的說明；留空就沿用）",type:"textarea",rows:3,ph:"例如：等總務處回覆維修時程"}]);
     if(!v)return;
-    const now=nowStr().replace(" ","T"),past=ev.times.filter(x=>x.start<=now);
-    const rec={id:uid("e"),name:ev.name,desc:v.done||"",createdAt:ev.createdAt,doneAt:today(),issueId:ev.issueId||null,links:ev.links.map(l=>({...l})),staff:[...ev.staff],times:past,round:ev.round,fromEv:ev.id};
-    ev.times=ev.times.filter(x=>!past.includes(x));ev.round+=1;ev.roundAt=now;if(v.next)ev.desc=v.next;evTouch(ev);
-    state.events.push(rec);syncLink(ev);syncLink(rec);openEv.add(ev.id);changed();
-    toast(`第 ${rec.round} 段已存進完成紀錄，接著追第 ${ev.round} 段`);return}
+    evRoundDone(ev,v.done||"",v.next||"");return}
   /* 時間標記：新增、編輯 */
   const tmAdd=t.closest("[data-addevtime]"),tmEd=t.closest("[data-evtime]");
   if(tmAdd||tmEd){const ev=evOf(tmAdd||tmEd),tm=tmEd?ev.times.find(x=>x.id===tmEd.dataset.evtime):null;
@@ -139,6 +148,44 @@ document.addEventListener("change",e=>{
 });
 ["rStart","rEnd"].forEach(id=>$("#"+id).addEventListener("change",e=>{const k=id==="rStart"?"start":"end";if(e.target.value){state.range[k]=e.target.value;if(state.range.end<state.range.start)state.range.end=state.range.start;changed()}}));
 
+const evOf=el=>state.events.find(x=>x.id===el.closest("[data-ev]").dataset.ev);   /* 元素所在的即時回報（膠囊、完成紀錄、右側詳情都帶 data-ev） */
+/* 完成這一段：把這段的內容複製一份到完成紀錄（已經過去的時間標記跟著走），卡片留著進入下一段 */
+function evRoundDone(ev,done,next){
+  const now=nowStr().replace(" ","T"),past=ev.times.filter(x=>x.start<=now);
+  const rec={id:uid("e"),name:ev.name,desc:done||"",createdAt:ev.createdAt,doneAt:today(),issueId:ev.issueId||null,links:ev.links.map(l=>({...l})),staff:[...ev.staff],times:past,round:ev.round,fromEv:ev.id};
+  ev.times=ev.times.filter(x=>!past.includes(x));ev.round+=1;ev.roundAt=now;if(next)ev.desc=next;evTouch(ev);
+  state.events.push(rec);syncLink(ev);syncLink(rec);openEv.add(ev.id);changed();
+  toast(`第 ${rec.round} 段已存進完成紀錄，接著追第 ${ev.round} 段`);
+}
+/* 右側詳情（編輯中）的欄位：名稱、說明邊打邊存；其他離開欄位或選完才存並重畫 */
+document.addEventListener("input",e=>{
+  const f=e.target.closest&&e.target.closest("#evDetail [data-evf]");if(!f||!editing)return;
+  const ev=evOf(f);ev[f.dataset.evf]=f.value;evTouch(ev);paneDirty();
+  if(f.dataset.evf==="name"){const c=document.querySelector(`#events [data-ev="${ev.id}"] summary b`);if(c)c.textContent=f.value;const h=$("#evDetail .evd-head b");if(h)h.textContent=f.value}
+});
+document.addEventListener("change",e=>{
+  const el=e.target;if(!editing||!el.closest||!el.closest("#evDetail"))return;
+  const ev=evOf(el);
+  if(el.name==="evIssue"){ev.issueId=el.value||null;evTouch(ev);syncLink(ev);changed();toast(ev.issueId?`已連結到「${parentOf(ev).title}」`:"已取消連結");return}
+  if(el.name==="staff"){ev.staff=[...document.querySelectorAll('#evDetail input[name="staff"]:checked')].map(x=>x.value);evTouch(ev);changed();return}
+  const row=el.closest("[data-tm]");
+  if(row){const tm=ev.times.find(x=>x.id===row.dataset.tm),g=k=>row.querySelector(`[data-tmf="${k}"]`);
+    if(el.dataset.tmf==="toIssue"){tm.toIssue=el.checked;evTouch(ev);syncLink(ev);changed();return}
+    const r=evTimeParts({label:g("label").value.trim(),sd:g("sd").value,st:g("st").value,ed:g("ed").value,et:g("et").value});
+    if(r.msg){if(!(el.dataset.tmf==="label"&&!g("label").value.trim()&&!tm.label))toast(r.msg);el.classList.add("bad");return}
+    Object.assign(tm,{label:g("label").value.trim(),start:r.start,end:r.end});el.classList.remove("bad");evTouch(ev);syncLink(ev);paneDirty();
+    const sp=row.querySelector(".evd-span");if(sp)sp.textContent=evTimeText(tm).span;return}
+  const lr=el.closest("[data-lk]");
+  if(lr){const l=ev.links.find(x=>x.id===lr.dataset.lk);l[el.dataset.lkf]=el.value.trim();evTouch(ev);paneDirty();return}
+});
+/* 在右側一欄一欄填的時候不重畫（會把游標弄丟）；焦點離開整個右側詳情時才重畫一次，讓甘特圖、議題卡片跟上 */
+let _paneDirty=false;
+function paneDirty(){_paneDirty=true;dirty=true}
+document.addEventListener("focusout",e=>{
+  if(!_paneDirty||!e.target.closest||!e.target.closest("#evDetail"))return;
+  if(e.relatedTarget&&e.relatedTarget.closest&&e.relatedTarget.closest("#evDetail"))return;
+  _paneDirty=false;setTimeout(render,0);
+});
 /* markers on cards: press-and-drag to place a new one, drag to move, click to edit */
 let drag=null;
 function makePending(tr,pct){

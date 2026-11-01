@@ -50,6 +50,17 @@ async function editMarker(it,mk){
 
 /* 即時回報的時間標記：只填日期＝一個日子；加時刻＝具體時間；填了結束＝一段期間。回傳資料、"delete" 或 null */
 const parseHM=s=>{s=String(s||"").trim().replace(/[：.．]/g,":");if(!s)return "";const m=s.match(/^(\d{1,2})(?::?(\d{2}))?$/);if(!m||+m[1]>23||+(m[2]||0)>59)return null;return pad(+m[1])+":"+pad(+(m[2]||0))};
+/* 時間標記的欄位（名稱、日期、時刻、結束日期、結束時刻）→ start／end；有錯回傳 msg（對話框與右側面板共用） */
+function evTimeParts({label,sd,st,ed,et}){
+  const hs=parseHM(st),he=parseHM(et);
+  if(!label)return {msg:"請填這個時間是什麼"};
+  if(!sd)return {msg:"請選日期"};
+  if(hs===null||he===null)return {msg:"時刻請用 14:00 這種格式"};
+  const e2=ed||(he?sd:"");
+  const start=sd+(hs?"T"+hs:""),end=e2?e2+(he?"T"+he:""):"";
+  if(end&&(end.slice(0,10)<start.slice(0,10)||(hs&&he&&end<start)))return {msg:"結束要晚於開始"};
+  return {start,end:!end||end===start||(e2===sd&&!he)?"":end};
+}
 async function askEvTime(ev,tm){
   const par=parentOf(ev),sp=x=>[(x||"").slice(0,10),(x||"").slice(11,16)];
   let [sd,st]=tm?sp(tm.start):[today(),""],[ed,et]=tm?sp(tm.end):["",""],label=tm?tm.label:"",toIssue=!!(tm&&tm.toIssue);
@@ -63,15 +74,8 @@ async function askEvTime(ev,tm){
       ...(par?[{name:"toIssue",label:`也寫進母議題「${par.title}」的處理紀錄`,type:"check",value:toIssue}]:[])],tm?{danger:"刪除"}:{});
     if(!v||v==="delete")return v;
     ({label,sd,ed}=v);toIssue=v.toIssue==="on";st=v.st;et=v.et;
-    const hs=parseHM(st),he=parseHM(et);
-    if(!label){toast("請填這個時間是什麼");continue}
-    if(!sd){toast("請選日期");continue}
-    if(hs===null||he===null){toast("時刻請用 14:00 這種格式");continue}
-    const e2=ed||(he?sd:"");
-    const start=sd+(hs?"T"+hs:""),end=e2?e2+(he?"T"+he:""):"";
-    const bad=end&&(end.slice(0,10)<start.slice(0,10)||(hs&&he&&end<start));
-    if(bad){toast("結束要晚於開始");continue}
-    return {label,start,end:!end||end===start||(e2===sd&&!he)?"":end,toIssue};
+    const r=evTimeParts({label,sd,st,ed,et});if(r.msg){toast(r.msg);continue}
+    return {label,start:r.start,end:r.end,toIssue};
   }
 }
 
@@ -95,7 +99,7 @@ function cselOpen(c){
 document.addEventListener("click",e=>{
   const t=e.target;if(!t.closest)return;
   const b=t.closest(".csel-btn");if(b){const c=b.closest(".csel");c.classList.contains("open")?cselClose(c):cselOpen(c);return}
-  const o=t.closest(".csel-opt");if(o){const c=o.closest(".csel");c.querySelector("input").value=o.dataset.v;c.querySelector(".csel-v").textContent=o.textContent;c.querySelectorAll(".csel-opt").forEach(x=>x.setAttribute("aria-selected",x===o));cselClose(c,true);return}
+  const o=t.closest(".csel-opt");if(o){const c=o.closest(".csel");const inp=c.querySelector("input"),chg=inp.value!==o.dataset.v;inp.value=o.dataset.v;c.querySelector(".csel-v").textContent=o.textContent;if(chg)inp.dispatchEvent(new Event("change",{bubbles:true}));c.querySelectorAll(".csel-opt").forEach(x=>x.setAttribute("aria-selected",x===o));cselClose(c,true);return}
   document.querySelectorAll(".csel.open").forEach(c=>{if(!c.contains(t))cselClose(c)});
 });
 document.addEventListener("keydown",e=>{

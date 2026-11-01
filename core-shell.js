@@ -23,7 +23,7 @@ const SHELL_HTML=`<div class="pager" id="pager">
         <div class="sgroup" data-sec="live">
           <section class="panel" id="livePanel" aria-labelledby="evH">
             <div class="panel-head"><h2 id="evH">即時回報<span class="en">LIVE</span></h2></div>
-            <div class="events" id="events"></div>
+            <div class="md" id="liveMD"><div class="events" id="events"></div><div class="md-pane" id="evDetail" hidden></div></div>
             <button class="ghost edit-only add-row" id="addEvent">+ 新增即時回報</button>
           </section>
         </div>

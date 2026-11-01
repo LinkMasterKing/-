@@ -27,11 +27,11 @@ let curSec=SECS[0]||"live",secTok=0;
 const isPhone=()=>matchMedia("(max-width:640px)").matches;
 function renderSections(){document.querySelectorAll(".layout>.sgroup").forEach(g=>g.classList.toggle("cur",g.dataset.sec===curSec));
   /* 切換區塊時，個別進度／完成紀錄要不要改成左右兩欄跟著變 */
-  if(mdOn("progress")!==mdLast.progress)renderCards();if(mdOn("done")!==mdLast.done)renderDone()}
-/* 桌面（1000px 以上）、區塊被選到放大成全寬時：清單在左、詳情在右（個別進度、完成紀錄） */
+  if(mdOn("live")!==mdLast.live)renderEvents();if(mdOn("progress")!==mdLast.progress)renderCards();if(mdOn("done")!==mdLast.done)renderDone()}
+/* 桌面（1000px 以上）、區塊被選到放大成全寬時：清單在左、詳情在右（即時回報、個別進度、完成紀錄） */
 const MD_MQ=matchMedia("(min-width:1000px)");
 const mdOn=sec=>MD_MQ.matches&&curSec===sec;
-let selIssue=null,selDone=null;const mdLast={};
+let selIssue=null,selDone=null,selEv=null;const mdLast={};
 MD_MQ.addEventListener("change",()=>render());
 function setSection(k,{instant}={}){
   if(!SECS.includes(k)||k===curSec)return;

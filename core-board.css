@@ -214,11 +214,11 @@ body.edit .banner{display:flex;animation:rise .3s var(--ease)}
 /* 膠囊一律白底黑字（細框），狀態只放在左邊的燈號：data-st＝ok 綠（期限前有更新）／go 黑（這週完成過一段，或期限後才補更新）／stall 紅（沒有進度）。
    只有紅色（沒有進度）的燈號會一直向外擴散提醒，其他靜止——一整排同時閃很吵，也會讓展開收合動畫變卡。
    --st＝燈號與狀態標籤的顏色，--st-ink＝狀態標籤上的字色 */
-.ev,.kid-ev{--st:var(--st-stall);--st-ink:var(--st-stall-ink)}
-.ev[data-st="ok"],.kid-ev[data-st="ok"]{--st:var(--st-ok);--st-ink:var(--st-ok-ink)}
-.ev[data-st="go"],.kid-ev[data-st="go"]{--st:var(--st-go);--st-ink:var(--st-go-ink)}
-.ev .live-dot,.ev .live-dot::after,.kid-ev .live-dot,.kid-ev .live-dot::after{background:var(--st)}
-.ev:not([data-st="stall"]) .live-dot::after,.kid-ev:not([data-st="stall"]) .live-dot::after{animation:none;opacity:0}
+.ev,.kid-ev,.evd{--st:var(--st-stall);--st-ink:var(--st-stall-ink)}
+.ev[data-st="ok"],.kid-ev[data-st="ok"],.evd[data-st="ok"]{--st:var(--st-ok);--st-ink:var(--st-ok-ink)}
+.ev[data-st="go"],.kid-ev[data-st="go"],.evd[data-st="go"]{--st:var(--st-go);--st-ink:var(--st-go-ink)}
+:is(.ev,.kid-ev,.evd) .live-dot,:is(.ev,.kid-ev,.evd) .live-dot::after{background:var(--st)}
+:is(.ev,.kid-ev,.evd):not([data-st="stall"]) .live-dot::after{animation:none;opacity:0}
 .events{display:grid;gap:10px;align-items:start;grid-template-columns:repeat(auto-fill,minmax(min(100%,270px),1fr))}
 .events .empty{grid-column:1/-1}
 .ev{position:relative;display:block;padding:0;border:1px solid var(--line);border-radius:18px;background:var(--surface);transition:background-color .3s,color .3s,transform .22s var(--ease),box-shadow .22s var(--ease),border-color .3s}
@@ -254,6 +254,34 @@ body.edit .banner{display:flex;animation:rise .3s var(--ease)}
 .ev-tools{display:flex;gap:6px;justify-content:flex-end;margin-top:10px;flex-wrap:wrap}
 .ev-links{margin-top:10px}
 .ev .staff-row{margin-top:10px}
+/* 左右兩欄（桌面 1000px 以上、即時回報被選到時）：左側膠囊清單、右側詳情；編輯中所有功能都在右側直接改 */
+#liveMD.split{display:grid;grid-template-columns:minmax(300px,380px) minmax(0,1fr);gap:20px;align-items:start}
+#liveMD.split .events{grid-template-columns:minmax(0,1fr)}
+#liveMD.split .ev-chev{display:none}
+.events .ev.sel{box-shadow:0 0 0 3px color-mix(in srgb,var(--ink) 40%,transparent)}
+#evDetail{position:sticky;top:12px;max-height:calc(100dvh - 150px);overflow:auto;overscroll-behavior:contain;min-width:0;border:1px solid var(--line);border-radius:18px;padding:18px 22px 20px;background:var(--surface)}
+.evd-head{display:flex;align-items:center;gap:10px;font-size:20px;line-height:1.4}
+.evd-head b{font-weight:700;min-width:0;overflow-wrap:anywhere}
+.evd .ev-meta{display:flex;flex-wrap:wrap;align-items:center;gap:4px 10px;margin:8px 0 0;font-size:12px;color:var(--muted)}
+.evd-par{margin:12px 0 0}
+.evd-desc{margin:12px 0 0;font-size:14px;line-height:1.8;white-space:pre-wrap;word-break:break-word}
+.evd-hint{margin:18px 0 0;font-size:12px}
+.evd-f,.evd .fld,.evd fieldset.multi{display:grid;gap:4px;margin-top:14px;font-size:12.5px;color:var(--muted)}
+.evd-sec{display:grid;gap:8px;margin-top:20px;padding-top:14px;border-top:1px solid var(--hair)}
+.evd-sec .att-h .sub{margin-left:6px;font-size:11.5px}
+.evd-row{display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px}
+.evd-row>input{flex:1 1 180px;min-width:0}
+.evd-when{display:inline-flex;flex-wrap:wrap;align-items:center;gap:6px}
+.evd-when input[type=date]{width:auto}
+.evd-when input:not([type]){width:72px}
+.evd-span{min-width:3em}
+.evd-row input.bad{border-color:var(--red)}
+.evd-sw{flex:none;width:24px;height:24px;min-height:0;padding:0;border:0;border-radius:50%;box-shadow:inset 0 0 0 1px rgba(255,255,255,.35)}
+.evd-add{justify-self:start}
+.evd-btns{display:flex;flex-wrap:wrap;align-items:center;justify-content:flex-end;gap:8px}
+.evd-gap{flex:1}
+.evd-round{display:grid;gap:4px;padding:4px 14px 14px;border:1px solid var(--hair);border-radius:14px;margin-bottom:6px}
+.evd-round[hidden]{display:none}
 /* 議題卡片裡「進行中的即時回報」小膠囊：同樣白底、燈號帶狀態色 */
 .kid-evs{display:grid;gap:4px}
 .kid-list{display:flex;flex-wrap:wrap;gap:6px}
@@ -789,7 +817,7 @@ dialog#dlg[open]::backdrop{background:rgba(0,0,0,.3);-webkit-backdrop-filter:blu
 #dlg input:not([type=checkbox]),#dlg textarea,#dlg select,.dlg-ghost input:not([type=checkbox]),.dlg-ghost textarea,.dlg-ghost select{background:rgba(0,0,0,.28);border-color:rgba(255,255,255,.32)}
 :root:not([data-theme="dark"]) #dlg :is(input:not([type=checkbox]),textarea,select){background:rgba(255,255,255,.55);border-color:rgba(0,0,0,.18)}
 .fld{display:grid;gap:4px;font-size:12.5px;color:var(--muted)}
-dialog label.fld-check{display:flex;align-items:center;gap:10px;font-size:13.5px;color:var(--ink);cursor:pointer;-webkit-user-select:none;user-select:none}
+label.fld-check{display:flex;align-items:center;gap:10px;font-size:13.5px;color:var(--ink);cursor:pointer;-webkit-user-select:none;user-select:none}
 .fld-check input{-webkit-appearance:none;appearance:none;flex:none;display:grid;place-content:center;width:20px;height:20px;margin:0;padding:0;border:1.5px solid var(--muted);border-radius:6px;background:transparent;cursor:pointer;transition:background-color .2s,border-color .2s}
 .fld-check input::after{content:"";width:10px;height:5.5px;border:2px solid var(--surface);border-top:0;border-right:0;transform:translateY(-1px) rotate(-45deg) scale(0);transition:transform .28s cubic-bezier(.3,1.6,.5,1)}
 .fld-check input:checked{background:var(--ink);border-color:var(--ink)}
