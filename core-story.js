@@ -24,7 +24,7 @@ function sceneProgress(){
     const grid=ms.map((mm,k)=>{const x=X(ymd(mm));return `<line class="sg-grid" x1="${x}" x2="${x}" y1="22" y2="${H}" style="--d:${(.35+k*.05).toFixed(2)}s"/><text class="sg-m" x="${x+4}" y="14" style="--d:${(.35+k*.05).toFixed(2)}s">${mm.getMonth()+1}月</text>`}).join("");
     const tx=X(today());const todayL=(tx>L&&tx<Rr)?`<line class="sg-today" x1="${tx}" x2="${tx}" y1="18" y2="${H}" pathLength="1" style="--d:.9s"/>`:"";
     const r0=1.1,rs=.28;
-    const bars=rows.map((it,k)=>{const y=50+k*RH,x1=X(it.start<it.end?it.start:it.end),x2=X(it.start<it.end?it.end:it.start),xf=x1+(x2-x1)*it.progress/100,c=it.progress>=50?"var(--green)":"var(--red)",d=r0+k*rs;
+    const bars=rows.map((it,k)=>{const y=50+k*RH,x1=X(it.start<it.end?it.start:it.end),x2=X(it.start<it.end?it.end:it.start),xf=x1+(x2-x1)*it.progress/100,c=`var(--prog-${progTone(it.progress)})`,d=r0+k*rs;
       return `<line class="sg-rest" x1="${x1}" x2="${x2}" y1="${y}" y2="${y}" pathLength="1" style="--d:${d.toFixed(2)}s"/>`+
         (it.progress>0?`<line class="sg-fill" x1="${x1}" x2="${Math.max(x1+.1,xf)}" y1="${y}" y2="${y}" pathLength="1" stroke="${c}" style="--d:${(d+.35).toFixed(2)}s"/>`:"")+
         `<rect class="sg-knob" x="${xf-2}" y="${y-8}" width="4" height="16" rx="2" fill="${c}" style="--d:${(d+.9).toFixed(2)}s"/>`+
@@ -34,7 +34,7 @@ function sceneProgress(){
   }
   const show=act.slice(0,5),more=act.length-show.length;
   const b0=rows.length?gEnd+.7:.9,step=Math.min(.75,3.2/Math.max(1,show.length));
-  const list=show.length?show.map((it,k)=>{const c=it.progress>=50?"green":"red";return `<li style="--d:${(b0+k*step).toFixed(2)}s"><span class="sp-t">${esc(it.title)}</span><span class="sp-bar"><i class="${c}" style="--p:${it.progress}%;--d:${(b0+k*step+.15).toFixed(2)}s"></i></span><span class="sp-n ${c}">${it.progress}%</span></li>`}).join("")+(more>0?`<li class="sc-more" style="--d:${(b0+show.length*step).toFixed(2)}s">還有 ${more} 個議題</li>`:"")
+  const list=show.length?show.map((it,k)=>{const c=progTone(it.progress);return `<li style="--d:${(b0+k*step).toFixed(2)}s"><span class="sp-t">${esc(it.title)}</span><span class="sp-bar"><i class="${c}" style="--p:${it.progress}%;--d:${(b0+k*step+.15).toFixed(2)}s"></i></span><span class="sp-n ${c}">${it.progress}%</span></li>`}).join("")+(more>0?`<li class="sc-more" style="--d:${(b0+show.length*step).toFixed(2)}s">還有 ${more} 個議題</li>`:"")
     :`<li style="--d:${b0}s"><span class="sp-t">目前沒有進行中的議題</span></li>`;
   const html=`<div class="sc-head"><span class="sc-num">02</span><h3>目前進度</h3><span class="sc-count" style="--d:.5s">${act.length}</span></div>
     <div class="sc-body">${g}<ol class="sc-bars ${rows.length?"after":""}">${list}</ol></div>`;
