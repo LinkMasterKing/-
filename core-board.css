@@ -889,18 +889,23 @@ dialog#dlg:has(.csel.open){overflow:visible}
 .set-ov[hidden]{display:none}
 .set-ov .anim-top{padding-bottom:8px}
 .set-scroll{flex:1;overflow:auto;overscroll-behavior:contain;scrollbar-gutter:stable}
-.set-inner{max-width:720px;margin:0 auto;padding:14px 0 calc(120px + env(safe-area-inset-bottom));display:grid;gap:28px}
+/* 觸控裝置（手機、平板）不顯示捲軸、也不預留位置：手指捲動本來就不需要捲軸，預留的寬度會讓左右邊界不對稱 */
+@media (pointer:coarse){
+  .set-scroll{scrollbar-width:none;scrollbar-gutter:auto}
+  .set-scroll::-webkit-scrollbar{display:none}
+}
+.set-inner{max-width:720px;margin:0 auto;grid-template-columns:minmax(0,1fr);padding:14px 0 calc(120px + env(safe-area-inset-bottom));display:grid;gap:28px}
 .set-h{margin:0 0 10px;padding:0;border:0;font-size:12.5px;font-weight:500;color:var(--muted);letter-spacing:.16em}
 .set-row:hover{transform:none;box-shadow:none;background:color-mix(in srgb,var(--ink) 6%,transparent)}
 .set-row:active{transform:none;background:color-mix(in srgb,var(--ink) 11%,transparent)}
 .set-list{display:grid;border:1px solid var(--line);border-radius:24px;overflow:hidden}
-.set-row{width:100%;display:flex;justify-content:flex-start;align-items:center;gap:14px;padding:15px 20px;border-radius:0;border:0;text-align:left;background:transparent;color:var(--ink);min-height:0;transition:background-color .2s}
+.set-row{width:100%;display:flex;justify-content:flex-start;align-items:center;gap:14px;padding:15px 20px;border-radius:0;border:0;text-align:left;background:transparent;color:var(--ink);min-height:0;transition:background-color .2s;white-space:normal}  /* 按鈕預設不換行；這裡要讓長說明換行，否則整頁被撐寬 */
 .set-row+.set-row{border-top:1px solid var(--hair)}
 .set-row[aria-disabled="true"]{cursor:default;opacity:.5}
 .set-row[aria-disabled="true"]:hover,.set-row[aria-disabled="true"]:active{background:transparent}
 .set-lock{margin-left:10px;padding:1px 8px;border:1px solid currentColor;border-radius:999px;font-size:10.5px;letter-spacing:.1em;vertical-align:1px}
 .sr-ico{font-size:22px;line-height:1;display:grid}
-.sr-t{flex:1;display:grid;gap:2px}
+.sr-t{flex:1;min-width:0;display:grid;gap:2px}
 .sr-t b{font-weight:500;letter-spacing:.06em}
 .sr-t small{color:var(--muted);font-size:12.5px}
 .sr-chev{color:var(--muted);display:grid}
