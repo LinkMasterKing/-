@@ -3,7 +3,7 @@
  "id": "board-main",
  "title": "權益部工作進度",
  "locked": false,
- "savedAt": "2026-11-01 14:48",
+ "savedAt": "2026-11-01 19:20",
  "range": {
   "start": "2026-09",
   "end": "2027-09"
@@ -505,19 +505,6 @@
    "name": "六宿女宿舍通道安全",
    "desc": "三樓安全門未關閉上鎖",
    "createdAt": "2026-10-29",
-   "staff": [],
-   "touched": [
-    "2026-10-27"
-   ],
-   "links": [],
-   "times": [],
-   "round": 1
-  },
-  {
-   "id": "emvx6wwarehnm",
-   "name": "67",
-   "desc": "",
-   "createdAt": "2026-11-01",
    "staff": [],
    "touched": [
     "2026-10-27"
