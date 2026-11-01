@@ -52,4 +52,3 @@ async function shareSettings(){
   pairs.forEach(([k,val])=>{const m=document.querySelector(`meta[property="${k}"],meta[name="${k}"]`);if(m)m.setAttribute("content",val)});
   toast("已更新預覽文字（約 1 分鐘後生效；LINE、FB 會快取舊預覽一段時間）");
 }
-document.addEventListener("click",e=>{if(e.target.closest&&e.target.closest("#shareBtn"))shareSettings()});

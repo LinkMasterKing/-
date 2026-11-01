@@ -1,4 +1,4 @@
-/* 核心｜整體重繪＋簡化模式 */
+/* 核心｜整體重繪＋區塊切換 */
 let openWeeks=null,newWeekId=null,prevDone=null,openDone=new Set(),openEv=new Set(),editing=false,dirty=false,snapshot="",keepIds=new Set(),openIds=new Set();
 
 /* ---------- timeline math ---------- */
@@ -16,56 +16,40 @@ function render(){
   try{
     document.body.classList.toggle("edit",editing);
     document.body.classList.toggle("locked",!!state.locked);
-    renderHeader();renderTabbar();renderSimple();storySync();renderWeeks();renderGantt();renderEvents();renderCards();renderDone();layoutAll();
+    renderHeader();renderTabbar();renderSections();storySync();renderWeeks();renderGantt();renderEvents();renderCards();renderDone();layoutAll();
   }finally{rendering=false}
 }
 
-const SIMPLE_KEY="workboard:simple";
-let simple=false;try{simple=CFG.sections.simple&&localStorage.getItem(SIMPLE_KEY)==="1"}catch(_){}
-const simpleOpen=new Set();
-
-/* ---------- 簡化模式：三顆按鈕不重畫；區塊交叉淡入（不動高度） ---------- */
-function syncPills(){document.querySelectorAll("#simpleBar .spill").forEach(b=>{const on=simpleOpen.has(b.dataset.simple);b.classList.toggle("on",on);b.setAttribute("aria-expanded",on)})}
-function renderSimple(){
-  document.body.classList.toggle("simple",simple);
-  document.querySelectorAll(".sgroup").forEach(g=>g.classList.toggle("sopen",simpleOpen.has(g.dataset.sec)));
-  if(!simple)return;
-  const act=state.issues.filter(i=>i.progress<100).length,live=state.events.filter(e=>!e.doneAt).length;
-  const done=state.issues.filter(i=>i.progress>=100).length+state.events.filter(e=>e.doneAt).length;
-  const pills=[["live","即時回報",live,"red"],["progress","進度",act,""],["done","完成紀錄",done,"green"]].filter(([k])=>secOn(k));
-  const bar=$("#simpleBar"),sig=pills.map(p=>p.join(":")).join("|");
-  if(bar._sig!==sig){bar._sig=sig;bar.innerHTML=pills.map(([k,t,n,c])=>`<button type="button" class="spill ${c}" data-simple="${k}" aria-expanded="false"><span class="sdot" aria-hidden="true"></span><span class="st">${t}</span><span class="sn">${n}</span><span class="schev" aria-hidden="true"><svg viewBox="0 0 12 8" width="11" height="7"><path d="M1.5 1.5 6 6l4.5-4.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></span></button>`).join("")}
-  syncPills();
-}
-let sgTok=0;
-function toggleSimpleGroup(k){
-  const cur=[...simpleOpen][0]||null,next=cur===k?null:k,tok=++sgTok;
-  const out=cur&&document.querySelector(`.sgroup[data-sec="${cur}"]`),inn=next&&document.querySelector(`.sgroup[data-sec="${next}"]`);
-  simpleOpen.clear();if(next)simpleOpen.add(next);syncPills();
-  const show=()=>{
-    if(tok!==sgTok)return;
-    document.querySelectorAll(".sgroup").forEach(g=>g.classList.toggle("sopen",simpleOpen.has(g.dataset.sec)));
-    if(inn){layoutAll();if(!reduceMotion())inn.animate([{opacity:0,transform:"translateY(14px)"},{opacity:1,transform:"none"}],{duration:340,easing:"cubic-bezier(.2,.9,.25,1)"})}
-  };
-  if(out&&out.classList.contains("sopen")&&!reduceMotion()){
-    const a=out.animate([{opacity:1,transform:"none"},{opacity:0,transform:"translateY(-8px)"}],{duration:140,easing:"cubic-bezier(.4,0,1,1)",fill:"forwards"});
-    a.onfinish=()=>{show();a.cancel()};
-  }else show();
-}
-
-/* ---------- 完整／簡化切換：淡出 → 換版面 → 淡入 ---------- */
-function setViewMode(want){
-  if(want===simple)return;
-  const L=document.querySelector(".layout");
-  const go=()=>{
-    simple=want;try{localStorage.setItem(SIMPLE_KEY,simple?"1":"0")}catch(_){}
-    simpleOpen.clear();document.body.classList.add("simple-enter");render();if(!simple)layoutAll();renderSettings();
-    if(!reduceMotion()&&!setOpen)[L,$("#simpleBar")].forEach(el=>el&&el.animate([{opacity:0,transform:"translateY(10px)"},{opacity:1,transform:"none"}],{duration:360,easing:"cubic-bezier(.2,.9,.25,1)"}));
-    setTimeout(()=>document.body.classList.remove("simple-enter"),900);
-  };
-  renderSettings();
-  if(setOpen)return setTimeout(go,280);   /* 在設定頁裡切換：先讓卡片的過渡跑完，背後的版面再換 */
-  if(reduceMotion()||!L)return go();
-  const a=L.animate([{opacity:1,transform:"none"},{opacity:0,transform:"translateY(-6px)"}],{duration:150,easing:"cubic-bezier(.4,0,1,1)",fill:"forwards"});
-  a.onfinish=()=>{go();a.cancel()};
+/* ---------- 區塊切換：底部工具列的三個分頁 ----------
+   手機：一次只顯示一區（預設即時回報）；桌面：全部顯示，選到的區塊放大移到最上面，其他區塊排在下面 */
+const SECS=["live","progress","done"].filter(secOn);
+let curSec=SECS[0]||"live",secTok=0;
+const isPhone=()=>matchMedia("(max-width:640px)").matches;
+function renderSections(){document.querySelectorAll(".layout>.sgroup").forEach(g=>g.classList.toggle("cur",g.dataset.sec===curSec))}
+function setSection(k,{instant}={}){
+  if(!SECS.includes(k)||k===curSec)return;
+  const tok=++secTok,prev=curSec,lay=document.querySelector(".layout"),sc=$("#pageMain");
+  const groups=[...lay.querySelectorAll(":scope>.sgroup")],out=groups.find(g=>g.dataset.sec===prev),inn=groups.find(g=>g.dataset.sec===k);
+  /* 區塊頂端已經捲到畫面外時，捲回來讓新區塊從頭看 */
+  const toTop=()=>{const d=lay.getBoundingClientRect().top-sc.getBoundingClientRect().top-12;if(d<0)sc.scrollTop+=d};
+  curSec=k;renderTabbar();
+  groups.forEach(g=>g.getAnimations().forEach(a=>a.cancel()));
+  if(instant||reduceMotion()){renderSections();layoutAll();toTop();return}
+  if(isPhone()){
+    /* 手機：舊區塊淡出，新區塊由下往上淡入 */
+    const show=()=>{if(tok!==secTok)return;renderSections();layoutAll();toTop();inn.animate([{opacity:0,transform:"translateY(14px)"},{opacity:1,transform:"none"}],{duration:340,easing:"cubic-bezier(.2,.9,.25,1)"})};
+    if(out&&out.offsetParent){const a=out.animate([{opacity:1,transform:"none"},{opacity:0,transform:"translateY(-8px)"}],{duration:140,easing:"cubic-bezier(.4,0,1,1)",fill:"forwards"});a.onfinish=()=>{show();a.cancel()}}
+    else show();
+    return;
+  }
+  /* 桌面：FLIP——選到的區塊從原本的位置放大彈到最上面，其他區塊滑到新位置 */
+  const first=new Map(groups.map(g=>[g,g.getBoundingClientRect()]));
+  renderSections();layoutAll();toTop();
+  groups.forEach(g=>{
+    const a=first.get(g),b=g.getBoundingClientRect();if(!a.width||!b.width)return;
+    const s=a.width/b.width,dx=a.left-b.left,dy=a.top-b.top;if(Math.abs(dx)<1&&Math.abs(dy)<1&&Math.abs(s-1)<.01)return;
+    const sel=g===inn;g.style.zIndex=sel?"2":"1";
+    g.animate([{transformOrigin:"0 0",transform:`translate(${dx}px,${dy}px) scale(${s})`,opacity:sel?1:.55},{transformOrigin:"0 0",transform:"none",opacity:1}],
+      {duration:sel?620:480,easing:sel?"cubic-bezier(.2,.9,.25,1.1)":"cubic-bezier(.2,.9,.25,1)"}).onfinish=()=>{g.style.zIndex=""};
+  });
 }

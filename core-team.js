@@ -6,6 +6,34 @@ const meMember=()=>state.members.find(x=>x.id===meId)||null;
 const meName=()=>(meMember()||{}).name||"";
 const isAdmin=()=>(meMember()||{}).role==="admin";
 const adminCount=()=>state.members.filter(m=>m.role==="admin").length;
+/* 記住這台裝置：只存身分和「密碼雜湊的指紋」（不存密碼、不上傳）；密碼一改指紋就對不上，自動失效 */
+const REM_KEY="workboard:remember:"+state.id;
+function remRead(){try{return JSON.parse(localStorage.getItem(REM_KEY)||"null")}catch(_){return null}}
+function remClear(){try{localStorage.removeItem(REM_KEY)}catch(_){}}
+async function kdfPrint(kdf){const h=await crypto.subtle.digest("SHA-256",_te.encode(String(kdf||"")));return toB64(new Uint8Array(h)).slice(0,22)}
+async function remSave(m){try{localStorage.setItem(REM_KEY,JSON.stringify({id:m.id,fp:await kdfPrint(m.kdf)}))}catch(_){}}
+async function remLogin(){
+  const r=remRead();if(!r||!hasSubtle())return false;
+  const m=state.members.find(x=>x.id===r.id);
+  if(!m||r.fp!==await kdfPrint(m.kdf)){remClear();return false}
+  if(cloudOn()&&!ghToken()&&m.tok)return false;   /* 這台裝置的權杖不見了：要輸入密碼才解得開 */
+  meId=m.id;try{localStorage.setItem(ME_KEY,m.id)}catch(_){}
+  return true;
+}
+const loggedIn=()=>!!meMember();
+/* 需要登入的操作（進入編輯、設定頁各項）共用：這次已經登入就直接通過 */
+async function ensureLogin(){
+  if(loggedIn())return true;
+  if(await remLogin()){toast(`已用這台裝置記住的身分登入：${meName()}`);return true}
+  return unlockEdit();
+}
+/* 用記住的裝置登入時手上沒有密碼；要加密新權杖時再問一次 */
+async function needPw(){
+  const me=meMember();if(sessionPw||!me)return !!sessionPw;
+  const v=await ask("輸入個人密碼",[{name:"pw",label:`${me.name} 的個人密碼（用來加密新權杖，其他裝置登入後才會自動連上）`,type:"password"}]);
+  if(v&&await kdfCheck(me.kdf,v.pw)){sessionPw=v.pw;return true}
+  if(v)toast("密碼不正確，新權杖只存在這台裝置");return false;
+}
 async function kdfMake(pw){const salt=toB64(crypto.getRandomValues(new Uint8Array(16)));return salt+":"+await kdfHash(pw,salt)}
 async function kdfCheck(stored,pw){if(!stored||!pw)return false;const [s,h]=stored.split(":");try{return (await kdfHash(pw,s))===h}catch(_){return false}}
 
@@ -23,7 +51,7 @@ async function unlockEdit(){
   let last="";try{last=localStorage.getItem(ME_KEY)||""}catch(_){}
   for(;;){
     const opts=state.members.map(m=>[m.id,m.name+(m.role==="admin"?"（管理員）":"")]);
-    const v=await ask("選擇編輯身分",[{name:"who",label:"我是",type:"select",value:last||opts[0][0],options:opts},{name:"pw",label:"個人密碼",type:"password"}],{alt:"＋ 新增身分"});
+    const v=await ask("選擇編輯身分",[{name:"who",label:"我是",type:"select",value:last||opts[0][0],options:opts},{name:"pw",label:"個人密碼",type:"password"},{name:"rem",label:"在這個裝置上記住密碼",type:"check"}],{alt:"＋ 新增身分"});
     if(v===null)return false;
     if(v==="alt"){
       const pw=await unlockShared("新增身分：先輸入部門共用密碼");if(pw===null)continue;
@@ -32,6 +60,7 @@ async function unlockEdit(){
     const m=state.members.find(x=>x.id===v.who);last=v.who;
     if(m&&await kdfCheck(m.kdf,v.pw)){
       meId=m.id;sessionPw=v.pw;try{localStorage.setItem(ME_KEY,m.id)}catch(_){}
+      if(v.rem)await remSave(m);
       if(!ghToken()&&m.tok){try{localStorage.setItem(TOKEN_KEY,await decToken(m.tok,v.pw));toast("已自動連上雲端")}catch(_){}}
       return true;
     }
@@ -73,7 +102,7 @@ function teamHTML(){
     ${adm?'<div class="tm-tools"><button type="button" class="ghost" data-x="sharedpw">更改部門共用密碼</button></div>':""}</section>
   <section class="tm-sec"><div class="att-h">專員名單（標在即時回報與議題上，和編輯身分無關）</div><ul class="tm-list">${staff||'<li class="sub">還沒有專員</li>'}</ul>
     <div class="tm-tools"><input id="newStaff" placeholder="新增專員名字" aria-label="新增專員名字"><button type="button" data-x="addstaff">＋ 新增</button></div></section>
-  <p class="sub tm-note">變更會在按「儲存並同步」後生效。</p>
+  <p class="sub tm-note">${editing?"變更會在按「儲存並同步」後生效。":"按「完成」後會直接儲存並同步。"}</p>
   <div class="dlg-actions"><button type="button" class="primary" data-x="done">完成</button></div>`;
 }
 function syncStaffInputs(f){f.querySelectorAll("[data-staff]").forEach(i=>{const s=state.staff.find(x=>x.id===i.dataset.staff);const n=i.value.trim();if(s&&n)s.name=n})}
@@ -88,7 +117,7 @@ async function teamSettings(){
     f.querySelectorAll("[data-x]").forEach(b=>b.onclick=async()=>{
       const x=b.dataset.x,id=b.dataset.id,m=state.members.find(y=>y.id===id);
       syncStaffInputs(f);
-      if(x==="done"){leave();d.classList.remove("wide");changed();return}
+      if(x==="done"){await leave();d.classList.remove("wide");if(editing)changed();else if(dirty)await settingSave(()=>{},"已更新身分與專員");else render();return}
       if(x==="addstaff"){const n=$("#newStaff").value.trim();if(!n)return;if(state.staff.some(s=>s.name===n)){toast("名單裡已經有這個名字");return}state.staff.push({id:uid("s"),name:n});dirty=true;paint();$("#newStaff").focus();return}
       if(x==="delstaff"){state.staff=state.staff.filter(s=>s.id!==id);[...state.issues,...state.events].forEach(o=>{if(o.staff)o.staff=o.staff.filter(s=>s!==id)});dirty=true;paint();return}
       if(x==="role"&&m){if(m.role==="admin"&&adminCount()<=1){toast("至少要保留一位管理員");return}m.role=m.role==="admin"?"member":"admin";dirty=true;paint();return}
@@ -116,7 +145,6 @@ async function teamSettings(){
   };
   reopen();
 }
-document.addEventListener("click",e=>{if(e.target.closest&&e.target.closest("#teamBtn"))teamSettings()});
 
 /* ---------- 專員標籤 ---------- */
 const staffOpts=()=>state.staff.map(s=>[s.id,s.name]);

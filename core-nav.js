@@ -2,8 +2,9 @@
 const IS_IOS=/iPhone|iPad|iPod/.test(navigator.userAgent)||(navigator.platform==="MacIntel"&&navigator.maxTouchPoints>1);
 /* ---------- 底部工具列 ---------- */
 let setOpen=false;
-const TABS=()=>[["home","首頁","home"],...(CFG.sections.animation?[["anim","動畫","play"]]:[]),...(!readOnly()?[["edit","編輯","edit"]]:[])];
-const tbActive=()=>animOpen?"anim":setOpen?"":editing?"edit":"home";
+const TABS=()=>[["live","即時回報","live"],["progress","進度","progress"],["done","完成紀錄","done"]].filter(([k])=>secOn(k));
+/* 動畫或設定打開時，三個分頁都不亮；點任一個就關掉並回到那一區 */
+const tbActive=()=>animOpen||setOpen?"":curSec;
 const lens={x:0,v:0,t:0,raf:0,drag:false,inited:false};
 /* 用版面位置（offset）計算，不受全螢幕／縮放動畫影響 */
 function tabCenter(k){const tb=$("#tabbar");const ind=tb&&tb.querySelector(`.tab[data-tab="${k}"] .tab-ind`);if(!ind||!ind.offsetWidth)return null;const box=tb.querySelector(".tb-tabs");return {x:box.offsetLeft+ind.offsetLeft+ind.offsetWidth/2,y:box.offsetTop+ind.offsetTop}}
@@ -34,23 +35,20 @@ function renderTabbar(){
     document.body.append(tb);setupTabbar(tb);
   }
   const tabs=TABS(),box=tb.querySelector(".tb-tabs"),sig=tabs.map(t=>t[0]).join();
-  if(box._sig!==sig){box._sig=sig;box.innerHTML=tabs.map(([k,t,ic])=>`<button type="button" class="tab" role="tab" data-tab="${k}"${k==="anim"?' id="animBtn"':k==="edit"?' id="editBtn"':""}><span class="tab-ind">${ico(ic,"solo")}</span><span class="tab-l">${t}</span></button>`).join("");lens.inited=false}
+  if(box._sig!==sig){box._sig=sig;box.innerHTML=tabs.map(([k,t,ic])=>`<button type="button" class="tab" role="tab" data-tab="${k}"><span class="tab-ind">${ico(ic,"solo")}</span><span class="tab-l">${t}</span></button>`).join("");lens.inited=false}
   const act=tbActive();
   box.querySelectorAll(".tab").forEach(b=>{const on=b.dataset.tab===act;b.classList.toggle("on",on);b.setAttribute("aria-selected",on)});
   const g=tb.querySelector("#setBtn");g.classList.toggle("on",setOpen);g.setAttribute("aria-expanded",setOpen);
   requestAnimationFrame(()=>lensTo(act));
   tbContrastSoon();
 }
-function tabGo(k){
-  if(k==="home"){if(animOpen)closeAnim();if(setOpen)closeSettings();goMain();return}
-  const b=document.querySelector(`#tabbar .tab[data-tab="${k}"]`);if(b)b.click();
-}
+function tabGo(k){if(animOpen)closeAnim();if(setOpen)closeSettings();goMain();setSection(k)}
 function setupTabbar(tb){
   const main=tb.querySelector(".tb-main");
   glassify(main);glassify(tb.querySelector(".tb-gear"));
   let st=null,suppress=false,lastX=0,lastT=0;
   tb.addEventListener("click",e=>{if(suppress&&e.isTrusted){e.stopPropagation();e.preventDefault()}},true);
-  main.addEventListener("pointerdown",e=>{if(e.button>0||editing)return;st={x:e.clientX,lx:lens.x,id:e.pointerId,moved:false};lastX=e.clientX;lastT=performance.now()});
+  main.addEventListener("pointerdown",e=>{if(e.button>0)return;st={x:e.clientX,lx:lens.x,id:e.pointerId,moved:false};lastX=e.clientX;lastT=performance.now()});
   main.addEventListener("pointermove",e=>{
     if(!st||e.pointerId!==st.id)return;
     if(e.pointerType==="mouse"&&e.buttons===0){end();return}
@@ -69,7 +67,9 @@ function setupTabbar(tb){
     const k=nearestTab(lens.x);lensTo(k);if(!lens.raf)lens.raf=requestAnimationFrame(lensStep);
     if(k!==tbActive()){setTimeout(()=>tabGo(k),60);setTimeout(()=>lensTo(tbActive()),420)}else lensTo(tbActive());
   }
-  main.addEventListener("pointerup",end);main.addEventListener("pointercancel",end);main.addEventListener("lostpointercapture",end);
+  main.addEventListener("pointerup",end);main.addEventListener("pointercancel",end);
+  /* 觸控時瀏覽器會先把指標鎖在按下的那顆按鈕；改鎖到整列時，那顆按鈕送出的 lostpointercapture 會冒泡上來，不能當成放開 */
+  main.addEventListener("lostpointercapture",e=>{if(e.target===main)end()});
   addEventListener("pointerup",end);addEventListener("pointercancel",end);addEventListener("blur",end);
   addEventListener("resize",()=>lensTo(tbActive(),true));
   document.fonts?.ready.then(()=>lensTo(tbActive(),true));
@@ -78,26 +78,33 @@ document.addEventListener("click",e=>{
   const t=e.target;if(!t.closest)return;
   /* 用滑鼠／手指點的：先放掉焦點，關掉對話框後才不會在按鈕上留下焦點框 */
   const tbBtn=t.closest("#tabbar button");if(tbBtn&&e.detail>0)tbBtn.blur();
-  if(t.closest('#tabbar .tab[data-tab="home"]')){tabGo("home");return}
+  const tab=t.closest("#tabbar .tab");if(tab){tabGo(tab.dataset.tab);return}
   if(t.closest("#setBtn")){if(animOpen){closeAnim();setTimeout(openSettings,60);return}setOpen?closeSettings():openSettings();return}
-  if(t.closest('#tabbar .tab[data-tab="edit"]')){if(editing){e.stopPropagation();e.preventDefault();if(animOpen)closeAnim();if(setOpen)closeSettings();goMain();return}if(animOpen)closeAnim()}
 },true);
 
 /* ---------- 設定頁 ---------- */
+const SR_CHEV='<span class="sr-chev" aria-hidden="true"><svg viewBox="0 0 8 14" width="7" height="12"><path d="M1.5 1.5 6.5 7l-5 5.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></span>';
+const setRow=(k,ic,t,sub,off)=>`<button type="button" class="set-row" ${k==="log"?"data-open-log":`data-set="${k}"`}${off?' aria-disabled="true"':""}><span class="sr-ico">${ico(ic,"solo")}</span><span class="sr-t"><b>${t}</b>${sub?`<small>${sub}</small>`:""}</span>${off?"":SR_CHEV}</button>`;
+const setSec=(h,rows,lock)=>`<section class="set-sec"><h3 class="set-h">${h}${lock&&!loggedIn()?'<span class="set-lock">需登入</span>':""}</h3><div class="set-list">${rows}</div></section>`;
+function settingsInner(){
+  const c=cloudCfg(),rem=remRead(),remName=rem&&(state.members.find(m=>m.id===rem.id)||{}).name;
+  return setSec("紀錄",setRow("log","history","編輯紀錄","誰在什麼時候改了什麼"))+
+    (readOnly()?"":
+    setSec("人員與權限",setRow("team","people","身分與專員","編輯身分、管理員、專員名單"),1)+
+    setSec("看板資訊",setRow("title","edit","看板名稱",esc(state.title))+setRow("date","calendar","看板日期",state.boardDate?fmt(state.boardDate):"自動（使用儲存當天）")+
+      setRow("year","cap","學年",esc(state.yearLabel||"未設定"))+setRow("term","flag","開學日",state.termStart?fmt(state.termStart):"未設定"),1)+
+    setSec("雲端與分享",setRow("cloud","cloud","雲端同步",cloudOn()?`${esc(c.owner)}/${esc(c.repo)} · ${ghToken()?"這台裝置已連上":"這台裝置還沒有權杖"}`:"尚未設定")+
+      setRow("share","share","分享預覽","貼連結到 LINE、IG、FB 時顯示的標題與說明"),1)+
+    setSec("匯出與備份",setRow("exportLocked","download","匯出定型版","唯讀的單一網頁檔，可以直接傳給別人看")+setRow("exportEdit","download","匯出備份","JSON 檔，之後可以再匯入")+
+      setRow("import","upload","匯入備份","用備份檔取代目前的看板內容")+setRow("report","doc","匯出工作報告","準備中",true),1)+
+    setSec("這台裝置",setRow("forget","device","忘記這台裝置",remName?`目前記住：${esc(remName)}（登入時勾選「在這個裝置上記住密碼」）`:"這台裝置沒有記住任何身分",!remName)))+
+    `<section class="set-sec"><h3 class="set-h">安裝成 App</h3><p class="set-p">iPhone：用 Safari 打開 → 分享 → 加入主畫面。<br>Android／電腦：瀏覽器選單裡的「安裝」。</p></section>`;
+}
 function settingsHTML(){
   return `<div class="anim-top"><div class="anim-title"><span class="anim-k">SETTINGS</span><b>設定</b></div><div class="anim-ctl"><button type="button" id="setClose" aria-label="關閉設定">${ico("close")}關閉</button></div></div>
-  <div class="set-scroll"><div class="set-inner">
-    ${CFG.sections.simple?`<section class="set-sec"><h3 class="set-h">檢視模式</h3><div class="set-modes" role="radiogroup" aria-label="檢視模式">
-      <button type="button" class="set-mode" role="radio" data-view="full"><span class="sm-ico">${ico("full","solo")}</span><span class="sm-t">完整</span><small>所有區塊一次看完</small></button>
-      <button type="button" class="set-mode" role="radio" data-view="simple"><span class="sm-ico">${ico("simple","solo")}</span><span class="sm-t">簡化</span><small>三個按鈕，一次只看一區</small></button>
-    </div></section>`:""}
-    <section class="set-sec"><h3 class="set-h">紀錄</h3>
-      <button type="button" class="set-row" data-open-log><span class="sr-ico">${ico("history","solo")}</span><span class="sr-t"><b>編輯紀錄</b><small>誰在什麼時候改了什麼</small></span><span class="sr-chev" aria-hidden="true"><svg viewBox="0 0 8 14" width="7" height="12"><path d="M1.5 1.5 6.5 7l-5 5.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></span></button>
-    </section>
-    <section class="set-sec"><h3 class="set-h">安裝成 App</h3><p class="set-p">iPhone：用 Safari 打開 → 分享 → 加入主畫面。<br>Android／電腦：瀏覽器選單裡的「安裝」。</p></section>
-  </div></div>`;
+  <div class="set-scroll"><div class="set-inner"></div></div>`;
 }
-function renderSettings(){document.querySelectorAll("#setOv [data-view]").forEach(b=>{const on=(b.dataset.view==="simple")===simple;b.classList.toggle("on",on);b.setAttribute("aria-checked",on)})}
+function renderSettings(){const el=$("#setOv .set-inner");if(el&&setOpen)el.innerHTML=settingsInner()}
 function openSettings(){
   let ov=$("#setOv");
   if(!ov){document.body.insertAdjacentHTML("beforeend",`<div class="set-ov" id="setOv" role="dialog" aria-modal="true" aria-label="設定" hidden>${settingsHTML()}</div>`);ov=$("#setOv");
@@ -111,7 +118,37 @@ function closeSettings(instant){
   if(instant||reduceMotion())return done();
   ov.animate([{transform:"none",opacity:1},{transform:"translateX(28px)",opacity:0}],{duration:220,easing:"cubic-bezier(.4,0,1,1)"}).onfinish=done;
 }
-document.addEventListener("click",e=>{const v=e.target.closest&&e.target.closest("#setOv [data-view]");if(v)setViewMode(v.dataset.view==="simple")});
+/* 看板資訊：每一項單獨修改（原本在編輯模式的頁首） */
+const BOARD_INFO={
+  title:["看板名稱",()=>[{name:"v",label:"看板名稱",value:state.title}],v=>{if(!v){toast("看板名稱不能空白");return false}state.title=v}],
+  date:["看板日期",()=>[{name:"v",label:"看板日期（留空＝自動使用儲存當天的日期）",type:"date",value:state.boardDate||""}],v=>{state.boardDate=v||""}],
+  year:["學年",()=>[{name:"v",label:"學年（顯示在頁首，例如：115學年）",value:state.yearLabel||""}],v=>{state.yearLabel=v||""}],
+  term:["開學日",()=>[{name:"v",label:"開學日（用來算開學第幾週）",type:"date",value:state.termStart||""}],v=>{state.termStart=v||""}],
+};
+async function editBoardInfo(k){
+  const [t,fields,apply]=BOARD_INFO[k];
+  const v=await ask(t,fields());if(!v)return;
+  const key={title:"title",date:"boardDate",year:"yearLabel",term:"termStart"}[k];
+  if((v.v||"")===(state[key]||""))return;
+  await settingSave(()=>apply(v.v),`已更新${t}`);
+}
+function forgetDevice(){remClear();if(!editing){meId="";sessionPw="";sharedPwSession=""}renderSettings();toast("已忘記這台裝置，下次要重新輸入密碼")}
+/* 設定頁各項：除了編輯紀錄和忘記這台裝置，其他都要先登入 */
+document.addEventListener("click",async e=>{
+  const r=e.target.closest&&e.target.closest("#setOv [data-set]");if(!r)return;
+  const k=r.dataset.set;
+  if(r.getAttribute("aria-disabled")==="true"){if(k==="report")toast("工作報告產生器還在準備中");return}
+  if(k==="forget"){forgetDevice();return}
+  if(!(await ensureLogin()))return;
+  renderSettings();
+  if(k==="team"){await teamSettings();renderSettings();return}
+  if(BOARD_INFO[k]){await editBoardInfo(k);renderSettings();return}
+  if(k==="cloud"){const before=JSON.stringify(state);const ok=await cloudSettings();if(ok&&!editing&&JSON.stringify(state)!==before)await settingSave(()=>{},"雲端設定已更新");else render();renderSettings();return}
+  if(k==="share"){await shareSettings();return}
+  if(k==="exportLocked"){exportHTML(true);return}
+  if(k==="exportEdit"){exportHTML(false);return}
+  if(k==="import"){$("#importFile").click();return}
+});
 document.addEventListener("keydown",e=>{if(e.key==="Escape"&&setOpen&&!($("#dlg")||{}).open&&!($("#logOv")&&!$("#logOv").hidden))closeSettings()});
 
 /* ---------- 拉到底的回彈（iPhone 本來就有，就不重複） ---------- */

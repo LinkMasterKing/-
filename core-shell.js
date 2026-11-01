@@ -16,31 +16,22 @@ const SHELL_HTML=`<div class="pager" id="pager">
           <div class="dow"><span id="dowEn"></span><span class="circ" id="dowZh"></span></div>
         </div>
       </header>
-      <div class="hero-rule"><span style="display:flex;gap:14px;align-items:center;flex-wrap:wrap"><span class="sub" id="saveInfo"></span><button type="button" class="icon edit-only cloud-gear" id="cloudBtn" title="雲端同步設定"><svg class="ico " viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path class="i-cloud" d="M7.4 18.5h9.8a3.9 3.9 0 0 0 .5-7.8 5.4 5.4 0 0 0-10.5 1.2A3.3 3.3 0 0 0 7.4 18.5z"/></svg>雲端設定</button><button type="button" class="icon edit-only cloud-gear" id="shareBtn" title="分享連結時顯示的標題與說明">分享預覽</button><button type="button" class="icon edit-only cloud-gear" id="teamBtn" title="編輯身分與專員名單">身分與專員</button><label class="sub edit-only" style="align-items:center;gap:6px" title="留空＝自動使用儲存當天的日期">看板日期 <input type="date" id="dateIn" style="width:auto;padding:3px 8px"></label><label class="sub edit-only" style="align-items:center;gap:6px">學年 <input id="yearIn" style="width:110px;padding:3px 8px"></label><label class="sub edit-only" style="align-items:center;gap:6px">開學日 <input type="date" id="termIn" style="width:auto;padding:3px 8px"></label></span><span class="actions"><span class="actions" id="actions"></span><button class="week-btn" id="weekBtn">每週概述 <span aria-hidden="true">→</span></button></span></div>
-      <nav class="simple-bar" id="simpleBar" aria-label="區塊"></nav>
+      <div class="hero-rule"><span class="hero-info"><span class="sub" id="saveInfo"></span></span><span class="actions"><span class="hero-btns" id="actions"></span><button type="button" class="week-btn" id="weekBtn">每週概述 <span aria-hidden="true">→</span></button></span></div>
       <div class="banner"><span class="live-dot" aria-hidden="true"></span><b>編輯中</b><span class="sub">在進度條上按住拖曳新增註記 · 拖曳註記調整位置 · 點註記可修改 · 填開始／結束日的議題會出現在甘特圖 · 完成後按「儲存並定型」</span></div>
 
       <div class="layout">
-        <div class="sgroup" data-sec="done">
-        <aside class="panel" id="donePanel" aria-labelledby="doneH">
-          <div class="panel-head"><h2 id="doneH">完成紀錄<span class="en">DONE</span><span class="count" id="doneCount">0</span></h2></div>
-          <div class="scroll" id="doneList"></div>
-        </aside>
-        </div>
-
-        <div class="main-col">
-          <div class="sgroup" data-sec="live">
+        <div class="sgroup" data-sec="live">
           <section class="panel" aria-labelledby="evH">
             <div class="panel-head"><h2 id="evH">即時回報<span class="en">LIVE</span></h2></div>
             <div class="events" id="events"></div>
             <button class="ghost edit-only add-row" id="addEvent">+ 新增即時回報</button>
           </section>
-          </div>
+        </div>
 
-          <div class="sgroup" data-sec="progress">
+        <div class="sgroup" data-sec="progress">
           <section class="panel" aria-labelledby="ganttH">
             <div class="panel-head"><h2 id="ganttH">時間甘特圖<span class="en">TIMELINE</span></h2></div>
-            <div class="legend" aria-label="圖例"><span><i class="lg-today" aria-hidden="true"></i>目前時間</span><span><i class="lg-line" style="--c:var(--green)" aria-hidden="true"></i>完成進度</span><span><i class="lg-rest" aria-hidden="true"></i>尚未完成</span><span class="lg-hint">點議題列可跳到該議題 · 左右滑動瀏覽月份</span></div>
+            <div class="legend" aria-label="圖例"><span><i class="lg-today" aria-hidden="true"></i>目前時間</span><span><i class="lg-line" style="--c:var(--prog-hi)" aria-hidden="true"></i>完成進度</span><span><i class="lg-rest" aria-hidden="true"></i>尚未完成</span><span class="lg-hint">點議題列可跳到該議題 · 左右滑動瀏覽月份</span></div>
             <div class="range">時間軸 <input type="month" id="rStart" aria-label="起始月份"> 到 <input type="month" id="rEnd" aria-label="結束月份"> <button class="icon" id="autoRange">依議題自動調整</button></div>
             <div class="gantt" id="gantt"></div>
           </section>
@@ -50,7 +41,13 @@ const SHELL_HTML=`<div class="pager" id="pager">
             <div class="cards" id="cards"></div>
             <button class="ghost edit-only add-row" id="addIssue">+ 新增議題</button>
           </section>
-          </div>
+        </div>
+
+        <div class="sgroup" data-sec="done">
+          <aside class="panel" id="donePanel" aria-labelledby="doneH">
+            <div class="panel-head"><h2 id="doneH">完成紀錄<span class="en">DONE</span><span class="count" id="doneCount">0</span></h2></div>
+            <div class="scroll" id="doneList"></div>
+          </aside>
         </div>
       </div>
     </div>

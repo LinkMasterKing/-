@@ -111,7 +111,7 @@ async function cloudSettings(){
     if(!v)return false;
     state.sync={owner:v.owner,repo:v.repo,branch:v.branch||"main",path:v.path||"data.json"};dirty=true;
     try{const nt=(v.token||"").trim();if(nt)localStorage.setItem(TOKEN_KEY,nt);else if(v.tokact==="clear")localStorage.removeItem(TOKEN_KEY)}catch(_){}
-    {const nt=(v.token||"").trim(),me=meMember();if(nt&&me&&sessionPw)me.tok=await encToken(nt,sessionPw);if(nt&&sharedPwSession)await rememberToken(nt,sharedPwSession)}
+    {const nt=(v.token||"").trim(),me=meMember();if(nt&&me&&(sessionPw||await needPw()))me.tok=await encToken(nt,sessionPw);if(nt&&sharedPwSession)await rememberToken(nt,sharedPwSession)}
     cloud={sha:null,etag:null,status:"",last:""};
     let res=await cloudPull({force:true});
     if(res==="pending"&&cloud.pending){const ok=await ask("雲端已經有看板資料，要載入雲端的內容嗎？",[],{danger:"載入雲端內容"});
@@ -121,19 +121,31 @@ async function cloudSettings(){
     toast({same:"已連上雲端",updated:"已連上雲端（目前編輯中，按取消可載入雲端內容）",pending:"已連上雲端（目前編輯中，按取消可載入雲端內容）",kept:"已連上雲端；儲存時會以目前畫面的內容覆蓋雲端",empty:"已連上 repo，第一次儲存時會建立 "+(v.path||"data.json"),limited:"GitHub 讀取次數暫時用完，請稍後再試",offline:"連不上 GitHub",error:"讀取失敗：請確認帳號、repo、分支與權杖",off:"設定未完成"}[res]||"已更新設定");
   return true;
 }
-async function saveFlow(){
+/* 儲存前：這台裝置還沒有權杖就先問；順手把權杖加密存進身分／共用密碼。取消就回傳 null */
+async function prepareSave(){
   if(cloudOn()&&!ghToken()){
     const c=cloudCfg();
     const v=await ask("第一次在這台裝置儲存：連結雲端",[{name:"token",label:`貼上 GitHub 權杖，儲存後會同步到 ${c.owner}/${c.repo}，所有人都看得到（只要貼這一次；之後在任何裝置輸入編輯密碼就會自動連上）`,type:"password"}],{danger:"只存這台電腦",alt:"進階設定"});
-    if(v==="alt"){if(!(await cloudSettings()))return;}
+    if(v==="alt"){if(!(await cloudSettings()))return null;}
     else if(v&&v.token){try{localStorage.setItem(TOKEN_KEY,v.token.trim())}catch(_){}}
-    else if(v===null)return;
+    else if(v===null)return null;
   }
-  /* remember the token for every device, encrypted with the edit password */
   let weak=false;
   const me=meMember();
   if(ghToken()&&me&&!me.tok&&sessionPw)me.tok=await encToken(ghToken(),sessionPw);
   if(ghToken()&&sharedPwSession&&!(state.sync&&state.sync.tokenEnc)){const r=await rememberToken(ghToken(),sharedPwSession);weak=r==="weak"}
+  return {weak};
+}
+async function saveFlow(){
+  const p=await prepareSave();if(!p)return;
   morph(()=>save());
-  if(weak)setTimeout(()=>toast("提醒：部門共用密碼太短，新成員建立身分時拿不到上傳權限；請管理員到「身分與專員」把共用密碼改成 12 碼以上"),2600);
+  if(p.weak)setTimeout(()=>toast("提醒：部門共用密碼太短，新成員建立身分時拿不到上傳權限；請管理員到「身分與專員」把共用密碼改成 12 碼以上"),2600);
+}
+/* 設定頁的變更：編輯中就併入這次編輯（按儲存才上傳）；沒在編輯就直接儲存並同步 */
+async function settingSave(apply,msg){
+  if(editing){if(apply()===false)return false;dirty=true;render();toast(msg+"（按「儲存並同步」後才會上傳）");return true}
+  const p=await prepareSave();if(!p)return false;
+  if(apply()===false)return false;
+  state.savedAt=nowStr();if(meName())state.savedBy=meName();
+  render();const ok=await persist(msg);dirty=false;return ok;
 }

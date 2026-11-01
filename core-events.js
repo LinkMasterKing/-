@@ -2,23 +2,19 @@
 /* ---------- events ---------- */
 document.addEventListener("click",async e=>{
   const t=e.target;
-  const sp=t.closest("[data-simple]");if(sp){toggleSimpleGroup(sp.dataset.simple);return}
   if(t.closest("#animBtn")){openAnim();return}
   if(t.closest("#animClose")){closeAnim();return}
-  if(t.closest("#animFs")){const ov=$("#animOv");if(document.fullscreenElement)document.exitFullscreen().catch(()=>{});else (ov.requestFullscreen?ov.requestFullscreen():Promise.reject()).catch(()=>toast("這個環境不支援全螢幕"));return}
+  /* 全螢幕：整個頁面一起進去，底部工具列才會留著 */
+  if(t.closest("#animFs")){const de=document.documentElement;if(document.fullscreenElement)document.exitFullscreen().catch(()=>{});else (de.requestFullscreen?de.requestFullscreen():Promise.reject()).catch(()=>toast("這個環境不支援全螢幕"));return}
   const sd=t.closest("[data-story]");if(sd){storyPlay(+sd.dataset.story);return}
   if(t.closest("#storyStage")){storyPause(!story.paused);return}
   const jump=t.closest("[data-jump]");
   const tgl=t.closest("[data-toggle]");
   if(tgl){const id=tgl.closest("[data-issue]").dataset.issue;flipCards(()=>{if(openIds.has(id))openIds.delete(id);else{if(!editing)openIds.clear();openIds.add(id)}});return}
-  if(jump&&!t.closest("[data-marker]")){e.preventDefault();flipCards(()=>{if(!editing)openIds.clear();openIds.add(jump.dataset.jump)});const c=document.getElementById("card-"+jump.dataset.jump);if(c){c.scrollIntoView({behavior:"smooth",block:"center"});c.classList.add("flash");setTimeout(()=>c.classList.remove("flash"),1900)}return}
-  if(t.closest("#editBtn")){if(!(await unlockEdit()))return;morph(()=>{editing=true;snapshot=JSON.stringify(state);keepIds=new Set(state.issues.filter(i=>i.progress<100).map(i=>i.id));render()});return}
+  if(jump&&!t.closest("[data-marker]")){e.preventDefault();if(curSec!=="progress")setSection("progress",{instant:true});flipCards(()=>{if(!editing)openIds.clear();openIds.add(jump.dataset.jump)});const c=document.getElementById("card-"+jump.dataset.jump);if(c){c.scrollIntoView({behavior:"smooth",block:"center"});c.classList.add("flash");setTimeout(()=>c.classList.remove("flash"),1900)}return}
+  if(t.closest("#editBtn")){if(!(await ensureLogin()))return;morph(()=>{editing=true;snapshot=JSON.stringify(state);keepIds=new Set(state.issues.filter(i=>i.progress<100).map(i=>i.id));render()});return}
   if(t.closest("#cancelBtn")){morph(()=>{if(dirty)state=normalize(JSON.parse(snapshot));editing=false;dirty=false;render()});return}
   if(t.closest("#saveBtn")){await saveFlow();return}
-  if(t.closest("#cloudBtn")){await cloudSettings();return}
-  if(t.closest("#exportLocked")){exportHTML(true);return}
-  if(t.closest("#exportEdit")){exportHTML(false);return}
-  if(t.closest("#importBtn")){$("#importFile").click();return}
   if(t.closest("[data-copyweek]")){const bt=t.closest("[data-copyweek]");const w=state.weeks.find(x=>x.id===t.closest("[data-week]").dataset.week);copyText(w.text);bt.classList.add("copied");bt.innerHTML="已複製"+ico("check","sm");clearTimeout(bt._t);bt._t=setTimeout(()=>{bt.classList.remove("copied");bt.textContent="複製文字"},1500);return}
   if(t.closest("#genWeek")&&readOnly()){
     const r=buildWeekly();
@@ -44,13 +40,13 @@ document.addEventListener("click",async e=>{
   if(wk&&t.closest("[data-editweek]")){const w=state.weeks.find(x=>x.id===wk.dataset.week);
     const v=await ask("編輯週報",[{name:"date",label:"日期",type:"date",value:w.date},{name:"text",label:"內容",type:"textarea",value:w.text}],{wide:true,danger:"刪除此週"});
     if(v==="delete")state.weeks=state.weeks.filter(x=>x!==w);else if(v)Object.assign(w,{date:v.date||w.date,text:v.text});if(v)changed();return}
-  if(wk&&t.closest("[data-delweek]")){const w=state.weeks.find(x=>x.id===wk.dataset.week);const v=await ask(`刪除 ${fmt(w.date)} 的週報？`,[],{danger:"刪除"});if(v==="delete"){state.weeks=state.weeks.filter(x=>x!==w);changed()}return}
+  if(wk&&t.closest("[data-delweek]")){e.preventDefault();const w=state.weeks.find(x=>x.id===wk.dataset.week);const v=await ask(`刪除 ${fmt(w.date)} 的週報？`,[],{danger:"刪除"});if(v==="delete"){state.weeks=state.weeks.filter(x=>x!==w);changed()}return}
 
   /* small events */
   if(t.closest("#addEvent")){const v=await ask("新增即時回報",[{name:"name",label:"名稱",ph:"例如：飲水機故障通報"},{name:"desc",label:"說明",type:"textarea",ph:"簡短說明"},...staffField([])]);
     if(v&&v.name){state.events.push({id:uid("e"),name:v.name,desc:v.desc||"",createdAt:today(),staff:v.staff||[]});changed()}return}
   const evAct=t.closest("[data-evdone],[data-evundo],[data-evdel]");
-  if(evAct){const ev=state.events.find(x=>x.id===evAct.closest("[data-ev]").dataset.ev);
+  if(evAct){e.preventDefault();const ev=state.events.find(x=>x.id===evAct.closest("[data-ev]").dataset.ev);
     if(evAct.dataset.evdone!==undefined){ev.doneAt=today();syncLink(ev);changed();toast(parentOf(ev)?`已完成，並記錄到「${parentOf(ev).title}」`:"已移到完成紀錄")}
     else if(evAct.dataset.evundo!==undefined){ev.doneAt=null;syncLink(ev);changed()}
     else{const v=await ask(`刪除「${ev.name}」？`,[],{danger:"刪除"});if(v==="delete"){state.issues.forEach(i=>i.markers.forEach(m=>{if(m.evId===ev.id)delete m.evId}));state.events=state.events.filter(x=>x!==ev);changed()}}
@@ -87,7 +83,7 @@ document.addEventListener("click",async e=>{
     if(v==="delete")it.links=it.links.filter(x=>x!==l);else if(v)Object.assign(l,{name:v.name||l.name,url:v.url,color:v.color});if(v)changed();return}
   const it=findIssue(t);if(!it)return;
   if(t.closest("[data-restore]")){setProgress(it,90);keepIds.add(it.id);changed();toast("已移回進行中（90%）");return}
-  if(t.closest("[data-deldone]")||t.closest("[data-delissue]")){const v=await ask(`刪除「${it.title}」？`,[],{danger:"刪除議題"});if(v==="delete"){state.issues=state.issues.filter(x=>x!==it);changed()}return}
+  if(t.closest("[data-deldone]")||t.closest("[data-delissue]")){e.preventDefault();const v=await ask(`刪除「${it.title}」？`,[],{danger:"刪除議題"});if(v==="delete"){state.issues=state.issues.filter(x=>x!==it);changed()}return}
   const mv=t.closest("[data-move]");
   if(mv){const list=activeIssues();const k=list.indexOf(it),o=list[k+(+mv.dataset.move)];if(o){const a=state.issues.indexOf(it),b=state.issues.indexOf(o);[state.issues[a],state.issues[b]]=[o,it];changed()}return}
   const dt=t.closest("[data-deltag]");
@@ -105,14 +101,10 @@ document.addEventListener("dblclick",async e=>{
 });
 document.addEventListener("input",e=>{
   if(!editing)return;
-  if(e.target.id==="titleIn"){state.title=e.target.value;dirty=true;return}
-  if(e.target.id==="dateIn"){state.boardDate=e.target.value;dirty=true;renderHero();return}
-  if(e.target.id==="yearIn"){state.yearLabel=e.target.value;dirty=true;$("#yearTxt").textContent=state.yearLabel;return}
-  if(e.target.id==="termIn"){state.termStart=e.target.value;dirty=true;renderHero();return}
   const f=e.target.dataset.f;if(!f)return;const it=findIssue(e.target);if(!it)return;
   if(f==="progress"){setProgress(it,e.target.value);const card=e.target.closest("[data-issue]");
     card.querySelectorAll('[data-f="progress"]').forEach(x=>{if(x!==e.target)x.value=it.progress});
-    card.querySelectorAll(".fill").forEach(x=>x.style.width=it.progress+"%");card.style.setProperty("--acc",`var(--${it.progress>=50?"green":"red"})`);card.querySelector("input[type=range]").style.setProperty("--p",it.progress+"%");card.querySelector("[data-hpct]").textContent=it.progress+"%";card.classList.toggle("done-card",it.progress>=100)}
+    card.querySelectorAll(".fill").forEach(x=>x.style.width=it.progress+"%");card.dataset.tone=progTone(it.progress);card.querySelector("input[type=range]").style.setProperty("--p",it.progress+"%");card.querySelector("[data-hpct]").textContent=it.progress+"%";card.classList.toggle("done-card",it.progress>=100)}
   else it[f]=e.target.value;
   dirty=true;
 });
