@@ -3,7 +3,7 @@
  "id": "board-main",
  "title": "權益部工作進度",
  "locked": false,
- "savedAt": "2026-11-01 13:26",
+ "savedAt": "2026-11-01 14:48",
  "range": {
   "start": "2026-09",
   "end": "2027-09"
@@ -213,7 +213,11 @@
    "name": "臺學聯",
    "desc": "・個人收到工作小組加入邀請。\n・理事詢問本校加入意願，待本會裁示。\n\n婉轉堆辭",
    "doneAt": "2026-10-27",
-   "staff": []
+   "staff": [],
+   "links": [],
+   "times": [],
+   "round": 1,
+   "touched": []
   },
   {
    "id": "emvpd2q3bes2i",
@@ -221,14 +225,22 @@
    "desc": "停車場公告",
    "issueId": "imvpc3f0dcpi6",
    "doneAt": "2026-10-29",
-   "staff": []
+   "staff": [],
+   "links": [],
+   "times": [],
+   "round": 1,
+   "touched": []
   },
   {
    "id": "emvpd2zcx95t3",
    "name": "高教深耕季管考會議",
    "desc": "需確認外國人讀書會詳情\n\n待確認 已出席",
    "doneAt": "2026-10-27",
-   "staff": []
+   "staff": [],
+   "links": [],
+   "times": [],
+   "round": 1,
+   "touched": []
   },
   {
    "id": "emvpd4765r0ch",
@@ -243,21 +255,36 @@
     }
    ],
    "doneAt": null,
-   "staff": []
+   "staff": [],
+   "touched": [
+    "2026-10-27"
+   ],
+   "times": [],
+   "round": 1
   },
   {
    "id": "emvpd6qonvam7",
    "name": "社群內容排程",
    "desc": "・回家投票指南：11/20 產出、11/25 發布、11/27 限動提醒\n・衛生棉補給站：11/22 產出、11/30 發布\n世新學運報導：11/30 產出、11/31 發布",
    "doneAt": null,
-   "staff": []
+   "staff": [],
+   "touched": [
+    "2026-10-27"
+   ],
+   "links": [],
+   "times": [],
+   "round": 1
   },
   {
    "id": "emvpd82rr1kit",
    "name": "進修學制學生會",
    "desc": "學務處 10 月中旬是否已處理\n\n改名已成定局 雙方迴轉中 持續觀察\n陳情人熱情已漸漸消退",
    "doneAt": "2026-10-27",
-   "staff": []
+   "staff": [],
+   "links": [],
+   "times": [],
+   "round": 1,
+   "touched": []
   },
   {
    "id": "emvpd90c3a8l9",
@@ -272,28 +299,43 @@
      "color": "#2f8f84"
     }
    ],
-   "staff": []
+   "staff": [],
+   "times": [],
+   "round": 1,
+   "touched": []
   },
   {
    "id": "emvpdjy1qige9",
    "name": "校務會議會前會",
    "desc": "與系會議會學生代表會晤洽談社團學分存廢事宜之影響",
    "doneAt": "2026-10-12",
-   "staff": []
+   "staff": [],
+   "links": [],
+   "times": [],
+   "round": 1,
+   "touched": []
   },
   {
    "id": "emvpdk8nf5mxh",
    "name": "校務會議",
    "desc": "出席參與",
    "doneAt": "2026-10-14",
-   "staff": []
+   "staff": [],
+   "links": [],
+   "times": [],
+   "round": 1,
+   "touched": []
   },
   {
    "id": "emvpdlkubpzoe",
    "name": "系學會校務會議代表投票",
    "desc": "系會代表互推產生，已順利舉行",
    "doneAt": "2026-09-09",
-   "staff": []
+   "staff": [],
+   "links": [],
+   "times": [],
+   "round": 1,
+   "touched": []
   },
   {
    "id": "emvpdmkvs29s1",
@@ -308,7 +350,10 @@
     }
    ],
    "doneAt": "2026-10-27",
-   "staff": []
+   "staff": [],
+   "times": [],
+   "round": 1,
+   "touched": []
   },
   {
    "id": "emvpdnwp0gola",
@@ -316,7 +361,11 @@
    "desc": "已請求行銷部協助發布社群限動通知同學",
    "doneAt": "2026-10-20",
    "issueId": "imvpc3f0dcpi6",
-   "staff": []
+   "staff": [],
+   "links": [],
+   "times": [],
+   "round": 1,
+   "touched": []
   },
   {
    "id": "emvpdp6p3hitj",
@@ -332,7 +381,10 @@
      "color": "#d84f92"
     }
    ],
-   "staff": []
+   "staff": [],
+   "times": [],
+   "round": 1,
+   "touched": []
   },
   {
    "id": "emvpdq4rpx6v8",
@@ -340,7 +392,11 @@
    "desc": "已拍照整理資訊",
    "doneAt": "2026-09-30",
    "issueId": "imvpc3f0dcpi6",
-   "staff": []
+   "staff": [],
+   "links": [],
+   "times": [],
+   "round": 1,
+   "touched": []
   },
   {
    "id": "emvpdros6mg9o",
@@ -348,7 +404,11 @@
    "desc": "已會晤課外組/保管組/學務長確認現場狀況和討論後續\n保管組未出席",
    "doneAt": "2026-10-07",
    "issueId": "imvpc3f0dcpi6",
-   "staff": []
+   "staff": [],
+   "links": [],
+   "times": [],
+   "round": 1,
+   "touched": []
   },
   {
    "id": "emvqlupnq2ij4",
@@ -356,63 +416,115 @@
    "desc": "如題",
    "createdAt": "2026-10-27",
    "doneAt": "2026-10-27",
-   "staff": []
+   "staff": [],
+   "links": [],
+   "times": [],
+   "round": 1,
+   "touched": []
   },
   {
    "id": "emvqlvpkgu9x6",
    "name": "會議代表相關",
    "desc": "校課代表尚未開會\n總務會議已經尋找學生代表中",
    "createdAt": "2026-10-27",
-   "staff": []
+   "staff": [],
+   "touched": [
+    "2026-10-27"
+   ],
+   "links": [],
+   "times": [],
+   "round": 1
   },
   {
    "id": "emvqocysbhm9s",
    "name": "獎助學金第三次常會",
    "desc": "1600 - 1700\nL003",
    "createdAt": "2026-10-27",
-   "staff": []
+   "staff": [],
+   "touched": [
+    "2026-10-27"
+   ],
+   "links": [],
+   "times": [],
+   "round": 1
   },
   {
    "id": "emvt1lnzfh1kf",
    "name": "部門會議",
    "desc": "部門例會召開",
    "createdAt": "2026-10-29",
-   "staff": []
+   "staff": [],
+   "touched": [
+    "2026-10-27"
+   ],
+   "links": [],
+   "times": [],
+   "round": 1
   },
   {
    "id": "emvt1nac1jf6f",
    "name": "獎助學金系統構想",
    "desc": "討論執行面版構思",
    "createdAt": "2026-10-29",
-   "staff": []
+   "staff": [],
+   "touched": [
+    "2026-10-27"
+   ],
+   "links": [],
+   "times": [],
+   "round": 1
   },
   {
    "id": "emvt1ohjjrkyg",
    "name": "權益部網站線上化",
    "desc": "法規公開\n衛生棉補給站即時更新\n加入學代名單與系統\n申訴案件線上化考量\n提案單產生器",
    "createdAt": "2026-10-29",
-   "staff": []
+   "staff": [],
+   "touched": [
+    "2026-10-27"
+   ],
+   "links": [],
+   "times": [],
+   "round": 1
   },
   {
    "id": "emvt1pwvqrhyw",
    "name": "停車場冷氣機報廢後續",
    "desc": "求追蹤",
    "createdAt": "2026-10-29",
-   "staff": []
+   "staff": [],
+   "touched": [
+    "2026-10-27"
+   ],
+   "links": [],
+   "times": [],
+   "round": 1
   },
   {
    "id": "emvteefflmm61",
    "name": "六宿女宿舍通道安全",
    "desc": "三樓安全門未關閉上鎖",
    "createdAt": "2026-10-29",
-   "staff": []
+   "staff": [],
+   "touched": [
+    "2026-10-27"
+   ],
+   "links": [],
+   "times": [],
+   "round": 1
   },
   {
    "id": "emvx6wwarehnm",
    "name": "67",
    "desc": "",
    "createdAt": "2026-11-01",
-   "staff": []
+   "staff": [],
+   "touched": [
+    "2026-10-27"
+   ],
+   "links": [],
+   "times": [],
+   "round": 1
   }
  ],
  "yearLabel": "115學年",
@@ -454,7 +566,7 @@
   }
  },
  "pwKdf": "bHArgaGywMuqExjsHz6wqQ==:ToDdfKkqEWWeZkIcY7d1LlyFUmgL0bb/axDeF5lI8cY=",
- "schemaVersion": 4,
+ "schemaVersion": 5,
  "members": [
   {
    "id": "mmvx2r1i3ffnm",
