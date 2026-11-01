@@ -96,7 +96,7 @@ function settingsInner(){
     setSec("雲端與分享",setRow("cloud","cloud","雲端同步",cloudOn()?`${esc(c.owner)}/${esc(c.repo)} · ${ghToken()?"這台裝置已連上":"這台裝置還沒有權杖"}`:"尚未設定")+
       setRow("share","share","分享預覽","貼連結到 LINE、IG、FB 時顯示的標題與說明"),1)+
     setSec("匯出與備份",setRow("exportLocked","download","匯出定型版","唯讀的單一網頁檔，可以直接傳給別人看")+setRow("exportEdit","download","匯出備份","JSON 檔，之後可以再匯入")+
-      setRow("import","upload","匯入備份","用備份檔取代目前的看板內容")+setRow("report","doc","匯出工作報告","準備中",true),1)+
+      setRow("import","upload","匯入備份","用備份檔取代目前的看板內容")+setRow("report","doc","匯出工作報告","選期間、補寫內容，再存成 PDF"),1)+
     setSec("這台裝置",setRow("forget","device","忘記這台裝置",remName?`目前記住：${esc(remName)}（登入時勾選「在這個裝置上記住密碼」）`:"這台裝置沒有記住任何身分",!remName)))+
     `<section class="set-sec"><h3 class="set-h">安裝成 App</h3><p class="set-p">iPhone：用 Safari 打開 → 分享 → 加入主畫面。<br>Android／電腦：瀏覽器選單裡的「安裝」。</p></section>`;
 }
@@ -137,7 +137,7 @@ function forgetDevice(){remClear();if(!editing){meId="";sessionPw="";sharedPwSes
 document.addEventListener("click",async e=>{
   const r=e.target.closest&&e.target.closest("#setOv [data-set]");if(!r)return;
   const k=r.dataset.set;
-  if(r.getAttribute("aria-disabled")==="true"){if(k==="report")toast("工作報告產生器還在準備中");return}
+  if(r.getAttribute("aria-disabled")==="true")return;
   if(k==="forget"){forgetDevice();return}
   if(!(await ensureLogin()))return;
   renderSettings();
@@ -148,6 +148,7 @@ document.addEventListener("click",async e=>{
   if(k==="exportLocked"){exportHTML(true);return}
   if(k==="exportEdit"){exportHTML(false);return}
   if(k==="import"){$("#importFile").click();return}
+  if(k==="report"){await reportDialog();return}
 });
 document.addEventListener("keydown",e=>{if(e.key==="Escape"&&setOpen&&!($("#dlg")||{}).open&&!($("#logOv")&&!$("#logOv").hidden))closeSettings()});
 

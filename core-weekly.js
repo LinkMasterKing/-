@@ -24,10 +24,15 @@ function snapshotBase(date){
   const issues={};state.issues.forEach(i=>issues[i.id]={progress:i.progress,stage:i.tags[i.cur]||"",note:i.note||""});
   state.reportBase={date,issues};
 }
-function buildWeekly(){
+/* 「本週」＝上一份週報之後到今天（生成週報、動畫模式共用） */
+function weekRange(){
   const end=state.boardDate||today();
   const lastWeek=[...state.weeks].map(w=>w.date).filter(d=>d<end).sort().pop();
   const start=state.reportBase?.date&&state.reportBase.date<end?state.reportBase.date:(lastWeek||addDays(end,-7));
+  return {start,end};
+}
+function buildWeekly(){
+  const {start,end}=weekRange();
   const inP=d=>!!d&&d>start&&d<=end;
   const base=state.reportBase?.issues||{};
   const clean=t=>String(t||"").split(/\n+/).map(x=>x.replace(/^\s*[・•\-❏*．·]\s*/,"").trim().replace(/[。；，,.]+$/,"")).filter(Boolean).join("；").replace(/[。；]+$/,"");
