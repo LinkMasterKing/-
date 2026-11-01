@@ -12,11 +12,13 @@ const CHAPTERS=[["本週完成","done",chDone],["議題進度","progress",chProg
 
 /* ---------- 每一輪的資料 ---------- */
 function svCtx(){
-  const {start,end}=weekRange(),inW=d=>!!d&&d>start&&d<=end,base=state.reportBase&&state.reportBase.issues;
+  const {start,end}=weekRange(),inW=d=>!!d&&d>start&&d<=end;
   const has=id=>state.issues.some(i=>i.id===id);
-  const done=[...state.issues.filter(i=>i.progress>=100&&inW(i.doneAt)).map(i=>({key:"i"+i.id,t:i.title,d:i.doneAt,k:"議題",iss:i.id})),
+  const done=[...state.issues.filter(i=>i.doneAt&&inW(i.doneAt)).map(i=>({key:"i"+i.id,t:i.title,d:i.doneAt,k:"議題",iss:i.id})),
     ...state.events.filter(e=>inW(e.doneAt)).map(e=>({key:"e"+e.id,t:evName(e),d:e.doneAt,k:"即時回報",iss:e.issueId&&has(e.issueId)?e.issueId:null}))].sort((a,b)=>a.d.localeCompare(b.d));
-  const rows=state.issues.filter(i=>i.progress<100||inW(i.doneAt)).map(i=>({it:i,from:base&&base[i.id]?base[i.id].progress:0,to:i.progress}));
+  /* 議題進度改看「時程」：從上一份週報那天的時程跑到今天的時程（沒有期間的議題不列） */
+  const bd=state.reportBase&&state.reportBase.date;
+  const rows=state.issues.filter(i=>hasDates(i)&&(!i.doneAt||inW(i.doneAt))).map(i=>({it:i,from:bd?schedPct(i,bd):0,to:schedPct(i)}));
   const fresh=state.events.filter(e=>!e.fromEv&&inW(e.createdAt));   /* 分段紀錄不算新增 */
   return {start,end,done,rows,fresh};
 }
@@ -76,7 +78,7 @@ async function chProgress(K,ctx){
   if(!ctx.rows.length)list.append(svEl("p","sv-empty","目前沒有進行中的議題"));
   let rows=ctx.rows.map(r=>{
     const el=svEl("div","sv-row",`<span class="sv-rt">${esc(r.it.title)}</span><span class="sv-bar"><i style="width:${r.from}%"></i></span><span class="sv-pct" style="--n:${r.from}"></span><span class="sv-chips"></span>`);
-    el._r=r;el.dataset.tone=progTone(r.from);list.append(el);return el});
+    el._r=r;list.append(el);return el});
   /* 有連到議題的完成卡片，在該議題底下留位置 */
   const chips=[];
   ctx.done.forEach(x=>{const row=rows.find(e=>e._r.it.id===x.iss);if(!row)return;
@@ -121,7 +123,7 @@ async function chProgress(K,ctx){
       const d=Math.max(700,Math.abs(r.to-r.from)*26),ease="cubic-bezier(.45,0,.2,1)";
       A(pct,[{"--n":r.from},{"--n":r.to}],{duration:d,easing:ease});
       await fin(A(bar.firstChild,[{width:r.from+"%"},{width:r.to+"%"}],{duration:d,easing:ease}));
-      e.dataset.tone=progTone(r.to);pct.style.setProperty("--n",r.to);
+      pct.style.setProperty("--n",r.to);
     }else await fin(A(pct,[{transform:"none"},{transform:"scale(1.18)"},{transform:"none"}],{duration:520,easing:"ease-in-out"}));
     await wait(220);e.classList.remove("on");
   }

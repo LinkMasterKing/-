@@ -10,6 +10,13 @@ function fieldHTML(x){
   const t=x.type==="url"||x.type==="time"?"text":(x.type||"text");
   return `<label>${esc(x.label)}<input name="${x.name}" type="${t}" value="${esc(x.value??"")}" ${x.ph?`placeholder="${esc(x.ph)}"`:""} ${x.type==="url"?'inputmode="url"':x.type==="time"?'inputmode="numeric" autocomplete="off"':""} ${t==="number"?'min="0" max="100"':""}></label>`;
 }
+/* 對話框開在哪裡：設定頁桌面版有右側面板時，一般表單畫在面板裡（非強制回應）；
+   modal＝確認、輸入密碼這類要打斷操作的（沒有欄位，或只有密碼欄），一律跳出 */
+function dlgOpen(modal){
+  const d=$("#dlg"),host=!modal&&typeof setPaneHost==="function"&&setPaneHost();
+  if(host){d.classList.add("in-pane");if(d.parentNode!==host)host.append(d);d.show()}
+  else{d.classList.remove("in-pane");if(d.parentNode!==document.body)document.body.append(d);d.showModal()}
+}
 function ask(title,fields,{danger,wide,alt}={}){
   return new Promise(res=>{
     const d=$("#dlg"),f=$("#dlgForm");
@@ -24,19 +31,21 @@ function ask(title,fields,{danger,wide,alt}={}){
     f.onsubmit=ev=>{ev.preventDefault();d.close(!fields.length&&danger?"delete":"ok")};
     f.onkeydown=ev=>{if(ev.key==="Enter"&&!ev.isComposing&&ev.target.tagName==="INPUT"&&ev.target.type!=="color"&&ev.target.type!=="checkbox"){ev.preventDefault();d.close("ok")}};
     d.onclose=()=>{const v=d.returnValue;if(v==="ok"){const o={},fd=new FormData(f);fd.forEach((val,k)=>o[k]=f.querySelector(`textarea[name="${k}"]`)?String(val).replace(/\s+$/,""):String(val).trim());fields.filter(x=>x.type==="multi").forEach(x=>o[x.name]=fd.getAll(x.name).map(String));res(o)}else res(v==="delete"?"delete":v==="alt"?"alt":null)};
-    d.returnValue="";d.showModal();(f.querySelector("textarea")||f.querySelector("input"))?.focus();
+    d.returnValue="";dlgOpen(!fields.length||fields.every(x=>x.type==="password"||x.type==="check"));(f.querySelector("textarea")||f.querySelector("input"))?.focus();
   });
 }
 const markerFields=(m,it)=>[
   {name:"text",label:"註記文字",value:m.text||"",ph:"例如：校務會議"},
   {name:"stage",label:"對應階段（選填）",type:"select",value:m.stage||"",options:[["","（不指定）"],...[...new Set([...it.tags,...(m.stage?[m.stage]:[])])].map(t=>[t,t])]},
-  {name:"date",label:"日期（選填，填了也會顯示在甘特圖）",type:"date",value:m.date??today()},
-  {name:"at",label:"位置（進度條上的 %）",type:"number",value:m.at},
-  {name:"pos",label:"文字放在",type:"select",value:m.pos||"up",options:[["up","進度條上方"],["down","進度條下方"]]}];
-const applyMarker=(m,v)=>Object.assign(m,{text:v.text||m.text,stage:v.stage||"",at:clamp(Math.round(+v.at||0)),date:v.date||"",pos:v.pos,color:v.color||m.color});
+  {name:"date",label:hasDates(it)?"日期（決定在時程條與甘特圖上的位置）":"日期（選填，填了也會顯示在甘特圖）",type:"date",value:m.date||today()},
+  ...(hasDates(it)?[]:[{name:"at",label:"位置（時程條上的 %；議題填了開始／結束日後改照日期放）",type:"number",value:m.at}]),
+  {name:"pos",label:"文字放在",type:"select",value:m.pos||"up",options:[["up","時程條上方"],["down","時程條下方"]]}];
+/* 有期間的議題：位置跟著日期走；沒有日期就照 % */
+const applyMarker=(m,v,it)=>{Object.assign(m,{text:v.text||m.text,stage:v.stage||"",date:v.date||"",pos:v.pos,color:v.color||m.color});
+  m.at=hasDates(it)&&m.date?schedPct(it,m.date):clamp(Math.round(+(v.at??m.at)||0));return m};
 async function editMarker(it,mk){
   const v=await ask("編輯註記",markerFields(mk,it),{danger:"刪除註記"});
-  if(v==="delete")it.markers=it.markers.filter(x=>x!==mk);else if(v)applyMarker(mk,v);if(v)changed();
+  if(v==="delete")it.markers=it.markers.filter(x=>x!==mk);else if(v)applyMarker(mk,v,it);if(v)changed();
 }
 
 /* 即時回報的時間標記：只填日期＝一個日子；加時刻＝具體時間；填了結束＝一段期間。回傳資料、"delete" 或 null */
@@ -104,7 +113,7 @@ document.addEventListener("keydown",e=>{
   const nativeClose=HTMLDialogElement.prototype.close;
   d.close=function(v){
     if(!this.open)return;
-    if(reduceMotion())return nativeClose.call(this,v);
+    if(reduceMotion()||this.classList.contains("in-pane"))return nativeClose.call(this,v);   /* 面板裡的由面板自己收 */
     const r=this.getBoundingClientRect(),g=this.cloneNode(true);
     g.removeAttribute("id");g.querySelectorAll("[id]").forEach(x=>x.removeAttribute("id"));
     this.querySelectorAll("input,textarea,select").forEach((x,i)=>{const y=g.querySelectorAll("input,textarea,select")[i];if(y&&x.type!=="password")y.value=x.value});

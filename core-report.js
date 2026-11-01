@@ -6,12 +6,12 @@ let rptOpen=false,rptRange=null;
 /* ---------- 資料：期間內處理過的議題、即時回報、週報 ---------- */
 function rptData(from,to){
   const inP=d=>!!d&&d>=from&&d<=to;
-  const act=state.issues.filter(i=>i.progress<100&&(!i.start||i.start<=to));
-  const done=state.issues.filter(i=>i.progress>=100&&inP(i.doneAt)).sort((a,b)=>a.doneAt.localeCompare(b.doneAt));
+  const act=state.issues.filter(i=>(!i.doneAt||i.doneAt>to)&&(!i.start||i.start<=to));
+  const done=state.issues.filter(i=>i.doneAt&&inP(i.doneAt)).sort((a,b)=>a.doneAt.localeCompare(b.doneAt));
   const extra=state.issues.filter(i=>!act.includes(i)&&!done.includes(i)&&i.markers.some(m=>inP(m.date)));
   const issues=[...act,...done,...extra];
   const evNew=state.events.filter(e=>!e.fromEv&&inP(e.createdAt)),evDone=state.events.filter(e=>inP(e.doneAt));
-  return {from,to,inP,issues,nDone:issues.filter(i=>i.progress>=100).length,nAct:issues.filter(i=>i.progress<100).length,evNew,evDone,evLinked:evDone.filter(e=>e.issueId).length,
+  return {from,to,inP,issues,nDone:issues.filter(i=>i.doneAt&&inP(i.doneAt)).length,nAct:issues.filter(i=>!(i.doneAt&&inP(i.doneAt))).length,evNew,evDone,evLinked:evDone.filter(e=>e.issueId).length,
     marks:issues.reduce((n,i)=>n+i.markers.filter(m=>inP(m.date)).length,0),weeks:state.weeks.filter(w=>inP(w.date))};
 }
 
@@ -27,8 +27,8 @@ function rptGantt(d){
   const td=today(),now=td>=d.from&&td<=d.to?`<line class="rg-today" x1="${X(td)}" x2="${X(td)}" y1="14" y2="${H}"/>`:"";
   const bars=rows.map((it,k)=>{
     const y=top+k*RH,s=it.start<it.end?it.start:it.end,e=it.start<it.end?it.end:it.start,x1=X(s),x2=X(e);
-    const xf=X(ymd(new Date(pd(s).getTime()+(pd(e)-pd(s))*it.progress/100))),name=it.title.length>12?it.title.slice(0,12)+"…":it.title;
-    return `<g data-tone="${progTone(it.progress)}"><text class="rg-t" x="0" y="${y+4}">${esc(name)}</text><text class="rg-p" x="${NW}" y="${y+4}" text-anchor="end">${it.progress}%</text>`+
+    const sp=schedPct(it,d.to),xf=X(dateAtPct(it,sp)),name=it.title.length>12?it.title.slice(0,12)+"…":it.title;
+    return `<g data-tone="hi"><text class="rg-t" x="0" y="${y+4}">${esc(name)}</text><text class="rg-p" x="${NW}" y="${y+4}" text-anchor="end">${sp}%</text>`+
       `<line class="rg-rest" x1="${x1}" x2="${Math.max(x1+1,x2)}" y1="${y}" y2="${y}"/>${xf>x1?`<line class="rg-fill" x1="${x1}" x2="${xf}" y1="${y}" y2="${y}"/>`:""}</g>`}).join("");
   return `<figure class="rpt-gantt" contenteditable="false"><svg viewBox="0 0 ${W} ${H+8}" role="img" aria-label="期間甘特圖">${grid}${now}${bars}</svg></figure>`;
 }
@@ -48,8 +48,8 @@ function rptHTML(d){
     const meta=[hasDates(it)?`期間 ${fmt(it.start)} – ${fmt(it.end)}`:"",it.tags[it.cur]?`目前階段：${it.tags[it.cur]}`:"",staffNames(it.staff)?`專員：${staffNames(it.staff)}`:""].filter(Boolean).join("　｜　");
     const mk=sortedMarkers(it).filter(m=>!m.date||d.inP(m.date));
     const evs=state.events.filter(e=>e.issueId===it.id&&(!e.doneAt||d.inP(e.doneAt)||d.inP(e.createdAt)));
-    return `<article class="rpt-issue" data-tone="${progTone(it.progress)}"><h3>${esc(it.title)}<span class="rpt-st">${it.progress>=100?`已完成 ${fmt(it.doneAt)}`:`進行中 ${it.progress}%`}</span></h3>
-      ${meta?`<p class="rpt-meta2">${esc(meta)}</p>`:""}<div class="rpt-prog" contenteditable="false"><i style="width:${it.progress}%"></i></div>
+    return `<article class="rpt-issue" data-tone="hi"><h3>${esc(it.title)}<span class="rpt-st">${it.doneAt&&it.doneAt<=d.to?`已結案 ${fmt(it.doneAt)}`:`進行中・${hasDates(it)?`時程 ${schedPct(it,d.to)}%`:"未排程"}`}</span></h3>
+      ${meta?`<p class="rpt-meta2">${esc(meta)}</p>`:""}<div class="rpt-prog" contenteditable="false"><i style="width:${schedPct(it,d.to)||0}%"></i></div>
       <h4>處理經過</h4>${mk.length?`<ul class="rpt-tl">${mk.map(m=>`<li><span class="rpt-d">${m.date?fmt(m.date).slice(5):"未標日期"}</span>${m.stage?`【${esc(m.stage)}】`:""}${esc(m.text||"")}</li>`).join("")}</ul>`:`<p class="rpt-none">這段期間沒有處理紀錄</p>`}
       ${it.note?`<h4>目前進度</h4><p>${esc(it.note)}</p>`:""}
       ${evs.length?`<h4>相關即時回報</h4><p>${evs.map(e=>`${esc(evName(e))}（${e.doneAt?fmt(e.doneAt).slice(5)+" 完成":"處理中"}）`).join("、")}</p>`:""}

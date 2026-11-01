@@ -24,6 +24,9 @@ function detailsBody(d){
   if(kids.length===1&&kids[0].classList.contains("dwrap"))return kids[0];
   const w=document.createElement("div");w.className="dwrap";kids.forEach(k=>w.append(k));d.append(w);return w;
 }
+/* 有展開收合動畫進行時在 <html> 加 .motion-busy：頁面上其他一直在跑的小動畫（燈號擴散）先暫停，動畫才順 */
+let _busy=0;
+function motionBusy(n){_busy=Math.max(0,_busy+n);document.documentElement.classList.toggle("motion-busy",_busy>0)}
 function animateDetails(d,open){
   (d._anims||[]).forEach(a=>a.cancel());d._anims=[];
   if(reduceMotion()){d.open=open;return}
@@ -41,15 +44,18 @@ function animateDetails(d,open){
   const wa=w.animate(open?[{height:"0px",opacity:0},{height:full+"px",opacity:1}]:[{height:cur+"px",opacity:1},{height:"0px",opacity:0}],{...EXPAND,duration:open?EXPAND.duration:380});
   const anims=[wa];
   if(r0!==r1)anims.push(d.animate([{borderRadius:r0},{borderRadius:r1}],{...EXPAND,duration:open?EXPAND.duration:380}));
-  d._anims=anims;d.classList.add("animating");
-  wa.onfinish=()=>{w.style.overflow="";d._anims=[];d.classList.remove("animating","closing");if(!open)d.open=false};
-  wa.oncancel=()=>{w.style.overflow="";d.classList.remove("animating","closing")};
+  d._anims=anims;d.classList.add("animating");motionBusy(1);
+  wa.onfinish=()=>{w.style.overflow="";d._anims=[];d.classList.remove("animating","closing");if(!open)d.open=false;motionBusy(-1)};
+  wa.oncancel=()=>{w.style.overflow="";d.classList.remove("animating","closing");motionBusy(-1)};
 }
 document.addEventListener("click",e=>{
   const sm=e.target.closest("summary");if(!sm)return;
   const d=sm.parentElement;if(!d||!d.matches(".ev,.done-item,.week,.log"))return;
   if(e.target.closest("input,button,a")){if(e.target.closest("summary button,summary input"))e.preventDefault();return}
-  e.preventDefault();animateDetails(d,!d.open);
+  e.preventDefault();
+  /* 完成紀錄左右兩欄時：點一筆＝在右側顯示，不展開 */
+  if(d.matches(".done-item")&&d.closest("#doneMD.split")){selDone=d.dataset.issue||d.dataset.ev;renderDone();mdPaneIn($("#doneDetail"));return}
+  animateDetails(d,!d.open);
 },true);
 let flipBusy=false;
 function flipCards(mutate){

@@ -109,7 +109,7 @@ function syncStaffInputs(f){f.querySelectorAll("[data-staff]").forEach(i=>{const
 async function teamSettings(){
   const d=$("#dlg"),f=$("#dlgForm");d.classList.add("wide");
   const paint=()=>{f.innerHTML=teamHTML();bind()};
-  const reopen=()=>{paint();d.oncancel=ev=>{ev.preventDefault();f.querySelector('[data-x="done"]')?.click()};if(!d.open)d.showModal()};
+  const reopen=()=>{paint();d.oncancel=ev=>{ev.preventDefault();f.querySelector('[data-x="done"]')?.click()};if(!d.open)dlgOpen(false)};
   const leave=async()=>{d.oncancel=null;d.onclose=null;if(d.open)await new Promise(r=>{d.addEventListener("close",()=>setTimeout(r,0),{once:true});d.close()})};
   const bind=()=>{
     f.onsubmit=ev=>ev.preventDefault();
@@ -117,7 +117,7 @@ async function teamSettings(){
     f.querySelectorAll("[data-x]").forEach(b=>b.onclick=async()=>{
       const x=b.dataset.x,id=b.dataset.id,m=state.members.find(y=>y.id===id);
       syncStaffInputs(f);
-      if(x==="done"){await leave();d.classList.remove("wide");if(editing)changed();else if(dirty)await settingSave(()=>{},"已更新身分與專員");else render();return}
+      if(x==="done"){await leave();d.classList.remove("wide");if(editing)changed();else if(dirty)await settingSave(()=>{},"已更新身分與專員");else render();finish();return}
       if(x==="addstaff"){const n=$("#newStaff").value.trim();if(!n)return;if(state.staff.some(s=>s.name===n)){toast("名單裡已經有這個名字");return}state.staff.push({id:uid("s"),name:n});dirty=true;paint();$("#newStaff").focus();return}
       if(x==="delstaff"){state.staff=state.staff.filter(s=>s.id!==id);[...state.issues,...state.events].forEach(o=>{if(o.staff)o.staff=o.staff.filter(s=>s!==id)});dirty=true;paint();return}
       if(x==="role"&&m){if(m.role==="admin"&&adminCount()<=1){toast("至少要保留一位管理員");return}m.role=m.role==="admin"?"member":"admin";dirty=true;paint();return}
@@ -143,7 +143,8 @@ async function teamSettings(){
         reopen();return}
     });
   };
-  reopen();
+  /* 按「完成」並儲存後才結束（設定頁右側面板靠這個知道何時收起） */
+  let finish;return new Promise(r=>{finish=r;reopen()});
 }
 
 /* ---------- 專員標籤 ---------- */
@@ -171,12 +172,11 @@ function diffState(a,b){
   for(const [id,x] of BI){const o=AI.get(id),t=x.title;
     if(!o){L.push(`議題｜新增｜${t}`);continue}
     if(o.title!==x.title)L.push(`議題｜改名 ${o.title}→${x.title}`);
-    if(o.progress!==x.progress)L.push(`議題｜進度 ${o.progress}%→${x.progress}%｜${t}`);
     const st=i=>(i.tags||[])[i.cur]||"";
     if(st(o)!==st(x))L.push(`議題｜階段 ${st(o)||"—"}→${st(x)||"—"}｜${t}`);else if(!same(o.tags,x.tags))L.push(`議題｜修改階段標籤｜${t}`);
     if((o.start||"")!==(x.start||"")||(o.end||"")!==(x.end||""))L.push(`議題｜時程 ${rng(o)}→${rng(x)}｜${t}`);
     if((o.note||"")!==(x.note||""))L.push(`議題｜更新進度說明｜${t}`);
-    if((o.doneAt||"")!==(x.doneAt||"")&&x.doneAt&&o.progress>=100)L.push(`議題｜完成日期 ${fmt(x.doneAt)}｜${t}`);
+    if((o.doneAt||"")!==(x.doneAt||""))L.push(!o.doneAt?`議題｜結案｜${t}`:!x.doneAt?`議題｜取消結案｜${t}`:`議題｜結案日期 ${fmt(x.doneAt)}｜${t}`);
     const AM=byId(o.markers),BM=byId(x.markers);
     for(const [k,m] of BM){if(!AM.has(k))L.push(`議題｜新增註記「${m.text||""}」｜${t}`);else if(!same(AM.get(k),m))L.push(`議題｜修改註記「${m.text||""}」｜${t}`)}
     for(const [k,m] of AM)if(!BM.has(k))L.push(`議題｜刪除註記「${m.text||""}」｜${t}`);
@@ -263,18 +263,21 @@ async function loadLog(){
   }catch(_){msg="連不上 GitHub（離線中？）"}
   logState.busy=false;renderLog(msg);
 }
-function openLog(){
+/* host：設定頁桌面版的右側面板（沒有就是全螢幕）。回傳的 Promise 在關閉時完成 */
+let logDone=null;
+function openLog(host){
   let ov=$("#logOv");
   if(!ov){document.body.insertAdjacentHTML("beforeend",`<div class="log-ov" id="logOv" role="dialog" aria-modal="true" aria-label="編輯紀錄" hidden>
     <div class="anim-top"><div class="anim-title"><span class="anim-k">HISTORY</span><b>編輯紀錄</b><span class="sub">每次「儲存並同步」都會留下一筆</span></div><div class="anim-ctl"><button type="button" id="logClose" aria-label="關閉編輯紀錄">${ico("close")}關閉</button></div></div>
     <div class="log-scroll"><div class="log-inner"><ol class="log-list" id="logList"></ol><p class="sub log-msg" id="logMsg"></p><button type="button" class="ghost log-more" id="logMore">載入更早的紀錄</button></div></div></div>`);
     ov=$("#logOv");$("#logClose").onclick=closeLog;elastic(ov.querySelector(".log-scroll"),ov.querySelector(".log-inner"));$("#logMore").onclick=loadLog;}
   Object.assign(logState,{page:0,done:false,busy:false,items:[]});
-  ov.hidden=false;document.body.classList.add("log-open");
+  ov.classList.toggle("in-pane",!!host);const at=host||document.body;if(ov.parentNode!==at)at.append(ov);
+  ov.hidden=false;if(!host)document.body.classList.add("log-open");
   if(!reduceMotion())ov.animate([{opacity:0,transform:"translateY(14px)"},{opacity:1,transform:"none"}],{duration:320,easing:"cubic-bezier(.2,.9,.25,1)"});
   renderLog();loadLog();$("#logClose").focus();
+  return new Promise(r=>logDone=r);
 }
-function closeLog(){const ov=$("#logOv");if(!ov||ov.hidden)return;const done=()=>{ov.hidden=true;document.body.classList.remove("log-open")};
+function closeLog(){const ov=$("#logOv");if(!ov||ov.hidden)return;const done=()=>{ov.hidden=true;document.body.classList.remove("log-open");if(logDone){logDone();logDone=null}};
   if(reduceMotion())return done();const a=ov.animate([{opacity:1},{opacity:0,transform:"translateY(10px)"}],{duration:200,easing:"ease-in"});a.onfinish=done}
-document.addEventListener("click",e=>{if(e.target.closest&&e.target.closest("[data-open-log]"))openLog()});
 document.addEventListener("keydown",e=>{if(e.key==="Escape"&&$("#logOv")&&!$("#logOv").hidden&&!$("#dlg").open)closeLog()});

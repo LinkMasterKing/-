@@ -19,7 +19,13 @@ const safeUrl=u=>!u?"#":/^https?:\/\//i.test(u)?u:"https://"+u;
 const clamp=(v,a=0,b=100)=>Math.min(b,Math.max(a,v));
 const toast=m=>{const t=$("#toast");t.textContent=m;t.classList.add("show");clearTimeout(t._h);t._h=setTimeout(()=>t.classList.remove("show"),2000)};
 const hasDates=i=>!!(i.start&&i.end);
-const progTone=p=>p>=50?"hi":"lo";
+/* 時程：議題設定的期間（開始日～結束日）到某天為止已經過了幾 %；沒有日期＝null（未排程） */
+const issueSpan=i=>{if(!hasDates(i))return null;let s=i.start,e=i.end;if(e<s)[s,e]=[e,s];return [s,e]};
+function schedPct(i,d=today()){const sp=issueSpan(i);if(!sp)return null;const a=pd(sp[0]),b=pd(sp[1]);return b<=a?(pd(d)>=a?100:0):Math.round(clamp((pd(d)-a)/(b-a)*100))}
+function dateAtPct(i,p){const sp=issueSpan(i);if(!sp)return "";const a=pd(sp[0]),b=pd(sp[1]);return ymd(new Date(a.getTime()+(b-a)*clamp(p)/100))}
+/* 註記在時程條上的位置：有日期的議題照註記日期放，沒日期的照舊用 at（%） */
+const mkAt=(i,m)=>hasDates(i)&&m.date?schedPct(i,m.date):m.at;
+const schedLabel=i=>{const p=schedPct(i);return p==null?"未排程":`時程 ${p}%`};
 /* 液態玻璃材質：加上 .glass，並讓高光跟著指標位置走 */
 function glassify(el){
   if(!el||el._glass)return;el._glass=true;el.classList.add("glass");

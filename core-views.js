@@ -9,12 +9,24 @@ function renderHeader(){
   /* 頁首按鈕：平常是「動畫、編輯」，編輯中換成「取消、儲存」；內容沒變就不重畫（icon 動畫才不會被打斷） */
   const A=$("#actions"),h=editing
     ?`<button type="button" id="cancelBtn">取消</button><button type="button" class="primary" id="saveBtn">${cloudOn()?"儲存並同步":"儲存並定型"}</button>`
-    :(CFG.sections.animation?`<button type="button" id="animBtn">${ico("play")}動畫</button>`:"")+(readOnly()?"":`<button type="button" id="editBtn">${ico("edit")}編輯</button>`);
+    :(CFG.sections.animation?`<button type="button" id="animBtn">${ico("play")}總結</button>`:"")+(readOnly()?"":`<button type="button" id="editBtn">${ico("edit")}編輯</button>`);
   if(A._h!==h){A._h=h;A.innerHTML=h}
 }
 
 function isoWeek(d){const t=new Date(Date.UTC(d.getFullYear(),d.getMonth(),d.getDate()));const day=t.getUTCDay()||7;t.setUTCDate(t.getUTCDate()+4-day);const y=new Date(Date.UTC(t.getUTCFullYear(),0,1));return Math.ceil(((t-y)/864e5+1)/7)}
 function termWeek(d){if(!state.termStart)return 0;const diff=Math.floor((pd(ymd(d))-pd(state.termStart))/864e5);return diff<0?0:Math.floor(diff/7)+1}
+/* 星期幾對齊大日期的「字形墨跡」中心，而不是文字框中心：數字左右留白不同（「1」左邊空很多），只靠框置中會偏 */
+const _dowCtx=document.createElement("canvas").getContext("2d");
+function alignDow(){
+  const el=$("#bigDate"),r=el&&el.closest(".hero-r");if(!r||!el.textContent)return;
+  const cs=getComputedStyle(el);
+  _dowCtx.font=`${cs.fontWeight} ${cs.fontSize} ${cs.fontFamily}`;_dowCtx.letterSpacing=cs.letterSpacing;
+  const m=_dowCtx.measureText(el.textContent),box=el.getBoundingClientRect().width;
+  r.style.setProperty("--dow-dx",((m.actualBoundingBoxRight-m.actualBoundingBoxLeft)/2-box/2).toFixed(2)+"px");
+}
+if(document.fonts)document.fonts.ready.then(alignDow);
+addEventListener("resize",()=>requestAnimationFrame(alignDow),{passive:true});
+
 function renderHero(){
   const d=state.boardDate?pd(state.boardDate):state.savedAt?pd(state.savedAt.slice(0,10)):new Date();
   $("#yearTxt").textContent=state.yearLabel||"";
@@ -23,6 +35,8 @@ function renderHero(){
   $("#bigDate").textContent=`${d.getMonth()+1}.${pad(d.getDate())}`;
   $("#dowEn").textContent=["SUN","MON","TUE","WED","THU","FRI","SAT"][d.getDay()];
   $("#dowZh").textContent="日一二三四五六"[d.getDay()];
+  alignDow();
+  weekDotSync();
 
 }
 
@@ -42,14 +56,17 @@ function renderGantt(){
   const ms=months(),tp=pos(today()),[s0,e0]=rangeMs(),inRange=Date.now()>s0&&Date.now()<e0;
   const list=activeIssues().filter(hasDates);
   const narrow=innerWidth<640,nameW=narrow?104:170;const width=Math.max(narrow?360:640,ms.length*(narrow?84:130));
-  const grid=ms.map(m=>`<span class="vgrid" style="left:${pos(ymd(m))}%"></span>`).join("")+(inRange?`<span class="today" style="left:${tp}%" title="今天"></span>`:"");
-  let h=`<div style="min-width:${width+nameW}px"><div class="g-row"><div class="g-name sub" style="font-weight:400">議題</div><div class="g-axis">${inRange?`<span class="today-tag" style="left:${tp}%">今天 ${fmt(today()).slice(5)}</span>`:""}${ms.map((m,k)=>`<span style="left:${pos(ymd(m))}%">${k===0||m.getMonth()===0?m.getFullYear()+"/":""}${m.getMonth()+1}月</span>`).join("")}</div></div>`;
+  /* 已經過去的時間：從時間軸起點到今天線整段淡淡打亮（今天在範圍之後＝整段，之前＝沒有） */
+  const pastW=Date.now()>=e0?100:inRange?tp:0,past=pastW?`<span class="g-past" style="width:${pastW}%" aria-hidden="true"></span>`:"";
+  const grid=past+ms.map(m=>`<span class="vgrid" style="left:${pos(ymd(m))}%"></span>`).join("")+(inRange?`<span class="today" style="left:${tp}%" title="今天"></span>`:"");
+  let h=`<div style="min-width:${width+nameW}px"><div class="g-row"><div class="g-name sub" style="font-weight:400">議題</div><div class="g-axis">${past}${inRange?`<span class="today-tag" style="left:${tp}%"><i class="live-dot" aria-hidden="true"></i>今天 ${fmt(today()).slice(5)}</span>`:""}${ms.map((m,k)=>`<span style="left:${pos(ymd(m))}%">${k===0||m.getMonth()===0?m.getFullYear()+"/":""}${m.getMonth()+1}月</span>`).join("")}</div></div>`;
   h+=list.map(it=>{
     let s=it.start,e=it.end;if(e<s)[s,e]=[e,s];
     const l=pos(s),w=Math.max(.8,pos(e)-l);
     const gL=latestMarkerId(it.markers.filter(m=>m.date));const mk=it.markers.filter(m=>m.date).map(m=>{const p=pos(m.date);return `<span class="g-mk ${p<6?"edgeL":p>94?"edgeR":""} ${m.id!==gL?"quiet":""}" style="left:${p}%;--mc:${esc(m.color||MARK_COLORS[0])}" title="${esc(fmt(m.date))} ${m.stage?"【"+esc(m.stage)+"】":""}${esc(m.text)}"><span class="stem"></span><span class="dot"></span><span class="lbl">${esc(m.text)}</span></span>`}).join("");
-    return `<div class="g-row g-issue" data-jump="${it.id}" title="點一下跳到「${esc(it.title)}」" data-tone="${progTone(it.progress)}"><div class="g-name"><a href="#card-${it.id}" data-jump="${it.id}">${esc(it.title)}</a><span class="sub" style="font-size:11.5px">${fmt(s).slice(5)} – ${fmt(e).slice(5)}</span></div>
-      <div class="g-track">${grid}<div class="g-bar" style="left:${l}%;width:${w}%"><div class="fill" style="width:${it.progress}%"></div></div><span class="g-pct num" style="left:${l+w}%">${it.progress}%</span>${mk}</div></div>`;
+    const sp=schedPct(it);
+    return `<div class="g-row g-issue" data-jump="${it.id}" title="點一下跳到「${esc(it.title)}」"><div class="g-name"><a href="#card-${it.id}" data-jump="${it.id}">${esc(it.title)}</a><span class="sub" style="font-size:11.5px">${fmt(s).slice(5)} – ${fmt(e).slice(5)}</span></div>
+      <div class="g-track">${grid}<div class="g-bar" style="left:${l}%;width:${w}%"><div class="fill" style="width:${sp}%"></div></div><span class="g-pct num" style="left:${l+w}%">${sp}%</span>${mk}</div></div>`;
   }).join("");
   h+="</div>";
   if(!list.length)h+=`<p class="empty">還沒有排定時間的議題。${state.locked?"":"在下方個別進度裡填入開始日與結束日，就會出現在這裡。"}</p>`;
@@ -74,15 +91,15 @@ function latestMarkerId(list){
   const pick=dated.length?dated[dated.length-1]:[...list].sort((a,b)=>a.at-b.at).pop();
   return pick&&pick.id;
 }
-function markerHTML(m,latest){
-  const edge=m.at<18?"edgeL":m.at>82?"edgeR":"";
-  return `<div class="marker ${m.pos==="down"?"down":"up"} ${edge} ${latest&&m.id!==latest?"quiet":""}" style="left:${m.at}%;--mc:${esc(m.color||MARK_COLORS[0])}" data-marker="${m.id}" title="${m.date?esc(fmt(m.date))+" ":""}${esc(m.text)}"><span class="stem"></span><span class="dot"></span><span class="lbl">${m.date?`<span class="num">${fmt(m.date).slice(5)}</span> `:""}${esc(m.text)}</span></div>`;
+function markerHTML(m,latest,it){
+  const at=mkAt(it,m),edge=at<18?"edgeL":at>82?"edgeR":"";
+  return `<div class="marker ${m.pos==="down"?"down":"up"} ${edge} ${latest&&m.id!==latest?"quiet":""}" style="left:${at}%;--mc:${esc(m.color||MARK_COLORS[0])}" data-marker="${m.id}" title="${m.date?esc(fmt(m.date))+" ":""}${esc(m.text)}"><span class="stem"></span><span class="dot"></span><span class="lbl">${m.date?`<span class="num">${fmt(m.date).slice(5)}</span> `:""}${esc(m.text)}</span></div>`;
 }
 
 const sortedMarkers=it=>[...it.markers].sort((a,b)=>(a.date||"9999").localeCompare(b.date||"9999")||a.at-b.at);
 function logHTML(it){
   const ms=sortedMarkers(it);if(!ms.length)return "";
-  return `<details class="log" open><summary>處理紀錄<span class="count">${ms.length}</span></summary><ol>${ms.map(m=>`<li><span class="log-dot" style="background:${esc(m.color||MARK_COLORS[0])}"></span><span class="num log-d">${m.date?fmt(m.date):"—"}</span>${m.stage?`<span class="tag cur sm">${esc(m.stage)}</span>`:""}<span>${esc(m.text)}</span>${m.evId?`<span class="sub" title="來自即時回報">（即時回報）</span>`:""}<span class="sub log-p">${m.at}%</span>${editing?`<button type="button" class="icon" data-logmk="${m.id}" aria-label="編輯這筆註記">${ico("edit","solo")}</button>`:""}</li>`).join("")}</ol></details>`;
+  return `<details class="log" open><summary>處理紀錄<span class="count">${ms.length}</span></summary><ol>${ms.map(m=>`<li><span class="log-dot" style="background:${esc(m.color||MARK_COLORS[0])}"></span><span class="num log-d">${m.date?fmt(m.date):"—"}</span>${m.stage?`<span class="tag cur sm">${esc(m.stage)}</span>`:""}<span>${esc(m.text)}</span>${m.evId?`<span class="sub" title="來自即時回報">（即時回報）</span>`:""}${editing?`<button type="button" class="icon" data-logmk="${m.id}" aria-label="編輯這筆註記">${ico("edit","solo")}</button>`:""}</li>`).join("")}</ol></details>`;
 }
 
 /* stack marker labels into lanes so many markers never overlap */
@@ -117,26 +134,25 @@ const layoutAll=()=>document.querySelectorAll(".c-track,.g-track").forEach(layou
 let _rz;window.addEventListener("resize",()=>{clearTimeout(_rz);_rz=setTimeout(layoutAll,120)});
 document.fonts?.ready.then(layoutAll);
 
-function renderCards(){
-  const list=activeIssues();
-  $("#cards").innerHTML=list.map(it=>`<article class="card ${it.progress>=100?"done-card":""} ${openIds.has(it.id)?"open":""}" id="card-${it.id}" data-issue="${it.id}" data-tone="${progTone(it.progress)}">
+/* 一張議題卡片；open＝展開內容，sel＝左右兩欄時清單裡選到的那列，pane＝畫在右側詳情（不帶 id，避免重複） */
+function cardHTML(it,open,pane,sel){
+  return `<article class="card ${it.doneAt?"closed":""} ${open?"open":""} ${sel?"sel":""} ${pane?"in-pane":""}" ${pane?"":`id="card-${it.id}"`} data-issue="${it.id}"${sel?' aria-current="true"':""}>
     <div class="card-top">
-      <button type="button" class="card-toggle" data-toggle aria-expanded="${openIds.has(it.id)}"><span class="card-title">${esc(it.title)}</span>${it.tags[it.cur]?`<span class="tag cur sm">${esc(it.tags[it.cur])}</span>`:""}<span class="hpct num" data-hpct>${it.progress}%</span><span class="chev-btn">${openIds.has(it.id)?"收合":"展開"}<span class="chev" aria-hidden="true">▾</span></span></button>
-      <div class="card-tools"><button type="button" class="icon" data-move="-1" aria-label="往前移">↑</button><button type="button" class="icon" data-move="1" aria-label="往後移">↓</button><button type="button" class="icon danger" data-delissue aria-label="刪除議題「${esc(it.title)}」">刪除</button></div>
+      <button type="button" class="card-toggle" data-toggle aria-expanded="${open}"><span class="card-title">${esc(it.title)}</span>${it.tags[it.cur]?`<span class="tag cur sm">${esc(it.tags[it.cur])}</span>`:""}${it.doneAt?'<span class="tag sm closed-tag">已結案</span>':""}<span class="hpct num${schedPct(it)==null?" none":""}" data-hpct title="時程：設定的期間已經過的比例">${schedPct(it)==null?"未排程":`<small>時程</small>${schedPct(it)}%`}</span><span class="chev-btn">${open?"收合":"展開"}<span class="chev" aria-hidden="true">▾</span></span></button>
+      <div class="card-tools"><button type="button" class="icon" data-closeissue>${it.doneAt?"取消結案":"結案"}</button><button type="button" class="icon" data-move="-1" aria-label="往前移">↑</button><button type="button" class="icon" data-move="1" aria-label="往後移">↓</button><button type="button" class="icon danger" data-delissue aria-label="刪除議題「${esc(it.title)}」">刪除</button></div>
     </div>
-    ${openIds.has(it.id)?`
+    ${open?`
     ${editing?`<label class="sub" style="display:grid;gap:3px">議題名稱<input data-f="title" value="${esc(it.title)}"></label>`:""}
     <div class="meta"><span class="sub">${hasDates(it)?`${fmt(it.start)} – ${fmt(it.end)}`:"未排入甘特圖"}</span></div>
     <div class="tags">${tagsHTML(it)}</div>
     ${staffHTML(it.staff)}
     ${!editing&&it.note?`<p class="note"><span class="note-h">目前進度</span>${esc(it.note)}</p>`:""}
     <div class="c-track" data-track>
-      <div class="c-bar"><div class="fill" style="width:${it.progress}%"></div></div>
-      ${[0,25,50,75,100].map(v=>`<span class="tick" style="left:${v}%">${v}</span>`).join("")}
-      ${(()=>{const L=latestMarkerId(it.markers);return it.markers.map(m=>markerHTML(m,L)).join("")})()}
+      <div class="c-bar"><div class="fill" style="width:${schedPct(it)||0}%"></div></div>
+      ${hasDates(it)?issueSpan(it).map((d,k)=>`<span class="tick ${k?"tick-e":"tick-s"}" style="left:${k*100}%">${fmt(d).slice(5)}</span>`).join(""):`<span class="tick tick-hint" style="left:0">未排程：填開始日與結束日後，時程條才會照時間填色</span>`}
+      ${(()=>{const L=latestMarkerId(it.markers);return it.markers.map(m=>markerHTML(m,L,it)).join("")})()}
     </div>
     <div class="edit-block">
-      <label class="full">完成度（100% 儲存後移到完成紀錄）<span class="prog"><input type="range" min="0" max="100" step="5" data-f="progress" value="${it.progress}" style="--p:${it.progress}%" aria-label="完成度滑桿"><input type="number" min="0" max="100" data-f="progress" value="${it.progress}" aria-label="完成度數值"></span></label>
       <label class="full">目前進度說明<textarea data-f="note" rows="3" placeholder="例如：已和總務處確認，等待書面回覆">${esc(it.note||"")}</textarea></label>
       <label>開始日<input type="date" data-f="start" value="${it.start}"></label>
       <label>結束日<input type="date" data-f="end" value="${it.end}"></label>
@@ -148,9 +164,22 @@ function renderCards(){
     <div class="att"${!it.links.length?' hidden':""}>
       <div class="att-h">相關連結${editing?"（點按鈕可修改或刪除）":""}</div>
       <div class="links">${it.links.map(x=>linkHTML(x,it.id)).join("")}</div>
-    </div>`:`<div class="mini-bar" data-toggle title="點一下展開"><div class="fill" style="width:${it.progress}%"></div></div>`}
-  </article>`).join("")
-  ||`<p class="empty">${state.locked?"目前沒有進行中的議題。":"還沒有議題，按「編輯」→「+ 新增議題」開始。"}</p>`;
+    </div>`:`<div class="mini-bar" data-toggle title="點一下展開"><div class="fill" style="width:${schedPct(it)||0}%"></div></div>`}
+  </article>`;
+}
+/* 個別進度：一般是清單＋就地展開；桌面放大成全寬時（mdOn）改成左側清單、右側詳情 */
+function renderCards(){
+  const list=activeIssues(),md=mdOn("progress")&&list.length>0,pane=$("#cardDetail");mdLast.progress=mdOn("progress");
+  $("#cardsMD").classList.toggle("split",md);
+  if(md){
+    if(!list.some(i=>i.id===selIssue))selIssue=list[0].id;
+    $("#cards").innerHTML=list.map(it=>cardHTML(it,false,false,it.id===selIssue)).join("");
+    pane.innerHTML=cardHTML(list.find(i=>i.id===selIssue),true,true,false);pane.hidden=false;
+  }else{
+    $("#cards").innerHTML=list.map(it=>cardHTML(it,openIds.has(it.id),false,false)).join("")
+      ||`<p class="empty">${state.locked?"目前沒有進行中的議題。":"還沒有議題，按「編輯」→「+ 新增議題」開始。"}</p>`;
+    pane.innerHTML="";pane.hidden=true;
+  }
 }
 
 /* 即時回報的時間標記清單（即時回報區、完成紀錄共用）；edit＝顯示編輯鈕 */
@@ -170,30 +199,43 @@ function renderEvents(){
     ||`<p class="empty">${state.locked?"目前沒有即時回報。":"需要即時回報的事項放這裡，只要名稱和說明。按「編輯」→「+ 新增即時回報」。"}</p>`;
 }
 
+/* 完成紀錄：一般是可展開的清單；桌面放大成全寬時（mdOn）改成左側清單、右側詳情 */
 function renderDone(){
   const ds=doneIssues();
   const de=state.events.filter(ev=>ev.doneAt);
   const ids=new Set([...ds.map(i=>i.id),...de.map(e=>e.id)]);
   const dnew=id=>prevDone&&!prevDone.has(id)?"new":"";
-  $("#doneCount").textContent=ds.length+de.length;
-  $("#doneList").innerHTML=ds.map(it=>{
-    const mk=[...it.markers].sort((a,b)=>a.at-b.at);
-    return `<details class="done-item ${dnew(it.id)}" data-issue="${it.id}" ${openDone.has(it.id)?"open":""}>
-      <summary><span class="t"><span class="ok-dot" aria-hidden="true"></span>${esc(it.title)}</span><span class="sub">${editing?`<button type="button" class="inline-date" data-donedate aria-label="修改完成日期">${fmt(it.doneAt)||"—"}${ico("edit","sm")}</button>`:fmt(it.doneAt)||"—"} · 議題</span><button type="button" class="icon danger edit-only done-del" data-deldone aria-label="刪除「${esc(it.title)}」">刪除</button></summary>
-      <div class="done-body">
-        ${hasDates(it)?`<div class="sub">期間 ${fmt(it.start)} – ${fmt(it.end)}</div>`:""}
+  const link=l=>`<a class="link" style="background:${esc(l.color)}" href="${esc(safeUrl(l.url))}" target="_blank" rel="noopener">${esc(l.name)}</a>`;
+  const dateBtn=d=>editing?`<button type="button" class="inline-date" data-donedate aria-label="修改完成日期">${fmt(d)||"—"}${ico("edit","sm")}</button>`:fmt(d)||"—";
+  /* 每一筆拆成：屬性、標題、副標、內容，讓兩種版面共用 */
+  const items=ds.map(it=>({id:it.id,d:it.doneAt||"",attr:`data-issue="${it.id}"`,title:esc(it.title),sub:`${dateBtn(it.doneAt)} · 議題`,del:`data-deldone aria-label="刪除「${esc(it.title)}」"`,
+    body:`${hasDates(it)?`<div class="sub">期間 ${fmt(it.start)} – ${fmt(it.end)}</div>`:""}
         ${it.note?`<p style="margin:0;white-space:pre-wrap">${esc(it.note)}</p>`:""}
         ${it.tags.length?`<div class="tags">${it.tags.map((g,k)=>`<span class="tag ${k===it.cur?"cur":k<it.cur?"past":""}">${esc(g)}</span>`).join("")}</div>`:""}
-        ${mk.length?`<ul>${sortedMarkers(it).map(m=>`<li>${m.date?`<span class="num">${fmt(m.date)}</span> `:""}${m.stage?`【${esc(m.stage)}】`:""}${esc(m.text)}</li>`).join("")}</ul>`:""}
-        ${it.links.length?`<div class="links">${it.links.map(l=>`<a class="link" style="background:${esc(l.color)}" href="${esc(safeUrl(l.url))}" target="_blank" rel="noopener">${esc(l.name)}</a>`).join("")}</div>`:""}
-<span class="edit-only" style="gap:6px"><button type="button" class="icon" data-restore>移回進行中</button></span>
-      </div></details>`;
-  }).map((h,k)=>({h,d:ds[k].doneAt||""})).concat(de.map(ev=>({d:ev.doneAt,h:`<details class="done-item ${dnew(ev.id)}" data-ev="${ev.id}" ${openDone.has(ev.id)?"open":""}>
-      <summary><span class="t"><span class="ok-dot" aria-hidden="true"></span>${esc(evName(ev))}</span><span class="sub">${editing?`<button type="button" class="inline-date" data-donedate aria-label="修改完成日期">${fmt(ev.doneAt)}${ico("edit","sm")}</button>`:fmt(ev.doneAt)} · 即時回報${parentOf(ev)?` → ${esc(parentOf(ev).title)}`:""}</span><button type="button" class="icon danger edit-only done-del" data-evdel aria-label="刪除「${esc(ev.name)}」">刪除</button></summary>
-      <div class="done-body">${ev.desc?`<p style="margin:0;white-space:pre-wrap">${esc(ev.desc)}</p>`:""}${(ev.links||[]).length?`<div class="links">${ev.links.map(l=>`<a class="link" style="background:${esc(l.color)}" href="${esc(safeUrl(l.url))}" target="_blank" rel="noopener">${esc(l.name)}</a>`).join("")}</div>`:""}
-${evTimesHTML(ev,false)}
-<span class="edit-only" style="gap:6px"><button type="button" class="icon" data-evlinkissue>${parentOf(ev)?"更改母議題":"與議題連結"}</button>${ev.fromEv?"":`<button type="button" class="icon" data-evundo>移回即時回報</button>`}</span>
-      </div></details>`}))).sort((a,b)=>b.d.localeCompare(a.d)).map(x=>x.h).join("")||`<p class="empty">完成度達 100% 的議題和完成的即時回報會收進這裡。</p>`;
+        ${it.markers.length?`<ul>${sortedMarkers(it).map(m=>`<li>${m.date?`<span class="num">${fmt(m.date)}</span> `:""}${m.stage?`【${esc(m.stage)}】`:""}${esc(m.text)}</li>`).join("")}</ul>`:""}
+        ${it.links.length?`<div class="links">${it.links.map(link).join("")}</div>`:""}
+        <span class="edit-only" style="gap:6px"><button type="button" class="icon" data-restore>取消結案</button></span>`}))
+  .concat(de.map(ev=>({id:ev.id,d:ev.doneAt,attr:`data-ev="${ev.id}"`,title:esc(evName(ev)),sub:`${dateBtn(ev.doneAt)} · 即時回報${parentOf(ev)?` → ${esc(parentOf(ev).title)}`:""}`,del:`data-evdel aria-label="刪除「${esc(ev.name)}」"`,
+    body:`${ev.desc?`<p style="margin:0;white-space:pre-wrap">${esc(ev.desc)}</p>`:""}${(ev.links||[]).length?`<div class="links">${ev.links.map(link).join("")}</div>`:""}
+        ${evTimesHTML(ev,false)}
+        <span class="edit-only" style="gap:6px"><button type="button" class="icon" data-evlinkissue>${parentOf(ev)?"更改母議題":"與議題連結"}</button>${ev.fromEv?"":`<button type="button" class="icon" data-evundo>移回即時回報</button>`}</span>`})))
+  .sort((a,b)=>b.d.localeCompare(a.d));
+  const sum=x=>`<summary><span class="t"><span class="ok-dot" aria-hidden="true"></span>${x.title}</span><span class="sub">${x.sub}</span><button type="button" class="icon danger edit-only done-del" ${x.del}>刪除</button></summary>`;
+  const md=mdOn("done")&&items.length>0,pane=$("#doneDetail");mdLast.done=mdOn("done");
+  $("#doneMD").classList.toggle("split",md);
+  $("#doneCount").textContent=items.length;
+  if(md){
+    if(!items.some(x=>x.id===selDone))selDone=items[0].id;
+    $("#doneList").innerHTML=items.map(x=>`<details class="done-item ${dnew(x.id)} ${x.id===selDone?"sel":""}" ${x.attr}${x.id===selDone?' aria-current="true"':""}>${sum(x)}</details>`).join("");
+    const x=items.find(y=>y.id===selDone);
+    pane.innerHTML=`<div class="done-detail" ${x.attr}><h3 class="done-dt"><span class="ok-dot" aria-hidden="true"></span>${x.title}</h3><p class="sub done-ds">${x.sub}</p><div class="done-body">${x.body}</div></div>`;pane.hidden=false;
+  }else{
+    $("#doneList").innerHTML=items.map(x=>`<details class="done-item ${dnew(x.id)}" ${x.attr} ${openDone.has(x.id)?"open":""}>${sum(x)}<div class="done-body">${x.body}</div></details>`).join("")
+      ||`<p class="empty">結案的議題和完成的即時回報會收進這裡。</p>`;
+    pane.innerHTML="";pane.hidden=true;
+  }
   prevDone=ids;
 }
+/* 左右兩欄時換選一筆：右側內容淡入（完成紀錄與個別進度共用） */
+function mdPaneIn(el){if(el&&!reduceMotion())el.animate([{opacity:0,transform:"translateX(14px)"},{opacity:1,transform:"none"}],{duration:280,easing:"cubic-bezier(.2,.9,.25,1)"})}
 

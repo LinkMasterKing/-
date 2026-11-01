@@ -18,7 +18,7 @@ function syncLink(ev){
   const keepTm=new Set((ev.times||[]).filter(t=>t.toIssue&&t.start).map(t=>t.id));
   state.issues.forEach(i=>{i.markers=i.markers.filter(m=>m.evId!==ev.id||(i.id===ev.issueId&&(m.tmId?keepTm.has(m.tmId):!!ev.doneAt)))});
   const it=parentOf(ev);if(!it)return;
-  const put=(find,make,text,date)=>{let m=it.markers.find(find);if(!m){m={id:uid("m"),evId:ev.id,at:it.progress,stage:it.tags[it.cur]||"",pos:"up",...make};it.markers.push(m)}m.text=text;m.date=date};
+  const put=(find,make,text,date)=>{let m=it.markers.find(find);if(!m){m={id:uid("m"),evId:ev.id,at:schedPct(it,date)??50,stage:it.tags[it.cur]||"",pos:"up",...make};it.markers.push(m)}m.text=text;m.date=date};
   if(ev.doneAt)put(x=>x.evId===ev.id&&!x.tmId,{},evName(ev),ev.doneAt);
   (ev.times||[]).filter(t=>keepTm.has(t.id)).forEach(t=>put(x=>x.evId===ev.id&&x.tmId===t.id,{tmId:t.id,pos:"down"},`${ev.name.replace(/[：:\s]+$/,"")}：${t.label}`,t.start.slice(0,10)));
 }
@@ -60,9 +60,19 @@ const evTimesSorted=ev=>[...(ev.times||[])].sort((a,b)=>a.start.localeCompare(b.
 /* ---------- weekly report generator ---------- */
 const addDays=(s,n)=>{const d=pd(s);d.setDate(d.getDate()+n);return ymd(d)};
 function snapshotBase(date){
-  const issues={};state.issues.forEach(i=>issues[i.id]={progress:i.progress,stage:i.tags[i.cur]||"",note:i.note||""});
+  const issues={};state.issues.forEach(i=>issues[i.id]={stage:i.tags[i.cur]||"",note:i.note||""});
   state.reportBase={date,issues};
 }
+/* 每週概述按鈕的紅點：每週五起亮，直到這一週（週一到週日）有一份週報產出為止；
+   沒產出就一直亮到產出（下週一到週四仍以上週為準），下個週五再開始新的一輪 */
+const WEEK_DUE_DAY=5;
+function weekDue(t=today()){
+  const d=pd(t),back=(d.getDay()-WEEK_DUE_DAY+7)%7,fri=addDays(t,-back),mon=addDays(fri,-4);
+  return !state.weeks.some(w=>w.date&&w.date>=mon);
+}
+function weekDotSync(){const due=weekDue(),wb=$("#weekBtn");if(!wb)return;wb.classList.toggle("due",due);wb.title=due?"本週週報還沒產出":""}
+/* 網頁一直開著跨過週五也要冒出來：每 10 分鐘、回到這個分頁時再檢查一次 */
+setInterval(weekDotSync,6e5);document.addEventListener("visibilitychange",()=>{if(!document.hidden)weekDotSync()});
 /* 「本週」＝上一份週報之後到今天（生成週報、動畫模式共用） */
 function weekRange(){
   const end=state.boardDate||today();
@@ -83,15 +93,15 @@ function buildWeekly(){
   if(evOpen.length)evOpen.forEach(e=>{const d=clean(e.desc);L.push(`❏ ${e.name}${parentOf(e)?`（${parentOf(e).title}）`:""}${inP(e.createdAt)?"（本週新增）":""}${d?"："+d:""}`)});else L.push("❏ 本週無即時回報");
   L.push("");
   // 二 / 四：議題
-  const active=state.issues.filter(i=>i.progress<100);
+  const active=state.issues.filter(i=>!i.doneAt);
   const upd=[],idle=[];
   active.forEach(i=>{
     const b=base[i.id],stage=i.tags[i.cur]||"";
     const mk=sortedMarkers(i).filter(m=>inP(m.date));
-    const pc=b&&b.progress!==i.progress, sc=b&&b.stage!==stage, nc=b&&(b.note||"")!==(i.note||"");
+    const sc=b&&b.stage!==stage, nc=b&&(b.note||"")!==(i.note||"");
     const isNew=!b&&!!state.reportBase;
-    const changed=mk.length||pc||sc||nc||isNew;
-    const head=`❏ ${i.title}（${sc?`${b.stage} → ${stage}`:stage}${stage?"，":""}${pc?`${b.progress}% → ${i.progress}%`:i.progress+"%"}）`;
+    const changed=mk.length||sc||nc||isNew;
+    const head=`❏ ${i.title}（${sc?`${b.stage} → ${stage}`:stage}${stage?"，":""}${schedLabel(i)}）`;
     const parts=[];
     if(isNew)parts.push("本週新增議題");
     mk.forEach(m=>parts.push(`${fmt(m.date).slice(5)} ${m.text}`));
@@ -103,7 +113,7 @@ function buildWeekly(){
   if(upd.length)L.push(...upd);else L.push("❏ 本週議題無新進度");
   L.push("");
   // 三、本週完成
-  const doneI=state.issues.filter(i=>i.progress>=100&&inP(i.doneAt));
+  const doneI=state.issues.filter(i=>i.doneAt&&inP(i.doneAt));
   const doneE=state.events.filter(e=>inP(e.doneAt)&&!parentOf(e));
   L.push("三、本週完成");
   if(doneI.length+doneE.length){

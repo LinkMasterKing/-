@@ -84,7 +84,7 @@ async function exportHTML(locked){
     if(x==="close")d.close();
   });
   d.onclose=()=>setTimeout(()=>URL.revokeObjectURL(url),60000);
-  d.showModal();
+  dlgOpen(true);
 }
 async function copyText(t){
   try{await navigator.clipboard.writeText(t);toast("已複製")}
@@ -92,10 +92,6 @@ async function copyText(t){
 }
 const findIssue=el=>state.issues.find(i=>i.id===el.closest("[data-issue]")?.dataset.issue);
 const changed=()=>{dirty=true;render()};
-function setProgress(it,v){
-  it.progress=clamp(Math.round(+v||0));
-  if(it.progress>=100){if(!it.doneAt)it.doneAt=today()}else it.doneAt=null;
-}
 
 
 /* ---------- 雲端設定與儲存流程 ---------- */

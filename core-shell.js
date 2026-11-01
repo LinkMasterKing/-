@@ -21,7 +21,7 @@ const SHELL_HTML=`<div class="pager" id="pager">
 
       <div class="layout">
         <div class="sgroup" data-sec="live">
-          <section class="panel" aria-labelledby="evH">
+          <section class="panel" id="livePanel" aria-labelledby="evH">
             <div class="panel-head"><h2 id="evH">即時回報<span class="en">LIVE</span></h2></div>
             <div class="events" id="events"></div>
             <button class="ghost edit-only add-row" id="addEvent">+ 新增即時回報</button>
@@ -31,14 +31,14 @@ const SHELL_HTML=`<div class="pager" id="pager">
         <div class="sgroup" data-sec="progress">
           <section class="panel" aria-labelledby="ganttH">
             <div class="panel-head"><h2 id="ganttH">時間甘特圖<span class="en">TIMELINE</span></h2></div>
-            <div class="legend" aria-label="圖例"><span><i class="lg-today" aria-hidden="true"></i>目前時間</span><span><i class="lg-line" style="--c:var(--prog-hi)" aria-hidden="true"></i>完成進度</span><span><i class="lg-rest" aria-hidden="true"></i>尚未完成</span><span class="lg-hint">點議題列可跳到該議題 · 左右滑動瀏覽月份</span></div>
+            <div class="legend" aria-label="圖例"><span><i class="lg-today" aria-hidden="true"></i>目前時間</span><span><i class="lg-line" style="--c:var(--prog-hi)" aria-hidden="true"></i>已過時程</span><span><i class="lg-rest" aria-hidden="true"></i>剩餘時程</span><span class="lg-hint">點議題列可跳到該議題 · 左右滑動瀏覽月份</span></div>
             <div class="range">時間軸 <input type="month" id="rStart" aria-label="起始月份"> 到 <input type="month" id="rEnd" aria-label="結束月份"> <button class="icon" id="autoRange">依議題自動調整</button></div>
             <div class="gantt" id="gantt"></div>
           </section>
 
-          <section class="panel" aria-labelledby="cardsH">
+          <section class="panel" id="cardsPanel" aria-labelledby="cardsH">
             <div class="panel-head"><h2 id="cardsH">個別進度<span class="en">PROGRESS</span></h2></div>
-            <div class="cards" id="cards"></div>
+            <div class="md" id="cardsMD"><div class="cards" id="cards"></div><div class="md-pane" id="cardDetail" hidden></div></div>
             <button class="ghost edit-only add-row" id="addIssue">+ 新增議題</button>
           </section>
         </div>
@@ -46,7 +46,7 @@ const SHELL_HTML=`<div class="pager" id="pager">
         <div class="sgroup" data-sec="done">
           <aside class="panel" id="donePanel" aria-labelledby="doneH">
             <div class="panel-head"><h2 id="doneH">完成紀錄<span class="en">DONE</span><span class="count" id="doneCount">0</span></h2></div>
-            <div class="scroll" id="doneList"></div>
+            <div class="md" id="doneMD"><div class="scroll" id="doneList"></div><div class="md-pane" id="doneDetail" hidden></div></div>
           </aside>
         </div>
       </div>
