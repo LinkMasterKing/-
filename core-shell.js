@@ -58,7 +58,7 @@ const SHELL_HTML=`<div class="pager" id="pager">
     <div class="week-wrap">
       <div class="week-top">
         <button class="icon" id="backMain" aria-label="回到主畫面"><svg class="ico" viewBox="0 0 8 14" width="7" height="12" aria-hidden="true"><path d="M6.5 1.5 1.5 7l5 5.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg><span>返回</span></button>
-        <h2 id="weekH" style="flex:1">每週更新概述<span class="en">WEEKLY</span></h2>
+        <h2 id="weekH">每週更新概述<span class="en">WEEKLY</span></h2>
         <button class="gen-btn" id="genWeek"><svg class="spark" viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M10 3l1.9 5.1L17 10l-5.1 1.9L10 17l-1.9-5.1L3 10l5.1-1.9z"/><path fill="currentColor" d="M18.5 2l.8 2.2 2.2.8-2.2.8-.8 2.2-.8-2.2-2.2-.8 2.2-.8z"/><path fill="currentColor" d="M18 14.5l.9 2.1 2.1.9-2.1.9-.9 2.1-.9-2.1-2.1-.9 2.1-.9z"/></svg>生成週報</button>
         <button class="ghost edit-only" id="addWeek">+ 新增週報</button>
       </div>

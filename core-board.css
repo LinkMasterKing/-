@@ -76,6 +76,12 @@ button.ghost{border-color:var(--muted)}
 ::-webkit-scrollbar-track,::-webkit-scrollbar-corner{background:transparent}
 ::-webkit-scrollbar-thumb{background:rgba(140,140,150,.38);border-radius:999px;border:3px solid transparent;background-clip:padding-box}
 ::-webkit-scrollbar-thumb:hover{background-color:rgba(160,160,170,.6)}
+/* 觸控裝置（手機、平板）全部捲動區都不顯示捲軸：手指捲動不需要捲軸。
+   捲軸寬度變成 0，各區的 scrollbar-gutter:stable 也就不再預留空白，左右邊界保持對稱 */
+@media (pointer:coarse){
+  *{scrollbar-width:none}
+  ::-webkit-scrollbar{display:none}
+}
 
 /* ===== 頁面：主頁｜每週概述左右切換 ===== */
 .pager{display:flex;height:100vh;height:100dvh;overflow-x:auto;overflow-y:hidden;scroll-snap-type:x mandatory;overscroll-behavior-x:contain;scrollbar-width:thin}
@@ -624,7 +630,10 @@ body.edit #donePanel .done-item summary>.sub{overflow:visible}
   .page-week{width:100vw}
   .week-wrap{--wt:calc(16px + env(safe-area-inset-top));--wr:max(14px,env(safe-area-inset-right));--wl:max(14px,env(safe-area-inset-left))}
   .week-text{font-size:14px}
-  .week-top{padding-bottom:10px}
+  .week-top{padding-bottom:10px;row-gap:10px}
+  /* 手機寬度放不下「返回＋標題＋生成週報」一列：按鈕留在第一列（返回靠左、其他靠右），標題連同箭頭線排到第二列整列 */
+  .week-top h2{order:1;flex:1 0 100%}
+  #genWeek{margin-left:auto}
 }
 @keyframes slideIn{from{opacity:0;transform:translateX(26px)}}
 @keyframes weekNew{0%{opacity:0;transform:translateY(-12px) scale(.97)}35%{opacity:1;transform:none;box-shadow:0 0 0 2px var(--ink),0 0 24px 2px color-mix(in srgb,var(--ink) 35%,transparent)}100%{box-shadow:none}}
@@ -889,11 +898,6 @@ dialog#dlg:has(.csel.open){overflow:visible}
 .set-ov[hidden]{display:none}
 .set-ov .anim-top{padding-bottom:8px}
 .set-scroll{flex:1;overflow:auto;overscroll-behavior:contain;scrollbar-gutter:stable}
-/* 觸控裝置（手機、平板）不顯示捲軸、也不預留位置：手指捲動本來就不需要捲軸，預留的寬度會讓左右邊界不對稱 */
-@media (pointer:coarse){
-  .set-scroll{scrollbar-width:none;scrollbar-gutter:auto}
-  .set-scroll::-webkit-scrollbar{display:none}
-}
 .set-inner{max-width:720px;margin:0 auto;grid-template-columns:minmax(0,1fr);padding:14px 0 calc(120px + env(safe-area-inset-bottom));display:grid;gap:28px}
 .set-h{margin:0 0 10px;padding:0;border:0;font-size:12.5px;font-weight:500;color:var(--muted);letter-spacing:.16em}
 .set-row:hover{transform:none;box-shadow:none;background:color-mix(in srgb,var(--ink) 6%,transparent)}
