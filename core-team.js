@@ -188,12 +188,15 @@ function diffState(a,b){
   /* 即時回報 */
   const AE=byId(a.events),BE=byId(b.events),iname=id=>(b.issues||[]).find(i=>i.id===id)?.title||(a.issues||[]).find(i=>i.id===id)?.title||"";
   for(const [id,x] of BE){const o=AE.get(id),t=x.name;
-    if(!o){L.push(`即時回報｜新增｜${t}`);continue}
+    if(!o){L.push(x.fromEv?`即時回報｜完成第 ${x.round} 段｜${t}`:`即時回報｜新增｜${t}`);continue}
     if(o.name!==x.name)L.push(`即時回報｜改名 ${o.name}→${x.name}`);
     if((o.desc||"")!==(x.desc||""))L.push(`即時回報｜更新說明｜${t}`);
-    if(!o.doneAt&&x.doneAt)L.push(`即時回報｜完成｜${t}`);else if(o.doneAt&&!x.doneAt)L.push(`即時回報｜重新開啟｜${t}`);else if(o.doneAt&&x.doneAt&&o.doneAt!==x.doneAt)L.push(`即時回報｜完成日期 ${fmt(x.doneAt)}｜${t}`);
+    if(!o.doneAt&&x.doneAt)L.push(`即時回報｜結案｜${t}`);else if(o.doneAt&&!x.doneAt)L.push(`即時回報｜重新開啟｜${t}`);else if(o.doneAt&&x.doneAt&&o.doneAt!==x.doneAt)L.push(`即時回報｜完成日期 ${fmt(x.doneAt)}｜${t}`);
     if((o.issueId||"")!==(x.issueId||""))L.push(x.issueId?`即時回報｜連結議題「${iname(x.issueId)}」｜${t}`:`即時回報｜取消議題連結｜${t}`);
     linkD(o.links,x.links,"即時回報",t);staffD(o.staff,x.staff,"即時回報",t);
+    const OT=byId(o.times),XT=byId(x.times);
+    for(const [k,m] of XT){const q=OT.get(k);if(!q)L.push(`即時回報｜新增時間「${m.label}」｜${t}`);else if(!same(q,m))L.push(`即時回報｜修改時間「${m.label}」｜${t}`)}
+    for(const [k,m] of OT)if(!XT.has(k))L.push(`即時回報｜刪除時間「${m.label}」｜${t}`);
   }
   for(const [id,o] of AE)if(!BE.has(id))L.push(`即時回報｜刪除｜${o.name}`);
   /* 每週概述 */

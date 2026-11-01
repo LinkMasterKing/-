@@ -11,9 +11,10 @@ const CFG=(()=>{
     term:{label:"",start:"",end:""},
     data:{owner:"",repo:"",branch:"main",path:"data.json",page:"index.html"},
     notify:{url:""},
+    week:{cutoff:2},
   };
   const u=window.BOARD_CONFIG||{},o={...D,...u};
-  ["dept","colors","sections","term","data","notify"].forEach(k=>o[k]={...D[k],...(u[k]||{})});
+  ["dept","colors","sections","term","data","notify","week"].forEach(k=>o[k]={...D[k],...(u[k]||{})});
   if(!Array.isArray(o.stageTags))o.stageTags=D.stageTags;
   return Object.freeze(o);
 })();

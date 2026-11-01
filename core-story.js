@@ -15,9 +15,9 @@ function svCtx(){
   const {start,end}=weekRange(),inW=d=>!!d&&d>start&&d<=end,base=state.reportBase&&state.reportBase.issues;
   const has=id=>state.issues.some(i=>i.id===id);
   const done=[...state.issues.filter(i=>i.progress>=100&&inW(i.doneAt)).map(i=>({key:"i"+i.id,t:i.title,d:i.doneAt,k:"議題",iss:i.id})),
-    ...state.events.filter(e=>inW(e.doneAt)).map(e=>({key:"e"+e.id,t:e.name,d:e.doneAt,k:"即時回報",iss:e.issueId&&has(e.issueId)?e.issueId:null}))].sort((a,b)=>a.d.localeCompare(b.d));
+    ...state.events.filter(e=>inW(e.doneAt)).map(e=>({key:"e"+e.id,t:evName(e),d:e.doneAt,k:"即時回報",iss:e.issueId&&has(e.issueId)?e.issueId:null}))].sort((a,b)=>a.d.localeCompare(b.d));
   const rows=state.issues.filter(i=>i.progress<100||inW(i.doneAt)).map(i=>({it:i,from:base&&base[i.id]?base[i.id].progress:0,to:i.progress}));
-  const fresh=state.events.filter(e=>inW(e.createdAt));
+  const fresh=state.events.filter(e=>!e.fromEv&&inW(e.createdAt));   /* 分段紀錄不算新增 */
   return {start,end,done,rows,fresh};
 }
 const svRange=c=>`${fmt(addDays(c.start,1)).slice(5)} – ${fmt(c.end).slice(5)}`;

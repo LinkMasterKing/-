@@ -23,6 +23,10 @@ window.BOARD_CONFIG = {
   // 資料位置：owner/repo 留空＝自動從 github.io 網址判斷；path 是資料檔、page 是網頁檔（分享預覽會改它）
   data: { owner: "", repo: "", branch: "main", path: "data.json", page: "index.html" },
 
+  // 每週回報期限：即時回報依這一天判斷狀態顏色（0＝週日、1＝週一、2＝週二…6＝週六）
+  //   綠＝期限前有更新；白＝這週完成過一段，或期限過後才補更新；紅＝期限前後都沒更新
+  week: { cutoff: 2 },
+
   // 預留：之後的通知功能（目前沒有作用）
   notify: { url: "" }
 };

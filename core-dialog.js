@@ -3,12 +3,12 @@
 function fieldHTML(x){
   if(x.type==="multi")return `<fieldset class="multi"><legend>${esc(x.label)}</legend><div class="chips">${x.options.map(([v,t])=>`<label class="chip"><input type="checkbox" name="${x.name}" value="${esc(v)}" ${(x.value||[]).includes(v)?"checked":""}><span>${esc(t)}</span></label>`).join("")}</div></fieldset>`;
   if(x.type==="check")return `<label class="fld-check"><input type="checkbox" name="${x.name}" ${x.value?"checked":""}><span>${esc(x.label)}</span></label>`;
-  if(x.type==="textarea")return `<label>${esc(x.label)}<textarea name="${x.name}" rows="16" placeholder="${esc(x.ph||"")}">${esc(x.value||"")}</textarea></label>`;
+  if(x.type==="textarea")return `<label>${esc(x.label)}<textarea name="${x.name}" rows="${x.rows||16}" placeholder="${esc(x.ph||"")}">${esc(x.value||"")}</textarea></label>`;
   if(x.type==="select"){const cur=x.options.find(o=>o[0]===x.value)||x.options[0]||["",""];
     return `<div class="fld"><span class="fld-l">${esc(x.label)}</span><div class="csel"><input type="hidden" name="${x.name}" value="${esc(cur[0])}"><button type="button" class="csel-btn" aria-haspopup="listbox" aria-expanded="false"><span class="csel-v">${esc(cur[1])}</span><svg class="csel-chev" viewBox="0 0 12 8" width="11" height="7" aria-hidden="true"><path d="M1.5 1.5 6 6l4.5-4.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></button><div class="csel-list" role="listbox" hidden>${x.options.map(([v,t])=>`<button type="button" role="option" class="csel-opt" data-v="${esc(v)}" aria-selected="${v===cur[0]}">${esc(t)}</button>`).join("")}</div></div></div>`}
   if(x.type==="color")return `<label>${esc(x.label)}<span class="swatches">${(x.palette||COLORS).map(c=>`<button type="button" style="background:${c}" data-sw="${c}" aria-pressed="${c===x.value}" aria-label="顏色 ${c}"></button>`).join("")}<input type="color" name="${x.name}" value="${esc(x.value)}" style="width:46px;height:32px;padding:2px" aria-label="自訂顏色"></span></label>`;
-  const t=x.type==="url"?"text":(x.type||"text");
-  return `<label>${esc(x.label)}<input name="${x.name}" type="${t}" value="${esc(x.value??"")}" ${x.ph?`placeholder="${esc(x.ph)}"`:""} ${x.type==="url"?'inputmode="url"':""} ${t==="number"?'min="0" max="100"':""}></label>`;
+  const t=x.type==="url"||x.type==="time"?"text":(x.type||"text");
+  return `<label>${esc(x.label)}<input name="${x.name}" type="${t}" value="${esc(x.value??"")}" ${x.ph?`placeholder="${esc(x.ph)}"`:""} ${x.type==="url"?'inputmode="url"':x.type==="time"?'inputmode="numeric" autocomplete="off"':""} ${t==="number"?'min="0" max="100"':""}></label>`;
 }
 function ask(title,fields,{danger,wide,alt}={}){
   return new Promise(res=>{
@@ -37,6 +37,33 @@ const applyMarker=(m,v)=>Object.assign(m,{text:v.text||m.text,stage:v.stage||"",
 async function editMarker(it,mk){
   const v=await ask("編輯註記",markerFields(mk,it),{danger:"刪除註記"});
   if(v==="delete")it.markers=it.markers.filter(x=>x!==mk);else if(v)applyMarker(mk,v);if(v)changed();
+}
+
+/* 即時回報的時間標記：只填日期＝一個日子；加時刻＝具體時間；填了結束＝一段期間。回傳資料、"delete" 或 null */
+const parseHM=s=>{s=String(s||"").trim().replace(/[：.．]/g,":");if(!s)return "";const m=s.match(/^(\d{1,2})(?::?(\d{2}))?$/);if(!m||+m[1]>23||+(m[2]||0)>59)return null;return pad(+m[1])+":"+pad(+(m[2]||0))};
+async function askEvTime(ev,tm){
+  const par=parentOf(ev),sp=x=>[(x||"").slice(0,10),(x||"").slice(11,16)];
+  let [sd,st]=tm?sp(tm.start):[today(),""],[ed,et]=tm?sp(tm.end):["",""],label=tm?tm.label:"",toIssue=!!(tm&&tm.toIssue);
+  for(;;){
+    const v=await ask(tm?"編輯時間標記":"新增時間標記",[
+      {name:"label",label:"這個時間是什麼",value:label,ph:"例如：與總務處開會、公告期間、完成維修"},
+      {name:"sd",label:"日期",type:"date",value:sd},
+      {name:"st",label:"時刻（選填，例如 14:00）",type:"time",value:st,ph:"不填就只記日期"},
+      {name:"ed",label:"結束日期（選填，填了就是一段期間）",type:"date",value:ed},
+      {name:"et",label:"結束時刻（選填）",type:"time",value:et},
+      ...(par?[{name:"toIssue",label:`也寫進母議題「${par.title}」的處理紀錄`,type:"check",value:toIssue}]:[])],tm?{danger:"刪除"}:{});
+    if(!v||v==="delete")return v;
+    ({label,sd,ed}=v);toIssue=v.toIssue==="on";st=v.st;et=v.et;
+    const hs=parseHM(st),he=parseHM(et);
+    if(!label){toast("請填這個時間是什麼");continue}
+    if(!sd){toast("請選日期");continue}
+    if(hs===null||he===null){toast("時刻請用 14:00 這種格式");continue}
+    const e2=ed||(he?sd:"");
+    const start=sd+(hs?"T"+hs:""),end=e2?e2+(he?"T"+he:""):"";
+    const bad=end&&(end.slice(0,10)<start.slice(0,10)||(hs&&he&&end<start));
+    if(bad){toast("結束要晚於開始");continue}
+    return {label,start,end:!end||end===start||(e2===sd&&!he)?"":end,toIssue};
+  }
 }
 
 

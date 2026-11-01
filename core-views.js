@@ -143,7 +143,7 @@ function renderCards(){
       <span class="hint full">兩個日期都填才會顯示在甘特圖；清空即從甘特圖移除。</span>
       <div class="full" style="display:flex;justify-content:flex-end;gap:6px;flex-wrap:wrap"><button type="button" data-addlink="${it.id}">+ 超連結按鈕</button><button type="button" class="ghost" data-editstaff>專員</button><button type="button" class="ghost" data-addmarker>+ 註記</button></div>
     </div>
-    ${(()=>{const kids=state.events.filter(e=>!e.doneAt&&e.issueId===it.id);return kids.length?`<div class="kid-evs"><div class="att-h">進行中的即時回報</div><div class="kid-list">${kids.map(e=>`<span class="kid-ev"><span class="live-dot" aria-hidden="true"></span>${esc(e.name)}</span>`).join("")}</div></div>`:""})()}
+    ${(()=>{const kids=state.events.filter(e=>!e.doneAt&&e.issueId===it.id);return kids.length?`<div class="kid-evs"><div class="att-h">進行中的即時回報</div><div class="kid-list">${kids.map(e=>`<span class="kid-ev" data-st="${evStatus(e)}"><span class="live-dot" aria-hidden="true"></span>${esc(e.name)}</span>`).join("")}</div></div>`:""})()}
     ${logHTML(it)}
     <div class="att"${!it.links.length?' hidden':""}>
       <div class="att-h">相關連結${editing?"（點按鈕可修改或刪除）":""}</div>
@@ -153,13 +153,20 @@ function renderCards(){
   ||`<p class="empty">${state.locked?"目前沒有進行中的議題。":"還沒有議題，按「編輯」→「+ 新增議題」開始。"}</p>`;
 }
 
+/* 即時回報的時間標記清單（即時回報區、完成紀錄共用）；edit＝顯示編輯鈕 */
+function evTimesHTML(ev,edit){
+  const par=parentOf(ev),ts=evTimesSorted(ev);if(!ts.length)return "";
+  return `<ol class="ev-times">${ts.map(t=>{const x=evTimeText(t);return `<li><span class="num ev-t-when">${x.when}</span><span class="ev-t-label">${esc(t.label)}</span>${x.span?`<span class="sub num">${x.span}</span>`:""}${t.toIssue&&par?`<span class="sub" title="這筆也寫進母議題的處理紀錄">（母議題）</span>`:""}${edit?`<button type="button" class="icon" data-evtime="${t.id}" aria-label="編輯「${esc(t.label)}」">${ico("edit","solo")}</button>`:""}</li>`}).join("")}</ol>`;
+}
 function renderEvents(){
-  $("#events").innerHTML=state.events.filter(ev=>!ev.doneAt).map(ev=>`<details class="ev" data-ev="${ev.id}" ${openEv.has(ev.id)?"open":""}>
-      <summary><span class="live-dot" aria-hidden="true"></span><b>${esc(ev.name)}</b>${parentOf(ev)?`<span class="ev-parent">→ ${esc(parentOf(ev).title)}</span>`:""}<button type="button" class="ev-del edit-only" data-evdel aria-label="刪除「${esc(ev.name)}」">${ico("close","solo")}</button><span class="ev-chev" aria-hidden="true">▾</span></summary>
-      <div class="ev-body">${parentOf(ev)?`<p class="ev-parent-full">母議題：${esc(parentOf(ev).title)}</p>`:""}${ev.desc?`<p>${esc(ev.desc)}</p>`:`<p class="sub">（沒有說明）</p>`}${staffHTML(ev.staff)}
-        ${(ev.links||[]).length?`<div class="links ev-links">${ev.links.map(l=>editing?`<a href="#" class="link" style="background:${esc(l.color)}" data-editevlink="${l.id}">${esc(l.name)}${ico("edit","sm")}</a>`:`<a class="link" style="background:${esc(l.color)}" href="${esc(safeUrl(l.url))}" target="_blank" rel="noopener">${esc(l.name)}</a>`).join("")}</div>`:""}
-        ${editing?`<span class="ev-tools"><button type="button" class="icon" data-evlinkissue>${parentOf(ev)?"更改母議題":"與議題連結"}</button><button type="button" class="icon" data-addevlink>+ 超連結</button><button type="button" class="icon" data-evdone>${ico("check")}完成</button><button type="button" class="icon" data-editev>${ico("edit")}編輯</button></span>`:""}</div>
-    </details>`).join("")
+  $("#events").innerHTML=state.events.filter(ev=>!ev.doneAt).map(ev=>{const st=evStatus(ev),par=parentOf(ev);
+    return `<details class="ev" data-ev="${ev.id}" data-st="${st}" ${openEv.has(ev.id)?"open":""}>
+      <summary><span class="live-dot" aria-hidden="true"></span><b>${esc(ev.name)}</b>${par?`<span class="ev-parent">→ ${esc(par.title)}</span>`:""}<button type="button" class="ev-del edit-only" data-evdel aria-label="刪除「${esc(ev.name)}」">${ico("close","solo")}</button><span class="ev-chev" aria-hidden="true">▾</span></summary>
+      <div class="ev-body">${par?`<p class="ev-parent-full">母議題：${esc(par.title)}</p>`:""}<p class="ev-meta"><span class="ev-st">${EV_ST[st]}</span>${ev.round>1?`<span>第 ${ev.round} 段</span>`:""}${ev.touchedAt?`<span>最後更新 <span class="num">${fmt(ev.touchedAt).slice(5)} ${ev.touchedAt.slice(11,16)}</span></span>`:""}</p>${ev.desc?`<p>${esc(ev.desc)}</p>`:`<p class="sub">（沒有說明）</p>`}
+        ${evTimesHTML(ev,editing)}${staffHTML(ev.staff)}
+        ${ev.links.length?`<div class="links ev-links">${ev.links.map(l=>editing?`<a href="#" class="link" style="background:${esc(l.color)}" data-editevlink="${l.id}">${esc(l.name)}${ico("edit","sm")}</a>`:`<a class="link" style="background:${esc(l.color)}" href="${esc(safeUrl(l.url))}" target="_blank" rel="noopener">${esc(l.name)}</a>`).join("")}</div>`:""}
+        ${editing?`<span class="ev-tools"><button type="button" class="icon" data-evlinkissue>${par?"更改母議題":"與議題連結"}</button><button type="button" class="icon" data-addevlink>+ 超連結</button><button type="button" class="icon" data-addevtime>${ico("calendar")}+ 時間</button><button type="button" class="icon" data-editev>${ico("edit")}編輯</button><button type="button" class="icon" data-evround>${ico("progress")}完成這一段</button><button type="button" class="icon" data-evdone>${ico("check")}結案</button></span>`:""}</div>
+    </details>`}).join("")
     ||`<p class="empty">${state.locked?"目前沒有即時回報。":"需要即時回報的事項放這裡，只要名稱和說明。按「編輯」→「+ 新增即時回報」。"}</p>`;
 }
 
@@ -182,9 +189,10 @@ function renderDone(){
 <span class="edit-only" style="gap:6px"><button type="button" class="icon" data-restore>移回進行中</button></span>
       </div></details>`;
   }).map((h,k)=>({h,d:ds[k].doneAt||""})).concat(de.map(ev=>({d:ev.doneAt,h:`<details class="done-item ${dnew(ev.id)}" data-ev="${ev.id}" ${openDone.has(ev.id)?"open":""}>
-      <summary><span class="t"><span class="ok-dot" aria-hidden="true"></span>${esc(ev.name)}</span><span class="sub">${editing?`<button type="button" class="inline-date" data-donedate aria-label="修改完成日期">${fmt(ev.doneAt)}${ico("edit","sm")}</button>`:fmt(ev.doneAt)} · 即時回報${parentOf(ev)?` → ${esc(parentOf(ev).title)}`:""}</span><button type="button" class="icon danger edit-only done-del" data-evdel aria-label="刪除「${esc(ev.name)}」">刪除</button></summary>
+      <summary><span class="t"><span class="ok-dot" aria-hidden="true"></span>${esc(evName(ev))}</span><span class="sub">${editing?`<button type="button" class="inline-date" data-donedate aria-label="修改完成日期">${fmt(ev.doneAt)}${ico("edit","sm")}</button>`:fmt(ev.doneAt)} · 即時回報${parentOf(ev)?` → ${esc(parentOf(ev).title)}`:""}</span><button type="button" class="icon danger edit-only done-del" data-evdel aria-label="刪除「${esc(ev.name)}」">刪除</button></summary>
       <div class="done-body">${ev.desc?`<p style="margin:0;white-space:pre-wrap">${esc(ev.desc)}</p>`:""}${(ev.links||[]).length?`<div class="links">${ev.links.map(l=>`<a class="link" style="background:${esc(l.color)}" href="${esc(safeUrl(l.url))}" target="_blank" rel="noopener">${esc(l.name)}</a>`).join("")}</div>`:""}
-<span class="edit-only" style="gap:6px"><button type="button" class="icon" data-evlinkissue>${parentOf(ev)?"更改母議題":"與議題連結"}</button><button type="button" class="icon" data-evundo>移回即時回報</button></span>
+${evTimesHTML(ev,false)}
+<span class="edit-only" style="gap:6px"><button type="button" class="icon" data-evlinkissue>${parentOf(ev)?"更改母議題":"與議題連結"}</button>${ev.fromEv?"":`<button type="button" class="icon" data-evundo>移回即時回報</button>`}</span>
       </div></details>`}))).sort((a,b)=>b.d.localeCompare(a.d)).map(x=>x.h).join("")||`<p class="empty">完成度達 100% 的議題和完成的即時回報會收進這裡。</p>`;
   prevDone=ids;
 }

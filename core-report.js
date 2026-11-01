@@ -10,7 +10,7 @@ function rptData(from,to){
   const done=state.issues.filter(i=>i.progress>=100&&inP(i.doneAt)).sort((a,b)=>a.doneAt.localeCompare(b.doneAt));
   const extra=state.issues.filter(i=>!act.includes(i)&&!done.includes(i)&&i.markers.some(m=>inP(m.date)));
   const issues=[...act,...done,...extra];
-  const evNew=state.events.filter(e=>inP(e.createdAt)),evDone=state.events.filter(e=>inP(e.doneAt));
+  const evNew=state.events.filter(e=>!e.fromEv&&inP(e.createdAt)),evDone=state.events.filter(e=>inP(e.doneAt));
   return {from,to,inP,issues,nDone:issues.filter(i=>i.progress>=100).length,nAct:issues.filter(i=>i.progress<100).length,evNew,evDone,evLinked:evDone.filter(e=>e.issueId).length,
     marks:issues.reduce((n,i)=>n+i.markers.filter(m=>inP(m.date)).length,0),weeks:state.weeks.filter(w=>inP(w.date))};
 }
@@ -52,7 +52,7 @@ function rptHTML(d){
       ${meta?`<p class="rpt-meta2">${esc(meta)}</p>`:""}<div class="rpt-prog" contenteditable="false"><i style="width:${it.progress}%"></i></div>
       <h4>處理經過</h4>${mk.length?`<ul class="rpt-tl">${mk.map(m=>`<li><span class="rpt-d">${m.date?fmt(m.date).slice(5):"未標日期"}</span>${m.stage?`【${esc(m.stage)}】`:""}${esc(m.text||"")}</li>`).join("")}</ul>`:`<p class="rpt-none">這段期間沒有處理紀錄</p>`}
       ${it.note?`<h4>目前進度</h4><p>${esc(it.note)}</p>`:""}
-      ${evs.length?`<h4>相關即時回報</h4><p>${evs.map(e=>`${esc(e.name)}（${e.doneAt?fmt(e.doneAt).slice(5)+" 完成":"處理中"}）`).join("、")}</p>`:""}
+      ${evs.length?`<h4>相關即時回報</h4><p>${evs.map(e=>`${esc(evName(e))}（${e.doneAt?fmt(e.doneAt).slice(5)+" 完成":"處理中"}）`).join("、")}</p>`:""}
       ${it.links.length?`<h4>相關連結</h4><p>${it.links.map(l=>`<a href="${esc(safeUrl(l.url))}" target="_blank" rel="noopener">${esc(l.name)}</a>`).join("、")}</p>`:""}</article>`};
   const iss=rptSec("issues","議題處理情形",`<div class="rpt-body" contenteditable="true">${d.issues.map(issue).join("")||'<p class="rpt-none">這段期間沒有處理中的議題</p>'}</div>`);
   return head+sum+iss+rptFree("工作檢討","在這裡輸入這段期間的工作檢討…")+rptFree("下期規劃","在這裡輸入下一期的規劃…");

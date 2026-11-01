@@ -42,32 +42,51 @@ document.addEventListener("click",async e=>{
     if(v==="delete")state.weeks=state.weeks.filter(x=>x!==w);else if(v)Object.assign(w,{date:v.date||w.date,text:v.text});if(v)changed();return}
   if(wk&&t.closest("[data-delweek]")){e.preventDefault();const w=state.weeks.find(x=>x.id===wk.dataset.week);const v=await ask(`刪除 ${fmt(w.date)} 的週報？`,[],{danger:"刪除"});if(v==="delete"){state.weeks=state.weeks.filter(x=>x!==w);changed()}return}
 
-  /* small events */
+  /* small events（即時回報） */
+  const evOf=el=>state.events.find(x=>x.id===el.closest("[data-ev]").dataset.ev);
   if(t.closest("#addEvent")){const v=await ask("新增即時回報",[{name:"name",label:"名稱",ph:"例如：飲水機故障通報"},{name:"desc",label:"說明",type:"textarea",ph:"簡短說明"},...staffField([])]);
-    if(v&&v.name){state.events.push({id:uid("e"),name:v.name,desc:v.desc||"",createdAt:today(),staff:v.staff||[]});changed()}return}
+    if(v&&v.name){const ev={id:uid("e"),name:v.name,desc:v.desc||"",createdAt:today(),staff:v.staff||[],links:[],times:[],round:1,touched:[]};evTouch(ev);state.events.push(ev);changed()}return}
   const evAct=t.closest("[data-evdone],[data-evundo],[data-evdel]");
-  if(evAct){e.preventDefault();const ev=state.events.find(x=>x.id===evAct.closest("[data-ev]").dataset.ev);
-    if(evAct.dataset.evdone!==undefined){ev.doneAt=today();syncLink(ev);changed();toast(parentOf(ev)?`已完成，並記錄到「${parentOf(ev).title}」`:"已移到完成紀錄")}
-    else if(evAct.dataset.evundo!==undefined){ev.doneAt=null;syncLink(ev);changed()}
-    else{const v=await ask(`刪除「${ev.name}」？`,[],{danger:"刪除"});if(v==="delete"){state.issues.forEach(i=>i.markers.forEach(m=>{if(m.evId===ev.id)delete m.evId}));state.events=state.events.filter(x=>x!==ev);changed()}}
+  if(evAct){e.preventDefault();const ev=evOf(evAct);
+    if(evAct.dataset.evdone!==undefined){ev.doneAt=today();evTouch(ev);syncLink(ev);changed();toast(parentOf(ev)?`已結案，並記錄到「${parentOf(ev).title}」`:"已結案，移到完成紀錄")}
+    else if(evAct.dataset.evundo!==undefined){ev.doneAt=null;evTouch(ev);syncLink(ev);changed()}
+    else{const v=await ask(`刪除「${ev.name}」？`,[],{danger:"刪除"});if(v==="delete"){unlinkEv(ev);state.events=state.events.filter(x=>x!==ev);changed()}}
     return}
+  /* 完成這一段：把這段的內容複製一份到完成紀錄，卡片留著進入下一段 */
+  const evRound=t.closest("[data-evround]");
+  if(evRound){const ev=evOf(evRound);
+    const v=await ask(`完成「${ev.name}」第 ${ev.round} 段`,[
+      {name:"done",label:"這一段完成了什麼（存進完成紀錄）",type:"textarea",rows:4,value:ev.desc||""},
+      {name:"next",label:"下一段要追蹤什麼（取代卡片上的說明；留空就沿用）",type:"textarea",rows:3,ph:"例如：等總務處回覆維修時程"}]);
+    if(!v)return;
+    const now=nowStr().replace(" ","T"),past=ev.times.filter(x=>x.start<=now);
+    const rec={id:uid("e"),name:ev.name,desc:v.done||"",createdAt:ev.createdAt,doneAt:today(),issueId:ev.issueId||null,links:ev.links.map(l=>({...l})),staff:[...ev.staff],times:past,round:ev.round,fromEv:ev.id};
+    ev.times=ev.times.filter(x=>!past.includes(x));ev.round+=1;ev.roundAt=now;if(v.next)ev.desc=v.next;evTouch(ev);
+    state.events.push(rec);syncLink(ev);syncLink(rec);openEv.add(ev.id);changed();
+    toast(`第 ${rec.round} 段已存進完成紀錄，接著追第 ${ev.round} 段`);return}
+  /* 時間標記：新增、編輯 */
+  const tmAdd=t.closest("[data-addevtime]"),tmEd=t.closest("[data-evtime]");
+  if(tmAdd||tmEd){const ev=evOf(tmAdd||tmEd),tm=tmEd?ev.times.find(x=>x.id===tmEd.dataset.evtime):null;
+    const v=await askEvTime(ev,tm);if(!v)return;
+    if(v==="delete")ev.times=ev.times.filter(x=>x!==tm);else if(tm)Object.assign(tm,v);else ev.times.push({id:uid("t"),...v});
+    evTouch(ev);syncLink(ev);openEv.add(ev.id);changed();return}
   const evLinkIssue=t.closest("[data-evlinkissue]");
-  if(evLinkIssue){const ev=state.events.find(x=>x.id===evLinkIssue.closest("[data-ev]").dataset.ev);
+  if(evLinkIssue){const ev=evOf(evLinkIssue);
     const opts=[["","（不連結）"],...state.issues.map(i=>[i.id,i.title+(i.progress>=100?"（已完成）":"")])];
     const v=await ask("與議題連結",[{name:"iid",label:"母議題（完成時會自動寫進該議題的時間戳記與處理紀錄）",type:"select",value:ev.issueId||"",options:opts}]);
-    if(v){ev.issueId=v.iid||null;syncLink(ev);openEv.add(ev.id);changed();toast(ev.issueId?`已連結到「${parentOf(ev).title}」`:"已取消連結")}return}
+    if(v){ev.issueId=v.iid||null;if(!ev.doneAt)evTouch(ev);syncLink(ev);openEv.add(ev.id);changed();toast(ev.issueId?`已連結到「${parentOf(ev).title}」`:"已取消連結")}return}
   const evLinkAdd=t.closest("[data-addevlink]");
-  if(evLinkAdd){const ev=state.events.find(x=>x.id===evLinkAdd.closest("[data-ev]").dataset.ev);
+  if(evLinkAdd){const ev=evOf(evLinkAdd);
     const v=await ask("新增超連結按鈕",[{name:"name",label:"按鈕名稱",ph:"例如：公文連結"},{name:"url",label:"連結網址",type:"url",ph:"https://"},{name:"color",label:"按鈕顏色",type:"color",value:COLORS[0]}]);
-    if(v&&v.name){(ev.links=ev.links||[]).push({id:uid("l"),name:v.name,url:v.url,color:v.color});openEv.add(ev.id);changed()}return}
+    if(v&&v.name){ev.links.push({id:uid("l"),name:v.name,url:v.url,color:v.color});evTouch(ev);openEv.add(ev.id);changed()}return}
   const evLink=t.closest("[data-editevlink]");
-  if(evLink){e.preventDefault();const ev=state.events.find(x=>x.id===evLink.closest("[data-ev]").dataset.ev);const l=ev.links.find(x=>x.id===evLink.dataset.editevlink);
+  if(evLink){e.preventDefault();const ev=evOf(evLink);const l=ev.links.find(x=>x.id===evLink.dataset.editevlink);
     const v=await ask("編輯超連結按鈕",[{name:"name",label:"按鈕名稱",value:l.name},{name:"url",label:"連結網址",type:"url",value:l.url},{name:"color",label:"按鈕顏色",type:"color",value:l.color}],{danger:"刪除按鈕"});
-    if(v==="delete")ev.links=ev.links.filter(x=>x!==l);else if(v)Object.assign(l,{name:v.name||l.name,url:v.url,color:v.color});if(v)changed();return}
+    if(v==="delete")ev.links=ev.links.filter(x=>x!==l);else if(v)Object.assign(l,{name:v.name||l.name,url:v.url,color:v.color});if(v){evTouch(ev);changed()}return}
   const evEl=t.closest("[data-editev]");
-  if(evEl){const ev=state.events.find(x=>x.id===evEl.closest("[data-ev]").dataset.ev);
+  if(evEl){const ev=evOf(evEl);
     const v=await ask("編輯即時回報",[{name:"name",label:"名稱",value:ev.name},{name:"desc",label:"說明",type:"textarea",value:ev.desc},...staffField(ev.staff)],{danger:"刪除"});
-    if(v==="delete"){state.issues.forEach(i=>i.markers.forEach(m=>{if(m.evId===ev.id)delete m.evId}));state.events=state.events.filter(x=>x!==ev)}else if(v){Object.assign(ev,{name:v.name||ev.name,desc:v.desc||""});if(v.staff)ev.staff=v.staff;syncLink(ev)}if(v)changed();return}
+    if(v==="delete"){unlinkEv(ev);state.events=state.events.filter(x=>x!==ev)}else if(v){Object.assign(ev,{name:v.name||ev.name,desc:v.desc||""});if(v.staff)ev.staff=v.staff;evTouch(ev);syncLink(ev)}if(v)changed();return}
 
   /* issues */
   if(t.closest("#addIssue")){const it={id:uid("i"),title:"新議題",tags:[...CFG.stageTags],cur:0,start:"",end:"",progress:0,doneAt:null,markers:[],links:[]};state.issues.push(it);keepIds.add(it.id);openIds.add(it.id);changed();document.getElementById("card-"+it.id)?.classList.add("opening");

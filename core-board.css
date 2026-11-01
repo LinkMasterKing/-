@@ -2,7 +2,7 @@
    每個元件的樣式集中在自己的段落：基本樣式在前，手機版、深色模式等條件在同一段的後面。 */
 
 /* ===== 基礎：色彩變數、元素預設 ===== */
-:root{--bg:#fff;--surface:#fff;--ink:#111114;--muted:#5d5d66;--line:#111114;--hair:#e2e2e8;--grid:#f0f0f4;--accent-light:#e0342a;--accent-dark:#ff5a4e;--ok:#3ccf7f;--neon:#00ff6a;--ok-dot:#2bff88;--teal:#111114;--teal-soft:#fff;--lime:var(--accent-light);--warn:var(--accent-light);--onteal:#fff;--done:var(--ok);--red:var(--accent-light);--green:var(--ok);--rest:#c9c9d0;--prog-hi:var(--green);--prog-lo:var(--red);--prog-hi-ink:var(--prog-hi);--prog-lo-ink:var(--prog-lo);--today:var(--red);color-scheme:light;--glow:0 0 0 1.5px rgba(255,255,255,.95),0 0 18px 2px rgba(255,255,255,.55),0 8px 26px -6px rgba(0,0,0,.18);--glow-soft:0 0 0 1px rgba(255,255,255,.8),0 0 26px -4px rgba(255,255,255,.45),0 10px 30px -14px rgba(0,0,0,.18);--glow-bar:0 0 14px rgba(255,255,255,.85);--ease:cubic-bezier(.2,.8,.2,1);--flash:#111114;accent-color:var(--ink)}
+:root{--bg:#fff;--surface:#fff;--ink:#111114;--muted:#5d5d66;--line:#111114;--hair:#e2e2e8;--grid:#f0f0f4;--accent-light:#e0342a;--accent-dark:#ff5a4e;--ok:#3ccf7f;--neon:#00ff6a;--ok-dot:#2bff88;--teal:#111114;--teal-soft:#fff;--lime:var(--accent-light);--warn:var(--accent-light);--onteal:#fff;--done:var(--ok);--red:var(--accent-light);--green:var(--ok);--rest:#c9c9d0;--prog-hi:var(--green);--prog-lo:var(--red);--prog-hi-ink:var(--prog-hi);--prog-lo-ink:var(--prog-lo);--today:var(--red);--st-ok:var(--ok);--st-ok-ink:#0b1f12;--st-go:#fff;--st-go-ink:#111114;--st-stall:var(--red);--st-stall-ink:#fff;color-scheme:light;--glow:0 0 0 1.5px rgba(255,255,255,.95),0 0 18px 2px rgba(255,255,255,.55),0 8px 26px -6px rgba(0,0,0,.18);--glow-soft:0 0 0 1px rgba(255,255,255,.8),0 0 26px -4px rgba(255,255,255,.45),0 10px 30px -14px rgba(0,0,0,.18);--glow-bar:0 0 14px rgba(255,255,255,.85);--ease:cubic-bezier(.2,.8,.2,1);--flash:#111114;accent-color:var(--ink)}
 :root[data-theme="dark"]{--bg:#000;--surface:#000;--ink:#f1f1f4;--muted:#a3a3ae;--line:#ececf0;--hair:#2c2c34;--grid:#1a1a20;--teal:#f1f1f4;--teal-soft:#000;--lime:var(--accent-dark);--warn:var(--accent-dark);--onteal:#111114;--done:var(--ok);--red:var(--accent-dark);--green:var(--ok);--rest:#4a4a54;color-scheme:dark;--glow:0 0 0 1.5px #fff,0 0 22px 3px rgba(255,255,255,.55),0 0 50px -6px rgba(255,255,255,.35);--glow-soft:0 0 0 1px rgba(255,255,255,.7),0 0 34px -6px rgba(255,255,255,.4);--flash:#fff}
 *,*::before,*::after{box-sizing:border-box}
 html{height:100%;-webkit-tap-highlight-color:transparent}
@@ -191,80 +191,63 @@ body.edit .banner{display:flex;animation:rise .3s var(--ease)}
 @keyframes ping{75%,100%{transform:scale(2.4);opacity:0}}
 
 /* ===== 即時回報 ===== */
-.events{display:grid;gap:10px;align-items:start;grid-template-columns:repeat(auto-fill,minmax(min(100%,270px),1fr))!important}
-.ev{border:1px solid var(--line);gap:8px;align-items:flex-start;border-radius:14px;background:var(--surface);border-color:var(--line);position:relative;display:block;padding:0;transition:background-color .3s,color .3s,transform .22s var(--ease),box-shadow .22s var(--ease),border-color .3s!important;background-color:var(--surface)}
-.ev-body{flex:1;min-width:0;padding:0 14px 12px 33px;animation:none}
-.ev b{display:block;font-size:14.5px;line-height:1.4}
-.ev p{margin:3px 0 0;font-size:13px;color:var(--muted);white-space:pre-wrap;word-break:break-word}
+/* 狀態色：data-st＝ok 綠（期限前有更新）／go 白（這週完成過一段，或期限後才補更新）／stall 紅（沒有進度）
+   --st 是整塊的底色，--st-ink 是壓在上面的字色，--st-edge 是外框（白色那一種用細框，淺色模式才看得出邊界）；
+   收合時整塊上色，展開後是淺灰底、只有燈號與狀態標籤帶色 */
+.ev,.kid-ev{--st:var(--st-stall);--st-ink:var(--st-stall-ink);--st-edge:var(--st)}
+.ev[data-st="ok"],.kid-ev[data-st="ok"]{--st:var(--st-ok);--st-ink:var(--st-ok-ink);--st-edge:var(--st)}
+.ev[data-st="go"],.kid-ev[data-st="go"]{--st:var(--st-go);--st-ink:var(--st-go-ink);--st-edge:var(--line)}
+.events{display:grid;gap:10px;align-items:start;grid-template-columns:repeat(auto-fill,minmax(min(100%,270px),1fr))}
 .events .empty{grid-column:1/-1}
+.ev{position:relative;display:block;padding:0;border:1px solid var(--line);border-radius:18px;background:var(--surface);transition:background-color .3s,color .3s,transform .22s var(--ease),box-shadow .22s var(--ease),border-color .3s}
 .ev summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:10px;padding:12px 14px;border-radius:14px}
 .ev summary::-webkit-details-marker{display:none}
-.ev summary b{font-size:14.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1;min-width:0}
+.ev summary b{display:block;font-size:14.5px;line-height:1.4;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1;min-width:0}
 .ev-chev{color:var(--muted);font-size:12px;transition:transform .25s var(--ease)}
-.ev-del{flex:none;justify-content:center;align-items:center;width:28px;height:28px;min-height:0;padding:0;border-radius:50%;border:1px solid currentColor;background:transparent;color:inherit;font-size:13px}
-.ev:not([open]) .ev-del{color:#fff;border-color:rgba(255,255,255,.7)}
-.ev[open] .ev-del{color:var(--red);border-color:var(--red)}
 .ev[open] .ev-chev{transform:rotate(180deg)}
+.ev-del{flex:none;justify-content:center;align-items:center;width:28px;height:28px;min-height:0;padding:0;border-radius:50%;border:1px solid currentColor;background:transparent;color:inherit;font-size:13px}
+.ev-parent{flex:0 1 auto;min-width:0;max-width:45%;font-size:11.5px;line-height:18px;padding:0 8px;border-radius:999px;border:1px solid currentColor;opacity:.85;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* 收合：整塊狀態色膠囊 */
+.events .ev:not([open]),.events .ev.closing{border-radius:999px;background:var(--st);border-color:var(--st-edge);color:var(--st-ink)}
+.events .ev:not([open]) summary{border-radius:999px;padding-left:18px;padding-right:18px}
+.events .ev:not([open]) .live-dot,.events .ev:not([open]) .live-dot::after,.events .ev.closing>summary .live-dot,.events .ev.closing>summary .live-dot::after{background:var(--st-ink)}
+.events .ev:not([open]) .ev-chev,.events .ev.closing>summary .ev-chev{color:var(--st-ink);opacity:.85}
+.events .ev.closing>summary .ev-chev{transform:none}
+.events .ev:not([open]) .ev-del{border-color:color-mix(in srgb,var(--st-ink) 70%,transparent)}
+/* 展開：深淺色模式都是淺灰底黑字（在這張卡片上重設色彩變數） */
+.ev[open]{--surface:#f6f6f8;--bg:#fff;--ink:#111114;--muted:#5d5d66;--line:#dcdce2;--teal:#111114;--onteal:#fff;--teal-soft:#e6e6ec;background:var(--surface);color:var(--ink);border-color:var(--surface)}
+.ev[open] .live-dot,.ev[open] .live-dot::after{background:var(--st)}
+.ev[open][data-st="go"] .live-dot{box-shadow:inset 0 0 0 1px var(--ink)}
+.ev[open] .ev-del{color:var(--red);border-color:var(--red)}
+.ev-body{flex:1;min-width:0;padding:0 14px 12px 33px}
 .ev-body p{margin:0;font-size:13.5px;line-height:1.75;color:var(--ink);white-space:pre-wrap;word-break:break-word;-webkit-user-select:text;user-select:text}
+.ev-body .ev-parent-full{font-size:12px;color:var(--muted);margin:0 0 6px}
+/* 狀態列：狀態標籤＋第幾段＋最後更新 */
+.ev-body .ev-meta{display:flex;flex-wrap:wrap;align-items:center;gap:4px 10px;margin:0 0 6px;font-size:12px;color:var(--muted)}
+.ev-st{display:inline-flex;align-items:center;padding:0 9px;border-radius:999px;line-height:20px;background:var(--st);color:var(--st-ink);font-weight:500;box-shadow:inset 0 0 0 1px var(--st-edge)}
+/* 時間標記清單（展開的即時回報、完成紀錄共用） */
+.ev-times{list-style:none;margin:10px 0 0;padding:0 0 0 12px;display:grid;gap:4px;border-left:1.5px solid var(--hair);font-size:13px}
+.ev-times li{position:relative;display:flex;flex-wrap:wrap;align-items:baseline;gap:2px 10px}
+.ev-times li::before{content:"";position:absolute;left:-16.5px;top:.62em;width:7px;height:7px;border-radius:50%;background:var(--ink)}
+.ev-t-when{flex:none;font-size:12.5px}
+.ev-t-label{flex:0 1 auto;min-width:0;word-break:break-word}
+.ev-times .icon{min-height:24px;width:24px;padding:0;align-self:center}
 .ev-tools{display:flex;gap:6px;justify-content:flex-end;margin-top:10px;flex-wrap:wrap}
 .ev-links{margin-top:10px}
-.events .ev:not([open]){border-radius:999px;border-color:var(--red)}
-.events .ev:not([open]) summary{border-radius:999px}
-.ev:not([open]) summary{padding-left:18px;padding-right:18px}
-.events .ev[open]{border-radius:18px}
-.ev:not([open]){background:var(--red);border-color:var(--red)!important;color:#fff}
-.ev:not([open]) .live-dot,.ev:not([open]) .live-dot::after{background:#fff}
-.ev:not([open]) .ev-chev{color:rgba(255,255,255,.85)}
-.ev[open]{--surface:#f6f6f8!important;--bg:#fff!important;--ink:#111114!important;--muted:#5d5d66!important;--line:#dcdce2!important;--teal:#111114!important;--onteal:#fff!important;--teal-soft:#e6e6ec!important;background:#f6f6f8;color:#111114;border-color:#f6f6f8}
-.ev[open] .ev-body{animation:none}
-.ev-parent{flex:0 1 auto;min-width:0;max-width:45%;font-size:11.5px;line-height:18px;padding:0 8px;border-radius:999px;border:1px solid currentColor;opacity:.85;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.ev-parent-full{font-size:12px!important;color:var(--muted)!important;margin:0 0 6px!important}
+.ev .staff-row{margin-top:10px}
+/* 議題卡片裡「進行中的即時回報」小膠囊：同樣依狀態上色 */
 .kid-evs{display:grid;gap:4px}
 .kid-list{display:flex;flex-wrap:wrap;gap:6px}
-.kid-ev{display:inline-flex;align-items:center;gap:7px;background:var(--red);color:#fff;border-radius:999px;padding:3px 12px 3px 10px;font-size:13px}
-.kid-ev .live-dot,.kid-ev .live-dot::after{background:#fff;width:7px;height:7px}
-.ev .staff-row{margin-top:10px}
+.kid-ev{display:inline-flex;align-items:center;gap:7px;background:var(--st);color:var(--st-ink);border-radius:999px;padding:3px 12px 3px 10px;font-size:13px;box-shadow:inset 0 0 0 1px var(--st-edge)}
+.kid-ev .live-dot,.kid-ev .live-dot::after{background:var(--st-ink);width:7px;height:7px}
+@media (hover:hover){
+  .events .ev:not([open]):hover{box-shadow:0 0 22px 2px color-mix(in srgb,var(--st) 55%,transparent)}
+}
 @media (prefers-reduced-motion:reduce){
-  .ev:hover{transform:none!important}
+  .ev:hover{transform:none}
 }
 @media (max-width:640px){
   .events{grid-template-columns:1fr}
-}
-@media (prefers-color-scheme:dark){
-  :root:not([data-theme="light"]) .ev[open]{--surface:#f4f4f6}
-}
-:root[data-theme="dark"] .ev[open]{--surface:#f4f4f6}
-@media (prefers-color-scheme:dark){
-  :root:not([data-theme="light"]) .ev[open]{--bg:#fff}
-}
-:root[data-theme="dark"] .ev[open]{--bg:#fff}
-@media (prefers-color-scheme:dark){
-  :root:not([data-theme="light"]) .ev[open]{--ink:#111114}
-}
-:root[data-theme="dark"] .ev[open]{--ink:#111114}
-@media (prefers-color-scheme:dark){
-  :root:not([data-theme="light"]) .ev[open]{--muted:#5d5d66}
-}
-:root[data-theme="dark"] .ev[open]{--muted:#5d5d66}
-@media (prefers-color-scheme:dark){
-  :root:not([data-theme="light"]) .ev[open]{--line:#dcdce2}
-}
-:root[data-theme="dark"] .ev[open]{--line:#dcdce2}
-@media (prefers-color-scheme:dark){
-  :root:not([data-theme="light"]) .ev[open]{--teal:#111114}
-}
-:root[data-theme="dark"] .ev[open]{--teal:#111114}
-@media (prefers-color-scheme:dark){
-  :root:not([data-theme="light"]) .ev[open]{--onteal:#fff}
-}
-:root[data-theme="dark"] .ev[open]{--onteal:#fff}
-@media (prefers-color-scheme:dark){
-  :root:not([data-theme="light"]) .ev[open]{--teal-soft:#e6e6ec}
-}
-:root[data-theme="dark"] .ev[open]{--teal-soft:#e6e6ec}
-@media (hover:hover){
-  .ev:not([open]):hover{box-shadow:0 0 0 1.5px #fff,0 0 22px 2px color-mix(in srgb,var(--red) 60%,transparent)}
-  .events .ev:not([open]):hover{box-shadow:0 0 22px 2px color-mix(in srgb,var(--red) 55%,transparent)}
 }
 
 /* ===== 時間甘特圖 ===== */
@@ -1067,6 +1050,8 @@ dialog#dlg:has(.csel.open){overflow:visible}
 .opening .ev-body>*:nth-child(4){animation-delay:0.30s}
 .opening .ev-body>*:nth-child(5){animation-delay:0.38s}
 .opening .ev-body>*:nth-child(6){animation-delay:0.46s}
+.opening .ev-body>*:nth-child(7){animation-delay:0.54s}
+.opening .ev-body>*:nth-child(8){animation-delay:0.62s}
 .opening .done-body>*:nth-child(2){animation-delay:0.13s}
 .opening .done-body>*:nth-child(3){animation-delay:0.20s}
 .opening .done-body>*:nth-child(4){animation-delay:0.27s}
@@ -1086,12 +1071,8 @@ dialog#dlg:has(.csel.open){overflow:visible}
 .ev.opening .ev-body>*:first-child,.done-item.opening .done-body>*:first-child{animation-delay:.06s}
 .week.opening .week-tools{animation:dropIn .55s .06s var(--ease) both}
 #donePanel .done-item.opening .done-body>*{animation-duration:.4s}
-.events .ev.closing{background:var(--red)!important;border-color:var(--red)!important;color:#fff}
-.events .ev.closing>summary .live-dot,.events .ev.closing>summary .live-dot::after{background:#fff}
-.events .ev.closing>summary .ev-chev{color:rgba(255,255,255,.85);transform:none}
-.events .ev.closing>summary b{color:#fff}
 #donePanel .done-item.closing{background:transparent}
-.week.closing summary::before,.log.closing summary::before,.ev.closing .ev-chev{transform:none}
+.week.closing summary::before,.log.closing summary::before{transform:none}
 .week.opening .week-text{animation:none!important}
 .week.opening .wl{animation:dropIn .45s var(--ease) both}
 .week.opening .wl:nth-child(1){animation-delay:0.120s}
