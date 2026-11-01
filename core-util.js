@@ -19,7 +19,6 @@ const safeUrl=u=>!u?"#":/^https?:\/\//i.test(u)?u:"https://"+u;
 const clamp=(v,a=0,b=100)=>Math.min(b,Math.max(a,v));
 const toast=m=>{const t=$("#toast");t.textContent=m;t.classList.add("show");clearTimeout(t._h);t._h=setTimeout(()=>t.classList.remove("show"),2000)};
 const hasDates=i=>!!(i.start&&i.end);
-const progTone=p=>p>=50?"hi":"lo";
 /* 液態玻璃材質：加上 .glass，並讓高光跟著指標位置走 */
 function glassify(el){
   if(!el||el._glass)return;el._glass=true;el.classList.add("glass");

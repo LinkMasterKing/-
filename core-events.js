@@ -112,7 +112,7 @@ document.addEventListener("input",e=>{
   const f=e.target.dataset.f;if(!f)return;const it=findIssue(e.target);if(!it)return;
   if(f==="progress"){setProgress(it,e.target.value);const card=e.target.closest("[data-issue]");
     card.querySelectorAll('[data-f="progress"]').forEach(x=>{if(x!==e.target)x.value=it.progress});
-    card.querySelectorAll(".fill").forEach(x=>x.style.width=it.progress+"%");card.dataset.tone=progTone(it.progress);card.querySelector("input[type=range]").style.setProperty("--p",it.progress+"%");card.querySelector("[data-hpct]").textContent=it.progress+"%";card.classList.toggle("done-card",it.progress>=100)}
+    card.querySelectorAll(".fill").forEach(x=>x.style.width=it.progress+"%");card.style.setProperty("--acc",`var(--${it.progress>=50?"green":"red"})`);card.querySelector("input[type=range]").style.setProperty("--p",it.progress+"%");card.querySelector("[data-hpct]").textContent=it.progress+"%";card.classList.toggle("done-card",it.progress>=100)}
   else it[f]=e.target.value;
   dirty=true;
 });

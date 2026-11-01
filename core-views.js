@@ -48,7 +48,7 @@ function renderGantt(){
     let s=it.start,e=it.end;if(e<s)[s,e]=[e,s];
     const l=pos(s),w=Math.max(.8,pos(e)-l);
     const gL=latestMarkerId(it.markers.filter(m=>m.date));const mk=it.markers.filter(m=>m.date).map(m=>{const p=pos(m.date);return `<span class="g-mk ${p<6?"edgeL":p>94?"edgeR":""} ${m.id!==gL?"quiet":""}" style="left:${p}%;--mc:${esc(m.color||MARK_COLORS[0])}" title="${esc(fmt(m.date))} ${m.stage?"【"+esc(m.stage)+"】":""}${esc(m.text)}"><span class="stem"></span><span class="dot"></span><span class="lbl">${esc(m.text)}</span></span>`}).join("");
-    return `<div class="g-row g-issue" data-jump="${it.id}" title="點一下跳到「${esc(it.title)}」" data-tone="${progTone(it.progress)}"><div class="g-name"><a href="#card-${it.id}" data-jump="${it.id}">${esc(it.title)}</a><span class="sub" style="font-size:11.5px">${fmt(s).slice(5)} – ${fmt(e).slice(5)}</span></div>
+    return `<div class="g-row g-issue" data-jump="${it.id}" title="點一下跳到「${esc(it.title)}」" style="--acc:var(--${it.progress>=50?"green":"red"})"><div class="g-name"><a href="#card-${it.id}" data-jump="${it.id}">${esc(it.title)}</a><span class="sub" style="font-size:11.5px">${fmt(s).slice(5)} – ${fmt(e).slice(5)}</span></div>
       <div class="g-track">${grid}<div class="g-bar" style="left:${l}%;width:${w}%"><div class="fill" style="width:${it.progress}%"></div></div><span class="g-pct num" style="left:${l+w}%">${it.progress}%</span>${mk}</div></div>`;
   }).join("");
   h+="</div>";
@@ -119,7 +119,7 @@ document.fonts?.ready.then(layoutAll);
 
 function renderCards(){
   const list=activeIssues();
-  $("#cards").innerHTML=list.map(it=>`<article class="card ${it.progress>=100?"done-card":""} ${openIds.has(it.id)?"open":""}" id="card-${it.id}" data-issue="${it.id}" data-tone="${progTone(it.progress)}">
+  $("#cards").innerHTML=list.map(it=>`<article class="card ${it.progress>=100?"done-card":""} ${openIds.has(it.id)?"open":""}" id="card-${it.id}" data-issue="${it.id}" style="--acc:var(--${it.progress>=50?"green":"red"})">
     <div class="card-top">
       <button type="button" class="card-toggle" data-toggle aria-expanded="${openIds.has(it.id)}"><span class="card-title">${esc(it.title)}</span>${it.tags[it.cur]?`<span class="tag cur sm">${esc(it.tags[it.cur])}</span>`:""}<span class="hpct num" data-hpct>${it.progress}%</span><span class="chev-btn">${openIds.has(it.id)?"收合":"展開"}<span class="chev" aria-hidden="true">▾</span></span></button>
       <div class="card-tools"><button type="button" class="icon" data-move="-1" aria-label="往前移">↑</button><button type="button" class="icon" data-move="1" aria-label="往後移">↓</button></div>

@@ -40,7 +40,7 @@ const SHELL_HTML=`<div class="pager" id="pager">
           <div class="sgroup" data-sec="progress">
           <section class="panel" aria-labelledby="ganttH">
             <div class="panel-head"><h2 id="ganttH">時間甘特圖<span class="en">TIMELINE</span></h2></div>
-            <div class="legend" aria-label="圖例"><span><i class="lg-today" aria-hidden="true"></i>目前時間</span><span><i class="lg-line" style="--c:var(--prog-hi)" aria-hidden="true"></i>完成進度</span><span><i class="lg-rest" aria-hidden="true"></i>尚未完成</span><span class="lg-hint">點議題列可跳到該議題 · 左右滑動瀏覽月份</span></div>
+            <div class="legend" aria-label="圖例"><span><i class="lg-today" aria-hidden="true"></i>目前時間</span><span><i class="lg-line" style="--c:var(--green)" aria-hidden="true"></i>完成進度</span><span><i class="lg-rest" aria-hidden="true"></i>尚未完成</span><span class="lg-hint">點議題列可跳到該議題 · 左右滑動瀏覽月份</span></div>
             <div class="range">時間軸 <input type="month" id="rStart" aria-label="起始月份"> 到 <input type="month" id="rEnd" aria-label="結束月份"> <button class="icon" id="autoRange">依議題自動調整</button></div>
             <div class="gantt" id="gantt"></div>
           </section>
