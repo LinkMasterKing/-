@@ -16,7 +16,14 @@
  "staff": [],
  "schemaVersion": 6,
  "id": "board-president",
- "follows": [],
+ "follows": [
+  {
+   "id": "fmvyviog59uuf",
+   "dept": "rights",
+   "kind": "issue",
+   "ref": "imvpc3f0dcpi6"
+  }
+ ],
  "weeks": [],
  "issues": [],
  "events": [],
@@ -28,5 +35,7 @@
   "end": "2027-03"
  },
  "title": "會長室工作進度",
- "pwKdf": "PeQbCwD/+SUhcfIPdXc2Yg==:kmxqm/Rt4YU6WUFdakICa3wEBOEgoPCmgka4X+Wi49c="
+ "pwKdf": "PeQbCwD/+SUhcfIPdXc2Yg==:kmxqm/Rt4YU6WUFdakICa3wEBOEgoPCmgka4X+Wi49c=",
+ "savedAt": "2026-11-02 14:24",
+ "savedBy": "小芸"
 }
