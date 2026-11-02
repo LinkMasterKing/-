@@ -1,0 +1,32 @@
+{
+ "members": [
+  {
+   "id": "mmvyvi9sbtar2",
+   "name": "小芸",
+   "role": "admin",
+   "kdf": "85nTn7jluJG/PDc5O+RHWg==:g8ks9k8UV0E1ZDTw+Tv2qnBwXjkLcEqtVYU1ct68RW0=",
+   "createdAt": "2026-11-02 14:23",
+   "tok": {
+    "s": "GvpooizjLrHQNaSRdcMBAg==",
+    "i": "/z6a/68I7v8jIB4Y",
+    "c": "7y/7yQxLwnRakWwgymEx/tlexlOMdlhY80O0ITU40w0ljom4xvbV6O36zSKEgmWLEer20eCLIsJOvi+U4XPyYCaW965fG1aq3MWCKkCARw/7KIa4tDvZ6bgg+BrPR1wdzxJ6TXcXYptqiB3VTw=="
+   }
+  }
+ ],
+ "staff": [],
+ "schemaVersion": 6,
+ "id": "board-president",
+ "follows": [],
+ "weeks": [],
+ "issues": [],
+ "events": [],
+ "reportBase": null,
+ "yearLabel": "115學年",
+ "termStart": "2026-09-07",
+ "range": {
+  "start": "2026-10",
+  "end": "2027-03"
+ },
+ "title": "會長室工作進度",
+ "pwKdf": "PeQbCwD/+SUhcfIPdXc2Yg==:kmxqm/Rt4YU6WUFdakICa3wEBOEgoPCmgka4X+Wi49c="
+}
