@@ -54,7 +54,7 @@ document.addEventListener("click",e=>{
   if(e.target.closest("input,button,a")){if(e.target.closest("summary button,summary input"))e.preventDefault();return}
   e.preventDefault();
   /* 完成紀錄左右兩欄時：點一筆＝在右側顯示，不展開 */
-  if(d.matches(".ev")&&d.closest("#liveMD.split")){if(selEv!==d.dataset.ev){selEv=d.dataset.ev;renderEvents();mdPaneIn($("#evDetail"))}return}   /* 即時回報左右兩欄：點膠囊＝選取 */
+  if(d.matches(".ev")&&mdOn("live")){const was=!!selEv;selEv=selEv===d.dataset.ev?null:d.dataset.ev;renderEvents();if(selEv&&was)mdPaneIn($("#evDetail"));else if(selEv)mdPaneIn($("#evDetail"));return}   /* 桌面即時回報：點膠囊＝在右側打開，再點一次＝收起 */
   if(d.matches(".done-item")&&d.closest("#doneMD.split")){selDone=d.dataset.issue||d.dataset.ev;renderDone();mdPaneIn($("#doneDetail"));return}
   animateDetails(d,!d.open);
 },true);

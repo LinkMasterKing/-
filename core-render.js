@@ -16,7 +16,7 @@ function render(){
   try{
     document.body.classList.toggle("edit",editing);
     document.body.classList.toggle("locked",!!state.locked);
-    renderHeader();renderTabbar();renderSections();storySync();renderWeeks();renderGantt();renderEvents();renderCards();renderDone();layoutAll();
+    renderHeader();renderTabbar();renderSections();storySync();renderWeeks();renderGantt();renderEvents();renderCards();renderDone();renderFollows();layoutAll();
   }finally{rendering=false}
 }
 

@@ -190,7 +190,7 @@ function evTimesHTML(ev,edit){
 /* 即時回報右側詳情（桌面、即時回報被選到時）：檢視時只看內容；編輯中所有功能都直接在這裡改，不另外跳視窗 */
 function evDetailHTML(ev){
   const st=evStatus(ev),par=parentOf(ev),inp=(k,v,ph,type)=>`<input ${type?`type="${type}"`:""} data-tmf="${k}" value="${esc(v||"")}" ${ph?`placeholder="${esc(ph)}"`:""}>`;
-  const head=`<div class="evd-head"><span class="live-dot" aria-hidden="true"></span><b>${esc(ev.name)}</b></div>
+  const head=`<div class="evd-head"><span class="live-dot" aria-hidden="true"></span><b>${esc(ev.name)}</b><button type="button" class="icon evd-close" data-evd="close" aria-label="收起右側">${ico("close")}收起</button></div>
     <p class="ev-meta"><span class="ev-st">${EV_ST[st]}</span>${ev.round>1?`<span>第 ${ev.round} 段</span>`:""}${ev.touchedAt?`<span>最後更新 <span class="num">${fmt(ev.touchedAt).slice(5)} ${ev.touchedAt.slice(11,16)}</span></span>`:""}</p>`;
   if(!editing)return `<div class="evd" data-ev="${ev.id}" data-st="${st}">${head}
     ${par?`<p class="sub evd-par">母議題：${esc(par.title)}</p>`:""}
@@ -222,9 +222,10 @@ function evDetailHTML(ev){
     </section></div>`;
 }
 function renderEvents(){
-  const live=state.events.filter(ev=>!ev.doneAt),md=mdOn("live")&&live.length>0,pane=$("#evDetail");mdLast.live=mdOn("live");
+  const live=state.events.filter(ev=>!ev.doneAt);if(selEv&&!live.some(e=>e.id===selEv))selEv=null;
+  /* 左右兩欄只在點選一筆之後才出現；沒選的時候照常排成膠囊格 */
+  const md=mdOn("live")&&!!selEv,pane=$("#evDetail");mdLast.live=mdOn("live");
   $("#liveMD").classList.toggle("split",md);
-  if(md&&!live.some(e=>e.id===selEv))selEv=live[0].id;
   $("#events").innerHTML=live.map(ev=>{const st=evStatus(ev),par=parentOf(ev);
     return `<details class="ev ${md&&ev.id===selEv?"sel":""}" data-ev="${ev.id}" data-st="${st}" ${!md&&openEv.has(ev.id)?"open":""}${md&&ev.id===selEv?' aria-current="true"':""}>
       <summary><span class="live-dot" aria-hidden="true"></span><b>${esc(ev.name)}</b>${par?`<span class="ev-parent">→ ${esc(par.title)}</span>`:""}<button type="button" class="ev-del edit-only" data-evdel aria-label="刪除「${esc(ev.name)}」">${ico("close","solo")}</button><span class="ev-chev" aria-hidden="true">▾</span></summary>

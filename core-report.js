@@ -37,7 +37,7 @@ function rptGantt(d){
 const rptSec=(k,h,body,cls="")=>`<section class="rpt-sec ${cls}" data-k="${k}"><button type="button" class="rpt-x" contenteditable="false" aria-label="移除這個區塊">移除</button><h2 contenteditable="true">${h}</h2>${body}</section>`;
 const rptFree=(h,ph)=>rptSec("free",h,`<div class="rpt-text" contenteditable="true" data-ph="${ph}"></div>`,"rpt-free");
 function rptHTML(d){
-  const dept=CFG.dept.name||state.title,logo=document.getElementById("dept-logo");
+  const dept=CFG.dept.name||state.title,logo=CFG.logo?document.getElementById("dept-logo"):null;   /* 沒有 logo 的部門不放 */
   const staffNames=ids=>(ids||[]).map(id=>(state.staff.find(s=>s.id===id)||{}).name).filter(Boolean).join("、");
   const head=`<header class="rpt-head"><div class="rpt-logo">${logo?logo.innerHTML:""}</div>
     <div class="rpt-ttl"><h1 contenteditable="true">${esc(dept)} 工作報告</h1><p class="rpt-sub" contenteditable="true">${state.yearLabel?esc(state.yearLabel)+"　｜　":""}報告期間 ${fmt(d.from)} – ${fmt(d.to)}</p></div>

@@ -102,6 +102,9 @@ button.ghost{border-color:var(--muted)}
 }
 
 /* ===== 頁首 ===== */
+.logo-text{display:grid;gap:2px;line-height:1.15}
+.logo-text b{font-size:clamp(20px,2.2vw,26px);font-weight:700;letter-spacing:.12em}
+.logo-text small{font-size:10.5px;letter-spacing:.14em;color:var(--muted)}
 .actions{display:flex;gap:8px;flex-wrap:wrap}
 .arrow-line{content:"";flex:1;min-width:44px;height:26px;background:var(--ink);-webkit-mask:linear-gradient(#000,#000) left center/calc(100% - 3px) 1.2px no-repeat,url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='127.49 16.61 16.13 31.41'%3E%3Cpath d='M129.07,17.38v-.77h-1.58l.06,1.53a16.13,16.13,0,0,0,11.16,14.55,16.14,16.14,0,0,0-11.160,14.55l-.06,1.54h1.58V48a14.57,14.57,0,0,1,14.55-14.55V31.93A14.57,14.57,0,0,1,129.07,17.38Z'/%3E%3C/svg%3E") right center/12.4px 24.2px no-repeat;mask:linear-gradient(#000,#000) left center/calc(100% - 3px) 1.2px no-repeat,url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='127.49 16.61 16.13 31.41'%3E%3Cpath d='M129.07,17.38v-.77h-1.58l.06,1.53a16.13,16.13,0,0,0,11.16,14.55,16.14,16.14,0,0,0-11.160,14.55l-.06,1.54h1.58V48a14.57,14.57,0,0,1,14.55-14.55V31.93A14.57,14.57,0,0,1,129.07,17.38Z'/%3E%3C/svg%3E") right center/12.4px 24.2px no-repeat}
 .zh-sm{font-family:"Noto Sans TC",sans-serif;font-size:12px;letter-spacing:.3em;margin-left:10px;color:var(--muted)}
@@ -259,8 +262,9 @@ body.edit .banner{display:flex;animation:rise .3s var(--ease)}
 #liveMD.split .events{grid-template-columns:minmax(0,1fr)}
 #liveMD.split .ev-chev{display:none}
 .events .ev.sel{box-shadow:0 0 0 3px color-mix(in srgb,var(--ink) 40%,transparent)}
-#evDetail{position:sticky;top:12px;max-height:calc(100dvh - 150px);overflow:auto;overscroll-behavior:contain;min-width:0;border:1px solid var(--line);border-radius:18px;padding:18px 22px 20px;background:var(--surface)}
+#evDetail{position:sticky;top:12px;max-height:calc(100dvh - 150px);overflow:auto;overscroll-behavior:contain;min-width:0;border:0;border-left:1px solid var(--hair);border-radius:0;padding:6px 4px 20px 24px;background:var(--surface)}
 .evd-head{display:flex;align-items:center;gap:10px;font-size:20px;line-height:1.4}
+.evd-close{margin-left:auto;flex:none;font-size:12.5px}
 .evd-head b{font-weight:700;min-width:0;overflow-wrap:anywhere}
 .evd .ev-meta{display:flex;flex-wrap:wrap;align-items:center;gap:4px 10px;margin:8px 0 0;font-size:12px;color:var(--muted)}
 .evd-par{margin:12px 0 0}
@@ -292,6 +296,31 @@ body.edit .banner{display:flex;animation:rise .3s var(--ease)}
 }
 @media (max-width:640px){
   .events{grid-template-columns:1fr}
+}
+
+/* ===== 追蹤（會長室） ===== */
+/* 跟個別進度同一種清單：整列滿版、列與列之間細線；寬的時候多欄 */
+.follow-panel{margin-bottom:var(--gap,16px)}
+.follow-panel[hidden]{display:none}
+.follows{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,320px),1fr));margin:0 -18px}
+.follows .empty{grid-column:1/-1;padding:0 18px}
+.fw{display:grid;gap:6px;align-content:start;padding:14px 18px 16px;border-top:1px solid var(--line);min-width:0}
+.fw.gone{opacity:.55}
+.fw-top{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:12px;color:var(--muted)}
+.fw-k{letter-spacing:.08em}
+.fw-open{margin-left:auto;color:var(--muted);text-decoration:none;font-size:12px}
+.fw-open:hover{color:var(--ink)}
+.fw-t{margin:0;font-size:16px;font-weight:700;line-height:1.4;overflow-wrap:anywhere}
+.fw-meta{margin:0;font-size:12.5px;color:var(--muted)}
+.fw-text{margin:0;font-size:13.5px;line-height:1.7;white-space:pre-wrap;word-break:break-word}
+.fw-mk{margin:0;font-size:12px}
+.fw-bar{position:relative;height:5px;border-radius:3px;background:var(--rest)}
+.fw-bar i{position:absolute;left:0;top:0;bottom:0;border-radius:3px;background:var(--prog-hi)}
+.fw-week{margin:0;max-height:220px;overflow:auto;font:inherit;font-size:13px;line-height:1.7;white-space:pre-wrap;word-break:break-word}
+.follow-panel .add-row{margin-top:12px}
+@media (max-width:640px){
+  .follows{margin:0 -14px}
+  .fw{padding:12px 14px 14px}
 }
 
 /* ===== 時間甘特圖 ===== */
@@ -727,7 +756,7 @@ body.edit #donePanel .done-item summary>.sub{overflow:visible}
 .anim-ov .anim-top{padding-bottom:8px}
 .anim-tip{font-size:11.5px;letter-spacing:.08em}
 .story{flex:1;display:flex;flex-direction:column;min-height:0;margin:0}
-.story-stage{position:relative;flex:1;min-height:0;border:1px solid var(--line);border-radius:28px;overflow:hidden;background:var(--surface);cursor:pointer}
+.story-stage{position:relative;flex:1;min-height:0;border:0;border-radius:0;overflow:hidden;background:none;cursor:pointer}   /* 不要大外框 */
 .story-stage::after{content:"已暫停";position:absolute;right:18px;bottom:16px;font-size:12px;letter-spacing:.15em;color:var(--muted);border:1px solid var(--muted);border-radius:999px;padding:2px 10px;opacity:0;transition:opacity .2s}
 .story-stage.paused::after{opacity:1}
 /* 每一段是疊在舞台上的一層 */
@@ -768,8 +797,8 @@ body.edit #donePanel .done-item summary>.sub{overflow:visible}
 .sv-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:clamp(10px,1.6vw,18px);align-content:start}
 .sv-grid .sv-card{width:auto}
 /* 下方三段的進度點 */
-.story-dots{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:12px}
-.sdot-btn{display:grid;gap:6px;justify-items:start;border:0;background:none;padding:4px 2px;min-height:0;color:var(--muted);font-size:12px;letter-spacing:.1em}
+.story-dots{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:12px;order:-1}   /* 播放條放在上方 */
+.sdot-btn{display:grid;grid-template-columns:minmax(0,1fr);gap:6px;justify-items:start;width:100%;border:0;background:none;padding:4px 2px;min-height:0;color:var(--muted);font-size:12px;letter-spacing:.1em}
 .sdot-btn.cur{color:var(--ink)}
 .sdot-btn:hover{box-shadow:none;transform:none;color:var(--ink)}
 .sdot-bar{position:relative;display:block;width:100%;height:2px;background:var(--hair);border-radius:2px;overflow:hidden}

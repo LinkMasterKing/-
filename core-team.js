@@ -214,6 +214,10 @@ function diffState(a,b){
   if(a.pwKdf!==b.pwKdf&&a.pwKdf&&b.pwKdf)L.push("設定｜更改部門共用密碼");else if(!a.pwKdf&&b.pwKdf)L.push("設定｜共用密碼升級加密");
   const sy=x=>{const s={...(x.sync||{})};delete s.tokenEnc;return s};
   if(!same(sy(a),sy(b)))L.push("設定｜雲端同步設定");else if(!same((a.sync||{}).tokenEnc,(b.sync||{}).tokenEnc))L.push("設定｜更新雲端連線");
+  /* 會長室的追蹤項目 */
+  const AF=byId(a.follows),BF=byId(b.follows),fl=f=>{const d=(window.BOARD_DEPTS||[]).find(x=>x.id===f.dept);return `${d?d.name:f.dept}的${(typeof FW_KIND!=="undefined"&&FW_KIND[f.kind])||f.kind}`};
+  for(const [k,f] of BF)if(!AF.has(k))L.push(`追蹤｜新增｜${fl(f)}`);
+  for(const [k,f] of AF)if(!BF.has(k))L.push(`追蹤｜移除｜${fl(f)}`);
   return L;
 }
 function commitMessage(){

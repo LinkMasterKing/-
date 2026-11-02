@@ -12,6 +12,7 @@ const CFG=(()=>{
     data:{owner:"",repo:"",branch:"main",path:"data.json",page:"index.html"},
     notify:{url:""},
     week:{cutoff:2},
+    deptId:"",logo:true,follow:false,
   };
   const u=window.BOARD_CONFIG||{},o={...D,...u};
   ["dept","colors","sections","term","data","notify","week"].forEach(k=>o[k]={...D[k],...(u[k]||{})});

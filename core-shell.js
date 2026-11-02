@@ -19,6 +19,11 @@ const SHELL_HTML=`<div class="pager" id="pager">
       <div class="hero-rule"><span class="hero-info"><span class="sub" id="saveInfo"></span></span><span class="actions"><span class="hero-btns" id="actions"></span><button type="button" class="week-btn" id="weekBtn">每週概述 <span aria-hidden="true">→</span></button></span></div>
       <div class="banner"><span class="live-dot" aria-hidden="true"></span><b>編輯中</b><span class="sub">在進度條上按住拖曳新增註記 · 拖曳註記調整位置 · 點註記可修改 · 填開始／結束日的議題會出現在甘特圖 · 完成後按「儲存並定型」</span></div>
 
+      <section class="panel follow-panel" id="followPanel" aria-labelledby="fwH" hidden>
+        <div class="panel-head"><h2 id="fwH">追蹤<span class="en">FOLLOW</span></h2></div>
+        <div class="follows" id="follows"></div>
+        <button class="ghost edit-only add-row" id="addFollow">+ 追蹤項目</button>
+      </section>
       <div class="layout">
         <div class="sgroup" data-sec="live">
           <section class="panel" id="livePanel" aria-labelledby="evH">
@@ -80,7 +85,9 @@ const SHELL_HTML=`<div class="pager" id="pager">
 (function mountShell(){
   if(!document.getElementById("pager"))document.body.insertAdjacentHTML("afterbegin",SHELL_HTML);
   const box=document.querySelector(".logo-box"),tpl=document.getElementById("dept-logo");
-  if(box&&tpl&&!box.firstElementChild)box.append(tpl.content.cloneNode(true));
+  /* 還沒有 logo 的部門（設定檔 logo:false）：先用文字代替 */
+  if(box&&!box.firstElementChild){if(CFG.logo&&tpl)box.append(tpl.content.cloneNode(true));
+    else box.innerHTML=`<div class="logo-text" role="img" aria-label="${CFG.brand}"><b>${CFG.dept.name}</b><small>${CFG.dept.org}</small></div>`}
   if(CFG.brand){const svg=box&&box.querySelector("svg");if(svg&&!svg.getAttribute("aria-label"))svg.setAttribute("aria-label",CFG.brand)}
   /* 部門主色 → CSS 變數（只覆寫設定檔有給的值） */
   const c=CFG.colors||{},map={accentLight:"--accent-light",accentDark:"--accent-dark",ok:"--ok",neon:"--neon",okDot:"--ok-dot"};

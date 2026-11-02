@@ -62,6 +62,7 @@ document.addEventListener("click",async e=>{
   /* 右側詳情（編輯中）的按鈕 */
   const evd=t.closest("#evDetail [data-evd]");
   if(evd){const ev=evOf(evd),k=evd.dataset.evd,box=$("#evDetail .evd-round");
+    if(k==="close"){selEv=null;renderEvents();return}
     if(k==="round"){box.hidden=false;box.animate([{opacity:0,transform:"translateY(-6px)"},{opacity:1,transform:"none"}],{duration:240,easing:"cubic-bezier(.2,.9,.25,1)"});box.querySelector("textarea").focus();return}
     if(k==="roundcancel"){box.hidden=true;return}
     if(k==="roundok"){evRoundDone(ev,box.querySelector('[data-rf="done"]').value.trim(),box.querySelector('[data-rf="next"]').value.trim());return}
@@ -236,3 +237,6 @@ $("#importFile").addEventListener("change",async e=>{
   }catch(err){toast("這個檔案讀不到看板資料")}
 });
 window.addEventListener("beforeunload",e=>{if(editing&&dirty){e.preventDefault();e.returnValue=""}});
+
+/* 桌面即時回報的右側：Esc 收起（有對話框或設定開著時不管） */
+document.addEventListener("keydown",e=>{if(e.key!=="Escape"||!selEv||!mdOn("live")||setOpen||animOpen||$("#dlg").open)return;if(document.activeElement&&document.activeElement.closest&&document.activeElement.closest("#evDetail"))document.activeElement.blur();selEv=null;renderEvents()});
