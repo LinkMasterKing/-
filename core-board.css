@@ -134,6 +134,7 @@ a.logo-box:focus-visible{outline:2px solid var(--ink);outline-offset:4px}
 /* 每週概述按鈕：深淺色都是白色實心＋黑字＋細框；本週週報還沒產出時（週五起，.due）左上角冒出紅點。
    紅點中心放在左上角圓弧上（約 45° 的位置），不要浮在膠囊外面；
    用 #weekBtn 的權重蓋過一般按鈕的 hover 光暈／框色與手機版的 padding，不用 !important */
+#editBtn{padding:5px 17.5px 7px 14.5px}   /* 視覺置中：鉛筆圖示重心偏下偏右，內容往上 1px、往左 1.5px（依實機截圖量測） */
 #weekBtn{position:relative;background:#fff;border-color:var(--ink);color:#111114;font-weight:700;letter-spacing:.04em;box-shadow:none;animation:none;padding-left:19px;padding-right:14px;gap:6px}
 #weekBtn.due::before{content:"";animation:dotIn .5s cubic-bezier(.3,1.6,.5,1) both;position:absolute;top:0;left:1px;width:10px;height:10px;border-radius:50%;background:var(--red);box-shadow:0 0 0 2px var(--bg);pointer-events:none}
 #weekBtn:hover{background:#fff;border-color:var(--ink);box-shadow:0 0 20px 1px color-mix(in srgb,var(--ink) 35%,transparent)}
@@ -264,9 +265,11 @@ body.edit .banner{display:flex;animation:rise .3s var(--ease)}
 #liveMD.split .events{grid-template-columns:minmax(0,1fr)}
 #liveMD.split .ev-chev{display:none}
 .events .ev.sel{box-shadow:0 0 0 3px color-mix(in srgb,var(--ink) 40%,transparent)}
-#evDetail{position:sticky;top:12px;max-height:calc(100dvh - 150px);overflow:auto;overscroll-behavior:contain;min-width:0;border:0;border-left:1px solid var(--hair);border-radius:0;padding:6px 4px 20px 24px;background:var(--surface)}
+#evDetail{position:sticky;top:12px;max-height:calc(100dvh - 150px);overflow:auto;overscroll-behavior:contain;min-width:0;border:0;border-left:1px solid var(--hair);border-radius:0;padding:10px 26px 24px 24px;background:var(--surface)}
 .evd-head{display:flex;align-items:center;gap:10px;font-size:20px;line-height:1.4}
-.evd-close{margin-left:auto;flex:none;font-size:12.5px}
+.md-close{margin-left:auto;flex:none;font-size:12.5px;font-weight:400}   /* 即時回報、完成紀錄右側的「收起」 */
+@media (hover:hover){#evDetail button:hover,#doneDetail button:hover{box-shadow:0 0 0 1px var(--ink),0 0 10px rgba(255,255,255,.18)}}   /* 右側會捲動，外散的光暈會被邊緣切掉：改成貼著按鈕的小光暈 */
+.done-detail .done-dt .md-close{letter-spacing:0}
 .evd-head b{font-weight:700;min-width:0;overflow-wrap:anywhere}
 .evd .ev-meta{display:flex;flex-wrap:wrap;align-items:center;gap:4px 10px;margin:8px 0 0;font-size:12px;color:var(--muted)}
 .evd-par{margin:12px 0 0}
@@ -609,7 +612,7 @@ body.edit #donePanel .done-item summary>.sub{overflow:visible}
 #doneMD.split{display:grid;grid-template-columns:minmax(300px,380px) minmax(0,1fr);align-items:start;margin:0 -18px -16px}
 #doneMD.split #doneList{display:block;margin:0;border-right:1px solid var(--line);align-self:stretch}
 #donePanel .done-item.sel{background:color-mix(in srgb,var(--ink) 10%,transparent)}
-#doneDetail{position:sticky;top:12px;max-height:calc(100dvh - 150px);overflow:auto;overscroll-behavior:contain;min-width:0;padding:18px 24px 24px}
+#doneDetail{position:sticky;top:12px;max-height:calc(100dvh - 150px);overflow:auto;overscroll-behavior:contain;min-width:0;padding:18px 26px 24px 24px}
 .done-detail .done-dt{display:flex;align-items:center;gap:10px;margin:0;font-size:20px;font-weight:700;line-height:1.4}
 .done-detail .done-ds{margin:6px 0 0 19px;font-size:12.5px}
 #donePanel #doneDetail .done-body{padding:16px 0 0 19px;font-size:14px}
@@ -815,6 +818,20 @@ body.edit #donePanel .done-item summary>.sub{overflow:visible}
   .anim-tip{display:none}
 }
 @keyframes ovIn{to{opacity:1;transform:none}}
+
+/* ===== 開頁進場畫面（學生會） ===== */
+/* 全螢幕純黑（淺色模式白），中間是學生會字標：英文小字淡入、中文字距由寬收攏、細線由左畫到右、部門名稱最後浮上 */
+.splash{position:fixed;inset:0;z-index:90;display:grid;place-items:center;background:var(--bg);color:var(--ink)}
+.sp-mark{display:grid;justify-items:center;gap:12px;text-align:center}
+.sp-k{font-family:"Jost",sans-serif;font-size:11px;letter-spacing:.32em;color:var(--muted);animation:spFade .7s .1s both}
+.sp-t{font-size:clamp(24px,4.6vw,40px);font-weight:500;letter-spacing:.14em;animation:spTrack 1s cubic-bezier(.2,.9,.25,1) both}
+.sp-line{display:block;width:min(280px,60vw);height:1px;background:var(--ink);transform-origin:left;animation:spDraw .8s .25s cubic-bezier(.6,0,.2,1) both}
+.sp-d{min-height:1em;font-size:13px;letter-spacing:.3em;color:var(--muted);animation:spUp .6s .6s cubic-bezier(.2,.9,.25,1) both}
+@keyframes spFade{from{opacity:0}}
+@keyframes spTrack{from{opacity:0;letter-spacing:.6em;filter:blur(4px)}}
+@keyframes spDraw{from{transform:scaleX(0)}}
+@keyframes spUp{from{opacity:0;transform:translateY(8px)}}
+@media (prefers-reduced-motion:reduce){.sp-k,.sp-t,.sp-line,.sp-d{animation:none}}
 
 /* ===== 頁面切換（總覽 ↔ 看板） ===== */
 /* 跨頁的 View Transitions：往下一層新頁從右推進；返回時舊頁縮小、右移、淡出（跟邊緣滑動的預測返回同一個樣子）。類型由 back.js 標記 */

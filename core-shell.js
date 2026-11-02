@@ -1,5 +1,5 @@
 /* 畫面骨架：核心程式的 HTML 結構。部門資訊（logo、名稱）由 dept/ 提供，這裡不寫死任何部門。 */
-const SHELL_IDS=["pager","importFile","dlg","animOv","toast"];
+const SHELL_IDS=["pager","importFile","dlg","animOv","toast","splash"];
 const SHELL_HTML=`<div class="pager" id="pager">
   <!-- main page -->
   <div class="page page-main" id="pageMain">
@@ -84,6 +84,11 @@ const SHELL_HTML=`<div class="pager" id="pager">
 `;
 (function mountShell(){
   if(!document.getElementById("pager"))document.body.insertAdjacentHTML("afterbegin",SHELL_HTML);
+  /* 開頁的學生會進場畫面：從網站外面進來（或重新整理）才放，站內切換部門／總覽有換頁動畫就不放。
+     蓋住讀資料、讀字型那一下卡頓；boot.js 準備好後收掉 */
+  let inSite=false;try{inSite=!!document.referrer&&new URL(document.referrer).origin===location.origin&&performance.getEntriesByType("navigation")[0]?.type!=="reload"}catch(_){}
+  if(!inSite&&!document.getElementById("splash"))document.body.insertAdjacentHTML("afterbegin",`<div class="splash" id="splash" aria-hidden="true">
+    <div class="sp-mark"><span class="sp-k">STUST&nbsp;&nbsp;STUDENT&nbsp;&nbsp;ASSOCIATION</span><b class="sp-t">南臺科技大學學生會</b><span class="sp-line"></span><span class="sp-d">${CFG.dept.name||""}</span></div></div>`);
   const box=document.querySelector(".logo-box"),tpl=document.getElementById("dept-logo");
   /* 還沒有 logo 的部門（設定檔 logo:false）：先用文字代替 */
   if(box&&!box.firstElementChild){if(CFG.logo&&tpl)box.append(tpl.content.cloneNode(true));

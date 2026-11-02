@@ -13,6 +13,7 @@ function fieldHTML(x){
 /* 對話框開在哪裡：設定頁桌面版有右側面板時，一般表單畫在面板裡（非強制回應）；
    modal＝確認、輸入密碼這類要打斷操作的（沒有欄位，或只有密碼欄），一律跳出 */
 function dlgOpen(modal){
+  if($("#dlg")._fadeEnd)$("#dlg")._fadeEnd();   /* 上一個面板表單還在淡出：先關完 */
   const d=$("#dlg"),host=!modal&&typeof setPaneHost==="function"&&setPaneHost();
   if(host){d.classList.add("in-pane");if(d.parentNode!==host)host.append(d);d.show()}
   else{d.classList.remove("in-pane");if(d.parentNode!==document.body)document.body.append(d);d.showModal()}
@@ -117,7 +118,15 @@ document.addEventListener("keydown",e=>{
   const nativeClose=HTMLDialogElement.prototype.close;
   d.close=function(v){
     if(!this.open)return;
-    if(reduceMotion()||this.classList.contains("in-pane"))return nativeClose.call(this,v);   /* 面板裡的由面板自己收 */
+    if(this.classList.contains("in-pane")){
+      /* 右側面板裡的表單：先在原地淡出、往右滑一點再關，避免內容一關就整片消失（面板接著自己收起）。
+         淡出中又要打開（例如時間格式錯了重問）時，dlgOpen 會先把這次關完 */
+      if(reduceMotion()||this._fade)return nativeClose.call(this,v);
+      const a=this._fade=this.animate([{opacity:1,transform:"none"},{opacity:0,transform:"translateX(18px)"}],{duration:200,easing:"cubic-bezier(.4,0,1,1)",fill:"forwards"});
+      this._fadeEnd=()=>{a.onfinish=null;a.cancel();this._fade=null;this._fadeEnd=null;nativeClose.call(this,v)};
+      a.onfinish=this._fadeEnd;return;
+    }
+    if(reduceMotion())return nativeClose.call(this,v);
     const r=this.getBoundingClientRect(),g=this.cloneNode(true);
     g.removeAttribute("id");g.querySelectorAll("[id]").forEach(x=>x.removeAttribute("id"));
     this.querySelectorAll("input,textarea,select").forEach((x,i)=>{const y=g.querySelectorAll("input,textarea,select")[i];if(y&&x.type!=="password")y.value=x.value});

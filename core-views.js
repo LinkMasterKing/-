@@ -190,7 +190,7 @@ function evTimesHTML(ev,edit){
 /* 即時回報右側詳情（桌面、即時回報被選到時）：檢視時只看內容；編輯中所有功能都直接在這裡改，不另外跳視窗 */
 function evDetailHTML(ev){
   const st=evStatus(ev),par=parentOf(ev),inp=(k,v,ph,type)=>`<input ${type?`type="${type}"`:""} data-tmf="${k}" value="${esc(v||"")}" ${ph?`placeholder="${esc(ph)}"`:""}>`;
-  const head=`<div class="evd-head"><span class="live-dot" aria-hidden="true"></span><b>${esc(ev.name)}</b><button type="button" class="icon evd-close" data-evd="close" aria-label="收起右側">${ico("close")}收起</button></div>
+  const head=`<div class="evd-head"><span class="live-dot" aria-hidden="true"></span><b>${esc(ev.name)}</b><button type="button" class="icon md-close" data-mdclose="live" aria-label="收起右側">${ico("close")}收起</button></div>
     <p class="ev-meta"><span class="ev-st">${EV_ST[st]}</span>${ev.round>1?`<span>第 ${ev.round} 段</span>`:""}${ev.touchedAt?`<span>最後更新 <span class="num">${fmt(ev.touchedAt).slice(5)} ${ev.touchedAt.slice(11,16)}</span></span>`:""}</p>`;
   if(!editing)return `<div class="evd" data-ev="${ev.id}" data-st="${st}">${head}
     ${par?`<p class="sub evd-par">母議題：${esc(par.title)}</p>`:""}
@@ -260,14 +260,15 @@ function renderDone(){
         <span class="edit-only" style="gap:6px"><button type="button" class="icon" data-evlinkissue>${parentOf(ev)?"更改母議題":"與議題連結"}</button>${ev.fromEv?"":`<button type="button" class="icon" data-evundo>移回即時回報</button>`}</span>`})))
   .sort((a,b)=>b.d.localeCompare(a.d));
   const sum=x=>`<summary><span class="t"><span class="ok-dot" aria-hidden="true"></span>${x.title}</span><span class="sub">${x.sub}</span><button type="button" class="icon danger edit-only done-del" ${x.del}>刪除</button></summary>`;
-  const md=mdOn("done")&&items.length>0,pane=$("#doneDetail");mdLast.done=mdOn("done");
+  /* 左右兩欄只在點了某一筆之後才出現（跟即時回報、設定一樣）；沒選＝一般清單 */
+  if(!items.some(x=>x.id===selDone))selDone=null;
+  const md=mdOn("done")&&!!selDone,pane=$("#doneDetail");mdLast.done=mdOn("done");
   $("#doneMD").classList.toggle("split",md);
   $("#doneCount").textContent=items.length;
   if(md){
-    if(!items.some(x=>x.id===selDone))selDone=items[0].id;
     $("#doneList").innerHTML=items.map(x=>`<details class="done-item ${dnew(x.id)} ${x.id===selDone?"sel":""}" ${x.attr}${x.id===selDone?' aria-current="true"':""}>${sum(x)}</details>`).join("");
     const x=items.find(y=>y.id===selDone);
-    pane.innerHTML=`<div class="done-detail" ${x.attr}><h3 class="done-dt"><span class="ok-dot" aria-hidden="true"></span>${x.title}</h3><p class="sub done-ds">${x.sub}</p><div class="done-body">${x.body}</div></div>`;pane.hidden=false;
+    pane.innerHTML=`<div class="done-detail" ${x.attr}><h3 class="done-dt"><span class="ok-dot" aria-hidden="true"></span>${x.title}<button type="button" class="icon md-close" data-mdclose="done" aria-label="收起右側">${ico("close")}收起</button></h3><p class="sub done-ds">${x.sub}</p><div class="done-body">${x.body}</div></div>`;pane.hidden=false;
   }else{
     $("#doneList").innerHTML=items.map(x=>`<details class="done-item ${dnew(x.id)}" ${x.attr} ${openDone.has(x.id)?"open":""}>${sum(x)}<div class="done-body">${x.body}</div></details>`).join("")
       ||`<p class="empty">結案的議題和完成的即時回報會收進這裡。</p>`;

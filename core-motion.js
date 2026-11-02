@@ -53,9 +53,9 @@ document.addEventListener("click",e=>{
   const d=sm.parentElement;if(!d||!d.matches(".ev,.done-item,.week,.log"))return;
   if(e.target.closest("input,button,a")){if(e.target.closest("summary button,summary input"))e.preventDefault();return}
   e.preventDefault();
-  /* 完成紀錄左右兩欄時：點一筆＝在右側顯示，不展開 */
-  if(d.matches(".ev")&&mdOn("live")){const was=!!selEv;selEv=selEv===d.dataset.ev?null:d.dataset.ev;renderEvents();if(selEv&&was)mdPaneIn($("#evDetail"));else if(selEv)mdPaneIn($("#evDetail"));return}   /* 桌面即時回報：點膠囊＝在右側打開，再點一次＝收起 */
-  if(d.matches(".done-item")&&d.closest("#doneMD.split")){selDone=d.dataset.issue||d.dataset.ev;renderDone();mdPaneIn($("#doneDetail"));return}
+  /* 桌面、區塊被選到時：點即時回報或完成紀錄的一筆＝在右側打開，再點一次＝收起（不就地展開） */
+  if(d.matches(".ev")&&mdOn("live")){mdSelect("live",d.dataset.ev);return}
+  if(d.matches(".done-item")&&mdOn("done")){mdSelect("done",d.dataset.issue||d.dataset.ev);return}
   animateDetails(d,!d.open);
 },true);
 let flipBusy=false;
@@ -104,3 +104,25 @@ document.addEventListener("click",e=>{
   const tr=m.closest(".c-track");m.classList.add("peek");tr&&tr.classList.add("peeking");clearTimeout(m._pk);m._pk=setTimeout(()=>{m.classList.remove("peek");tr&&tr.classList.remove("peeking")},2200);
 });
 document.addEventListener("mouseover",e=>{const m=e.target.closest(".marker.quiet,.g-mk.quiet");const tr=m&&m.closest(".c-track,.g-track");document.querySelectorAll(".peeking").forEach(x=>{if(x!==tr)x.classList.remove("peeking")});if(tr)tr.classList.add("peeking")});
+
+/* ---------- 左右兩欄的開合（即時回報、完成紀錄） ----------
+   清單從格狀排列變成左欄（或反過來）時，每一項從原本的位置與寬度滑到新的位置（FLIP），右側從右邊滑入 */
+const MD={live:{list:"#events",item:".ev",key:el=>el.dataset.ev,pane:"#evDetail",get:()=>selEv,set:v=>{selEv=v},render:()=>renderEvents()},
+  done:{list:"#doneList",item:".done-item",key:el=>el.dataset.issue||el.dataset.ev,pane:"#doneDetail",get:()=>selDone,set:v=>{selDone=v},render:()=>renderDone()}};
+function mdSelect(k,id){
+  const m=MD[k],cur=m.get(),next=cur===id?null:id;
+  if(cur&&next){m.set(next);m.render();mdPaneIn($(m.pane));return}   /* 已經分欄：只換右側內容 */
+  mdFlip(m,()=>{m.set(next);m.render();layoutAll()});
+  if(next)mdPaneIn($(m.pane));
+}
+function mdFlip(m,mutate){
+  if(reduceMotion())return mutate();
+  const first=new Map([...document.querySelectorAll(`${m.list} ${m.item}`)].map(el=>[m.key(el),el.getBoundingClientRect()]));
+  mutate();
+  document.querySelectorAll(`${m.list} ${m.item}`).forEach((el,i)=>{
+    const a=first.get(m.key(el));if(!a)return;const b=el.getBoundingClientRect(),dx=a.left-b.left,dy=a.top-b.top;
+    if(Math.abs(dx)<1&&Math.abs(dy)<1&&Math.abs(a.width-b.width)<1)return;
+    el.animate([{transform:`translate(${dx}px,${dy}px)`,width:a.width+"px"},{transform:"none",width:b.width+"px"}],{duration:460,delay:Math.min(i,8)*14,easing:"cubic-bezier(.2,.9,.25,1)",fill:"backwards"});
+  });
+}
+document.addEventListener("click",e=>{const b=e.target.closest&&e.target.closest("[data-mdclose]");if(b){e.preventDefault();const k=b.dataset.mdclose;mdSelect(k,MD[k].get())}});

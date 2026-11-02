@@ -10,7 +10,19 @@
 })();
 if(TEMPLATE.includes("data-bundle")&&location.protocol!=="file:")setTimeout(()=>bundleTemplate().catch(()=>{}),1500);
 
-document.body.classList.add("intro");
+/* 進場畫面：至少放 1.1 秒（讓動畫跑完），資料與字型準備好就收；最多等 3.5 秒。收掉後才開始看板本身的進場動畫 */
+const splashT0=performance.now();
+function splashOut(){
+  const sp=$("#splash"),go=()=>{document.body.classList.add("intro");setTimeout(()=>document.body.classList.remove("intro"),1400)};
+  if(!sp)return go();
+  const wait=Math.max(0,(reduceMotion()?300:1100)-(performance.now()-splashT0));
+  Promise.race([Promise.all([document.fonts?document.fonts.ready:0,new Promise(r=>setTimeout(r,wait))]),new Promise(r=>setTimeout(r,3500))]).then(()=>{
+    go();
+    if(reduceMotion())return sp.remove();
+    sp.animate([{opacity:1},{opacity:0}],{duration:520,easing:"ease-out"}).onfinish=()=>sp.remove();
+    sp.querySelector(".sp-mark").animate([{transform:"none"},{transform:"scale(1.06)",opacity:0}],{duration:520,easing:"cubic-bezier(.4,0,1,1)",fill:"forwards"});
+  });
+}
 /* 拆檔版：資料放在 data.json（與網頁同一個 repo），開頁時先讀它 */
 const dataReady=SEEDED&&location.protocol!=="file:"?fetch(CFG.data.path,{cache:"no-cache"}).then(r=>r.ok?r.json():null).then(d=>{
   netFail=false;
@@ -33,5 +45,5 @@ if(HOSTED)(async()=>{
   try{canWrite=artifactNS?(u?await u.canEdit():true):false}catch(_){canWrite=false}
   render();
 })();
-setTimeout(()=>document.body.classList.remove("intro"),1400);
+splashOut();
 });
