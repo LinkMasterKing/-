@@ -3,7 +3,7 @@
  "id": "board-main",
  "title": "權益部工作進度",
  "locked": false,
- "savedAt": "2026-11-02 18:58",
+ "savedAt": "2026-11-02 18:59",
  "range": {
   "start": "2026-09",
   "end": "2027-09"
@@ -508,6 +508,20 @@
    "links": [],
    "times": [],
    "round": 1
+  },
+  {
+   "id": "emvz5bo0gi726",
+   "name": "車禍事件",
+   "desc": "關注事態發展",
+   "createdAt": "2026-11-02",
+   "staff": [],
+   "links": [],
+   "times": [],
+   "round": 1,
+   "touched": [
+    "2026-11-02"
+   ],
+   "touchedAt": "2026-11-02T18:59"
   }
  ],
  "yearLabel": "115學年",
