@@ -102,6 +102,8 @@ button.ghost{border-color:var(--muted)}
 }
 
 /* ===== 頁首 ===== */
+a.logo-box{color:inherit;text-decoration:none}   /* 頁首 logo＝回各部門總覽 */
+a.logo-box:focus-visible{outline:2px solid var(--ink);outline-offset:4px}
 .logo-text{display:grid;gap:2px;line-height:1.15}
 .logo-text b{font-size:clamp(20px,2.2vw,26px);font-weight:700;letter-spacing:.12em}
 .logo-text small{font-size:10.5px;letter-spacing:.14em;color:var(--muted)}
@@ -813,6 +815,20 @@ body.edit #donePanel .done-item summary>.sub{overflow:visible}
   .anim-tip{display:none}
 }
 @keyframes ovIn{to{opacity:1;transform:none}}
+
+/* ===== 頁面切換（總覽 ↔ 看板） ===== */
+/* 跨頁的 View Transitions：往下一層新頁從右推進；返回時舊頁縮小、右移、淡出（跟邊緣滑動的預測返回同一個樣子）。類型由 back.js 標記 */
+@view-transition{navigation:auto}
+::view-transition-old(root),::view-transition-new(root){animation-duration:.36s;animation-timing-function:cubic-bezier(.2,.9,.25,1)}
+::view-transition-old(root){animation-name:vt-out}
+::view-transition-new(root){animation-name:vt-in}
+html:active-view-transition-type(back)::view-transition-old(root){animation-name:vt-back-out;z-index:2}
+html:active-view-transition-type(back)::view-transition-new(root){animation-name:vt-back-in}
+@keyframes vt-out{to{transform:translateX(-12%);opacity:.5}}
+@keyframes vt-in{from{transform:translateX(100%)}}
+@keyframes vt-back-out{to{transform:translateX(22vw) scale(.86);border-radius:32px;opacity:0}}
+@keyframes vt-back-in{from{transform:scale(.95);opacity:.4}}
+@media (prefers-reduced-motion:reduce){@view-transition{navigation:none}}
 
 /* ===== 對話框與下拉選單 ===== */
 .danger-btn{color:var(--warn)}

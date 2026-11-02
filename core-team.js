@@ -277,11 +277,11 @@ function openLog(host){
     ov=$("#logOv");$("#logClose").onclick=closeLog;elastic(ov.querySelector(".log-scroll"),ov.querySelector(".log-inner"));$("#logMore").onclick=loadLog;}
   Object.assign(logState,{page:0,done:false,busy:false,items:[]});
   ov.classList.toggle("in-pane",!!host);const at=host||document.body;if(ov.parentNode!==at)at.append(ov);
-  ov.hidden=false;if(!host)document.body.classList.add("log-open");
+  ov.hidden=false;if(!host){document.body.classList.add("log-open");Back.layers.log()}
   if(!reduceMotion())ov.animate([{opacity:0,transform:"translateY(14px)"},{opacity:1,transform:"none"}],{duration:320,easing:"cubic-bezier(.2,.9,.25,1)"});
   renderLog();loadLog();$("#logClose").focus();
   return new Promise(r=>logDone=r);
 }
-function closeLog(){const ov=$("#logOv");if(!ov||ov.hidden)return;const done=()=>{ov.hidden=true;document.body.classList.remove("log-open");if(logDone){logDone();logDone=null}};
+function closeLog(){const ov=$("#logOv");if(!ov||ov.hidden)return;if(!ov.classList.contains("in-pane"))Back.closed("log");const done=()=>{ov.hidden=true;document.body.classList.remove("log-open");if(logDone){logDone();logDone=null}};
   if(reduceMotion())return done();const a=ov.animate([{opacity:1},{opacity:0,transform:"translateY(10px)"}],{duration:200,easing:"ease-in"});a.onfinish=done}
 document.addEventListener("keydown",e=>{if(e.key==="Escape"&&$("#logOv")&&!$("#logOv").hidden&&!$("#dlg").open)closeLog()});

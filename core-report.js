@@ -72,14 +72,14 @@ function openReport(from,to){
       <div class="anim-ctl"><button type="button" id="rptAdd">＋ 新增區塊</button><button type="button" class="primary" id="rptPrint">${ico("download")}存成 PDF</button><button type="button" id="rptClose" aria-label="關閉工作報告">${ico("close")}關閉</button></div></div>
     <div class="rpt-scroll"><article class="rpt-paper" spellcheck="false">${rptHTML(rptData(from,to))}</article></div></div>`);
   const ov=$("#rptOv");rptOpen=true;document.body.classList.add("rpt-open");
-  $("#rptClose").onclick=()=>closeReport();$("#rptPrint").onclick=rptPrint;$("#rptAdd").onclick=rptAdd;
+  $("#rptClose").onclick=()=>closeReport();Back.layers.report();$("#rptPrint").onclick=rptPrint;$("#rptAdd").onclick=rptAdd;
   ov.addEventListener("click",e=>{const x=e.target.closest(".rpt-x");if(x){const s=x.closest(".rpt-sec");if(reduceMotion())s.remove();else s.animate([{opacity:1},{opacity:0,transform:"translateY(-6px)"}],{duration:200,easing:"ease-in"}).onfinish=()=>s.remove()}});
   /* 貼上時只留純文字，不帶別處的格式 */
   ov.addEventListener("paste",e=>{const t=e.clipboardData&&e.clipboardData.getData("text/plain");if(t==null||!e.target.closest('[contenteditable="true"]'))return;e.preventDefault();document.execCommand("insertText",false,t)});
   if(!reduceMotion())ov.animate([{transform:"translateX(28px)",opacity:0},{transform:"none",opacity:1}],{duration:380,easing:"cubic-bezier(.2,.9,.25,1)"});
 }
 function closeReport(instant){
-  const ov=$("#rptOv");if(!ov)return;rptOpen=false;
+  const ov=$("#rptOv");if(!ov)return;rptOpen=false;Back.closed("report");
   const done=()=>{ov.remove();if(!$("#rptOv"))document.body.classList.remove("rpt-open")};
   if(instant||reduceMotion())return done();
   ov.animate([{transform:"none",opacity:1},{transform:"translateX(28px)",opacity:0}],{duration:220,easing:"cubic-bezier(.4,0,1,1)"}).onfinish=done;

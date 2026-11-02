@@ -4,7 +4,12 @@ const pager=$("#pager");
 const goWeek=()=>pager.scrollTo({left:pager.scrollWidth,behavior:"smooth"});
 let onWeek=false;
 function weekEnter(){const pw=$("#pageWeek");pw.classList.remove("enter");void pw.offsetWidth;pw.classList.add("enter");clearTimeout(pw._t);pw._t=setTimeout(()=>pw.classList.remove("enter"),1400)}
-pager.addEventListener("scroll",()=>{const now=pager.scrollLeft>pager.scrollWidth-pager.clientWidth-40;if(now&&!onWeek)weekEnter();onWeek=now},{passive:true});
+/* 進到每週概述＝推一筆瀏覽紀錄（返回鍵／手勢會回主頁）；回到主頁（按返回鈕、滑回來、系統返回）就收掉那筆 */
+pager.addEventListener("scroll",()=>{
+  const atWeek=pager.scrollLeft>pager.scrollWidth-pager.clientWidth-40,atMain=pager.scrollLeft<40;
+  if(atWeek&&!onWeek){onWeek=true;weekEnter();Back.layers.week()}
+  else if(atMain&&onWeek){onWeek=false;Back.closed("week")}
+},{passive:true});
 $("#pageWeek").addEventListener("scroll",e=>{$(".week-top").classList.toggle("scrolled",e.target.scrollTop>4)},{passive:true});
 const goMain=()=>pager.scrollTo({left:0,behavior:"smooth"});
 $("#weekBtn").onclick=goWeek;$("#backMain").onclick=goMain;

@@ -5,7 +5,7 @@ const SHELL_HTML=`<div class="pager" id="pager">
   <div class="page page-main" id="pageMain">
     <div class="wrap">
       <header class="hero">
-        <div class="logo-box"></div>
+        <a class="logo-box" href="home.html" title="各部門總覽"></a>
         <div class="hero-l">
           <div class="eyebrow">WORK&nbsp;&nbsp;BOARD<span class="zh-sm">工作看板</span> <span class="arrow-line" aria-hidden="true"></span> <span id="yearTxt"></span></div>
           <div class="hero-title"><span class="pill"><span id="weekPill"></span><span class="pill-zh" id="weekZh"></span></span><span id="titleSlot"></span></div>

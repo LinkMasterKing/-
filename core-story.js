@@ -182,14 +182,14 @@ function storyPause(p){
 document.addEventListener("visibilitychange",()=>{if(document.hidden)storyPause(true)});
 function openAnim(){
   if(setOpen)closeSettings(true);
-  animOpen=true;const ov=$("#animOv");ov.hidden=false;
+  animOpen=true;const ov=$("#animOv");ov.hidden=false;Back.layers.anim();
   $("#animTitle").textContent=state.title;$("#animDate").textContent=fmt(state.boardDate||today());
   ov.classList.remove("closing");void ov.offsetWidth;ov.classList.add("show");
   story.running=false;setTimeout(()=>storySync(),120);
   renderTabbar();
 }
 function closeAnim(){
-  if(!animOpen)return;animOpen=false;const ov=$("#animOv");ov.classList.remove("show");ov.classList.add("closing");
+  if(!animOpen)return;animOpen=false;Back.closed("anim");const ov=$("#animOv");ov.classList.remove("show");ov.classList.add("closing");
   storySync();if(document.fullscreenElement)document.exitFullscreen().catch(()=>{});
   setTimeout(()=>{if(!animOpen){ov.hidden=true;ov.classList.remove("closing")}},420);
   renderTabbar();

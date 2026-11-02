@@ -158,13 +158,13 @@ async function openSettings(){
     $("#setClose").onclick=()=>closeSettings();elastic(ov.querySelector(".set-scroll"),ov.querySelector(".set-inner"))}
   if(setOpen)return;
   if(!loggedIn()&&remRead())await remLogin();   /* 這台裝置記住了身分：直接進去，不顯示鎖頭 */
-  setOpen=true;ov.hidden=false;document.body.classList.add("set-open");renderSettings();renderTabbar();
+  setOpen=true;ov.hidden=false;Back.layers.settings();document.body.classList.add("set-open");renderSettings();renderTabbar();
   if(!reduceMotion())ov.animate([{transform:"translateX(28px)",opacity:0},{transform:"none",opacity:1}],{duration:380,easing:"cubic-bezier(.2,.9,.25,1)"});
 }
 function closeSettings(instant){
   const ov=$("#setOv");if(!ov||!setOpen)return;
   if(paneKey){paneSeq++;paneDismiss();paneReset()}
-  setOpen=false;renderTabbar();
+  setOpen=false;renderTabbar();Back.closed("settings");
   const done=()=>{if(!setOpen){ov.hidden=true;document.body.classList.remove("set-open")}};
   if(instant||reduceMotion())return done();
   ov.animate([{transform:"none",opacity:1},{transform:"translateX(28px)",opacity:0}],{duration:220,easing:"cubic-bezier(.4,0,1,1)"}).onfinish=done;
