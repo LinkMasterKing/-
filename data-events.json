@@ -1,0 +1,32 @@
+{
+ "members": [
+  {
+   "id": "mmvz42qrwqwoy",
+   "name": "法屎鴨胸",
+   "role": "admin",
+   "kdf": "vcjzS8NOYjGTzqXmzT86Fw==:TtjY+j8I9x705KLoAS112dGSJoGI/nwxq/RnrGcMd+E=",
+   "createdAt": "2026-11-02 18:23",
+   "tok": {
+    "s": "HMttr0Ilf6JJeIC1kZ7exA==",
+    "i": "K7syLjRJ8HKL9W5l",
+    "c": "fogU8/9A2MTeALjoL9zUeJwX/Eg6PB/4VPQQg/voQHQutz8pacCex+cWYSEF2bLlwlzqnV7Fy9Gn1M/GIq+9oE3R7rjJIgqvC2SrLswPmkrzJEEDroydGdLukENANPTKQUG8QlytK8XN+u/CNw=="
+   }
+  }
+ ],
+ "staff": [],
+ "schemaVersion": 6,
+ "id": "board-events",
+ "follows": [],
+ "weeks": [],
+ "issues": [],
+ "events": [],
+ "reportBase": null,
+ "yearLabel": "115學年",
+ "termStart": "2026-09-07",
+ "range": {
+  "start": "2026-10",
+  "end": "2027-03"
+ },
+ "title": "活動部工作進度",
+ "pwKdf": "PkZk6hjJbo+JZIU7XayIyQ==:55AbHJLqWGQm6tgNZOvtqiABSp0V/0D30E7UqAat5tA="
+}
