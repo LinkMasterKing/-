@@ -3,7 +3,7 @@
  "id": "board-main",
  "title": "權益部工作進度",
  "locked": false,
- "savedAt": "2026-11-03 20:05",
+ "savedAt": "2026-11-03 20:39",
  "range": {
   "start": "2026-09",
   "end": "2027-09"
@@ -241,7 +241,7 @@
   {
    "id": "emvpd4765r0ch",
    "name": "數位校務改革",
-   "desc": "確認會晤確切時間",
+   "desc": "確認會晤確切時間\n\n教務處 課教組 教務長 計網中心 \n抓教務長LINE",
    "links": [
     {
      "id": "lmvqlr6quzwgj",
@@ -258,18 +258,19 @@
    ],
    "times": [],
    "round": 2,
-   "touchedAt": "2026-11-03T20:04",
+   "touchedAt": "2026-11-03T20:39",
    "roundAt": "2026-11-03T19:26"
   },
   {
    "id": "emvpd6qonvam7",
    "name": "社群內容排程",
-   "desc": "",
+   "desc": "交付行銷部五天前",
    "doneAt": null,
    "staff": [],
    "touched": [
     "2026-10-27",
-    "2026-11-02"
+    "2026-11-02",
+    "2026-11-03"
    ],
    "links": [],
    "times": [
@@ -324,7 +325,7 @@
     }
    ],
    "round": 1,
-   "touchedAt": "2026-11-02T19:11"
+   "touchedAt": "2026-11-03T20:37"
   },
   {
    "id": "emvpd82rr1kit",
@@ -476,12 +477,13 @@
   {
    "id": "emvqlvpkgu9x6",
    "name": "總務會議代表",
-   "desc": "",
+   "desc": "這周與總務處協調學生代表",
    "createdAt": "2026-10-27",
    "staff": [],
    "touched": [
     "2026-10-27",
-    "2026-11-02"
+    "2026-11-02",
+    "2026-11-03"
    ],
    "links": [],
    "times": [
@@ -494,7 +496,7 @@
     }
    ],
    "round": 1,
-   "touchedAt": "2026-11-02T19:11"
+   "touchedAt": "2026-11-03T20:38"
   },
   {
    "id": "emvqocysbhm9s",
@@ -504,7 +506,8 @@
    "staff": [],
    "touched": [
     "2026-10-27",
-    "2026-11-02"
+    "2026-11-02",
+    "2026-11-03"
    ],
    "links": [],
    "times": [
@@ -517,7 +520,8 @@
     }
    ],
    "round": 1,
-   "touchedAt": "2026-11-02T19:12"
+   "touchedAt": "2026-11-03T20:39",
+   "doneAt": "2026-11-03"
   },
   {
    "id": "emvt1lnzfh1kf",
@@ -549,11 +553,14 @@
    "createdAt": "2026-10-29",
    "staff": [],
    "touched": [
-    "2026-10-27"
+    "2026-10-27",
+    "2026-11-03"
    ],
    "links": [],
    "times": [],
-   "round": 1
+   "round": 1,
+   "doneAt": "2026-11-03",
+   "touchedAt": "2026-11-03T20:39"
   },
   {
    "id": "emvt1ohjjrkyg",
