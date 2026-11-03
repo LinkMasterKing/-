@@ -3,7 +3,7 @@
  "id": "board-main",
  "title": "權益部工作進度",
  "locked": false,
- "savedAt": "2026-11-03 20:01",
+ "savedAt": "2026-11-03 20:05",
  "range": {
   "start": "2026-09",
   "end": "2027-09"
@@ -258,7 +258,7 @@
    ],
    "times": [],
    "round": 2,
-   "touchedAt": "2026-11-03T19:26",
+   "touchedAt": "2026-11-03T20:04",
    "roundAt": "2026-11-03T19:26"
   },
   {
@@ -652,16 +652,24 @@
   {
    "id": "emw0lb1djdnco",
    "name": "數位會務改革",
-   "desc": "擬計畫提未來AI使用預算\n引\"人工智慧基本法\"立法申請",
+   "desc": "各部門功能統整簡化\n\n擬計畫提未來AI使用預算\n引\"人工智慧基本法\"立法申請",
    "createdAt": "2026-11-03",
    "staff": [],
    "links": [],
-   "times": [],
+   "times": [
+    {
+     "id": "tmw0n4x291fog",
+     "label": "秘書處會議資料格式重整",
+     "start": "2026-11-06",
+     "end": "",
+     "toIssue": false
+    }
+   ],
    "round": 1,
    "touched": [
     "2026-11-03"
    ],
-   "touchedAt": "2026-11-03T19:16"
+   "touchedAt": "2026-11-03T20:05"
   },
   {
    "id": "emw0lqzfmw4dl",
