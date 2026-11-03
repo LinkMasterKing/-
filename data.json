@@ -3,7 +3,7 @@
  "id": "board-main",
  "title": "權益部工作進度",
  "locked": false,
- "savedAt": "2026-11-03 20:54",
+ "savedAt": "2026-11-03 21:22",
  "range": {
   "start": "2026-09",
   "end": "2027-09"
@@ -493,10 +493,17 @@
      "start": "2026-10-26",
      "end": "",
      "toIssue": false
+    },
+    {
+     "id": "tmw0ps090zcua",
+     "label": "確認學生代表問題與報廢進度",
+     "start": "2026-11-04T14:00",
+     "end": "",
+     "toIssue": false
     }
    ],
    "round": 1,
-   "touchedAt": "2026-11-03T20:38"
+   "touchedAt": "2026-11-03T21:20"
   },
   {
    "id": "emvqocysbhm9s",
@@ -738,6 +745,20 @@
     "2026-11-03"
    ],
    "touchedAt": "2026-11-03T20:00"
+  },
+  {
+   "id": "emw0pwllmeivk",
+   "name": "上傳NAS與常會資料以及提案單追蹤",
+   "desc": "",
+   "createdAt": "2026-11-03",
+   "staff": [],
+   "links": [],
+   "times": [],
+   "round": 1,
+   "touched": [
+    "2026-11-03"
+   ],
+   "touchedAt": "2026-11-03T21:22"
   }
  ],
  "yearLabel": "115學年",
