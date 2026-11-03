@@ -3,7 +3,7 @@
  "id": "board-main",
  "title": "權益部工作進度",
  "locked": false,
- "savedAt": "2026-11-03 19:24",
+ "savedAt": "2026-11-03 19:26",
  "range": {
   "start": "2026-09",
   "end": "2027-09"
@@ -241,7 +241,7 @@
   {
    "id": "emvpd4765r0ch",
    "name": "數位校務改革",
-   "desc": "秘書處確認會晤確切時間\n權益部已將選課介面建議方案已備妥。",
+   "desc": "確認會晤確切時間",
    "links": [
     {
      "id": "lmvqlr6quzwgj",
@@ -253,10 +253,13 @@
    "doneAt": null,
    "staff": [],
    "touched": [
-    "2026-10-27"
+    "2026-10-27",
+    "2026-11-03"
    ],
    "times": [],
-   "round": 1
+   "round": 2,
+   "touchedAt": "2026-11-03T19:26",
+   "roundAt": "2026-11-03T19:26"
   },
   {
    "id": "emvpd6qonvam7",
@@ -659,6 +662,25 @@
     "2026-11-03"
    ],
    "touchedAt": "2026-11-03T19:16"
+  },
+  {
+   "id": "emw0lqzfmw4dl",
+   "name": "數位校務改革",
+   "desc": "權益部已將選課介面建議方案已備妥。",
+   "doneAt": "2026-11-03",
+   "issueId": null,
+   "links": [
+    {
+     "id": "lmvqlr6quzwgj",
+     "name": "建議方案",
+     "url": "https://drive.google.com/file/d/1qv76O5Or6Qs0bb6EMvLNNf5E5OvLV4qH/view?usp=drive_link",
+     "color": "#3d7fe0"
+    }
+   ],
+   "staff": [],
+   "times": [],
+   "round": 1,
+   "fromEv": "emvpd4765r0ch"
   }
  ],
  "yearLabel": "115學年",
