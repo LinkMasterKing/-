@@ -3,7 +3,7 @@
  "id": "board-main",
  "title": "權益部工作進度",
  "locked": false,
- "savedAt": "2026-11-03 19:26",
+ "savedAt": "2026-11-03 20:01",
  "range": {
   "start": "2026-09",
   "end": "2027-09"
@@ -681,6 +681,42 @@
    "times": [],
    "round": 1,
    "fromEv": "emvpd4765r0ch"
+  },
+  {
+   "id": "emw0mszjya8iv",
+   "name": "交流簡報討論",
+   "desc": "",
+   "createdAt": "2026-11-03",
+   "staff": [],
+   "links": [],
+   "times": [
+    {
+     "id": "tmw0mt7owue71",
+     "label": "討論時間",
+     "start": "2026-11-03",
+     "end": "",
+     "toIssue": false
+    }
+   ],
+   "round": 1,
+   "touched": [
+    "2026-11-03"
+   ],
+   "touchedAt": "2026-11-03T19:59"
+  },
+  {
+   "id": "emw0myswnrccf",
+   "name": "緊急公關聲明流程",
+   "desc": "下週追蹤",
+   "createdAt": "2026-11-03",
+   "staff": [],
+   "links": [],
+   "times": [],
+   "round": 1,
+   "touched": [
+    "2026-11-03"
+   ],
+   "touchedAt": "2026-11-03T20:00"
   }
  ],
  "yearLabel": "115學年",
