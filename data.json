@@ -3,7 +3,7 @@
  "id": "board-main",
  "title": "權益部工作進度",
  "locked": false,
- "savedAt": "2026-11-03 18:16",
+ "savedAt": "2026-11-03 19:07",
  "range": {
   "start": "2026-09",
   "end": "2027-09"
@@ -618,6 +618,20 @@
     "2026-11-03"
    ],
    "touchedAt": "2026-11-03T17:57"
+  },
+  {
+   "id": "emw0l32ggpdmw",
+   "name": "返鄉專車",
+   "desc": "",
+   "createdAt": "2026-11-03",
+   "staff": [],
+   "links": [],
+   "times": [],
+   "round": 1,
+   "touched": [
+    "2026-11-03"
+   ],
+   "touchedAt": "2026-11-03T19:07"
   }
  ],
  "yearLabel": "115學年",
