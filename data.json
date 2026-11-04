@@ -3,7 +3,7 @@
  "id": "board-main",
  "title": "權益部工作進度",
  "locked": false,
- "savedAt": "2026-11-04 20:09",
+ "savedAt": "2026-11-04 20:21",
  "range": {
   "start": "2026-09",
   "end": "2027-09"
@@ -760,6 +760,28 @@
     "2026-11-03"
    ],
    "touchedAt": "2026-11-03T21:22"
+  },
+  {
+   "id": "emw2318qz89ak",
+   "name": "自動化歸檔系統發布",
+   "desc": "NAS歸檔機制優化，方便大家無腦上傳",
+   "createdAt": "2026-11-04",
+   "staff": [],
+   "links": [],
+   "times": [
+    {
+     "id": "tmw235243d34x",
+     "label": "正式發布",
+     "start": "2026-11-04T00:00",
+     "end": "",
+     "toIssue": false
+    }
+   ],
+   "round": 1,
+   "touched": [
+    "2026-11-04"
+   ],
+   "touchedAt": "2026-11-04T20:21"
   }
  ],
  "yearLabel": "115學年",
