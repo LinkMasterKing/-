@@ -76,10 +76,11 @@ function openReport(from,to){
   ov.addEventListener("click",e=>{const x=e.target.closest(".rpt-x");if(x){const s=x.closest(".rpt-sec");if(reduceMotion())s.remove();else s.animate([{opacity:1},{opacity:0,transform:"translateY(-6px)"}],{duration:200,easing:"ease-in"}).onfinish=()=>s.remove()}});
   /* 貼上時只留純文字，不帶別處的格式 */
   ov.addEventListener("paste",e=>{const t=e.clipboardData&&e.clipboardData.getData("text/plain");if(t==null||!e.target.closest('[contenteditable="true"]'))return;e.preventDefault();document.execCommand("insertText",false,t)});
+  rptParaTool(ov);
   if(!reduceMotion())ov.animate([{transform:"translateX(28px)",opacity:0},{transform:"none",opacity:1}],{duration:380,easing:"cubic-bezier(.2,.9,.25,1)"});
 }
 function closeReport(instant){
-  const ov=$("#rptOv");if(!ov)return;rptOpen=false;Back.closed("report");
+  const ov=$("#rptOv");if(!ov)return;rptOpen=false;Back.closed("report");if(ov._paraOff)ov._paraOff();
   const done=()=>{ov.remove();if(!$("#rptOv"))document.body.classList.remove("rpt-open")};
   if(instant||reduceMotion())return done();
   ov.animate([{transform:"none",opacity:1},{transform:"translateX(28px)",opacity:0}],{duration:220,easing:"cubic-bezier(.4,0,1,1)"}).onfinish=done;
@@ -90,6 +91,56 @@ function rptAdd(){
   const s=p.lastElementChild,h=s.querySelector("h2");
   s.scrollIntoView({behavior:reduceMotion()?"auto":"smooth",block:"center"});
   h.focus();const r=document.createRange();r.selectNodeContents(h);const sel=getSelection();sel.removeAllRanges();sel.addRange(r);
+}
+/* ---------- 段落小工具（自訂區塊：工作檢討、下期規劃、新區塊） ----------
+   游標在自訂區塊裡時，那一段左邊（手機在區塊下方）浮出三個小鈕：大段（（一）自動編號）、小段（1. 自動編號）、內文。
+   游標在這段最後面＝在下面換一個新段落；在段落中間或這段是空的＝把這段改成那一層。編號由 CSS counter 自動排。 */
+const RPT_LV={h1:{tag:"H3",cls:"rpt-h1",name:"大段"},h2:{tag:"H4",cls:"rpt-h2",name:"小段"},p:{tag:"P",cls:"",name:"內文"}};
+function rptParaTool(ov){
+  const pt=document.createElement("div");pt.className="rpt-pt";pt.contentEditable="false";pt.hidden=true;
+  pt.innerHTML=Object.entries(RPT_LV).map(([k,v])=>`<button type="button" data-lv="${k}" title="${v.name}：游標在段尾＝換新段落，在段中＝改成這一層">${v.name}</button>`).join("");
+  /* 把區塊裡的純文字、瀏覽器自己產生的 <div>／<br> 整理成一段一個 <p> */
+  const tidy=box=>{
+    if(!box.textContent.trim()&&!box.querySelector("h3,h4")){box.innerHTML="";return}
+    [...box.childNodes].forEach(n=>{
+      if(n.nodeType===3){if(!n.textContent.trim()){n.remove();return}const q=document.createElement("p");n.replaceWith(q);q.append(n)}
+      else if(n.nodeName==="DIV"||n.nodeName==="BR"){const q=document.createElement("p");if(n.nodeName==="DIV")q.append(...n.childNodes);n.replaceWith(q);if(!q.firstChild)q.append(document.createElement("br"))}
+    });
+  };
+  const blockOf=(box,node)=>{while(node&&node.parentNode!==box)node=node.parentNode;return node&&node.nodeType===1?node:null};
+  const caretIn=()=>{const sel=getSelection();if(!sel.rangeCount)return null;const n=sel.anchorNode,box=n&&(n.nodeType===1?n:n.parentNode).closest(".rpt-text");return box&&ov.contains(box)?{box,sel}:null};
+  const place=()=>{
+    const c=caretIn();if(!c){pt.hidden=true;return}
+    const sec=c.box.closest(".rpt-sec"),blk=blockOf(c.box,c.sel.anchorNode)||c.box;
+    if(pt.parentNode!==sec)sec.append(pt);
+    pt.hidden=false;pt.style.setProperty("--y",(blk.getBoundingClientRect().top-sec.getBoundingClientRect().top)+"px");
+    const cur=blk===c.box?"p":(blk.classList.contains("rpt-h1")?"h1":blk.classList.contains("rpt-h2")?"h2":"p");
+    pt.querySelectorAll("button").forEach(b=>b.classList.toggle("on",b.dataset.lv===cur));
+  };
+  const make=lv=>{const v=RPT_LV[lv],el=document.createElement(v.tag);if(v.cls)el.className=v.cls;return el};
+  const caretTo=(el,atEnd)=>{const r=document.createRange();r.selectNodeContents(el);r.collapse(!atEnd);const sel=getSelection();sel.removeAllRanges();sel.addRange(r)};
+  /* 按鈕不搶走游標 */
+  pt.addEventListener("pointerdown",e=>e.preventDefault());
+  pt.addEventListener("click",e=>{
+    const b=e.target.closest("[data-lv]");if(!b)return;const c=caretIn();if(!c)return;
+    const {box,sel}=c;tidy(box);
+    let blk=blockOf(box,sel.anchorNode);
+    if(!blk){blk=document.createElement("p");blk.append(document.createElement("br"));box.append(blk)}
+    const r=sel.getRangeAt(0),tail=document.createRange();tail.selectNodeContents(blk);tail.setStart(r.endContainer,r.endOffset);
+    const atEnd=!tail.toString().length,empty=!blk.textContent.trim(),lv=b.dataset.lv,el=make(lv);
+    if(empty||!atEnd){el.append(...blk.childNodes);if(!el.firstChild)el.append(document.createElement("br"));blk.replaceWith(el);caretTo(el,true)}   /* 改這段的層級 */
+    else{el.append(document.createElement("br"));blk.after(el);caretTo(el,false)}                                          /* 換新段落 */
+    if(!reduceMotion())el.animate([{opacity:0,transform:"translateY(-3px)"},{opacity:1,transform:"none"}],{duration:220,easing:"cubic-bezier(.2,.9,.25,1)"});
+    b.animate([{transform:"scale(.92)"},{transform:"none"}],{duration:200,easing:"cubic-bezier(.3,1.6,.5,1)"});
+    place();
+  });
+  /* 區塊裡按 Enter 一律產生 <p>；整段刪光時清空，讓提示字回來、列印時跳過 */
+  ov.addEventListener("focusin",e=>{if(e.target.closest(".rpt-text")){try{document.execCommand("defaultParagraphSeparator",false,"p")}catch(_){}tidy(e.target.closest(".rpt-text"))}});
+  ov.addEventListener("input",e=>{const box=e.target.closest&&e.target.closest(".rpt-text");if(box&&!box.textContent.trim()&&!box.querySelector("h3,h4"))box.innerHTML=""});
+  ov.addEventListener("focusout",e=>{const box=e.target.closest(".rpt-text");if(box)tidy(box);setTimeout(()=>{if(!caretIn())pt.hidden=true},0)});
+  document.addEventListener("selectionchange",place);
+  ov.querySelector(".rpt-scroll").addEventListener("scroll",place,{passive:true});
+  ov._paraOff=()=>document.removeEventListener("selectionchange",place);
 }
 /* 列印：只印報告本身；PDF 的預設檔名用報告名稱 */
 function rptPrint(){

@@ -2,7 +2,7 @@
    每個元件的樣式集中在自己的段落：基本樣式在前，手機版、深色模式等條件在同一段的後面。 */
 
 /* ===== 基礎：色彩變數、元素預設 ===== */
-:root{--bg:#fff;--surface:#fff;--ink:#111114;--muted:#5d5d66;--line:#111114;--hair:#e2e2e8;--grid:#f0f0f4;--accent-light:#e0342a;--accent-dark:#ff5a4e;--ok:#3ccf7f;--neon:#00ff6a;--ok-dot:#2bff88;--teal:#111114;--teal-soft:#fff;--lime:var(--accent-light);--warn:var(--accent-light);--onteal:#fff;--done:var(--ok);--red:var(--accent-light);--green:var(--ok);--rest:#c9c9d0;--prog-hi:var(--green);--prog-lo:var(--red);--prog-hi-ink:var(--prog-hi);--prog-lo-ink:var(--prog-lo);--today:var(--ink);--st-ok:var(--ok);--st-ok-ink:#0b1f12;--st-go:#111114;--st-go-ink:#fff;--st-stall:var(--red);--st-stall-ink:#fff;color-scheme:light;--glow:0 0 0 1.5px rgba(255,255,255,.95),0 0 18px 2px rgba(255,255,255,.55),0 8px 26px -6px rgba(0,0,0,.18);--glow-soft:0 0 0 1px rgba(255,255,255,.8),0 0 26px -4px rgba(255,255,255,.45),0 10px 30px -14px rgba(0,0,0,.18);--glow-bar:0 0 14px rgba(255,255,255,.85);--ease:cubic-bezier(.2,.8,.2,1);--flash:#111114;accent-color:var(--ink)}
+:root{--bg:#fff;--surface:#fff;--ink:#111114;--muted:#5d5d66;--line:#111114;--hair:#e2e2e8;--grid:#f0f0f4;--accent-light:#e0342a;--accent-dark:#ff5a4e;--ok:#3ccf7f;--neon:#00ff6a;--ok-dot:#2bff88;--teal:#111114;--teal-soft:#fff;--lime:var(--accent-light);--warn:var(--accent-light);--onteal:#fff;--done:var(--ok);--red:var(--accent-light);--green:var(--ok);--rest:#c9c9d0;--prog-hi:var(--green);--prog-lo:var(--red);--prog-hi-ink:var(--prog-hi);--prog-lo-ink:var(--prog-lo);--today:var(--ink);--st-ok:var(--ok);--st-ok-ink:#0b1f12;--su-yellow:#f0bc23;--su-blue:#0a5baa;--st-go:var(--su-yellow);--st-go-ink:#111114;--st-stall:var(--red);--st-stall-ink:#fff;color-scheme:light;--glow:0 0 0 1.5px rgba(255,255,255,.95),0 0 18px 2px rgba(255,255,255,.55),0 8px 26px -6px rgba(0,0,0,.18);--glow-soft:0 0 0 1px rgba(255,255,255,.8),0 0 26px -4px rgba(255,255,255,.45),0 10px 30px -14px rgba(0,0,0,.18);--glow-bar:0 0 14px rgba(255,255,255,.85);--ease:cubic-bezier(.2,.8,.2,1);--flash:#111114;accent-color:var(--ink)}
 :root[data-theme="dark"]{--bg:#000;--surface:#000;--ink:#f1f1f4;--muted:#a3a3ae;--line:#ececf0;--hair:#2c2c34;--grid:#1a1a20;--teal:#f1f1f4;--teal-soft:#000;--lime:var(--accent-dark);--warn:var(--accent-dark);--onteal:#111114;--done:var(--ok);--red:var(--accent-dark);--green:var(--ok);--rest:#4a4a54;color-scheme:dark;--glow:0 0 0 1.5px #fff,0 0 22px 3px rgba(255,255,255,.55),0 0 50px -6px rgba(255,255,255,.35);--glow-soft:0 0 0 1px rgba(255,255,255,.7),0 0 34px -6px rgba(255,255,255,.4);--flash:#fff}
 *,*::before,*::after{box-sizing:border-box}
 html{height:100%;-webkit-tap-highlight-color:transparent}
@@ -217,7 +217,7 @@ body.edit .banner{display:flex;animation:rise .3s var(--ease)}
 .motion-busy .live-dot::after,.motion-busy .ok-dot::after{animation-play-state:paused}   /* 展開收合動畫進行中先停，見 motion.js 的 motionBusy */
 
 /* ===== 即時回報 ===== */
-/* 膠囊一律白底黑字（細框），狀態只放在左邊的燈號：data-st＝ok 綠（期限前有更新）／go 黑（這週完成過一段，或期限後才補更新）／stall 紅（沒有進度）。
+/* 膠囊一律白底黑字（細框），狀態只放在左邊的燈號：data-st＝ok 綠（期限前有更新）／go 黃（學生會黃 --su-yellow；這週完成過一段，或期限後才補更新）／stall 紅（沒有進度）。
    只有紅色（沒有進度）的燈號會一直向外擴散提醒，其他靜止——一整排同時閃很吵，也會讓展開收合動畫變卡。
    --st＝燈號與狀態標籤的顏色，--st-ink＝狀態標籤上的字色 */
 .ev,.kid-ev,.evd{--st:var(--st-stall);--st-ink:var(--st-stall-ink)}
@@ -244,6 +244,15 @@ body.edit .banner{display:flex;animation:rise .3s var(--ease)}
 /* 展開：深淺色模式都是淺灰底黑字（在這張卡片上重設色彩變數） */
 .ev[open]{--surface:#f6f6f8;--bg:#fff;--ink:#111114;--muted:#5d5d66;--line:#dcdce2;--teal:#111114;--onteal:#fff;--teal-soft:#e6e6ec;background:var(--surface);color:var(--ink);border-color:var(--surface)}
 .ev[open] .ev-del{color:var(--red);border-color:var(--red)}
+/* 編輯中拖曳排序（events.js 的「即時回報排序」）：標題可抓，拖著的那顆浮在最上面、跟著指標走 */
+body.edit #events>.ev>summary{cursor:grab;-webkit-touch-callout:none}
+.ev.ev-dragging{z-index:5;cursor:grabbing;box-shadow:0 14px 34px rgba(0,0,0,.35);transition:none}
+html.ev-drag-on,html.ev-drag-on *{-webkit-user-select:none;user-select:none;cursor:grabbing}
+/* 手機焦點：有一張展開時，其他還收著的膠囊變暗（展開那一下的「拿起來」動畫在 motion.js 的 animateDetails） */
+@media (max-width:640px){
+  .events .ev{transition:background-color .3s,color .3s,transform .22s var(--ease),box-shadow .22s var(--ease),border-color .3s,opacity .3s var(--ease)}
+  .events:has(>.ev[open]:not(.closing))>.ev:not([open]){opacity:.45}
+}
 .ev-body{flex:1;min-width:0;padding:0 14px 12px 33px}
 .ev-body p{margin:0;font-size:13.5px;line-height:1.75;color:var(--ink);white-space:pre-wrap;word-break:break-word;-webkit-user-select:text;user-select:text}
 .ev-body .ev-parent-full{font-size:12px;color:var(--muted);margin:0 0 6px}
@@ -260,12 +269,13 @@ body.edit .banner{display:flex;animation:rise .3s var(--ease)}
 .ev-tools{display:flex;gap:6px;justify-content:flex-end;margin-top:10px;flex-wrap:wrap}
 .ev-links{margin-top:10px}
 .ev .staff-row{margin-top:10px}
-/* 左右兩欄（桌面 1000px 以上、即時回報被選到時）：左側膠囊清單、右側詳情；編輯中所有功能都在右側直接改 */
-#liveMD.split{display:grid;grid-template-columns:minmax(300px,380px) minmax(0,1fr);gap:20px;align-items:start}
-#liveMD.split .events{grid-template-columns:minmax(0,1fr)}
+/* 左右兩欄（桌面 1000px 以上、即時回報被選到時）：左半邊膠囊照樣排成格（通常兩欄），被點的那一顆長成右半邊的詳情卡（motion.js 的 mdGrow）；
+   詳情卡固定在右邊，外觀跟展開的膠囊同一套（淺灰底黑字、大圓角），編輯中所有功能都在右側直接改 */
+#liveMD.split{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:20px;align-items:start}
+#liveMD.split .events{grid-template-columns:repeat(auto-fill,minmax(min(100%,200px),1fr))}
 #liveMD.split .ev-chev{display:none}
 .events .ev.sel{box-shadow:0 0 0 3px color-mix(in srgb,var(--ink) 40%,transparent)}
-#evDetail{position:sticky;top:12px;max-height:calc(100dvh - 150px);overflow:auto;overscroll-behavior:contain;min-width:0;border:0;border-left:1px solid var(--hair);border-radius:0;padding:10px 26px 24px 24px;background:var(--surface)}
+#evDetail{--surface:#f6f6f8;--bg:#fff;--ink:#111114;--muted:#5d5d66;--line:#dcdce2;--hair:#e2e2e8;--teal:#111114;--onteal:#fff;--teal-soft:#e6e6ec;position:sticky;top:12px;max-height:calc(100dvh - 150px);overflow:auto;overscroll-behavior:contain;min-width:0;border:0;border-radius:24px;padding:18px 26px 24px 24px;background:var(--surface);color:var(--ink)}
 .evd-head{display:flex;align-items:center;gap:10px;font-size:20px;line-height:1.4}
 .md-close{margin-left:auto;flex:none;font-size:12.5px;font-weight:400}   /* 即時回報、完成紀錄右側的「收起」 */
 @media (hover:hover){#evDetail button:hover,#doneDetail button:hover{box-shadow:0 0 0 1px var(--ink),0 0 10px rgba(255,255,255,.18)}}   /* 右側會捲動，外散的光暈會被邊緣切掉：改成貼著按鈕的小光暈 */
@@ -609,7 +619,7 @@ body.edit #donePanel .done-item summary>.sub{overflow:visible}
 }
 /* 左右兩欄（桌面 1000px 以上、「完成紀錄」被選到放大時）：左側清單、右側詳情 */
 #doneMD{flex:1;min-height:0;display:flex;flex-direction:column}
-#doneMD.split{display:grid;grid-template-columns:minmax(300px,380px) minmax(0,1fr);align-items:start;margin:0 -18px -16px}
+#doneMD.split{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);align-items:start;margin:0 -18px -16px}   /* 清單、詳情各半；詳情一樣從被點的那一列展開 */
 #doneMD.split #doneList{display:block;margin:0;border-right:1px solid var(--line);align-self:stretch}
 #donePanel .done-item.sel{background:color-mix(in srgb,var(--ink) 10%,transparent)}
 #doneDetail{position:sticky;top:12px;max-height:calc(100dvh - 150px);overflow:auto;overscroll-behavior:contain;min-width:0;padding:18px 26px 24px 24px}
@@ -744,6 +754,12 @@ body.edit #donePanel .done-item summary>.sub{overflow:visible}
 /* ===== 區塊切換（底部工具列的三個分頁） ===== */
 .sgroup{display:grid;grid-template-columns:minmax(0,1fr);gap:16px;align-content:start;min-width:0}
 .sgroup.cur{grid-column:1/-1;order:-1}
+/* 焦點：桌面全部區塊都顯示時，沒被選到的區塊變暗、略縮（開會投影時一眼看出現在在講哪一區）；滑鼠移上去或在裡面操作時恢復。
+   縮放用獨立的 scale 屬性，跟 render.js 切換時的 FLIP（transform）疊在一起不打架 */
+.sgroup{transition:opacity .4s var(--ease),scale .4s var(--ease);transform-origin:50% 0}
+.sgroup:not(.cur){opacity:.5;scale:.985}
+.sgroup:not(.cur):is(:hover,:focus-within){opacity:1;scale:1}
+@media (prefers-reduced-motion:reduce){.sgroup:not(.cur){scale:none}}
 @media (max-width:640px){
   .sgroup:not(.cur){display:none}
 }
@@ -823,6 +839,11 @@ body.edit #donePanel .done-item summary>.sub{overflow:visible}
 /* 全螢幕純黑（淺色模式白），中間是學生會字標：英文小字淡入、中文字距由寬收攏、細線由左畫到右、部門名稱最後浮上 */
 .splash{position:fixed;inset:0;z-index:90;display:grid;place-items:center;background:var(--bg);color:var(--ink)}
 .sp-mark{display:grid;justify-items:center;gap:12px;text-align:center}
+.sp-emb{display:block;width:clamp(64px,11vw,88px);height:auto;margin-bottom:8px;overflow:visible}
+.sp-y{fill:var(--su-yellow);transform-box:fill-box;transform-origin:50% 50%;animation:spPieceY .9s cubic-bezier(.3,1.35,.45,1) both}
+.sp-b{fill:var(--su-blue);transform-box:fill-box;transform-origin:50% 50%;animation:spPieceB .9s .12s cubic-bezier(.3,1.35,.45,1) both}
+@keyframes spPieceY{from{opacity:0;transform:translate(-34%,-16%) scale(.7) rotate(-8deg)}40%{opacity:1}}
+@keyframes spPieceB{from{opacity:0;transform:translate(34%,16%) scale(.7) rotate(8deg)}40%{opacity:1}}
 .sp-k{font-family:"Jost",sans-serif;font-size:11px;letter-spacing:.32em;color:var(--muted);animation:spFade .7s .1s both}
 .sp-t{font-size:clamp(24px,4.6vw,40px);font-weight:500;letter-spacing:.14em;animation:spTrack 1s cubic-bezier(.2,.9,.25,1) both}
 .sp-line{display:block;width:min(280px,60vw);height:1px;background:var(--ink);transform-origin:left;animation:spDraw .8s .25s cubic-bezier(.6,0,.2,1) both}
@@ -831,7 +852,7 @@ body.edit #donePanel .done-item summary>.sub{overflow:visible}
 @keyframes spTrack{from{opacity:0;letter-spacing:.6em;filter:blur(4px)}}
 @keyframes spDraw{from{transform:scaleX(0)}}
 @keyframes spUp{from{opacity:0;transform:translateY(8px)}}
-@media (prefers-reduced-motion:reduce){.sp-k,.sp-t,.sp-line,.sp-d{animation:none}}
+@media (prefers-reduced-motion:reduce){.sp-y,.sp-b,.sp-k,.sp-t,.sp-line,.sp-d{animation:none}}
 
 /* ===== 頁面切換（總覽 ↔ 看板） ===== */
 /* 跨頁的 View Transitions：往下一層新頁從右推進；返回時舊頁縮小、右移、淡出（跟邊緣滑動的預測返回同一個樣子）。類型由 back.js 標記 */
@@ -1167,8 +1188,27 @@ dialog#dlg:has(.csel.open){overflow:visible}
 .rpt-tl li{margin:1px 0}
 .rpt-d{display:inline-block;min-width:4.6em;color:var(--muted);font-family:"Jost",sans-serif}
 .rpt-none{margin:0;color:var(--muted)}
-.rpt-text{min-height:5.25em;white-space:pre-wrap}
+.rpt-text{min-height:5.25em;white-space:pre-wrap;counter-reset:rh1}
 .rpt-text:empty::before{content:attr(data-ph);color:#9a9aa3}
+/* 自訂區塊裡的段落層級：大段（（一）（二））、小段（1. 2.，每個大段重新算）、內文；編號自動排 */
+.rpt-text>p{margin:0 0 .35em}
+.rpt-text>.rpt-h1{margin:.9em 0 .3em;font-size:15px;font-weight:600;letter-spacing:.04em;counter-increment:rh1;counter-reset:rh2}
+.rpt-text>.rpt-h1::before{content:"（" counter(rh1,trad-chinese-informal) "）"}
+.rpt-text>.rpt-h2{margin:.6em 0 .2em;padding-left:1.2em;font-size:14px;font-weight:600;counter-increment:rh2}
+.rpt-text>.rpt-h2::before{content:counter(rh2) ". "}
+.rpt-text>.rpt-h1:first-child,.rpt-text>.rpt-h2:first-child{margin-top:0}
+/* 段落小工具：桌面放在紙張左邊界、對齊游標那一段；手機放在區塊下方。不印出來 */
+.rpt-pt{position:absolute;left:-46px;top:var(--y,0);z-index:1;display:grid;gap:4px;animation:rptPtIn .2s cubic-bezier(.2,.9,.25,1)}
+.rpt-pt[hidden]{display:none}
+.rpt-pt button{min-height:0;width:38px;padding:3px 0;border:1px solid var(--hair);border-radius:8px;background:#fff;color:var(--muted);font-size:11px;letter-spacing:.04em;line-height:1.4;transition:background-color .18s,color .18s,border-color .18s}
+.rpt-pt button:hover{border-color:var(--ink);color:var(--ink)}
+.rpt-pt button.on{background:var(--ink);border-color:var(--ink);color:#fff}
+@keyframes rptPtIn{from{opacity:0;transform:translateX(4px)}}
+@media (max-width:640px){
+  .rpt-pt{position:static;display:flex;justify-content:flex-start;margin-top:8px}
+  .rpt-pt button{width:auto;padding:3px 12px}
+}
+@media (prefers-reduced-motion:reduce){.rpt-pt{animation:none}}
 @media (max-width:640px){
   .rpt-paper{padding:22px 18px 30px;font-size:13.5px}
   .rpt-head{grid-template-columns:minmax(0,1fr);gap:10px}
@@ -1183,7 +1223,7 @@ dialog#dlg:has(.csel.open){overflow:visible}
   html,body{height:auto;overflow:visible;background:#fff}
   body.rpt-open>:not(#rptOv){display:none}
   body.rpt-open #rptOv{position:static;display:block;padding:0;background:#fff}
-  .rpt-bar,.rpt-x{display:none}
+  .rpt-bar,.rpt-x,.rpt-pt{display:none}
   .rpt-scroll{overflow:visible;padding:0}
   .rpt-paper{width:auto;margin:0;padding:0;border-radius:0;box-shadow:none;-webkit-print-color-adjust:exact;print-color-adjust:exact}
   .rpt-paper [contenteditable="true"],.rpt-paper [contenteditable="true"]:is(:hover,:focus){background:none;box-shadow:none}

@@ -85,10 +85,11 @@ const SHELL_HTML=`<div class="pager" id="pager">
 (function mountShell(){
   if(!document.getElementById("pager"))document.body.insertAdjacentHTML("afterbegin",SHELL_HTML);
   /* 開頁的學生會進場畫面：從網站外面進來（或重新整理）才放，站內切換部門／總覽有換頁動畫就不放。
+     最上面是學生會彩色標誌（黃、藍兩塊從兩側合進來，顏色是 board.css 的 --su-yellow／--su-blue；原檔是學生會素材庫的標誌，只取圖形不取英文字）。
      蓋住讀資料、讀字型那一下卡頓；boot.js 準備好後收掉 */
   let inSite=false;try{inSite=!!document.referrer&&new URL(document.referrer).origin===location.origin&&performance.getEntriesByType("navigation")[0]?.type!=="reload"}catch(_){}
   if(!inSite&&!document.getElementById("splash"))document.body.insertAdjacentHTML("afterbegin",`<div class="splash" id="splash" aria-hidden="true">
-    <div class="sp-mark"><span class="sp-k">STUST&nbsp;&nbsp;STUDENT&nbsp;&nbsp;ASSOCIATION</span><b class="sp-t">南臺科技大學學生會</b><span class="sp-line"></span><span class="sp-d">${CFG.dept.name||""}</span></div></div>`);
+    <div class="sp-mark"><svg class="sp-emb" viewBox="34 20 208 236" aria-hidden="true"><path class="sp-y" d="M104.17,137.59a67,67,0,0,1,66.06-67A67.08,67.08,0,0,0,39.05,90.28v47.31a67.09,67.09,0,0,0,67.08,67.09,8,8,0,0,0,1,0,66.27,66.27,0,0,0,31.58-8.4,67.85,67.85,0,0,0,15-11.33,66.83,66.83,0,0,0,19.52-47.32Zm-8-66.35a4.47,4.47,0,0,1,0-.73,8.07,8.07,0,1,1,16.14,0v.29a8.07,8.07,0,0,1-16.1.44Z"/><path class="sp-b" d="M171.25,70.51a8.7,8.7,0,0,0-1,0,67.07,67.07,0,0,0-66.06,67h69a66.83,66.83,0,0,1-19.52,47.32,67.85,67.85,0,0,1-15,11.33,66.27,66.27,0,0,1-31.58,8.4,67.1,67.1,0,0,0,131.22-19.73V137.59A67.1,67.1,0,0,0,171.25,70.51Zm10,48a8.07,8.07,0,0,1-8,7.34,9.43,9.43,0,0,1-1.06-.07,8,8,0,0,1-6.36-4.83,7.67,7.67,0,0,1-.65-2.87v-.3a8,8,0,0,1,2.87-6.14,8.57,8.57,0,0,1,2.14-1.3,7.82,7.82,0,0,1,3.06-.62,8,8,0,0,1,8.06,8.06A5.86,5.86,0,0,1,181.21,118.55Z"/></svg><span class="sp-k">STUST&nbsp;&nbsp;STUDENT&nbsp;&nbsp;ASSOCIATION</span><b class="sp-t">南臺科技大學學生會</b><span class="sp-line"></span><span class="sp-d">${CFG.dept.name||""}</span></div></div>`);
   const box=document.querySelector(".logo-box"),tpl=document.getElementById("dept-logo");
   /* 還沒有 logo 的部門（設定檔 logo:false）：先用文字代替 */
   if(box&&!box.firstElementChild){if(CFG.logo&&tpl)box.append(tpl.content.cloneNode(true));

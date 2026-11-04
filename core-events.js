@@ -242,3 +242,62 @@ window.addEventListener("beforeunload",e=>{if(editing&&dirty){e.preventDefault()
 document.addEventListener("keydown",e=>{if(e.key!=="Escape"||setOpen||animOpen||$("#dlg").open)return;
   const k=selEv&&mdOn("live")?"live":selDone&&mdOn("done")?"done":null;if(!k)return;
   if(document.activeElement&&document.activeElement.closest&&document.activeElement.closest(MD[k].pane))document.activeElement.blur();mdSelect(k,MD[k].get())});
+
+/* ---------- 即時回報排序（編輯中拖曳） ----------
+   滑鼠：按住膠囊標題拖動超過 6px 開始；觸控：長按 0.38 秒開始（之前就移動＝照常捲動）。
+   拖到另一顆上面就換位（其他膠囊 FLIP 讓位），放開後依畫面順序寫回 state.events（只換即時回報彼此的位置，完成紀錄的順序不動）。
+   排序不算「更新」（不改狀態燈），存檔時跟其他修改一起上傳 */
+(()=>{
+  let d=null,suppress=false;
+  const handle=t=>editing&&t.closest&&!t.closest("button,a,input,textarea,select,.csel")&&t.closest("#events>.ev>summary");
+  const rects=()=>new Map([...document.querySelectorAll("#events>.ev")].map(el=>[el,el.getBoundingClientRect()]));
+  function begin(el,x,y){
+    const r=el.getBoundingClientRect();
+    d={el,ox:x-r.left,oy:y-r.top,x,y,on:true};
+    el.classList.add("ev-dragging");document.documentElement.classList.add("ev-drag-on");
+    el.animate([{scale:1},{scale:1.04}],{duration:180,easing:"cubic-bezier(.3,1.4,.5,1)",fill:"forwards"});
+    if(navigator.vibrate)try{navigator.vibrate(12)}catch(_){}
+  }
+  function move(x,y){
+    if(!d||!d.on)return;d.x=x;d.y=y;const el=d.el;
+    const hit=[...document.querySelectorAll("#events>.ev")].find(o=>{if(o===el)return false;const r=o.getBoundingClientRect();return x>=r.left&&x<=r.right&&y>=r.top&&y<=r.bottom});
+    if(hit&&performance.now()>(d.lock||0)){d.lock=performance.now()+220;   /* 剛換過位，讓位動畫跑一下再判斷，免得來回抖 */
+      const list=[...el.parentNode.children],before=rects();
+      if(list.indexOf(hit)>list.indexOf(el))hit.after(el);else hit.before(el);
+      if(!reduceMotion())before.forEach((a,o)=>{if(o===el)return;const b=o.getBoundingClientRect(),dx=a.left-b.left,dy=a.top-b.top;
+        if(Math.abs(dx)>1||Math.abs(dy)>1)o.animate([{transform:`translate(${dx}px,${dy}px)`},{transform:"none"}],{duration:300,easing:"cubic-bezier(.2,.9,.25,1)"})});
+    }
+    el.style.translate="";const b=el.getBoundingClientRect();
+    el.style.translate=`${x-d.ox-b.left}px ${y-d.oy-b.top}px`;
+  }
+  function end(){
+    if(!d)return;const s=d;d=null;clearTimeout(s.timer);if(!s.on)return;
+    const el=s.el,from=el.style.translate||"0px 0px";el.style.translate="";
+    document.documentElement.classList.remove("ev-drag-on");
+    el.getAnimations().forEach(a=>a.cancel());
+    const fin=()=>{el.classList.remove("ev-dragging");commit()};
+    if(reduceMotion())fin();else el.animate([{translate:from,scale:1.04},{translate:"0px 0px",scale:1}],{duration:260,easing:"cubic-bezier(.2,.9,.25,1)"}).onfinish=fin;
+    suppress=true;setTimeout(()=>suppress=false,0);
+  }
+  function commit(){
+    const ids=[...document.querySelectorAll("#events>.ev")].map(el=>el.dataset.ev),live=state.events.filter(e=>!e.doneAt);
+    if(ids.length!==live.length||ids.every((id,i)=>live[i].id===id))return;
+    const by=new Map(live.map(e=>[e.id,e]));let k=0;
+    state.events=state.events.map(e=>e.doneAt?e:by.get(ids[k++]));changed();
+  }
+  /* 拖完放開的那一下不要當成點擊（不然會展開／選取）：window 捕獲階段最先攔 */
+  addEventListener("click",e=>{if(suppress){e.preventDefault();e.stopPropagation();suppress=false}},true);
+  /* 滑鼠 */
+  document.addEventListener("pointerdown",e=>{if(e.pointerType==="touch"||e.button!==0)return;const sm=handle(e.target);if(!sm)return;d={el:sm.parentElement,sx:e.clientX,sy:e.clientY,on:false}});
+  addEventListener("pointermove",e=>{if(!d||e.pointerType==="touch")return;if(!d.on){if(Math.hypot(e.clientX-d.sx,e.clientY-d.sy)<6)return;const el=d.el;d=null;begin(el,e.clientX,e.clientY)}move(e.clientX,e.clientY)});
+  addEventListener("pointerup",e=>{if(e.pointerType!=="touch")end()});
+  /* 觸控：長按 */
+  document.addEventListener("touchstart",e=>{if(e.touches.length!==1)return;const sm=handle(e.target);if(!sm)return;const t=e.touches[0];
+    d={el:sm.parentElement,sx:t.clientX,sy:t.clientY,on:false};d.timer=setTimeout(()=>{if(d&&!d.on){const el=d.el;d=null;begin(el,t.clientX,t.clientY)}},380)},{passive:true});
+  addEventListener("touchmove",e=>{if(!d)return;const t=e.touches[0];
+    if(!d.on){if(Math.hypot(t.clientX-d.sx,t.clientY-d.sy)>8){clearTimeout(d.timer);d=null}return}
+    e.preventDefault();move(t.clientX,t.clientY)},{passive:false});
+  addEventListener("touchend",end);addEventListener("touchcancel",end);
+  /* 長按時不要跳出系統選單 */
+  document.addEventListener("contextmenu",e=>{if(d||handle(e.target))e.preventDefault()});
+})();

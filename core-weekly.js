@@ -35,7 +35,7 @@ function evTouch(ev){
   ev.touchedAt=t;ev.touched=[...(ev.touched||[]).filter(x=>x!==d),d].slice(-8);
 }
 /* 狀態：以每週回報期限（CFG.week.cutoff，預設週二）為界
-   ok 綠＝期限前有更新、這週沒完成一段；go 白＝這週完成過一段，或期限過後才補更新；stall 紅＝期限前後都沒更新 */
+   ok 綠＝期限前有更新、這週沒完成一段；go 黃＝這週完成過一段，或期限過後才補更新；stall 紅＝期限前後都沒更新 */
 const EV_ST={ok:"按時更新",go:"持續進行",stall:"沒有進度"};
 function evStatus(ev){
   const ref=state.boardDate||today(),back=(pd(ref).getDay()-(+CFG.week.cutoff||0)+7)%7;

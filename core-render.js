@@ -56,7 +56,7 @@ function setSection(k,{instant}={}){
     const a=first.get(g),b=g.getBoundingClientRect();if(!a.width||!b.width)return;
     const s=a.width/b.width,dx=a.left-b.left,dy=a.top-b.top;if(Math.abs(dx)<1&&Math.abs(dy)<1&&Math.abs(s-1)<.01)return;
     const sel=g===inn;g.style.zIndex=sel?"2":"1";
-    g.animate([{transformOrigin:"0 0",transform:`translate(${dx}px,${dy}px) scale(${s})`,opacity:sel?1:.55},{transformOrigin:"0 0",transform:"none",opacity:1}],
+    g.animate([{transformOrigin:"0 0",transform:`translate(${dx}px,${dy}px) scale(${s})`},{transformOrigin:"0 0",transform:"none"}],   /* 變暗由 CSS（.sgroup:not(.cur)）漸變 */
       {duration:sel?620:480,easing:sel?"cubic-bezier(.2,.9,.25,1.1)":"cubic-bezier(.2,.9,.25,1)"}).onfinish=()=>{g.style.zIndex=""};
   });
 }

@@ -40,6 +40,8 @@ function animateDetails(d,open){
   d.open=true;
   d.classList.toggle("closing",!open);
   if(open){d.classList.add("opening");clearTimeout(d._ot);d._ot=setTimeout(()=>d.classList.remove("opening"),1400)}
+  /* 手機焦點：即時回報展開那一下像被拿起來——放大一點、歪一點，再落回平的（不會一直歪，展開後文字照常好讀） */
+  if(open&&d.matches(".ev")&&isPhone())d.animate([{scale:1,rotate:"0deg"},{scale:1.035,rotate:"-1.6deg",offset:.3},{scale:1,rotate:"0deg"}],{duration:640,easing:"cubic-bezier(.3,.7,.3,1)"});
   w.style.overflow="hidden";
   const wa=w.animate(open?[{height:"0px",opacity:0},{height:full+"px",opacity:1}]:[{height:cur+"px",opacity:1},{height:"0px",opacity:0}],{...EXPAND,duration:open?EXPAND.duration:380});
   const anims=[wa];
@@ -53,9 +55,10 @@ document.addEventListener("click",e=>{
   const d=sm.parentElement;if(!d||!d.matches(".ev,.done-item,.week,.log"))return;
   if(e.target.closest("input,button,a")){if(e.target.closest("summary button,summary input"))e.preventDefault();return}
   e.preventDefault();
-  /* 桌面、區塊被選到時：點即時回報或完成紀錄的一筆＝在右側打開，再點一次＝收起（不就地展開） */
-  if(d.matches(".ev")&&mdOn("live")){mdSelect("live",d.dataset.ev);return}
-  if(d.matches(".done-item")&&mdOn("done")){mdSelect("done",d.dataset.issue||d.dataset.ev);return}
+  /* 桌面、區塊被選到時：點即時回報或完成紀錄的一筆＝在右側打開，再點一次＝收起（不就地展開）。
+     例外：在別的區塊被選到時就地展開過、切過來還開著的那一筆，點了先就地收起（不然會收不起來、直接跳去分欄） */
+  if(!d.open&&d.matches(".ev")&&mdOn("live")){mdSelect("live",d.dataset.ev);return}
+  if(!d.open&&d.matches(".done-item")&&mdOn("done")){mdSelect("done",d.dataset.issue||d.dataset.ev);return}
   animateDetails(d,!d.open);
 },true);
 let flipBusy=false;
@@ -109,11 +112,38 @@ document.addEventListener("mouseover",e=>{const m=e.target.closest(".marker.quie
    清單從格狀排列變成左欄（或反過來）時，每一項從原本的位置與寬度滑到新的位置（FLIP），右側從右邊滑入 */
 const MD={live:{list:"#events",item:".ev",key:el=>el.dataset.ev,pane:"#evDetail",get:()=>selEv,set:v=>{selEv=v},render:()=>renderEvents()},
   done:{list:"#doneList",item:".done-item",key:el=>el.dataset.issue||el.dataset.ev,pane:"#doneDetail",get:()=>selDone,set:v=>{selDone=v},render:()=>renderDone()}};
+/* 打開：被點的那一項「長成」右半邊的詳情卡（詳情卡從那一項的位置與大小展開，內容稍後淡入），其他項目 FLIP 滑到新位置。
+   收起：詳情卡先縮回那一項的位置淡出，清單再展開回全寬。換選另一項：詳情卡從新點的那一項再長一次。只動 transform／clip-path */
+let mdBusy=false;
+const mdItem=(m,id)=>id&&[...document.querySelectorAll(`${m.list} ${m.item}`)].find(el=>m.key(el)===id);
 function mdSelect(k,id){
-  const m=MD[k],cur=m.get(),next=cur===id?null:id;
-  if(cur&&next){m.set(next);m.render();mdPaneIn($(m.pane));return}   /* 已經分欄：只換右側內容 */
+  if(mdBusy)return;
+  const m=MD[k],cur=m.get(),next=cur===id?null:id,from=mdItem(m,next||cur),a=from&&from.getBoundingClientRect(),r=from?parseFloat(getComputedStyle(from).borderRadius)||0:0;
+  if(cur&&next){m.set(next);m.render();mdGrow($(m.pane),a,r);return}   /* 已經分欄：只換右側內容 */
+  if(!next){                                                          /* 收起 */
+    const pane=$(m.pane),done=()=>{mdBusy=false;mdFlip(m,()=>{m.set(null);m.render();layoutAll()});pane&&pane.getAnimations().forEach(x=>x.cancel())};
+    if(reduceMotion()||!a||!pane||pane.hidden)return done();
+    mdBusy=true;mdShrink(pane,a,r).then(done);return;
+  }
   mdFlip(m,()=>{m.set(next);m.render();layoutAll()});
-  if(next)mdPaneIn($(m.pane));
+  mdGrow($(m.pane),a,r);
+}
+/* 詳情卡從 a（被點那一項的位置）展開成自己的大小：位移＋clip-path 圓角裁切（不縮放，字不會變形） */
+function mdGrow(pane,a,r){
+  if(!pane)return;if(reduceMotion()||!a)return mdPaneIn(pane);
+  const b=pane.getBoundingClientRect(),R=parseFloat(getComputedStyle(pane).borderRadius)||0;
+  const w=Math.min(a.width,b.width),h=Math.min(a.height,b.height);
+  pane.animate([{transform:`translate(${a.left-b.left}px,${a.top-b.top}px)`,clipPath:`inset(0px ${b.width-w}px ${b.height-h}px 0px round ${Math.min(r,h/2)}px)`},
+    {transform:"none",clipPath:`inset(0px 0px 0px 0px round ${R}px)`}],{duration:540,easing:EXPAND.easing});
+  [...pane.children].forEach(c=>c.animate([{opacity:0},{opacity:0,offset:.3},{opacity:1}],{duration:540,easing:"ease-out"}));
+}
+function mdShrink(pane,a,r){
+  const b=pane.getBoundingClientRect(),R=parseFloat(getComputedStyle(pane).borderRadius)||0;
+  const w=Math.min(a.width,b.width),h=Math.min(a.height,b.height);
+  [...pane.children].forEach(c=>c.animate([{opacity:1},{opacity:0}],{duration:140,fill:"forwards"}));
+  const an=pane.animate([{transform:"none",clipPath:`inset(0px 0px 0px 0px round ${R}px)`,opacity:1},
+    {transform:`translate(${a.left-b.left}px,${a.top-b.top}px)`,clipPath:`inset(0px ${b.width-w}px ${b.height-h}px 0px round ${Math.min(r,h/2)}px)`,opacity:.3}],{duration:260,easing:"cubic-bezier(.4,0,.2,1)",fill:"forwards"});
+  return an.finished.catch(()=>{});
 }
 function mdFlip(m,mutate){
   if(reduceMotion())return mutate();
