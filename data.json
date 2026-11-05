@@ -3,7 +3,7 @@
  "id": "board-main",
  "title": "權益部工作進度",
  "locked": false,
- "savedAt": "2026-11-05 16:28",
+ "savedAt": "2026-11-05 17:16",
  "range": {
   "start": "2026-09",
   "end": "2027-09"
@@ -114,6 +114,25 @@
      "pos": "up",
      "text": "移除部分過期公告",
      "date": "2026-10-29"
+    },
+    {
+     "id": "mmw3b87zfikf7",
+     "evId": "emvteefflmm61",
+     "at": 26,
+     "stage": "待回覆",
+     "pos": "down",
+     "tmId": "tmw3b7vk5uwv7",
+     "text": "六宿女宿舍通道安全：安全場勘時間",
+     "date": "2026-11-09"
+    },
+    {
+     "id": "mmw3b8jiqr73n",
+     "evId": "emw3b8jiql70l",
+     "at": 23,
+     "stage": "待回覆",
+     "pos": "up",
+     "text": "六宿女宿舍通道安全（第 1 段）",
+     "date": "2026-11-05"
     }
    ],
    "links": [],
@@ -244,7 +263,7 @@
   {
    "id": "emvpd6qonvam7",
    "name": "社群內容排程",
-   "desc": "交付行銷部五天前",
+   "desc": "交付行銷部五天前\n\n世新報導記錄各事件時間點 簡易說明事態變化 前因後果 最終導入簡易引導觀點\n\n青民協圖片請公關協助處裡授權問候\n",
    "doneAt": null,
    "staff": [],
    "touched": [
@@ -253,7 +272,20 @@
     "2026-11-03",
     "2026-11-05"
    ],
-   "links": [],
+   "links": [
+    {
+     "id": "lmw3agkrnc6zn",
+     "name": "補給站用量",
+     "url": "https://docs.google.com/spreadsheets/d/1-q95CCEmAqFrlKYzwzbUyUPpTDbqkxK4uY222EobS5s/edit?gid=0#gid=0",
+     "color": "#6a4fd8"
+    },
+    {
+     "id": "lmw3aopf0h6ls",
+     "name": "青民協圖片",
+     "url": "https://www.instagram.com/p/De1b5FETn5D/",
+     "color": "#3d7fe0"
+    }
+   ],
    "times": [
     {
      "id": "tmvz5n7vl55e7",
@@ -265,7 +297,7 @@
     {
      "id": "tmvz5nt6rux6z",
      "label": "回家投票指南發布",
-     "start": "2026-11-25",
+     "start": "2026-11-14",
      "end": "",
      "toIssue": false
     },
@@ -278,68 +310,42 @@
     },
     {
      "id": "tmvz5pobcf97a",
-     "label": "衛生棉補給站+女權日貼文產出",
+     "label": "衛生棉補給站貼文 + 女權日限時動態產出",
      "start": "2026-11-22",
-     "end": "",
-     "toIssue": false
-    },
-    {
-     "id": "tmvz5q86zzcyx",
-     "label": "衛生棉補給站+女權日貼文發布",
-     "start": "2026-11-30",
-     "end": "",
+     "end": "2026-11-30",
      "toIssue": false
     },
     {
      "id": "tmvz5qraybay3",
      "label": "世新學運報導初版",
      "start": "2026-11-20",
-     "end": "",
-     "toIssue": false
-    },
-    {
-     "id": "tmvz5r35pw1pc",
-     "label": "世新學運報導發布",
-     "start": "2026-12-09",
-     "end": "",
+     "end": "2026-12-09",
      "toIssue": false
     }
    ],
-   "round": 1,
-   "touchedAt": "2026-11-05T16:23",
-   "report": false
+   "round": 2,
+   "touchedAt": "2026-11-05T16:44",
+   "report": false,
+   "roundAt": "2026-11-05T16:44"
   },
   {
    "id": "emvqlvpkgu9x6",
    "name": "總務會議代表",
-   "desc": "這周與總務處協調學生代表",
+   "desc": "留意會議提及修改設置辦法 確保學生自治單位席次",
    "createdAt": "2026-10-27",
    "staff": [],
    "touched": [
     "2026-10-27",
     "2026-11-02",
-    "2026-11-03"
+    "2026-11-03",
+    "2026-11-05"
    ],
    "links": [],
-   "times": [
-    {
-     "id": "tmvz5sd11blaz",
-     "label": "總務會議尋找學生代表中",
-     "start": "2026-10-26",
-     "end": "",
-     "toIssue": false
-    },
-    {
-     "id": "tmw0ps090zcua",
-     "label": "確認學生代表問題與報廢進度",
-     "start": "2026-11-04T14:00",
-     "end": "",
-     "toIssue": false
-    }
-   ],
-   "round": 1,
-   "touchedAt": "2026-11-03T21:20",
-   "report": false
+   "times": [],
+   "round": 2,
+   "touchedAt": "2026-11-05T16:53",
+   "report": false,
+   "roundAt": "2026-11-05T16:48"
   },
   {
    "id": "emvpd82rr1kit",
@@ -502,7 +508,7 @@
   {
    "id": "emvt1ohjjrkyg",
    "name": "權益部網站線上化",
-   "desc": "法規公開\n衛生棉補給站即時更新\n加入學代名單與系統\n申訴案件線上化考量\n提案單產生器",
+   "desc": "申訴案件線上化考量 優先做\n法規公開\n衛生棉補給站站點地圖\n\n加入學代名單與系統\n(部門內)提案單產生器",
    "createdAt": "2026-10-29",
    "staff": [],
    "touched": [
@@ -511,9 +517,10 @@
    ],
    "links": [],
    "times": [],
-   "round": 1,
+   "round": 2,
    "report": false,
-   "touchedAt": "2026-11-05T13:39"
+   "touchedAt": "2026-11-05T16:52",
+   "roundAt": "2026-11-05T16:52"
   },
   {
    "id": "emvqocysbhm9s",
@@ -587,18 +594,28 @@
   {
    "id": "emvt1pwvqrhyw",
    "name": "停車場冷氣機報廢後續",
-   "desc": "求追蹤\n\n確認總務會議消息(兩周)",
+   "desc": "報廢要求被退回學務處\n\n與宿舍/生輔組確認",
    "createdAt": "2026-10-29",
    "staff": [],
    "touched": [
     "2026-10-27",
-    "2026-11-03"
+    "2026-11-03",
+    "2026-11-05"
    ],
    "links": [],
-   "times": [],
-   "round": 1,
-   "touchedAt": "2026-11-03T20:46",
-   "report": false
+   "times": [
+    {
+     "id": "tmw3b6j9am1v8",
+     "label": "安全場勘時間順代提出",
+     "start": "2026-11-09T16:00",
+     "end": "",
+     "toIssue": false
+    }
+   ],
+   "round": 2,
+   "touchedAt": "2026-11-05T16:54",
+   "report": false,
+   "roundAt": "2026-11-05T16:54"
   },
   {
    "id": "emvteefflmm61",
@@ -608,13 +625,24 @@
    "staff": [],
    "touched": [
     "2026-10-27",
-    "2026-11-03"
+    "2026-11-03",
+    "2026-11-05"
    ],
    "links": [],
-   "times": [],
-   "round": 1,
-   "touchedAt": "2026-11-03T20:49",
-   "report": false
+   "times": [
+    {
+     "id": "tmw3b7vk5uwv7",
+     "label": "安全場勘時間",
+     "start": "2026-11-09T16:00",
+     "end": "",
+     "toIssue": true
+    }
+   ],
+   "round": 2,
+   "touchedAt": "2026-11-05T16:55",
+   "report": false,
+   "issueId": "imvpc3f0dcpi6",
+   "roundAt": "2026-11-05T16:55"
   },
   {
    "id": "emvz5bo0gi726",
@@ -743,17 +771,19 @@
   {
    "id": "emw0myswnrccf",
    "name": "緊急公關聲明流程",
-   "desc": "下週追蹤",
+   "desc": "修改SOP",
    "createdAt": "2026-11-03",
    "staff": [],
    "links": [],
    "times": [],
-   "round": 1,
+   "round": 2,
    "touched": [
-    "2026-11-03"
+    "2026-11-03",
+    "2026-11-05"
    ],
-   "touchedAt": "2026-11-03T20:00",
-   "report": false
+   "touchedAt": "2026-11-05T17:06",
+   "report": false,
+   "roundAt": "2026-11-05T17:06"
   },
   {
    "id": "emw0pwllmeivk",
@@ -773,7 +803,7 @@
   {
    "id": "emvpd4765r0ch",
    "name": "數位校務改革",
-   "desc": "確認會晤確切時間\n\n教務處 課教組 教務長 計網中心 \n抓教務長LINE",
+   "desc": "等回覆 敲共同商議時間 或提出方案取得反饋",
    "links": [
     {
      "id": "lmvqlr6quzwgj",
@@ -786,13 +816,131 @@
    "staff": [],
    "touched": [
     "2026-10-27",
-    "2026-11-03"
+    "2026-11-03",
+    "2026-11-05"
    ],
+   "times": [
+    {
+     "id": "tmw3bt7meduhn",
+     "label": "打招呼",
+     "start": "2026-11-11T14:00",
+     "end": "",
+     "toIssue": false
+    }
+   ],
+   "round": 3,
+   "touchedAt": "2026-11-05T17:12",
+   "roundAt": "2026-11-05T17:12",
+   "report": false
+  },
+  {
+   "id": "emw3aujc3kz9f",
+   "name": "社群內容排程",
+   "desc": "更改部分投票資訊時程\n新增返鄉列車內容\n\n訂定世新報導大綱",
+   "doneAt": "2026-11-05",
+   "issueId": null,
+   "links": [
+    {
+     "id": "lmw3agkrnc6zn",
+     "name": "補給站用量",
+     "url": "https://docs.google.com/spreadsheets/d/1-q95CCEmAqFrlKYzwzbUyUPpTDbqkxK4uY222EobS5s/edit?gid=0#gid=0",
+     "color": "#6a4fd8"
+    },
+    {
+     "id": "lmw3aopf0h6ls",
+     "name": "青民協圖片",
+     "url": "https://www.instagram.com/p/De1b5FETn5D/",
+     "color": "#3d7fe0"
+    }
+   ],
+   "staff": [],
+   "times": [],
+   "round": 1,
+   "fromEv": "emvpd6qonvam7"
+  },
+  {
+   "id": "emw3azafd14l2",
+   "name": "總務會議代表",
+   "desc": "前往拜訪與總務處協調學生代表\n總務長未召開過總務會議",
+   "createdAt": "2026-10-27",
+   "doneAt": "2026-11-05",
+   "issueId": null,
+   "links": [],
+   "staff": [],
+   "times": [],
+   "round": 1,
+   "fromEv": "emvqlvpkgu9x6"
+  },
+  {
+   "id": "emw3b5i0g9u65",
+   "name": "權益部網站線上化",
+   "desc": "製作順序優先調整",
+   "createdAt": "2026-10-29",
+   "doneAt": "2026-11-05",
+   "issueId": null,
+   "links": [],
+   "staff": [],
+   "times": [],
+   "round": 1,
+   "fromEv": "emvt1ohjjrkyg"
+  },
+  {
+   "id": "emw3b7rucq6pn",
+   "name": "停車場冷氣機報廢後續",
+   "desc": "報廢要求被退回學務處\n\n與宿舍/生輔組確認",
+   "createdAt": "2026-10-29",
+   "doneAt": "2026-11-05",
+   "issueId": null,
+   "links": [],
+   "staff": [],
+   "times": [],
+   "round": 1,
+   "fromEv": "emvt1pwvqrhyw"
+  },
+  {
+   "id": "emw3b8jiql70l",
+   "name": "六宿女宿舍通道安全",
+   "desc": "三樓安全門未關閉上鎖\n\n生輔組聯絡場勘",
+   "createdAt": "2026-10-29",
+   "doneAt": "2026-11-05",
+   "issueId": "imvpc3f0dcpi6",
+   "links": [],
+   "staff": [],
+   "times": [],
+   "round": 1,
+   "fromEv": "emvteefflmm61"
+  },
+  {
+   "id": "emw3bmw40mh3r",
+   "name": "緊急公關聲明流程",
+   "desc": "流程修改\n\n第二步驟 決定幾人同意(預設2人)  /  需利益迴避\n\n\n第三步驟 補充非校方主理事宜無須與校方事前確認\n\n第四/六步驟 校方審核時機寫入第五步驟",
+   "createdAt": "2026-11-03",
+   "doneAt": "2026-11-05",
+   "issueId": null,
+   "links": [],
+   "staff": [],
+   "times": [],
+   "round": 1,
+   "fromEv": "emw0myswnrccf"
+  },
+  {
+   "id": "emw3bufhlpm4z",
+   "name": "數位校務改革",
+   "desc": "確認會晤確切時間\n\n教務處 課教組 教務長 計網中心 \n抓教務長LINE",
+   "doneAt": "2026-11-05",
+   "issueId": null,
+   "links": [
+    {
+     "id": "lmvqlr6quzwgj",
+     "name": "建議方案",
+     "url": "https://drive.google.com/file/d/1qv76O5Or6Qs0bb6EMvLNNf5E5OvLV4qH/view?usp=drive_link",
+     "color": "#3d7fe0"
+    }
+   ],
+   "staff": [],
    "times": [],
    "round": 2,
-   "touchedAt": "2026-11-03T20:39",
-   "roundAt": "2026-11-03T19:26",
-   "report": false
+   "fromEv": "emvpd4765r0ch"
   }
  ],
  "yearLabel": "115學年",
