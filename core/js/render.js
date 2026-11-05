@@ -2,9 +2,19 @@
 let openWeeks=null,newWeekId=null,prevDone=null,openDone=new Set(),openEv=new Set(),editing=false,dirty=false,snapshot="",keepIds=new Set();
 
 /* ---------- timeline math ---------- */
-function rangeMs(){const s=pd(state.range.start+"-01");const e=pd(state.range.end+"-01");e.setMonth(e.getMonth()+1);return[s.getTime(),e.getTime()]}
+/* 甘特圖看的範圍（2026-11-05）：「全部」＝設定的時間軸（state.range）；「上學期」＝8 月～隔年 1 月；「下學期」＝2 月～7 月。
+   學年從開學日（state.termStart）的年份算，沒填就用今天（8 月起算新學年）。只影響畫面，不存。 */
+let ganttTerm="all";
+function termYear(){const s=state.termStart||today(),y=+s.slice(0,4),m=+s.slice(5,7);return m>=8?y:y-1}
+function viewRange(){
+  const y=termYear();
+  if(ganttTerm==="up")return {start:`${y}-08`,end:`${y+1}-01`};
+  if(ganttTerm==="down")return {start:`${y+1}-02`,end:`${y+1}-07`};
+  return state.range;
+}
+function rangeMs(){const r=viewRange(),s=pd(r.start+"-01"),e=pd(r.end+"-01");e.setMonth(e.getMonth()+1);return[s.getTime(),e.getTime()]}
 function pos(date){const[s,e]=rangeMs();return clamp((pd(date).getTime()-s)/(e-s)*100)}
-function months(){const out=[];const d=pd(state.range.start+"-01");const end=pd(state.range.end+"-01");while(d<=end){out.push(new Date(d));d.setMonth(d.getMonth()+1)}return out}
+function months(){const r=viewRange(),out=[],d=pd(r.start+"-01"),end=pd(r.end+"-01");while(d<=end){out.push(new Date(d));d.setMonth(d.getMonth()+1)}return out}
 
 /* 分區編輯：頁首「編輯」只負責登入、進入編輯狀態與最後的儲存／取消；
    會長室的追蹤、秘書處的會議編輯：標題列各有一顆「編輯這區」，按了這區才出現編輯工具，一次只能開一區。

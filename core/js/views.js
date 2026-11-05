@@ -58,8 +58,11 @@ function ticksHTML(n,s,e,t){
   for(let i=0;i<n;i++){const p=(i+.5)/n*100,inR=p>=s-half&&p<=e+half,now=inR&&Math.abs(p-t)<=half;h+=`<i class="${now?"now":!inR?"":p<t?"on":"in"}"></i>`}
   return `<div class="tk" aria-hidden="true">${h}</div>`;
 }
+let ganttSeg=null;
 function renderGantt(){
   $("#rStart").value=state.range.start;$("#rEnd").value=state.range.end;
+  /* 全部／上學期／下學期：液態分段切換（anim.js 的 LiquidSeg）；在骨架裡、不跟著重畫，換的時候舊圖淡出、新圖淡入 */
+  if(!ganttSeg&&$("#gTerm"))ganttSeg=new LiquidSeg($("#gTerm"),{onPick:k=>{Anim.swap($("#gantt"),()=>{ganttTerm=k;renderGantt();layoutAll()},"fade")}});
   const ms=months(),tp=pos(today()),[s0,e0]=rangeMs(),inRange=Date.now()>s0&&Date.now()<e0;
   const all=activeIssues(),list=all.filter(hasDates),undated=all.filter(i=>!hasDates(i));
   const narrow=innerWidth<640,nameW=narrow?104:170;const width=Math.max(narrow?360:640,ms.length*(narrow?84:130));

@@ -467,6 +467,8 @@ html.ev-drag-on,html.ev-drag-on *{-webkit-user-select:none;user-select:none;curs
 .meet-edit{margin-top:var(--gap,16px)}
 
 /* ===== 時間甘特圖 ===== */
+/* 甘特圖範圍：全部／上學期／下學期（液態分段切換，樣式在「液態分段切換」段；這裡只管位置） */
+.g-term{margin:0 0 12px}
 .range{display:none;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:10px;font-size:13px;color:var(--muted)}
 .sec-edit .range{display:flex}
 .range input{width:auto}
