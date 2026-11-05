@@ -3,7 +3,7 @@
  "id": "board-main",
  "title": "權益部工作進度",
  "locked": false,
- "savedAt": "2026-11-05 16:07",
+ "savedAt": "2026-11-05 16:25",
  "range": {
   "start": "2026-09",
   "end": "2027-09"
@@ -242,30 +242,6 @@
    "report": false
   },
   {
-   "id": "emvpd4765r0ch",
-   "name": "數位校務改革",
-   "desc": "確認會晤確切時間\n\n教務處 課教組 教務長 計網中心 \n抓教務長LINE",
-   "links": [
-    {
-     "id": "lmvqlr6quzwgj",
-     "name": "建議方案",
-     "url": "https://drive.google.com/file/d/1qv76O5Or6Qs0bb6EMvLNNf5E5OvLV4qH/view?usp=drive_link",
-     "color": "#3d7fe0"
-    }
-   ],
-   "doneAt": null,
-   "staff": [],
-   "touched": [
-    "2026-10-27",
-    "2026-11-03"
-   ],
-   "times": [],
-   "round": 2,
-   "touchedAt": "2026-11-03T20:39",
-   "roundAt": "2026-11-03T19:26",
-   "report": false
-  },
-  {
    "id": "emvpd6qonvam7",
    "name": "社群內容排程",
    "desc": "交付行銷部五天前",
@@ -274,15 +250,16 @@
    "touched": [
     "2026-10-27",
     "2026-11-02",
-    "2026-11-03"
+    "2026-11-03",
+    "2026-11-05"
    ],
    "links": [],
    "times": [
     {
      "id": "tmvz5n7vl55e7",
      "label": "回家投票指南產出",
-     "start": "2026-11-20",
-     "end": "",
+     "start": "2026-11-09",
+     "end": "2026-11-14",
      "toIssue": false
     },
     {
@@ -329,7 +306,39 @@
     }
    ],
    "round": 1,
-   "touchedAt": "2026-11-03T20:37",
+   "touchedAt": "2026-11-05T16:23",
+   "report": false
+  },
+  {
+   "id": "emvqlvpkgu9x6",
+   "name": "總務會議代表",
+   "desc": "這周與總務處協調學生代表",
+   "createdAt": "2026-10-27",
+   "staff": [],
+   "touched": [
+    "2026-10-27",
+    "2026-11-02",
+    "2026-11-03"
+   ],
+   "links": [],
+   "times": [
+    {
+     "id": "tmvz5sd11blaz",
+     "label": "總務會議尋找學生代表中",
+     "start": "2026-10-26",
+     "end": "",
+     "toIssue": false
+    },
+    {
+     "id": "tmw0ps090zcua",
+     "label": "確認學生代表問題與報廢進度",
+     "start": "2026-11-04T14:00",
+     "end": "",
+     "toIssue": false
+    }
+   ],
+   "round": 1,
+   "touchedAt": "2026-11-03T21:20",
    "report": false
   },
   {
@@ -491,36 +500,20 @@
    "report": false
   },
   {
-   "id": "emvqlvpkgu9x6",
-   "name": "總務會議代表",
-   "desc": "這周與總務處協調學生代表",
-   "createdAt": "2026-10-27",
+   "id": "emvt1ohjjrkyg",
+   "name": "權益部網站線上化",
+   "desc": "法規公開\n衛生棉補給站即時更新\n加入學代名單與系統\n申訴案件線上化考量\n提案單產生器",
+   "createdAt": "2026-10-29",
    "staff": [],
    "touched": [
     "2026-10-27",
-    "2026-11-02",
-    "2026-11-03"
+    "2026-11-05"
    ],
    "links": [],
-   "times": [
-    {
-     "id": "tmvz5sd11blaz",
-     "label": "總務會議尋找學生代表中",
-     "start": "2026-10-26",
-     "end": "",
-     "toIssue": false
-    },
-    {
-     "id": "tmw0ps090zcua",
-     "label": "確認學生代表問題與報廢進度",
-     "start": "2026-11-04T14:00",
-     "end": "",
-     "toIssue": false
-    }
-   ],
+   "times": [],
    "round": 1,
-   "touchedAt": "2026-11-03T21:20",
-   "report": false
+   "report": false,
+   "touchedAt": "2026-11-05T13:39"
   },
   {
    "id": "emvqocysbhm9s",
@@ -590,22 +583,6 @@
    "doneAt": "2026-11-03",
    "touchedAt": "2026-11-03T20:39",
    "report": false
-  },
-  {
-   "id": "emvt1ohjjrkyg",
-   "name": "權益部網站線上化",
-   "desc": "法規公開\n衛生棉補給站即時更新\n加入學代名單與系統\n申訴案件線上化考量\n提案單產生器",
-   "createdAt": "2026-10-29",
-   "staff": [],
-   "touched": [
-    "2026-10-27",
-    "2026-11-05"
-   ],
-   "links": [],
-   "times": [],
-   "round": 1,
-   "report": false,
-   "touchedAt": "2026-11-05T13:39"
   },
   {
    "id": "emvt1pwvqrhyw",
@@ -720,27 +697,6 @@
    "report": false
   },
   {
-   "id": "emw0lqzfmw4dl",
-   "name": "數位校務改革",
-   "desc": "權益部已將選課介面建議方案已備妥。",
-   "doneAt": "2026-11-03",
-   "issueId": null,
-   "links": [
-    {
-     "id": "lmvqlr6quzwgj",
-     "name": "建議方案",
-     "url": "https://drive.google.com/file/d/1qv76O5Or6Qs0bb6EMvLNNf5E5OvLV4qH/view?usp=drive_link",
-     "color": "#3d7fe0"
-    }
-   ],
-   "staff": [],
-   "times": [],
-   "round": 1,
-   "fromEv": "emvpd4765r0ch",
-   "touched": [],
-   "report": false
-  },
-  {
    "id": "emw0mszjya8iv",
    "name": "交流簡報討論",
    "desc": "",
@@ -761,6 +717,27 @@
     "2026-11-03"
    ],
    "touchedAt": "2026-11-03T19:59",
+   "report": false
+  },
+  {
+   "id": "emw0lqzfmw4dl",
+   "name": "數位校務改革",
+   "desc": "權益部已將選課介面建議方案已備妥。",
+   "doneAt": "2026-11-03",
+   "issueId": null,
+   "links": [
+    {
+     "id": "lmvqlr6quzwgj",
+     "name": "建議方案",
+     "url": "https://drive.google.com/file/d/1qv76O5Or6Qs0bb6EMvLNNf5E5OvLV4qH/view?usp=drive_link",
+     "color": "#3d7fe0"
+    }
+   ],
+   "staff": [],
+   "times": [],
+   "round": 1,
+   "fromEv": "emvpd4765r0ch",
+   "touched": [],
    "report": false
   },
   {
@@ -791,6 +768,30 @@
     "2026-11-03"
    ],
    "touchedAt": "2026-11-03T21:22",
+   "report": false
+  },
+  {
+   "id": "emvpd4765r0ch",
+   "name": "數位校務改革",
+   "desc": "確認會晤確切時間\n\n教務處 課教組 教務長 計網中心 \n抓教務長LINE",
+   "links": [
+    {
+     "id": "lmvqlr6quzwgj",
+     "name": "建議方案",
+     "url": "https://drive.google.com/file/d/1qv76O5Or6Qs0bb6EMvLNNf5E5OvLV4qH/view?usp=drive_link",
+     "color": "#3d7fe0"
+    }
+   ],
+   "doneAt": null,
+   "staff": [],
+   "touched": [
+    "2026-10-27",
+    "2026-11-03"
+   ],
+   "times": [],
+   "round": 2,
+   "touchedAt": "2026-11-03T20:39",
+   "roundAt": "2026-11-03T19:26",
    "report": false
   }
  ],
