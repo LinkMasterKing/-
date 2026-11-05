@@ -51,7 +51,9 @@ document.addEventListener("click",async e=>{
     else{const v=await ask(`刪除「${ev.name}」？`,[],{danger:"刪除"});if(v==="delete"){unlinkEv(ev);state.events=state.events.filter(x=>x!==ev);changed()}}
     return}
   /* 逐欄編輯：鉛筆打開一欄、取消／完成／刪除（只在編輯中出現） */
-  const pen=t.closest("[data-evpen]");if(pen){evFld={ev:evOf(pen).id,k:pen.dataset.evpen};render();evFldFocus();return}
+  /* 點一欄：原本開著的那欄先存回（填錯就停在原欄），再打開這一欄 */
+  const pen=t.closest("[data-evpen]");if(pen){const cur=document.querySelector(".evf.open"),id=evOf(pen).id,k=pen.dataset.evpen;
+    if(cur&&!evFldCommit(cur))return;evFld={ev:id,k};render();evFldFocus();return}
   const fx=t.closest("[data-evfx]");if(fx){evFldAct(fx);return}
   /* 右側詳情（編輯中）：完成這一段的展開框 */
   const evd=t.closest("#evDetail [data-evd]");
@@ -99,7 +101,8 @@ document.addEventListener("click",async e=>{
   if(mv){const list=activeIssues();const k=list.indexOf(it),o=list[k+(+mv.dataset.move)];if(o){const a=state.issues.indexOf(it),b=state.issues.indexOf(o);[state.issues[a],state.issues[b]]=[o,it];changed()}return}
   const dt=t.closest("[data-deltag]");
   if(dt){e.stopPropagation();const k=+dt.dataset.deltag;it.tags.splice(k,1);if(it.cur>=it.tags.length)it.cur=Math.max(0,it.tags.length-1);else if(k<it.cur)it.cur--;changed();return}
-  if(t.closest("[data-editstaff]")){if(!state.staff.length){toast("還沒有專員名單：先到「身分與專員」新增");return}const v=await ask(`「${it.title}」的專員`,staffField(it.staff));if(v){it.staff=v.staff||[];changed()}return}
+  if(t.closest("[data-editstaff]")){if(!state.members.length){toast("還沒有任何身分：新成員先按「編輯」→「＋ 新增身分」");return}const v=await ask(`「${it.title}」的專員`,staffField(it.staff));if(v){it.staff=v.staff||[];changed()}return}
+  if(t.closest("[data-editlabels]")){if(!state.labels.length){toast("還沒有標籤：管理員可以到「設定 → 標籤」建立");return}const v=await ask(`「${it.title}」的標籤`,[{name:"labels",label:"人事時地物（常用的排前面，可複選）",type:"labels",value:it.labels}],{wide:true});if(v){it.labels=v.labels||[];changed()}return}
   if(t.closest("[data-addtag]")){const v=await ask("新增階段標籤",[{name:"t",label:"標籤名稱",ph:"例如：公告"}]);if(v&&v.t){it.tags.push(v.t);changed()}return}
   const tg=t.closest("[data-tag]");if(tg){it.cur=+tg.dataset.tag;changed();return}
   if(t.closest("[data-addmarker]")){const tr=t.closest("[data-issue]").querySelector(".c-track");tr.scrollIntoView({behavior:"smooth",block:"center"});makePending(tr,schedPct(it)??50);toast("把虛線標記拖到想要的位置後放開");return}
@@ -126,7 +129,7 @@ const evOf=el=>state.events.find(x=>x.id===el.closest("[data-ev]").dataset.ev); 
 /* 完成這一段：把這段的內容複製一份到完成紀錄（已經過去的時間標記跟著走），卡片留著進入下一段 */
 function evRoundDone(ev,done,next){
   const now=nowStr().replace(" ","T"),past=ev.times.filter(x=>x.start<=now);
-  const rec={id:uid("e"),name:ev.name,desc:done||"",createdAt:ev.createdAt,doneAt:today(),issueId:ev.issueId||null,links:ev.links.map(l=>({...l})),staff:[...ev.staff],times:past,round:ev.round,fromEv:ev.id};
+  const rec={id:uid("e"),name:ev.name,desc:done||"",createdAt:ev.createdAt,doneAt:today(),issueId:ev.issueId||null,links:ev.links.map(l=>({...l})),staff:[...ev.staff],labels:[...(ev.labels||[])],times:past,round:ev.round,fromEv:ev.id};
   ev.times=ev.times.filter(x=>!past.includes(x));ev.round+=1;ev.roundAt=now;if(next)ev.desc=next;evTouch(ev);
   state.events.push(rec);syncLink(ev);syncLink(rec);openEv.add(ev.id);changed();
   toast(`第 ${rec.round} 段已存進完成紀錄，接著追第 ${ev.round} 段`);
@@ -143,28 +146,36 @@ function evFldAct(fx){
   if(a==="color"){const c=COLORS[(COLORS.indexOf(fx.dataset.c)+1)%COLORS.length];fx.dataset.c=c;fx.style.background=c;return}
   if(a==="cancel"){evFld=null;render();return}
   const tid=k.startsWith("t:")?k.slice(2):null,lid=k.startsWith("l:")?k.slice(2):null;
+  if(a==="ok"){if(evFldCommit(box)){evFld=null;changed()}return}
   if(a==="del"){
     if(tid)ev.times=ev.times.filter(x=>x.id!==tid);
     if(lid)ev.links=ev.links.filter(x=>x.id!==lid);
     evFld=null;evTouch(ev);syncLink(ev);changed();return}
-  /* 完成 */
-  if(k==="name"){const v=g("name").value.trim();if(!v){toast("請填名稱");g("name").classList.add("bad");return}ev.name=v}
+}
+/* 把打開的那一欄寫回 state（不重畫；有改才算更新並標 dirty）；填錯回傳 false、停在原欄 */
+function evFldCommit(box){
+  const ev=evOf(box),k=box.dataset.evfk,g=n=>box.querySelector(`[data-e="${n}"]`),before=JSON.stringify(ev);
+  const tid=k.startsWith("t:")?k.slice(2):null,lid=k.startsWith("l:")?k.slice(2):null;
+  if(k==="name"){const v=g("name").value.trim();if(!v){toast("請填名稱");g("name").classList.add("bad");return false}ev.name=v}
   else if(k==="desc")ev.desc=g("desc").value.trim();
   else if(k==="issue"){const v=box.querySelector('input[name="evIssue"]').value||null;if(v!==(ev.issueId||null)){ev.issueId=v;toast(v?`已連結到「${parentOf(ev).title}」`:"已取消連結")}}
   else if(k==="staff")ev.staff=[...box.querySelectorAll('input[name="staff"]:checked')].map(x=>x.value);
+  else if(k==="labels")ev.labels=[...box.querySelectorAll('input[name="labels"]:checked')].map(x=>x.value);
   else if(tid){const r=evTimeParts({label:g("label").value.trim(),sd:g("sd").value,st:g("st").value,ed:g("ed").value,et:g("et").value});
-    if(r.msg){toast(r.msg);return}
-    const v={label:g("label").value.trim(),start:r.start,end:r.end,toIssue:!!(g("toIssue")&&g("toIssue").checked)};
+    if(r.msg){toast(r.msg);return false}
+    const v={label:g("label").value.trim(),start:r.start,end:r.end,place:(g("place")?g("place").value.trim():""),toIssue:!!(g("toIssue")&&g("toIssue").checked)};
     if(tid==="+")ev.times.push({id:uid("t"),...v});else Object.assign(ev.times.find(x=>x.id===tid),v)}
   else if(lid){const v={name:g("name").value.trim(),url:g("url").value.trim(),color:box.querySelector("[data-c]").dataset.c};
-    if(!v.name){toast("請填按鈕名稱");g("name").classList.add("bad");return}
+    if(!v.name){toast("請填按鈕名稱");g("name").classList.add("bad");return false}
     if(lid==="+")ev.links.push({id:uid("l"),...v});else Object.assign(ev.links.find(x=>x.id===lid),v)}
-  evFld=null;evTouch(ev);syncLink(ev);openEv.add(ev.id);changed();
+  if(JSON.stringify(ev)===before)return true;   /* 沒改東西：不算「更新」，燈號不動 */
+  evTouch(ev);syncLink(ev);openEv.add(ev.id);dirty=true;return true;
 }
 document.addEventListener("keydown",e=>{
   const box=e.target.closest&&e.target.closest(".evf.open");if(!box||document.querySelector(".csel.open"))return;
   if(e.key==="Escape"){e.preventDefault();e.stopPropagation();evFld=null;render();return}
   if(e.key==="Enter"&&!e.isComposing&&e.target.matches("input[data-e]")){e.preventDefault();evFldAct(box.querySelector('[data-evfx="ok"]'))}
+  if(e.key==="Enter"&&(e.ctrlKey||e.metaKey)&&e.target.matches("textarea[data-e]")){e.preventDefault();evFldAct(box.querySelector('[data-evfx="ok"]'))}
 },true);
 /* markers on cards: press-and-drag to place a new one, drag to move, click to edit */
 let drag=null;

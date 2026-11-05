@@ -1,6 +1,7 @@
 /* 核心｜對話框 */
 /* ---------- dialog ---------- */
 function fieldHTML(x){
+  if(x.type==="labels")return `<fieldset class="multi"><legend>${esc(x.label)}</legend>${labelPickerHTML(x.name,x.value)}</fieldset>`;
   if(x.type==="multi")return `<fieldset class="multi"><legend>${esc(x.label)}</legend><div class="chips">${x.options.map(([v,t])=>`<label class="chip"><input type="checkbox" name="${x.name}" value="${esc(v)}" ${(x.value||[]).includes(v)?"checked":""}><span>${esc(t)}</span></label>`).join("")}</div></fieldset>`;
   if(x.type==="check")return `<label class="fld-check"><input type="checkbox" name="${x.name}" ${x.value?"checked":""}><span>${esc(x.label)}</span></label>`;
   if(x.type==="textarea")return `<label>${esc(x.label)}<textarea name="${x.name}" rows="${x.rows||16}" placeholder="${esc(x.ph||"")}">${esc(x.value||"")}</textarea></label>`;
@@ -31,7 +32,7 @@ function ask(title,fields,{danger,wide,alt}={}){
     f.querySelectorAll("[data-act]").forEach(b=>b.onclick=()=>d.close(b.dataset.act));
     f.onsubmit=ev=>{ev.preventDefault();d.close(!fields.length&&danger?"delete":"ok")};
     f.onkeydown=ev=>{if(ev.key==="Enter"&&!ev.isComposing&&ev.target.tagName==="INPUT"&&ev.target.type!=="color"&&ev.target.type!=="checkbox"){ev.preventDefault();d.close("ok")}};
-    d.onclose=()=>{const v=d.returnValue;if(v==="ok"){const o={},fd=new FormData(f);fd.forEach((val,k)=>o[k]=f.querySelector(`textarea[name="${k}"]`)?String(val).replace(/\s+$/,""):String(val).trim());fields.filter(x=>x.type==="multi").forEach(x=>o[x.name]=fd.getAll(x.name).map(String));res(o)}else res(v==="delete"?"delete":v==="alt"?"alt":null)};
+    d.onclose=()=>{const v=d.returnValue;if(v==="ok"){const o={},fd=new FormData(f);fd.forEach((val,k)=>o[k]=f.querySelector(`textarea[name="${k}"]`)?String(val).replace(/\s+$/,""):String(val).trim());fields.filter(x=>x.type==="multi"||x.type==="labels").forEach(x=>o[x.name]=fd.getAll(x.name).map(String));res(o)}else res(v==="delete"?"delete":v==="alt"?"alt":null)};
     d.returnValue="";dlgOpen(!fields.length||fields.every(x=>x.type==="password"||x.type==="check"));(f.querySelector("textarea")||f.querySelector("input"))?.focus();
   });
 }

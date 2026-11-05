@@ -1,4 +1,4 @@
-/* 核心｜編輯身分、專員名單、編輯紀錄 */
+/* 核心｜編輯身分（也是卡片上的專員）、編輯紀錄 */
 const MIN_PW=12;
 const ME_KEY="workboard:me:"+state.id;
 let meId="",sharedPwSession="";   /* 只存在記憶體，不寫進資料 */
@@ -95,17 +95,13 @@ function teamHTML(){
   const me=meMember(),adm=isAdmin();
   const rows=state.members.map(m=>`<li class="tm-row"><span class="tm-name">${esc(m.name)}</span>${m.role==="admin"?'<span class="tm-pill on">管理員</span>':""}${m.id===meId?'<span class="tm-pill">我</span>':""}
     <span class="tm-act">${m.id===meId?'<button type="button" class="icon" data-x="mypw">改個人密碼</button>':""}${adm?`<button type="button" class="icon" data-x="role" data-id="${m.id}">${m.role==="admin"?"取消管理員":"設為管理員"}</button><button type="button" class="icon danger" data-x="del" data-id="${m.id}">刪除</button>`:""}</span></li>`).join("");
-  const staff=state.staff.map(s=>`<li class="tm-row"><input data-staff="${s.id}" value="${esc(s.name)}" aria-label="專員名字"><button type="button" class="icon danger" data-x="delstaff" data-id="${s.id}">移除</button></li>`).join("");
   return `<b>身分與專員</b>
   <section class="tm-sec"><div class="att-h">編輯身分${me?`（目前：${esc(me.name)}）`:""}</div><ul class="tm-list">${rows||'<li class="sub">還沒有身分</li>'}</ul>
-    <p class="sub tm-note">新成員：按「編輯」→「＋ 新增身分」，輸入部門共用密碼後自己設定個人密碼。${adm?"":"刪除身分、指定管理員需要管理員。"}</p>
+    <p class="sub tm-note">即時回報與議題上的「專員」就是從這些身分挑選；沒有身分的人不能被標。新成員：按「編輯」→「＋ 新增身分」，輸入部門共用密碼後自己設定個人密碼。${adm?"":"刪除身分、指定管理員需要管理員。"}</p>
     ${adm?'<div class="tm-tools"><button type="button" class="ghost" data-x="sharedpw">更改部門共用密碼</button></div>':""}</section>
-  <section class="tm-sec"><div class="att-h">專員名單（標在即時回報與議題上，和編輯身分無關）</div><ul class="tm-list">${staff||'<li class="sub">還沒有專員</li>'}</ul>
-    <div class="tm-tools"><input id="newStaff" placeholder="新增專員名字" aria-label="新增專員名字"><button type="button" data-x="addstaff">＋ 新增</button></div></section>
   <p class="sub tm-note">${editing?"變更會在按「儲存並同步」後生效。":"按「完成」後會直接儲存並同步。"}</p>
   <div class="dlg-actions"><button type="button" class="primary" data-x="done">完成</button></div>`;
 }
-function syncStaffInputs(f){f.querySelectorAll("[data-staff]").forEach(i=>{const s=state.staff.find(x=>x.id===i.dataset.staff);const n=i.value.trim();if(s&&n)s.name=n})}
 async function teamSettings(){
   const d=$("#dlg"),f=$("#dlgForm");d.classList.add("wide");
   const paint=()=>{f.innerHTML=teamHTML();bind()};
@@ -113,18 +109,14 @@ async function teamSettings(){
   const leave=async()=>{d.oncancel=null;d.onclose=null;if(d.open)await new Promise(r=>{d.addEventListener("close",()=>setTimeout(r,0),{once:true});d.close()})};
   const bind=()=>{
     f.onsubmit=ev=>ev.preventDefault();
-    f.onkeydown=ev=>{if(ev.key==="Enter"&&ev.target.id==="newStaff"){ev.preventDefault();f.querySelector('[data-x="addstaff"]').click()}};
     f.querySelectorAll("[data-x]").forEach(b=>b.onclick=async()=>{
       const x=b.dataset.x,id=b.dataset.id,m=state.members.find(y=>y.id===id);
-      syncStaffInputs(f);
       if(x==="done"){await leave();d.classList.remove("wide");if(editing)changed();else if(dirty)await settingSave(()=>{},"已更新身分與專員");else render();finish();return}
-      if(x==="addstaff"){const n=$("#newStaff").value.trim();if(!n)return;if(state.staff.some(s=>s.name===n)){toast("名單裡已經有這個名字");return}state.staff.push({id:uid("s"),name:n});dirty=true;paint();$("#newStaff").focus();return}
-      if(x==="delstaff"){state.staff=state.staff.filter(s=>s.id!==id);[...state.issues,...state.events].forEach(o=>{if(o.staff)o.staff=o.staff.filter(s=>s!==id)});dirty=true;paint();return}
       if(x==="role"&&m){if(m.role==="admin"&&adminCount()<=1){toast("至少要保留一位管理員");return}m.role=m.role==="admin"?"member":"admin";dirty=true;paint();return}
       if(x==="del"&&m){
         if(m.role==="admin"&&adminCount()<=1){toast("至少要保留一位管理員");return}
         await leave();const ok=await ask(`刪除編輯身分「${m.name}」？${m.id===meId?"（這是你自己）":""}`,[],{danger:"刪除身分"});
-        if(ok==="delete"){state.members=state.members.filter(y=>y!==m);dirty=true}
+        if(ok==="delete"){state.members=state.members.filter(y=>y!==m);[...state.issues,...state.events].forEach(o=>{if(o.staff)o.staff=o.staff.filter(s=>s!==m.id)});dirty=true}
         reopen();return}
       if(x==="mypw"){await leave();const me=meMember();
         const old=await ask("更改個人密碼",[{name:"old",label:"目前的個人密碼",type:"password"}]);
@@ -148,12 +140,14 @@ async function teamSettings(){
 }
 
 /* ---------- 專員標籤 ---------- */
-const staffOpts=()=>state.staff.map(s=>[s.id,s.name]);
+/* 專員＝本看板的編輯身分（members）；ev.staff／issues[].staff 存 member id（schemaVersion 8 起） */
+const staffOpts=()=>state.members.map(m=>[m.id,m.name]);
+const staffNames=ids=>(ids||[]).map(id=>state.members.find(m=>m.id===id)).filter(Boolean).map(m=>m.name);
 function staffHTML(ids){
-  const names=(ids||[]).map(id=>state.staff.find(s=>s.id===id)).filter(Boolean).map(s=>s.name);
+  const names=staffNames(ids);
   return names.length?`<div class="staff-row"><span class="staff-h">專員</span>${names.map(n=>`<span class="staff-chip">${esc(n)}</span>`).join("")}</div>`:"";
 }
-const staffField=v=>state.staff.length?[{name:"staff",label:"專員（可複選）",type:"multi",value:v||[],options:staffOpts()}]:[];
+const staffField=v=>state.members.length?[{name:"staff",label:"專員（可複選）",type:"multi",value:v||[],options:staffOpts()}]:[];
 
 /* ---------- 編輯紀錄：存檔時比對前後，寫成結構化的 commit 訊息 ---------- */
 let baseline=null;
@@ -161,11 +155,11 @@ const setBaseline=()=>{baseline=JSON.parse(JSON.stringify(state))};
 function diffState(a,b){
   const L=[],byId=x=>new Map((x||[]).map(o=>[o.id,o])),same=(x,y)=>JSON.stringify(x??null)===JSON.stringify(y??null);
   const rng=i=>i.start&&i.end?`${fmt(i.start).slice(5)}~${fmt(i.end).slice(5)}`:"未排";
-  const sname=id=>(b.staff||[]).concat(a.staff||[]).find(s=>s.id===id)?.name||"?";
+  const sname=id=>(b.members||[]).concat(a.members||[]).find(s=>s.id===id)?.name||"?";
   const staffD=(o,x,cat,t)=>{const A=new Set(o||[]),B=new Set(x||[]);const add=[...B].filter(i=>!A.has(i)).map(sname),rm=[...A].filter(i=>!B.has(i)).map(sname);
     if(add.length||rm.length)L.push(`${cat}｜專員${add.length?" +"+add.join("、"):""}${rm.length?" −"+rm.join("、"):""}｜${t}`)};
   const linkD=(o,x,cat,t)=>{const A=byId(o),B=byId(x);for(const [k,l] of B){if(!A.has(k))L.push(`${cat}｜新增連結「${l.name}」｜${t}`);else if(!same(A.get(k),l))L.push(`${cat}｜修改連結「${l.name}」｜${t}`)}for(const [k,l] of A)if(!B.has(k))L.push(`${cat}｜刪除連結「${l.name}」｜${t}`)};
-  [["title","看板名稱"],["yearLabel","學年"],["termStart","開學日"],["boardDate","看板日期"]].forEach(([k,t])=>{if((a[k]||"")!==(b[k]||""))L.push(`看板｜${t} ${a[k]||"（空）"}→${b[k]||"（空）"}`)});
+  [["title","看板名稱"],["yearLabel","學年"],["termStart","開學日"]].forEach(([k,t])=>{if((a[k]||"")!==(b[k]||""))L.push(`看板｜${t} ${a[k]||"（空）"}→${b[k]||"（空）"}`)});
   if(!same(a.range,b.range))L.push("看板｜調整時間軸範圍");
   /* 議題 */
   const AI=byId(a.issues),BI=byId(b.issues);

@@ -38,7 +38,7 @@ function evTouch(ev){
    ok 綠＝期限前有更新、這週沒完成一段；go 黃＝這週完成過一段，或期限過後才補更新；stall 紅＝期限前後都沒更新 */
 const EV_ST={ok:"按時更新",go:"持續進行",stall:"沒有進度"};
 function evStatus(ev){
-  const ref=state.boardDate||today(),back=(pd(ref).getDay()-(+CFG.week.cutoff||0)+7)%7;
+  const ref=today(),back=(pd(ref).getDay()-(+CFG.week.cutoff||0)+7)%7;
   const due=addDays(ref,-back),prev=addDays(due,-7);
   const ds=(ev.touched&&ev.touched.length?ev.touched:[ev.createdAt||""]).map(d=>d.slice(0,10));
   if(ev.roundAt&&ev.roundAt.slice(0,10)>prev)return "go";
@@ -49,7 +49,7 @@ function evStatus(ev){
 }
 /* 時間標記的顯示文字：日期、時刻、期間長度 */
 function evTimeText(t){
-  const yr=(state.boardDate||today()).slice(0,4);
+  const yr=today().slice(0,4);
   const part=s=>{const d=s.slice(0,10),h=s.slice(11,16);return (d.slice(0,4)===yr?fmt(d).slice(5):fmt(d))+(h?" "+h:"")};
   if(!t.end)return {when:part(t.start),span:""};
   const sameDay=t.start.slice(0,10)===t.end.slice(0,10);
@@ -80,7 +80,7 @@ function weekDotSync(){const due=weekDue(),wb=$("#weekBtn");if(!wb)return;wb.cla
 setInterval(weekDotSync,6e5);document.addEventListener("visibilitychange",()=>{if(!document.hidden)weekDotSync()});
 /* 「本週」＝上一份週報之後到今天（生成週報、動畫模式共用） */
 function weekRange(){
-  const end=state.boardDate||today();
+  const end=today();
   const lastWeek=[...state.weeks].map(w=>w.date).filter(d=>d<end).sort().pop();
   const start=state.reportBase?.date&&state.reportBase.date<end?state.reportBase.date:(lastWeek||addDays(end,-7));
   return {start,end};

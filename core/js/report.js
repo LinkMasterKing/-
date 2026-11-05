@@ -38,7 +38,7 @@ const rptSec=(k,h,body,cls="")=>`<section class="rpt-sec ${cls}" data-k="${k}"><
 const rptFree=(h,ph)=>rptSec("free",h,`<div class="rpt-text" contenteditable="true" data-ph="${ph}"></div>`,"rpt-free");
 function rptHTML(d){
   const dept=CFG.dept.name||state.title,logo=CFG.logo?document.getElementById("dept-logo"):null;   /* 沒有 logo 的部門不放 */
-  const staffNames=ids=>(ids||[]).map(id=>(state.staff.find(s=>s.id===id)||{}).name).filter(Boolean).join("、");
+  const staffJoin=ids=>staffNames(ids).join("、");
   const head=`<header class="rpt-head"><div class="rpt-logo">${logo?logo.innerHTML:""}</div>
     <div class="rpt-ttl"><h1 contenteditable="true">${esc(dept)} 工作報告</h1><p class="rpt-sub" contenteditable="true">${state.yearLabel?esc(state.yearLabel)+"　｜　":""}報告期間 ${fmt(d.from)} – ${fmt(d.to)}</p>
       <a class="rpt-live" href="${esc(boardURL())}" target="_blank" rel="noopener">查看看板即時動態<span class="rpt-url">${esc(boardURL().replace(/^https?:\/\//,""))}</span></a></div>
@@ -46,7 +46,7 @@ function rptHTML(d){
   const stat=(n,t,s)=>`<div><b>${n}</b><span>${t}</span><small>${s}</small></div>`;
   const sum=rptSec("sum","本期摘要",`<div class="rpt-stats" contenteditable="true">${stat(d.issues.length,"處理議題",`完成 ${d.nDone}・進行中 ${d.nAct}`)}${stat(d.marks,"處理紀錄","期間內的議題註記")}${stat(d.evNew.length,"新增即時回報",`完成 ${d.evDone.length}・併入議題 ${d.evLinked}`)}${stat(d.weeks.length,"每週概述","期間內的週報")}</div>${rptGantt(d)}`);
   const issue=it=>{
-    const meta=[hasDates(it)?`期間 ${fmt(it.start)} – ${fmt(it.end)}`:"",it.tags[it.cur]?`目前階段：${it.tags[it.cur]}`:"",staffNames(it.staff)?`專員：${staffNames(it.staff)}`:""].filter(Boolean).join("　｜　");
+    const meta=[hasDates(it)?`期間 ${fmt(it.start)} – ${fmt(it.end)}`:"",it.tags[it.cur]?`目前階段：${it.tags[it.cur]}`:"",staffJoin(it.staff)?`專員：${staffJoin(it.staff)}`:""].filter(Boolean).join("　｜　");
     const mk=sortedMarkers(it).filter(m=>!m.date||d.inP(m.date));
     const evs=state.events.filter(e=>e.issueId===it.id&&(!e.doneAt||d.inP(e.doneAt)||d.inP(e.createdAt)));
     return `<article class="rpt-issue" data-tone="hi"><h3>${esc(it.title)}<span class="rpt-st">${it.doneAt&&it.doneAt<=d.to?`已結案 ${fmt(it.doneAt)}`:`進行中・${hasDates(it)?`時程 ${schedPct(it,d.to)}%`:"未排程"}`}</span></h3>

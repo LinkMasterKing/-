@@ -18,21 +18,21 @@ function termWeek(d){if(!state.termStart)return 0;const diff=Math.floor((pd(ymd(
 /* 星期幾對齊大日期的「字形墨跡」中心，而不是文字框中心：數字左右留白不同（「1」左邊空很多），只靠框置中會偏 */
 const _dowCtx=document.createElement("canvas").getContext("2d");
 function alignDow(){
-  const el=$("#bigDate"),r=el&&el.closest(".hero-r");if(!r||!el.textContent)return;
+  const el=$("#bigDate"),r=el&&el.closest(".hero-r"),txt=el&&el.firstChild&&el.firstChild.nodeType===3?el.firstChild.data:"";if(!r||!txt)return;
   const cs=getComputedStyle(el);
   _dowCtx.font=`${cs.fontWeight} ${cs.fontSize} ${cs.fontFamily}`;_dowCtx.letterSpacing=cs.letterSpacing;
-  const m=_dowCtx.measureText(el.textContent),box=el.getBoundingClientRect().width;
+  const m=_dowCtx.measureText(txt),box=el.getBoundingClientRect().width;
   r.style.setProperty("--dow-dx",((m.actualBoundingBoxRight-m.actualBoundingBoxLeft)/2-box/2).toFixed(2)+"px");
 }
 if(document.fonts)document.fonts.ready.then(alignDow);
 addEventListener("resize",()=>requestAnimationFrame(alignDow),{passive:true});
 
 function renderHero(){
-  const d=state.boardDate?pd(state.boardDate):state.savedAt?pd(state.savedAt.slice(0,10)):new Date();
+  const d=state.savedAt?pd(state.savedAt.slice(0,10)):new Date();   /* 看板日期＝上次編輯（儲存）的日期，不另外設定 */
   $("#yearTxt").textContent=state.yearLabel||"";
   const tw=termWeek(d);
   $("#weekPill").textContent=tw>0?"W"+pad(tw):"PRE";$("#weekZh").textContent=tw>0?`開學第${tw}週`:"開學前";
-  $("#bigDate").textContent=`${d.getMonth()+1}.${pad(d.getDate())}`;
+  {const bd=$("#bigDate");bd.firstChild&&bd.firstChild.nodeType===3?bd.firstChild.data=`${d.getMonth()+1}.${pad(d.getDate())}`:bd.prepend(`${d.getMonth()+1}.${pad(d.getDate())}`);bd.title=state.savedAt?`上次編輯 ${state.savedAt}`:"尚未儲存"}
   $("#dowEn").textContent=["SUN","MON","TUE","WED","THU","FRI","SAT"][d.getDay()];
   $("#dowZh").textContent="日一二三四五六"[d.getDay()];
   alignDow();
@@ -148,7 +148,7 @@ function cardHTML(it,open,pane,sel){
     ${ed?`<label class="sub" style="display:grid;gap:3px">議題名稱<input data-f="title" value="${esc(it.title)}"></label>`:""}
     <div class="meta"><span class="sub">${hasDates(it)?`${fmt(it.start)} – ${fmt(it.end)}`:"未排入甘特圖"}</span></div>
     <div class="tags">${tagsHTML(it)}</div>
-    ${staffHTML(it.staff)}
+    ${staffHTML(it.staff)}${labelChipsHTML(it.labels)}
     ${!ed&&it.note?`<p class="note"><span class="note-h">目前進度</span>${esc(it.note)}</p>`:""}
     <div class="c-track" data-track>
       <div class="c-bar"><div class="fill" style="width:${schedPct(it)||0}%"></div></div>
@@ -160,7 +160,7 @@ function cardHTML(it,open,pane,sel){
       <label>開始日<input type="date" data-f="start" value="${it.start}"></label>
       <label>結束日<input type="date" data-f="end" value="${it.end}"></label>
       <span class="hint full">兩個日期都填才會顯示在甘特圖；清空即從甘特圖移除。</span>
-      <div class="full" style="display:flex;justify-content:flex-end;gap:6px;flex-wrap:wrap"><button type="button" data-addlink="${it.id}">+ 超連結按鈕</button><button type="button" class="ghost" data-editstaff>專員</button><button type="button" class="ghost" data-addmarker>+ 註記</button></div>
+      <div class="full" style="display:flex;justify-content:flex-end;gap:6px;flex-wrap:wrap"><button type="button" data-addlink="${it.id}">+ 超連結按鈕</button><button type="button" class="ghost" data-editstaff>專員</button><button type="button" class="ghost" data-editlabels>標籤</button><button type="button" class="ghost" data-addmarker>+ 註記</button></div>
     </div>
     ${(()=>{const kids=state.events.filter(e=>!e.doneAt&&e.issueId===it.id);return kids.length?`<div class="kid-evs"><div class="att-h">進行中的即時回報</div><div class="kid-list">${kids.map(e=>`<span class="kid-ev" data-st="${evStatus(e)}"><span class="live-dot" aria-hidden="true"></span>${esc(e.name)}</span>`).join("")}</div></div>`:""})()}
     ${logHTML(it)}
@@ -201,7 +201,7 @@ function evMetaHTML(ev,st){
 /* 時間標記清單（即時回報區、完成紀錄共用） */
 function evTimesHTML(ev){
   const par=parentOf(ev),ts=evTimesSorted(ev);if(!ts.length)return "";
-  return `<ol class="ev-times">${ts.map(t=>{const x=evTimeText(t);return `<li><span class="num ev-t-when">${x.when}</span><span class="ev-t-label">${esc(t.label)}</span>${x.span?`<span class="sub num">${x.span}</span>`:""}${t.toIssue&&par?`<span class="sub" title="這筆也寫進母議題的處理紀錄">（母議題）</span>`:""}</li>`}).join("")}</ol>`;
+  return `<ol class="ev-times">${ts.map(t=>`<li>${evTimeView(t,par)}</li>`).join("")}</ol>`;
 }
 /* 連結按鈕列 */
 function evLinksHTML(ev){
@@ -209,24 +209,29 @@ function evLinksHTML(ev){
   return `<div class="links ev-links">${ev.links.map(l=>`<a class="link" style="background:${esc(l.color)}" href="${esc(safeUrl(l.url))}" target="_blank" rel="noopener">${esc(l.name)}</a>`).join("")}</div>`;
 }
 /* ---------- 逐欄編輯（頁首按「編輯」後，即時回報不用再按「編輯這區」） ----------
-   檢視時照常顯示內容；編輯中每一欄旁邊一顆小鉛筆，按了只有那一欄變成輸入框，「完成」存回、「取消」放棄。
-   一次只開一欄：evFld＝{ev:即時回報 id,k:欄位}；k＝name／desc／issue／staff／t:時間標記 id／l:連結 id（t:+、l:+ 是新增）。
+   檢視時照常顯示內容；編輯中每一欄本身就是可以點的（滑過去底色微亮、游標變成可點），點哪一欄只有那一欄變成輸入框，其他照常顯示。
+   沒有鉛筆鈕：點標題才改標題、點母議題才改母議題。「完成」（或 Enter、或直接點別欄）存回，「取消」（或 Esc）放棄。
+   一次只開一欄：evFld＝{ev:即時回報 id,k:欄位}；k＝name／desc／issue／staff／labels／t:時間標記 id／l:連結 id（t:+、l:+ 是新增）。
    膠囊（手機、總覽）與右側詳情共用同一套（evFieldsHTML）；存回在 events.js 的「逐欄編輯」段 */
 let evFld=null;
 const evFldOpen=(ev,k)=>!!evFld&&evFld.ev===ev.id&&evFld.k===k;
-/* 一欄：標題＋內容＋鉛筆；打開時換成輸入框＋取消／完成 */
+/* 一欄：標題＋內容（整個內容是一顆按鈕，點了就編這一欄）；打開時換成輸入框＋取消／完成 */
 function evFieldHTML(ev,k,label,view,editor){
   if(evFldOpen(ev,k))return `<div class="evf open" data-evfk="${k}">${label?`<span class="evf-l">${label}</span>`:""}<div class="evf-ed">${editor()}</div>
         <div class="evf-btns">${/^[tl]:(?!\+)/.test(k)?`<button type="button" class="icon danger" data-evfx="del">刪除</button><span class="evd-gap"></span>`:""}<button type="button" class="ghost" data-evfx="cancel">取消</button><button type="button" class="primary" data-evfx="ok">完成</button></div></div>`;
-  return `<div class="evf" data-evfk="${k}">${label?`<span class="evf-l">${label}</span>`:""}<div class="evf-v">${view}</div><button type="button" class="icon evf-pen" data-evpen="${k}" aria-label="修改${label||"這一項"}">${ico("edit","solo")}</button></div>`;
+  return `<div class="evf" data-evfk="${k}">${label?`<span class="evf-l">${label}</span>`:""}<button type="button" class="evf-v" data-evpen="${k}" title="點一下修改${label||"這一項"}">${view}</button></div>`;
 }
-/* 時間標記的輸入框（名稱、日期、時刻、結束、寫進母議題） */
+/* 時間的文字：「日期 時刻 名稱 期間 · 地點」（顯示與編輯中共用） */
+function evTimeView(t,par){const x=evTimeText(t);
+  return `<span class="num ev-t-when">${x.when}</span><span class="ev-t-label">${esc(t.label)}</span>${x.span?`<span class="sub num">${x.span}</span>`:""}${t.place?`<span class="ev-t-place">· ${esc(t.place)}</span>`:""}${t.toIssue&&par?`<span class="sub" title="這筆也寫進母議題的處理紀錄">（母議題）</span>`:""}`}
+/* 時間標記的輸入框（名稱、日期、時刻、結束、地點、寫進母議題） */
 function evTimeEditor(ev,tm){
   const par=parentOf(ev),sp=x=>[(x||"").slice(0,10),(x||"").slice(11,16)],[sd,st]=tm?sp(tm.start):[today(),""],[ed,et]=tm?sp(tm.end):["",""];
   const inp=(k,v,ph,type)=>`<input ${type?`type="${type}"`:""} data-e="${k}" value="${esc(v||"")}" ${ph?`placeholder="${esc(ph)}"`:""}>`;
   return `${inp("label",tm&&tm.label,"這個時間是什麼（例如：與總務處開會）")}
           <span class="evd-when">${inp("sd",sd,"","date")}${inp("st",st,"時刻")}<span class="sub">～</span>${inp("ed",ed,"","date")}${inp("et",et,"時刻")}</span>
           <span class="sub evf-hint">只填日期＝一個日子；加時刻＝具體時間；填結束＝一段期間</span>
+          <span class="evd-place">${inp("place",tm&&tm.place,"地點（選填，例如：學生會辦公室）")}${placeQuickHTML()}</span>
           ${par?`<label class="fld-check"><input type="checkbox" data-e="toIssue" ${tm&&tm.toIssue?"checked":""}><span>也寫進母議題的處理紀錄</span></label>`:""}`;
 }
 /* 連結的輸入框（顏色、名稱、網址） */
@@ -234,19 +239,20 @@ function evLinkEditor(ev,l){
   const c=l?l.color:COLORS[ev.links.length%COLORS.length];
   return `<span class="evd-row evd-link"><button type="button" class="evd-sw" style="background:${esc(c)}" data-evfx="color" data-c="${esc(c)}" aria-label="換顏色"></button><input data-e="name" value="${esc(l?l.name:"")}" placeholder="按鈕名稱"><input data-e="url" value="${esc(l?l.url:"")}" placeholder="https://" inputmode="url"></span>`;
 }
-/* 編輯中的內容：每一欄各自一顆鉛筆 */
+/* 編輯中的內容：每一欄各自可以點 */
 function evFieldsHTML(ev){
   const par=parentOf(ev),ts=evTimesSorted(ev);
   const opts=[["","（不連結）"],...state.issues.map(i=>[i.id,i.title+(i.doneAt?"（已結案）":"")])];
-  const staffNames=(ev.staff||[]).map(id=>state.staff.find(s=>s.id===id)).filter(Boolean).map(s=>`<span class="staff-chip">${esc(s.name)}</span>`).join("");
-  const timeView=t=>{const x=evTimeText(t);return `<span class="num ev-t-when">${x.when}</span><span class="ev-t-label">${esc(t.label)}</span>${x.span?`<span class="sub num">${x.span}</span>`:""}${t.toIssue&&par?`<span class="sub">（母議題）</span>`:""}`};
+  const staffChips=staffNames(ev.staff).map(n=>`<span class="staff-chip">${esc(n)}</span>`).join("");
+  const lblChips=labelChipsHTML(ev.labels);
   return `<div class="evfs">
       ${evFieldHTML(ev,"name","名稱",`<b>${esc(ev.name)}</b>`,()=>`<input data-e="name" value="${esc(ev.name)}">`)}
-      ${evFieldHTML(ev,"desc","說明",ev.desc?`<span class="evf-desc">${esc(ev.desc)}</span>`:`<span class="sub">（沒有說明）</span>`,()=>`<textarea data-e="desc" rows="4" placeholder="簡短說明">${esc(ev.desc||"")}</textarea>`)}
+      ${evFieldHTML(ev,"desc","說明",ev.desc?`<span class="evf-desc">${esc(ev.desc)}</span>`:`<span class="sub">（沒有說明，點一下填寫）</span>`,()=>`<textarea data-e="desc" rows="4" placeholder="簡短說明">${esc(ev.desc||"")}</textarea>`)}
       ${evFieldHTML(ev,"issue","母議題",par?esc(par.title):`<span class="sub">（不連結）</span>`,()=>fieldHTML({name:"evIssue",label:"結案或完成一段時，會自動寫進這個議題的處理紀錄",type:"select",value:ev.issueId||"",options:opts}))}
-      ${state.staff.length?evFieldHTML(ev,"staff","專員",staffNames||`<span class="sub">（沒有標專員）</span>`,()=>fieldHTML({name:"staff",label:"可複選",type:"multi",value:ev.staff||[],options:staffOpts()})):""}
+      ${state.members.length?evFieldHTML(ev,"staff","專員",staffChips||`<span class="sub">（沒有標專員）</span>`,()=>fieldHTML({name:"staff",label:"從本看板的身分挑選，可複選",type:"multi",value:ev.staff||[],options:staffOpts()})):""}
+      ${evFieldHTML(ev,"labels","標籤",lblChips||`<span class="sub">（沒有標籤）</span>`,()=>labelPickerHTML("labels",ev.labels))}
       <div class="evf-group"><span class="evf-l">時間標記</span>
-        ${ts.map(t=>evFieldHTML(ev,"t:"+t.id,"",timeView(t),()=>evTimeEditor(ev,t))).join("")}
+        ${ts.map(t=>evFieldHTML(ev,"t:"+t.id,"",evTimeView(t,par),()=>evTimeEditor(ev,t))).join("")}
         ${evFldOpen(ev,"t:+")?evFieldHTML(ev,"t:+","",'',()=>evTimeEditor(ev,null)):`<button type="button" class="ghost evd-add" data-evpen="t:+">${ico("calendar")}+ 時間</button>`}</div>
       <div class="evf-group"><span class="evf-l">超連結</span>
         ${ev.links.map(l=>evFieldHTML(ev,"l:"+l.id,"",`<span class="link" style="background:${esc(l.color)}">${esc(l.name)}</span><span class="sub evf-url">${esc(l.url)}</span>`,()=>evLinkEditor(ev,l))).join("")}
@@ -263,7 +269,7 @@ function evCapHTML(ev,o){
   /* 左右兩欄時被選到的那顆只是清單裡的空位，內容在右側詳情，不重複畫編輯欄位 */
   const body=o.ed&&!sel?`${evMetaHTML(ev,st)}${evFieldsHTML(ev)}${evToolsHTML(ev)}`
     :`${par?`<p class="ev-parent-full">母議題：${esc(par.title)}</p>`:""}${evMetaHTML(ev,st)}${ev.desc?`<p>${esc(ev.desc)}</p>`:`<p class="sub">（沒有說明）</p>`}
-        ${evTimesHTML(ev)}${staffHTML(ev.staff)}
+        ${evTimesHTML(ev)}${staffHTML(ev.staff)}${labelChipsHTML(ev.labels)}
         ${evLinksHTML(ev)}`;
   return `<details class="ev ${sel?"sel":""} ${ev.id===o.next?"next":""}" data-ev="${ev.id}" data-st="${st}" ${!o.md&&openEv.has(ev.id)?"open":""}${sel?' aria-current="true"':""}>
       <summary><span class="live-dot" aria-hidden="true"></span><b>${esc(ev.name)}</b>${par?`<span class="ev-parent">→ ${esc(par.title)}</span>`:""}<button type="button" class="ev-del edit-only" data-evdel aria-label="刪除「${esc(ev.name)}」">${ico("close","solo")}</button><span class="ev-chev" aria-hidden="true">▾</span></summary>
@@ -278,9 +284,9 @@ function evDetailHTML(ev){
   if(!secEd("live"))return `<div class="evd" data-ev="${ev.id}" data-st="${st}">${head}
     ${par?`<p class="sub evd-par">母議題：${esc(par.title)}</p>`:""}
     ${ev.desc?`<p class="evd-desc">${esc(ev.desc)}</p>`:`<p class="sub">（沒有說明）</p>`}
-    ${evTimesHTML(ev)}${staffHTML(ev.staff)}
+    ${evTimesHTML(ev)}${staffHTML(ev.staff)}${labelChipsHTML(ev.labels)}
     ${evLinksHTML(ev)}
-    <p class="sub evd-hint">按「編輯」後，每一欄旁邊會出現鉛筆，可以單獨修改。</p></div>`;
+    <p class="sub evd-hint">按「編輯」後，點哪一欄就改哪一欄。</p></div>`;
   return `<div class="evd editing" data-ev="${ev.id}" data-st="${st}">${head}
     ${evFieldsHTML(ev)}
     <section class="evd-sec evd-acts">

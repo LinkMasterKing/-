@@ -182,8 +182,8 @@ function settingsInner(){
   const c=cloudCfg(),rem=remRead(),remName=rem&&(state.members.find(m=>m.id===rem.id)||{}).name;
   return setSec("紀錄",setRow("log","history","編輯紀錄","誰在什麼時候改了什麼"))+
     (readOnly()?"":
-    setSec("人員與權限",setRow("team","people","身分與專員","編輯身分、管理員、專員名單"))+
-    setSec("看板資訊",setRow("title","edit","看板名稱",esc(state.title))+setRow("date","calendar","看板日期",state.boardDate?fmt(state.boardDate):"自動（使用儲存當天）")+
+    setSec("人員與權限",setRow("team","people","身分與專員","編輯身分、管理員（卡片上的專員就是這些身分）")+setRow("labels","tag","標籤",state.labels.length?`人事時地物 ${state.labels.length} 個`:"人事時地物，還沒有建立"))+
+    setSec("看板資訊",setRow("title","edit","看板名稱",esc(state.title))+
       setRow("year","cap","學年",esc(state.yearLabel||"未設定"))+setRow("term","flag","開學日",state.termStart?fmt(state.termStart):"未設定"))+
     setSec("雲端與分享",setRow("cloud","cloud","雲端同步",cloudOn()?`${esc(c.owner)}/${esc(c.repo)} · ${ghToken()?"這台裝置已連上":"這台裝置還沒有權杖"}`:"尚未設定")+
       setRow("share","share","分享預覽","貼連結到 LINE、IG、FB 時顯示的標題與說明"))+
@@ -269,14 +269,13 @@ PANE_MQ.addEventListener("change",()=>{if(!PANE_MQ.matches&&paneKey){paneSeq++;p
 /* 看板資訊：每一項單獨修改（原本在編輯模式的頁首） */
 const BOARD_INFO={
   title:["看板名稱",()=>[{name:"v",label:"看板名稱",value:state.title}],v=>{if(!v){toast("看板名稱不能空白");return false}state.title=v}],
-  date:["看板日期",()=>[{name:"v",label:"看板日期（留空＝自動使用儲存當天的日期）",type:"date",value:state.boardDate||""}],v=>{state.boardDate=v||""}],
   year:["學年",()=>[{name:"v",label:"學年（顯示在頁首，例如：115學年）",value:state.yearLabel||""}],v=>{state.yearLabel=v||""}],
   term:["開學日",()=>[{name:"v",label:"開學日（用來算開學第幾週）",type:"date",value:state.termStart||""}],v=>{state.termStart=v||""}],
 };
 async function editBoardInfo(k){
   const [t,fields,apply]=BOARD_INFO[k];
   const v=await ask(t,fields());if(!v)return;
-  const key={title:"title",date:"boardDate",year:"yearLabel",term:"termStart"}[k];
+  const key={title:"title",year:"yearLabel",term:"termStart"}[k];
   if((v.v||"")===(state[key]||""))return;
   await settingSave(()=>apply(v.v),`已更新${t}`);
 }
@@ -285,7 +284,8 @@ function forgetDevice(){remClear();if(!editing){meId="";sessionPw="";sharedPwSes
 const SET_FLOWS={
   log:()=>openLog(setPaneHost()),
   team:()=>teamSettings(),
-  title:()=>editBoardInfo("title"),date:()=>editBoardInfo("date"),year:()=>editBoardInfo("year"),term:()=>editBoardInfo("term"),
+  labels:()=>labelSettings(),
+  title:()=>editBoardInfo("title"),year:()=>editBoardInfo("year"),term:()=>editBoardInfo("term"),
   cloud:async()=>{const before=JSON.stringify(state);const ok=await cloudSettings();if(ok&&!editing&&JSON.stringify(state)!==before)await settingSave(()=>{},"雲端設定已更新");else render()},
   share:()=>shareSettings(),
   report:()=>reportDialog(),

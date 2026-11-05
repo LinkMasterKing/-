@@ -45,4 +45,5 @@ if(HOSTED)(async()=>{
   render();
 })();
 splashOut();
+if(MIGRATE_NOTE.staffDropped)setTimeout(()=>toast(`專員改成引用帳號：有 ${MIGRATE_NOTE.staffDropped} 筆專員標記找不到同名帳號，已拿掉（儲存後生效）`),4200);
 });
