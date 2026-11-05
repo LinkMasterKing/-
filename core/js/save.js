@@ -26,7 +26,7 @@ async function persist(msg){
 function save(){
   state.savedAt=nowStr();if(meName())state.savedBy=meName();
   editing=false;dirty=false;render();
-  persist();
+  persist().then(()=>{if(CFG.meeting)mtPushAll()});   /* 秘書處：改過的其他部門各自寫回 */
 }
 /* 匯出單一 HTML：把拆開的 CSS / JS / 設定檔全部打包回同一個檔案 */
 async function exportBackup(){

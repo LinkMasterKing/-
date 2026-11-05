@@ -214,10 +214,10 @@ function diffState(a,b){
   for(const [k,f] of AF)if(!BF.has(k))L.push(`追蹤｜移除｜${fl(f)}`);
   return L;
 }
-function commitMessage(){
-  const who=meName()||"未具名";
-  if(!baseline)return `〔${who}〕存檔\n\nBoard-Log: 1`;
-  const L=diffState(baseline,state);
+/* 參數給秘書處寫回其他部門時用（a＝讀進來時、b＝改過的那份資料） */
+function commitMessage(a=baseline,b=state,who=meName()||"未具名"){
+  if(!a)return `〔${who}〕存檔\n\nBoard-Log: 1`;
+  const L=diffState(a,b);
   if(!L.length)return `〔${who}〕存檔（沒有內容變更）\n\nBoard-Log: 1`;
   const cnt={};L.forEach(l=>{const c=l.split("｜")[0];cnt[c]=(cnt[c]||0)+1});
   const subj=L.length===1?`〔${who}〕${L[0]}`:`〔${who}〕更新 ${L.length} 項：${Object.entries(cnt).map(([c,n])=>`${c} ${n}`).join("、")}`;

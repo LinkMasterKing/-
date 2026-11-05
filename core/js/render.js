@@ -37,7 +37,7 @@ function render(){
   try{
     document.body.classList.toggle("edit",editing);
     document.body.classList.toggle("locked",!!state.locked);
-    renderHeader();renderTabbar();renderSections();renderSecEdit();renderWeeks();renderGantt();renderEvents();renderCards();renderDone();renderFollows();layoutAll();flowWatch();
+    renderHeader();renderTabbar();renderSections();renderSecEdit();renderWeeks();renderGantt();renderEvents();renderCards();renderDone();renderFollows();renderMeet();layoutAll();flowWatch();
   }finally{rendering=false}
   Anim.play(flip);
 }

@@ -24,6 +24,10 @@ const SHELL_HTML=`<div class="pager" id="pager">
         <div class="follows" id="follows" data-flip></div>
         <button class="ghost edit-only add-row" id="addFollow">+ 追蹤項目</button>
       </section>
+      <section class="panel follow-panel meet-panel" id="meetPanel" data-secbox="meet" aria-labelledby="mtH" hidden>
+        <div class="panel-head"><h2 id="mtH">會議報告事項<span class="en">MEETING</span></h2><button type="button" class="icon" id="meetRefresh">重新整理</button><button type="button" class="icon sec-edit-btn" data-secedit="meet" aria-pressed="false">編輯這區</button></div>
+        <div class="mt-depts" id="meetList" data-flip></div>
+      </section>
       <div class="layout">
         <div class="sgroup" data-sec="live" data-secbox="live">
           <section class="panel" id="livePanel" aria-labelledby="evH">

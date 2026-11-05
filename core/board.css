@@ -426,6 +426,25 @@ html.ev-drag-on,html.ev-drag-on *{-webkit-user-select:none;user-select:none;curs
   .fw{padding:12px 14px 14px}
 }
 
+/* ===== 會議報告事項（秘書處，meeting.js） =====
+   沿用追蹤面板的外框；依部門分組，每組標題列＝部門標籤＋數量＋開啟看板；卡片排成格，跟追蹤同一種細線清單 */
+.mt-depts{display:grid;gap:18px}
+.mt-dept h3{display:flex;align-items:center;gap:10px;margin:0 0 6px;font-size:14px;font-weight:500}
+.mt-dept h3 .num{color:var(--muted);font-size:13px}
+.mt-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,340px),1fr));margin:0 -18px}
+.mt-ev{display:grid;gap:6px;align-content:start;padding:14px 18px 16px;border-top:1px solid var(--line);min-width:0}
+.mt-top{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.mt-top b{font-size:16px;line-height:1.4;overflow-wrap:anywhere}
+.mt-top .ev-st{margin-left:auto;font-size:12px;color:var(--muted)}
+.mt-ev[data-st] .live-dot{background:var(--st-c,var(--ink))}
+.mt-ev[data-st="ok"]{--st-c:var(--st-ok)}.mt-ev[data-st="go"]{--st-c:var(--st-go)}.mt-ev[data-st="stall"]{--st-c:var(--st-stall)}
+.mt-ev .evfs{margin-top:4px}
+.meet-panel .panel-head #meetRefresh{margin-left:auto}
+@media (max-width:640px){
+  .mt-list{margin:0 -14px}
+  .mt-ev{padding:12px 14px 14px}
+}
+
 /* ===== 時間甘特圖 ===== */
 .range{display:none;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:10px;font-size:13px;color:var(--muted)}
 .sec-edit .range{display:flex}

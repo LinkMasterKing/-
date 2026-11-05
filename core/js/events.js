@@ -9,7 +9,7 @@ document.addEventListener("click",async e=>{
   if(t.closest("#pvBack")){progShow(null);return}
   if(jump&&!t.closest("[data-marker]")){e.preventDefault();if(curSec!=="progress")setSection("progress",{instant:true});progShow(jump.dataset.jump);return}
   if(t.closest("#editBtn")){if(!(await ensureLogin()))return;morph(()=>{editing=true;secEdit=new Set();snapshot=JSON.stringify(state);keepIds=new Set(state.issues.filter(i=>!i.doneAt).map(i=>i.id));render()});return}
-  if(t.closest("#cancelBtn")){morph(()=>{if(dirty)state=normalize(JSON.parse(snapshot));editing=false;dirty=false;render()});return}
+  if(t.closest("#cancelBtn")){morph(()=>{if(CFG.meeting)mtDiscard();if(dirty)state=normalize(JSON.parse(snapshot));editing=false;dirty=false;render()});return}
   if(t.closest("#saveBtn")){await saveFlow();return}
   if(t.closest("[data-copyweek]")){const bt=t.closest("[data-copyweek]");const w=state.weeks.find(x=>x.id===t.closest("[data-week]").dataset.week);copyText(w.text);bt.classList.add("copied");bt.innerHTML="已複製"+ico("check","sm");clearTimeout(bt._t);bt._t=setTimeout(()=>{bt.classList.remove("copied");bt.textContent="複製文字"},1500);return}
   if(t.closest("#genWeek")&&readOnly()){
@@ -125,7 +125,7 @@ document.addEventListener("change",e=>{
 });
 ["rStart","rEnd"].forEach(id=>$("#"+id).addEventListener("change",e=>{const k=id==="rStart"?"start":"end";if(e.target.value){state.range[k]=e.target.value;if(state.range.end<state.range.start)state.range.end=state.range.start;changed()}}));
 
-const evOf=el=>state.events.find(x=>x.id===el.closest("[data-ev]").dataset.ev);   /* 元素所在的即時回報（膠囊、完成紀錄、右側詳情都帶 data-ev） */
+const evOf=el=>{const m=mtOf(el);return (m?m.data:state).events.find(x=>x.id===el.closest("[data-ev]").dataset.ev)};   /* 秘書處面板裡的卡片屬於別的部門（meeting.js） */   /* 元素所在的即時回報（膠囊、完成紀錄、右側詳情都帶 data-ev） */
 /* 完成這一段：把這段的內容複製一份到完成紀錄（已經過去的時間標記跟著走），卡片留著進入下一段 */
 function evRoundDone(ev,done,next){
   const now=nowStr().replace(" ","T"),past=ev.times.filter(x=>x.start<=now);
@@ -148,12 +148,16 @@ function evFldAct(fx){
   const tid=k.startsWith("t:")?k.slice(2):null,lid=k.startsWith("l:")?k.slice(2):null;
   if(a==="ok"){if(evFldCommit(box)){evFld=null;changed()}return}
   if(a==="del"){
-    if(tid)ev.times=ev.times.filter(x=>x.id!==tid);
-    if(lid)ev.links=ev.links.filter(x=>x.id!==lid);
-    evFld=null;evTouch(ev);syncLink(ev);changed();return}
+    const run=()=>{if(tid)ev.times=ev.times.filter(x=>x.id!==tid);if(lid)ev.links=ev.links.filter(x=>x.id!==lid);evTouch(ev);syncLink(ev)},m=mtOf(box);
+    if(m){withState(m.data,run);m.dirty=true}else run();
+    evFld=null;changed();return}
 }
 /* 把打開的那一欄寫回 state（不重畫；有改才算更新並標 dirty）；填錯回傳 false、停在原欄 */
 function evFldCommit(box){
+  const m=mtOf(box);if(!m)return evFldWrite(box);
+  const r=withState(m.data,()=>evFldWrite(box));if(JSON.stringify(m.data)!==JSON.stringify(m.base))m.dirty=true;return r;   /* 秘書處改別的部門：在那個部門的資料上寫 */
+}
+function evFldWrite(box){
   const ev=evOf(box),k=box.dataset.evfk,g=n=>box.querySelector(`[data-e="${n}"]`),before=JSON.stringify(ev);
   const tid=k.startsWith("t:")?k.slice(2):null,lid=k.startsWith("l:")?k.slice(2):null;
   if(k==="name"){const v=g("name").value.trim();if(!v){toast("請填名稱");g("name").classList.add("bad");return false}ev.name=v}
