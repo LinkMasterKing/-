@@ -213,7 +213,7 @@ async function openSettings(){
   if(!loggedIn()&&remRead())await remLogin();   /* 這台裝置記住了身分：直接進去，不顯示鎖頭 */
   const from=pageUnder(ov);PageFx.settle(ov);
   setOpen=true;ov.getAnimations().forEach(a=>a.cancel());ov.hidden=false;Back.layers.settings();   /* 關閉動畫還沒播完又打開：先停掉 */document.body.classList.add("set-open");renderSettings();renderTabbar();
-  PageFx.swap(from,ov);   /* 換頁動畫：底下那頁往下沉、設定從下方升上來 */
+  PageFx.swap(from,ov);   /* 換頁動畫：底下那頁往後退、設定從後面浮上來 */
 }
 function closeSettings(instant){
   const ov=$("#setOv");if(!ov||!setOpen)return;
@@ -222,7 +222,7 @@ function closeSettings(instant){
   setOpen=false;renderTabbar();Back.closed("settings");
   const done=()=>{if(!setOpen){ov.hidden=true;document.body.classList.remove("set-open")}};
   if(instant){PageFx.settle(ov);return done()}
-  PageFx.swap(ov,pageUnder(ov),{done});   /* 換頁動畫：設定往下沉、底下那頁從下方升上來 */
+  PageFx.swap(ov,pageUnder(ov),{done});   /* 換頁動畫：設定往後退、底下那頁從後面浮上來 */
 }
 
 /* ---------- 設定頁：桌面版右側面板 ----------
