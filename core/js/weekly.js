@@ -1,8 +1,10 @@
 /* 核心｜左右分頁、即時回報↔議題連結、每週概述產生器 */
-/* ---------- pager ---------- */
+/* ---------- pager ----------
+   看板 ↔ 每週概述：2026-11-05 起不能用手指左右滑（.pager 的 overflow-x:hidden），改按按鈕，播換頁動畫（pagefx.js）：
+   整個畫面往下沉 → 瞬間換到另一邊 → 從下方升上來。已經在那一頁就什麼都不做（底部分頁每次都會呼叫 goMain） */
 const pager=$("#pager");
-const goWeek=()=>pager.scrollTo({left:pager.scrollWidth,behavior:"smooth"});
 let onWeek=false;
+const goWeek=()=>{if(onWeek)return;PageFx.swap(pager,pager,{mid:()=>pager.scrollTo({left:pager.scrollWidth,behavior:"instant"})})};
 function weekEnter(){const pw=$("#pageWeek");pw.classList.remove("enter");void pw.offsetWidth;pw.classList.add("enter");clearTimeout(pw._t);pw._t=setTimeout(()=>pw.classList.remove("enter"),1400)}
 /* 進到每週概述＝推一筆瀏覽紀錄（返回鍵／手勢會回主頁）；回到主頁（按返回鈕、滑回來、系統返回）就收掉那筆 */
 pager.addEventListener("scroll",()=>{
@@ -11,8 +13,8 @@ pager.addEventListener("scroll",()=>{
   else if(atMain&&onWeek){onWeek=false;Back.closed("week")}
 },{passive:true});
 $("#pageWeek").addEventListener("scroll",e=>{$(".week-top").classList.toggle("scrolled",e.target.scrollTop>4)},{passive:true});
-const goMain=()=>pager.scrollTo({left:0,behavior:"smooth"});
-$("#weekBtn").onclick=goWeek;$("#backMain").onclick=goMain;
+function goMain(instant){if(!onWeek)return;const go=()=>pager.scrollTo({left:0,behavior:"instant"});if(instant===true){PageFx.settle(pager);go();return}PageFx.swap(pager,pager,{mid:go})}
+$("#weekBtn").onclick=goWeek;$("#backMain").onclick=()=>goMain();
 
 /* ---------- 即時回報：母議題連結、分段、狀態、時間標記 ---------- */
 const parentOf=ev=>ev&&ev.issueId?state.issues.find(i=>i.id===ev.issueId):null;

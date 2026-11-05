@@ -313,13 +313,15 @@ function openLog(host){
     ov=$("#logOv");$("#logClose").onclick=closeLog;elastic(ov.querySelector(".log-scroll"),ov.querySelector(".log-inner"));$("#logMore").onclick=loadLog;}
   Object.assign(logState,{page:0,done:false,busy:false,items:[]});
   ov.classList.toggle("in-pane",!!host);const at=host||document.body;if(ov.parentNode!==at)at.append(ov);
+  const from=host?null:pageUnder(ov);
   ov.hidden=false;if(!host){document.body.classList.add("log-open");Back.layers.log()}
-  if(!reduceMotion())ov.animate([{opacity:0,transform:"translateY(14px)"},{opacity:1,transform:"none"}],{duration:320,easing:"cubic-bezier(.2,.9,.25,1)"});
+  if(!host)PageFx.swap(from,ov);   /* 獨立一層（手機）：換頁動畫 */
+  else if(!reduceMotion())ov.animate([{opacity:0,transform:"translateY(14px)"},{opacity:1,transform:"none"}],{duration:320,easing:"cubic-bezier(.2,.9,.25,1)"});   /* 設定頁右側面板裡：淡入 */
   renderLog();loadLog();$("#logClose").focus();
   return new Promise(r=>logDone=r);
 }
 function closeLog(instant){const ov=$("#logOv");if(!ov||ov.hidden)return;if(!ov.classList.contains("in-pane"))Back.closed("log");const done=()=>{ov.hidden=true;document.body.classList.remove("log-open");if(logDone){logDone();logDone=null}};
   if(instant===true||reduceMotion())return done();
-  if(!ov.classList.contains("in-pane")){Anim.backOut(ov,done);return}   /* 獨立一層（手機）：跟返回手勢同一個收尾；設定頁右側面板裡的照舊淡出 */
+  if(!ov.classList.contains("in-pane")){PageFx.swap(ov,pageUnder(ov),{done});return}   /* 獨立一層（手機）：換頁動畫；設定頁右側面板裡的照舊淡出 */
   const a=ov.animate([{opacity:1},{opacity:0,transform:"translateY(10px)"}],{duration:200,easing:"ease-in"});a.onfinish=done}
 document.addEventListener("keydown",e=>{if(e.key==="Escape"&&$("#logOv")&&!$("#logOv").hidden&&!$("#dlg").open)closeLog()});

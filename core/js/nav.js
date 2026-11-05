@@ -211,16 +211,17 @@ async function openSettings(){
     $("#setClose").onclick=()=>closeSettings();elastic(ov.querySelector(".set-scroll"),ov.querySelector(".set-inner"))}
   if(setOpen)return;
   if(!loggedIn()&&remRead())await remLogin();   /* 這台裝置記住了身分：直接進去，不顯示鎖頭 */
+  const from=pageUnder(ov);PageFx.settle(ov);
   setOpen=true;ov.getAnimations().forEach(a=>a.cancel());ov.hidden=false;Back.layers.settings();   /* 關閉動畫還沒播完又打開：先停掉 */document.body.classList.add("set-open");renderSettings();renderTabbar();
-  if(!reduceMotion())ov.animate([{transform:"translateX(28px)",opacity:0},{transform:"none",opacity:1}],{duration:380,easing:"cubic-bezier(.2,.9,.25,1)"});
+  PageFx.swap(from,ov);   /* 換頁動畫：底下那頁往下沉、設定從下方升上來 */
 }
 function closeSettings(instant){
   const ov=$("#setOv");if(!ov||!setOpen)return;
   if(paneKey){paneSeq++;paneDismiss();paneReset()}
   setOpen=false;renderTabbar();Back.closed("settings");
   const done=()=>{if(!setOpen){ov.hidden=true;document.body.classList.remove("set-open")}};
-  if(instant)return done();
-  Anim.backOut(ov,done);   /* 跟返回手勢同一個收尾 */
+  if(instant){PageFx.settle(ov);return done()}
+  PageFx.swap(ov,pageUnder(ov),{done});   /* 換頁動畫：設定往下沉、底下那頁從下方升上來 */
 }
 
 /* ---------- 設定頁：桌面版右側面板 ----------

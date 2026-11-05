@@ -78,13 +78,13 @@ function openReport(from,to){
   /* 貼上時只留純文字，不帶別處的格式 */
   ov.addEventListener("paste",e=>{const t=e.clipboardData&&e.clipboardData.getData("text/plain");if(t==null||!e.target.closest('[contenteditable="true"]'))return;e.preventDefault();document.execCommand("insertText",false,t)});
   rptParaTool(ov);
-  if(!reduceMotion())ov.animate([{transform:"translateX(28px)",opacity:0},{transform:"none",opacity:1}],{duration:380,easing:"cubic-bezier(.2,.9,.25,1)"});
+  PageFx.swap(pageUnder(ov),ov);   /* 換頁動畫：底下那頁往下沉、報告從下方升上來 */
 }
 function closeReport(instant){
   const ov=$("#rptOv");if(!ov)return;rptOpen=false;Back.closed("report");if(ov._paraOff)ov._paraOff();
   const done=()=>{ov.remove();if(!$("#rptOv"))document.body.classList.remove("rpt-open")};
   if(instant)return done();
-  Anim.backOut(ov,done);   /* 跟返回手勢同一個收尾 */
+  PageFx.swap(ov,pageUnder(ov),{done});   /* 換頁動畫 */
 }
 function rptAdd(){
   const p=$("#rptOv .rpt-paper");if(!p)return;
