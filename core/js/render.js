@@ -7,11 +7,12 @@ function pos(date){const[s,e]=rangeMs();return clamp((pd(date).getTime()-s)/(e-s
 function months(){const out=[];const d=pd(state.range.start+"-01");const end=pd(state.range.end+"-01");while(d<=end){out.push(new Date(d));d.setMonth(d.getMonth()+1)}return out}
 
 /* 分區編輯：頁首「編輯」只負責登入、進入編輯狀態與最後的儲存／取消；
-   進度、完成紀錄、會長室的追蹤：標題列各有一顆「編輯這區」，按了這區才出現編輯工具，一次只能開一區。
-   即時回報例外：沒有「編輯這區」，頁首按「編輯」後就是逐欄編輯（每一欄旁邊一顆鉛筆，見 views.js 的 evFld）。
-   secEdit＝目前在編輯的區塊（最多一個，不含即時回報）；進入編輯時清空（events.js 的 #editBtn）。週報頁的編輯照舊跟著 editing */
+   會長室的追蹤、秘書處的會議編輯：標題列各有一顆「編輯這區」，按了這區才出現編輯工具，一次只能開一區。
+   即時回報、進度、完成紀錄（INLINE_SECS）沒有「編輯這區」，頁首按「編輯」後就是逐欄編輯（點哪一欄改哪一欄，見 views.js 的 evFld／ifFld）。
+   secEdit＝目前在編輯的區塊（最多一個，不含 INLINE_SECS）；進入編輯時清空（events.js 的 #editBtn）。週報頁的編輯照舊跟著 editing */
 let secEdit=new Set();
-const secEd=k=>editing&&(k==="live"||secEdit.has(k));
+const INLINE_SECS=["live","progress","done"];
+const secEd=k=>editing&&(INLINE_SECS.includes(k)||secEdit.has(k));
 const SEC_EDIT_LBL={on:"收起編輯",off:"編輯這區"};
 function renderSecEdit(){
   document.querySelectorAll("[data-secbox]").forEach(b=>b.classList.toggle("sec-edit",secEd(b.dataset.secbox)));

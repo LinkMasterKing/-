@@ -51,7 +51,7 @@ const vis=p=>p.evaluate(()=>[...document.querySelectorAll('.layout>.sgroup')].ma
  await p.click('#editBtn');await p.waitForTimeout(900);
  log('D editing:',await p.evaluate(()=>({editing,dlg:$('#dlg').open,hdr:[...document.querySelectorAll('.hero-rule .actions button')].map(b=>b.id)})));
  await p.click('#tabbar [data-tab=live]');await p.waitForTimeout(800);
- for(const k of ['progress','done'])await p.click(`[data-secedit=${k}]`);await p.waitForTimeout(600);   // 分區編輯：進度、完成紀錄按「編輯這區」（即時回報是逐欄編輯，沒有這顆）
+ await p.waitForTimeout(600);   // 即時回報、進度、完成紀錄都是逐欄編輯，按「編輯」後就能改（沒有「編輯這區」）
  log('D delete buttons:',await p.evaluate(()=>({ev:[...document.querySelectorAll('.ev-del')].filter(x=>x.offsetParent).length,issue:[...document.querySelectorAll('.card-tools [data-delissue]')].filter(x=>x.offsetParent).length,done:[...document.querySelectorAll('.done-del')].filter(x=>x.offsetParent).length,inner:document.querySelectorAll('.done-body [data-deldone],.done-body [data-evdel],.edit-block [data-delissue],.week-tools [data-delweek]').length})));
  await p.screenshot({path:'v2_d_edit.png'});
  const ev0=await p.$('.events .ev');await (await ev0.$('.ev-del')).click();await p.waitForTimeout(500);

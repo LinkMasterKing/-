@@ -17,7 +17,7 @@ const SHELL_HTML=`<div class="pager" id="pager">
         </div>
       </header>
       <div class="hero-rule"><span class="hero-info"><span class="sub" id="saveInfo"></span></span><span class="actions"><span class="hero-btns" id="actions"></span><button type="button" class="noti-btn" id="notiBtn" aria-label="通知" title="今日／明日要處理的事、行事曆"><svg class="ico solo" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><g class="i-bell"><path d="M6.2 16.4V11a5.8 5.8 0 0 1 11.6 0v5.4l1.6 1.8H4.6z"/><path d="M10.2 20.4a2 2 0 0 0 3.6 0"/></g></svg><span class="noti-n num" hidden></span></button><button type="button" class="week-btn" id="weekBtn">每週概述 <span aria-hidden="true">→</span></button></span></div>
-      <div class="banner"><span class="live-dot" aria-hidden="true"></span><b>編輯中</b><span class="sub">即時回報：點哪一欄就改哪一欄 · 其他區按標題列的「編輯這區」，一次改一區 · 全部改完按「儲存並同步」</span></div>
+      <div class="banner"><span class="live-dot" aria-hidden="true"></span><b>編輯中</b><span class="sub">即時回報、進度、完成紀錄：點哪一欄就改哪一欄 · 其他區按標題列的「編輯這區」 · 全部改完按「儲存並同步」</span></div>
 
       <section class="panel grant-panel" id="grantPanel" aria-labelledby="grH" hidden>
         <div class="panel-head"><h2 id="grH">秘書處會議編輯<span class="en">GRANT</span></h2></div>
@@ -48,7 +48,7 @@ const SHELL_HTML=`<div class="pager" id="pager">
         <div class="sgroup" data-sec="progress" data-secbox="progress">
           <!-- 進度：甘特圖與個別議題合成一張卡片。預設看甘特圖；點議題列換成該議題的詳情，按返回回到甘特圖（views.js 的 progShow） -->
           <section class="panel" id="progPanel" aria-labelledby="ganttH">
-            <div class="panel-head"><h2 id="ganttH">時間甘特圖<span class="en">TIMELINE</span></h2><button type="button" class="icon sec-edit-btn" data-secedit="progress" aria-pressed="false">編輯這區</button></div>
+            <div class="panel-head"><h2 id="ganttH">時間甘特圖<span class="en">TIMELINE</span></h2></div>
             <div class="pv-page" id="pvGantt">
             <div class="legend" aria-label="圖例"><span><i class="lg-today" aria-hidden="true"></i>目前時間</span><span><i class="lg-line" style="--c:var(--prog-hi)" aria-hidden="true"></i>已過時程</span><span><i class="lg-rest" aria-hidden="true"></i>剩餘時程</span><span class="lg-hint">點議題列看詳情 · 左右滑動瀏覽月份</span></div>
             <div class="range">時間軸 <input type="month" id="rStart" aria-label="起始月份"> 到 <input type="month" id="rEnd" aria-label="結束月份"> <button class="icon" id="autoRange">依議題自動調整</button></div>
@@ -64,7 +64,7 @@ const SHELL_HTML=`<div class="pager" id="pager">
 
         <div class="sgroup" data-sec="done" data-secbox="done">
           <aside class="panel" id="donePanel" aria-labelledby="doneH">
-            <div class="panel-head"><h2 id="doneH">完成紀錄<span class="en">DONE</span><span class="count" id="doneCount">0</span></h2><button type="button" class="icon sec-edit-btn" data-secedit="done" aria-pressed="false">編輯這區</button></div>
+            <div class="panel-head"><h2 id="doneH">完成紀錄<span class="en">DONE</span><span class="count" id="doneCount">0</span></h2></div>
             <div class="md" id="doneMD"><div class="events scroll" id="doneList" data-flip></div><div class="md-pane" id="doneDetail" hidden></div></div>
           </aside>
         </div>
