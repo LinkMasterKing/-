@@ -34,7 +34,7 @@ const login=async p=>{await p.click('#setOv .set-gate .primary');await p.waitFor
  await p.click('#setOv [data-set=labels]');await p.waitForTimeout(800);await p.fill('#dlg [data-newlbl="地"]','六宿');await p.click('#dlg [data-x=add][data-k="地"]');await p.waitForTimeout(300);
  await p.click('#dlg [data-x=done]');await p.waitForTimeout(2500);log('labels:',await p.evaluate(()=>state.labels.map(l=>l.kind+l.name)),'commit:',commits[0].commit.message.split('\n')[0]);
  await p.screenshot({path:'sp_back.png'});
- await p.click('#setOv [data-set=year]');await p.waitForTimeout(700);await p.fill('#dlg input[name=v]','116學年');await ok(p);await p.waitForTimeout(2500);
+ await p.click('#setOv [data-set=year]');await p.waitForTimeout(700);await p.evaluate(()=>{const st=document.querySelector('#dlg .stepper'),need=116-(+st.querySelector('input').value);for(let i=0;i<Math.abs(need);i++)st.querySelector(`[data-step="${need>0?1:-1}"]`).click()});await ok(p);   /* 學年改成上下按鈕（2026-11-05） */await p.waitForTimeout(2500);
  log('year saved:',await p.evaluate(()=>state.yearLabel),await st(p),'commit:',commits[0].commit.message.split('\n')[0]);
  await p.click('#setOv [data-set=cloud]');await p.waitForTimeout(700);log('cloud:',await st(p));await p.screenshot({path:'sp_cloud.png'});
  await p.keyboard.press('Escape');await p.waitForTimeout(800);log('esc1:',await st(p));

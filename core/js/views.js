@@ -51,22 +51,29 @@ function renderWeeks(){
     ||`<p class="empty">還沒有週報。${state.locked?"":"按「編輯」→「+ 新增週報」貼上本週文字。"}</p>`;
 }
 
+/* 細刻度（甘特圖每一列、議題詳情的時程條共用）：n 根細直線排滿整條；s～e＝議題期間（%），t＝今天（%；在範圍外就給 -1 或 101）。
+   期間外＝淡色短刻度、期間內已過＝深色長刻度、期間內還沒到＝灰色中刻度、今天那一根＝綠色最高 */
+function ticksHTML(n,s,e,t){
+  const half=50/n;let h="";
+  for(let i=0;i<n;i++){const p=(i+.5)/n*100,inR=p>=s-half&&p<=e+half,now=inR&&Math.abs(p-t)<=half;h+=`<i class="${now?"now":!inR?"":p<t?"on":"in"}"></i>`}
+  return `<div class="tk" aria-hidden="true">${h}</div>`;
+}
 function renderGantt(){
   $("#rStart").value=state.range.start;$("#rEnd").value=state.range.end;
   const ms=months(),tp=pos(today()),[s0,e0]=rangeMs(),inRange=Date.now()>s0&&Date.now()<e0;
   const all=activeIssues(),list=all.filter(hasDates),undated=all.filter(i=>!hasDates(i));
   const narrow=innerWidth<640,nameW=narrow?104:170;const width=Math.max(narrow?360:640,ms.length*(narrow?84:130));
-  /* 已經過去的時間：從時間軸起點到今天線整段淡淡打亮（今天在範圍之後＝整段，之前＝沒有） */
-  const pastW=Date.now()>=e0?100:inRange?tp:0,past=pastW?`<span class="g-past" style="width:${pastW}%" aria-hidden="true"></span>`:"";
-  const grid=past+ms.map(m=>`<span class="vgrid" style="left:${pos(ymd(m))}%"></span>`).join("")+(inRange?`<span class="today" style="left:${tp}%" title="今天"></span>`:"");
-  let h=`<div style="min-width:${width+nameW}px"><div class="g-row"><div class="g-name sub" style="font-weight:400">議題</div><div class="g-axis">${past}${inRange?`<span class="today-tag" style="left:${tp}%"><i class="live-dot" aria-hidden="true"></i>今天 ${fmt(today()).slice(5)}</span>`:""}${ms.map((m,k)=>`<span style="left:${pos(ymd(m))}%">${k===0||m.getMonth()===0?m.getFullYear()+"/":""}${m.getMonth()+1}月</span>`).join("")}</div></div>`;
+  /* 細刻度（2026-11-05 使用者選的 A 方案）：每一列整條時間軸是一排細直線（約每 6px 一根），格子與「已經過去」的打亮都拿掉；
+     今天＝每列一條往下淡掉的細綠線，時間軸上方綠色小膠囊寫日期。tN＝今天在時間軸上的位置（範圍之前 -1、之後 101） */
+  const tN=inRange?tp:Date.now()>=e0?101:-1,nT=Math.max(40,Math.round(width/6));
+  const grid=inRange?`<span class="today" style="left:${tp}%" title="今天"></span>`:"";
+  let h=`<div style="min-width:${width+nameW}px"><div class="g-row"><div class="g-name sub" style="font-weight:400">議題</div><div class="g-axis">${inRange?`<span class="today-tag" style="left:${tp}%">今天 ${fmt(today()).slice(5)}</span>`:""}${ms.map((m,k)=>`<span style="left:${pos(ymd(m))}%">${k===0||m.getMonth()===0?m.getFullYear()+"/":""}${m.getMonth()+1}月</span>`).join("")}</div></div>`;
   h+=list.map(it=>{
     let s=it.start,e=it.end;if(e<s)[s,e]=[e,s];
     const l=pos(s),w=Math.max(.8,pos(e)-l);
     const gL=latestMarkerId(it.markers.filter(m=>m.date));const mk=it.markers.filter(m=>m.date).map(m=>{const p=pos(m.date);return `<span class="g-mk ${p<6?"edgeL":p>94?"edgeR":""} ${m.id!==gL?"quiet":""}" style="left:${p}%;--mc:${esc(m.color||MARK_COLORS[0])}" title="${esc(fmt(m.date))} ${m.stage?"【"+esc(m.stage)+"】":""}${esc(m.text)}"><span class="stem"></span><span class="dot"></span><span class="lbl">${esc(m.text)}</span></span>`}).join("");
-    const sp=schedPct(it);
     return `<div class="g-row g-issue" data-jump="${it.id}" data-fk="g${it.id}" title="點一下看「${esc(it.title)}」的詳情"><div class="g-name"><a href="#" data-jump="${it.id}">${esc(it.title)}</a><span class="sub" style="font-size:11.5px">${fmt(s).slice(5)} – ${fmt(e).slice(5)}</span></div>
-      <div class="g-track">${grid}<div class="g-bar" style="left:${l}%;width:${w}%"><div class="fill" style="width:${sp}%"></div></div><span class="g-pct num" style="left:${l+w}%">${sp}%</span>${mk}</div></div>`;
+      <div class="g-track">${grid}<div class="g-bar">${ticksHTML(nT,l,l+w,tN)}</div>${mk}</div></div>`;
   }).join("");
   /* 還沒填期間的議題也列出來（沒有條），才點得到詳情去補日期 */
   h+=undated.map(it=>`<div class="g-row g-issue g-undated" data-jump="${it.id}" data-fk="g${it.id}" title="點一下看「${esc(it.title)}」的詳情"><div class="g-name"><a href="#" data-jump="${it.id}">${esc(it.title)}</a><span class="sub" style="font-size:11.5px">未排程</span></div><div class="g-track">${grid}</div></div>`).join("");
@@ -98,7 +105,7 @@ function logHTML(it){
 const LH=22;
 function layoutTrack(tr){
   const isG=tr.classList.contains("g-track"),W=tr.clientWidth;if(!W||!tr.querySelector(".g-bar,.c-bar"))return;   /* 未排程的甘特列沒有條 */
-  const barH=isG?14:16,dotH=isG?8:10;
+  const barH=isG?22:16,dotH=isG?6:10;   /* 甘特圖：刻度最高 22px，註記的點放在刻度上方 */
   const lanes={up:[],down:[]},info=[];
   [...tr.querySelectorAll(isG?".g-mk":".marker")].sort((a,b)=>parseFloat(a.style.left)-parseFloat(b.style.left)).forEach(m=>{
     const side=!isG&&m.classList.contains("down")?"down":"up";
@@ -113,10 +120,9 @@ function layoutTrack(tr){
   const below=barTop+barH+(isG?6:20);
   tr.querySelector(isG?".g-bar":".c-bar").style.top=barTop+"px";
   tr.querySelectorAll(".tick").forEach(t=>t.style.top=(barTop+barH+3)+"px");
-  const pct=tr.querySelector(".g-pct");if(pct)pct.style.top=(barTop-3)+"px";
   info.forEach(({m,lbl,side,k})=>{
     const dot=m.querySelector(".dot"),stem=m.querySelector(".stem");
-    dot.style.top=(barTop+barH/2-dotH/2)+"px";
+    dot.style.top=(isG?barTop-dotH-3:barTop+barH/2-dotH/2)+"px";
     if(side==="up"){const top=barTop-6-(k+1)*LH+2;lbl.style.top=top+"px";stem.style.top=(top+18)+"px";stem.style.height=Math.max(0,barTop-top-18)+"px"}
     else{const top=below+k*LH;lbl.style.top=top+"px";stem.style.top=(barTop+barH)+"px";stem.style.height=Math.max(0,top-barTop-barH)+"px"}
   });
@@ -140,7 +146,7 @@ function cardHTML(it,open,pane,sel){
     ${staffHTML(it.staff)}${labelChipsHTML(it.labels)}
     ${it.note?`<p class="note"><span class="note-h">目前進度</span>${esc(it.note)}</p>`:""}`}
     <div class="c-track" data-track>
-      <div class="c-bar"><div class="fill" style="width:${schedPct(it)||0}%"></div></div>
+      <div class="c-bar">${ticksHTML(Math.round(Math.min(Math.max(innerWidth-(innerWidth>=900?260:60),280),1100)/6),0,100,hasDates(it)?(pd(today())-pd(it.start))/Math.max(1,pd(it.end)-pd(it.start))*100:-1)}</div>
       ${hasDates(it)?issueSpan(it).map((d,k)=>`<span class="tick ${k?"tick-e":"tick-s"}" style="left:${k*100}%">${fmt(d).slice(5)}</span>`).join(""):`<span class="tick tick-hint" style="left:0">未排程：填開始日與結束日後，時程條才會照時間填色</span>`}
       ${(()=>{const L=latestMarkerId(it.markers);return it.markers.map(m=>markerHTML(m,L,it)).join("")})()}
     </div>
