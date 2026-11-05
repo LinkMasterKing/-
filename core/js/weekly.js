@@ -86,15 +86,17 @@ function weekRange(){
   return {start,end};
 }
 /* 生成週報（2026-11-05 改）：只列兩區、只寫標題，不寫說明與議題進度
-   一、會議報告事項：還沒完成、標了「會議要報告」（ev.report）的即時回報標題（照畫面順序）
+   一、會議報告事項：還沒完成、標了「會議要報告」（ev.report）的即時回報標題（照畫面順序）；一筆都沒標時改成「一、即時回報」，列全部進行中的即時回報標題
    二、本週完成：完成紀錄裡這一整週（今天往前 7 天）完成的項目標題（議題結案、即時回報結案、完成一段都算），由新到舊 */
 function buildWeekly(){
   const end=today(),start=addDays(end,-7);   /* 一整週：start 之後到今天（含），共 7 天 */
   const inP=d=>!!d&&d>start&&d<=end;
   const dept=CFG.dept.name||(state.title||"").replace(/(工作)?(看板|進度|進度看板)$/,"").trim()||state.title;
   const L=[`${dept} 本週例行回報`,`日期：【${end.replaceAll("-",".")}】`,""];
-  const rep=liveOrder().filter(e=>e.report);
-  L.push("一、會議報告事項",...(rep.length?rep.map(e=>`❏ ${e.name}`):["❏ 本週沒有會議報告事項"]),"");
+  /* 有人標「會議要報告」就只列那些；一筆都沒有標時，改列全部進行中的即時回報標題（區名也改成「即時回報」） */
+  const live=liveOrder(),rep=live.filter(e=>e.report);
+  if(rep.length)L.push("一、會議報告事項",...rep.map(e=>`❏ ${e.name}`),"");
+  else L.push("一、即時回報",...(live.length?live.map(e=>`❏ ${e.name}`):["❏ 本週沒有即時回報"]),"");
   const done=[...state.issues.filter(i=>inP(i.doneAt)).map(i=>({d:i.doneAt,t:i.title})),...state.events.filter(e=>inP(e.doneAt)).map(e=>({d:e.doneAt,t:evName(e)}))].sort((a,b)=>b.d.localeCompare(a.d));
   L.push("二、本週完成",...(done.length?done.map(x=>`❏ ${x.t}`):["❏ 本週沒有完成項目"]));
   return {start,end,text:L.join("\n")};
