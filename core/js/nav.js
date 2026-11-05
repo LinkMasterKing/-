@@ -218,6 +218,7 @@ async function openSettings(){
 function closeSettings(instant){
   const ov=$("#setOv");if(!ov||!setOpen)return;
   if(paneKey){paneSeq++;paneDismiss();paneReset()}
+  subCloseNow();
   setOpen=false;renderTabbar();Back.closed("settings");
   const done=()=>{if(!setOpen){ov.hidden=true;document.body.classList.remove("set-open")}};
   if(instant){PageFx.settle(ov);return done()}
@@ -230,7 +231,27 @@ function closeSettings(instant){
 let paneKey="",paneSeq=0,paneJob=null;
 const PANE_MQ=matchMedia("(min-width:900px)");
 const setEls=()=>{const b=$("#setOv .set-body");return b&&{body:b,sc:b.querySelector(".set-scroll"),pane:b.querySelector(".set-pane")}};
-function setPaneHost(){const e=setEls();return setOpen&&paneKey&&e&&!e.pane.hidden?e.pane:null}
+function setPaneHost(){if(subOpen)return $("#setSub .set-sub-body");const e=setEls();return setOpen&&paneKey&&e&&!e.pane.hidden?e.pane:null}
+/* ---------- 設定頁：手機版的下一層（全畫面子頁 #setSub） ----------
+   手機（900px 以下）點了有下一層的項目：用換頁動畫進到子頁，表單畫在裡面（dlgOpen 經 setPaneHost 找到它，跟桌面右側面板同一套）；
+   左上「返回」、系統返回鍵＝把這個流程當成取消（paneDismiss），流程一結束（完成、取消）就用換頁動畫回到設定清單。 */
+let subOpen=false;
+function subEl(){
+  let s=$("#setSub");if(s)return s;
+  document.body.insertAdjacentHTML("beforeend",`<div class="set-ov set-sub" id="setSub" role="dialog" aria-modal="true" aria-label="設定" hidden><div class="anim-top"><div class="anim-title"><span class="anim-k">SETTINGS</span><b>設定</b></div><div class="anim-ctl"><button type="button" id="subBack" aria-label="返回設定清單">${ico("prev")}返回</button></div></div><div class="set-sub-body"></div></div>`);
+  $("#subBack").onclick=()=>paneDismiss();return $("#setSub");
+}
+async function subRun(fn){
+  const s=subEl(),ov=$("#setOv");if(subOpen)return;
+  subOpen=true;PageFx.settle(s);s.hidden=false;Back.opened("sub",()=>paneDismiss());
+  PageFx.swap(ov,s);
+  const job=paneJob=Promise.resolve().then(fn).catch(err=>console.error(err));await job;if(paneJob===job)paneJob=null;
+  if(!subOpen)return;   /* 已經被 closeSettings 直接收掉 */
+  subOpen=false;Back.closed("sub");renderSettings();
+  PageFx.swap(s,ov,{done:()=>{if(!subOpen)s.hidden=true}});
+}
+/* 關掉整個設定時，子頁一起收掉（不播動畫） */
+function subCloseNow(){const s=$("#setSub");if(!subOpen||!s)return;subOpen=false;Back.closed("sub");paneDismiss();PageFx.settle(s);s.hidden=true}
 function paneMark(){document.querySelectorAll("#setOv .set-row").forEach(r=>r.dataset.set===paneKey?r.setAttribute("aria-current","true"):r.removeAttribute("aria-current"))}
 function paneShow(k){
   const e=setEls();paneKey=k;paneMark();if(e.body.classList.contains("split"))return;
@@ -272,14 +293,16 @@ PANE_MQ.addEventListener("change",()=>{if(!PANE_MQ.matches&&paneKey){paneSeq++;p
 /* 看板資訊：每一項單獨修改（原本在編輯模式的頁首） */
 const BOARD_INFO={
   title:["看板名稱",()=>[{name:"v",label:"看板名稱",value:state.title}],v=>{if(!v){toast("看板名稱不能空白");return false}state.title=v}],
-  year:["學年",()=>[{name:"v",label:"學年（顯示在頁首，例如：115學年）",value:state.yearLabel||""}],v=>{state.yearLabel=v||""}],
+  /* 學年：用上下按鈕改數字（不用打字）；存成「115學年」。原本的文字裡沒有數字就從今天推算（8 月起算新學年） */
+  year:["學年",()=>{const m=String(state.yearLabel||"").match(/\d+/),d=new Date(),roc=d.getFullYear()-1911-(d.getMonth()<7?1:0);
+    return [{name:"v",label:"學年（顯示在頁首）",type:"stepper",value:m?+m[0]:roc,min:100,max:200,suffix:"學年"}]},v=>{state.yearLabel=v?`${v}學年`:""}],
   term:["開學日",()=>[{name:"v",label:"開學日（用來算開學第幾週）",type:"date",value:state.termStart||""}],v=>{state.termStart=v||""}],
 };
 async function editBoardInfo(k){
   const [t,fields,apply]=BOARD_INFO[k];
   const v=await ask(t,fields());if(!v)return;
   const key={title:"title",year:"yearLabel",term:"termStart"}[k];
-  if((v.v||"")===(state[key]||""))return;
+  if((k==="year"?`${v.v}學年`:(v.v||""))===(state[key]||""))return;
   await settingSave(()=>apply(v.v),`已更新${t}`);
 }
 function forgetDevice(){remClear();if(!editing){meId="";sessionPw="";sharedPwSession=""}renderSettings();toast("已忘記這台裝置，下次要重新輸入密碼")}
@@ -301,7 +324,7 @@ document.addEventListener("click",async e=>{
   const k=r.dataset.set;
   if(r.getAttribute("aria-disabled")==="true"||!loggedIn())return;
   if(SET_FLOWS[k]){
-    if(!PANE_MQ.matches){await SET_FLOWS[k]();renderSettings();return}
+    if(!PANE_MQ.matches){await subRun(SET_FLOWS[k]);return}   /* 手機：進到下一層全畫面子頁 */
     if(k===paneKey){await paneClose();return}   /* 再點一次選到的項目＝收起 */
     await paneRun(k,SET_FLOWS[k]);return;
   }
@@ -315,6 +338,7 @@ document.addEventListener("keydown",e=>{
   if(d.open&&!d.classList.contains("in-pane"))return;   /* 跳出的對話框自己處理 */
   if(lg&&!lg.hidden)return;                              /* 編輯紀錄自己處理（team.js） */
   if(paneKey){paneClose();return}
+  if(subOpen){paneDismiss();return}
   closeSettings();
 });
 
