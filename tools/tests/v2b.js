@@ -20,7 +20,7 @@ await go();await p.evaluate(()=>localStorage.setItem('workboard:ghtoken','TOK_A_
 // 身分與專員（從設定頁）：先登入（舊版看板流程）
 await p.click('#setBtn');await p.waitForTimeout(500);await p.click('#setOv .set-gate .primary');await p.waitForTimeout(400);
 await p.fill('#dlgForm input[name=pw]','0000');await ok();await p.waitForTimeout(500);
-await p.fill('#dlgForm input[name=name]','王小明');await p.fill('#dlgForm input[name=p1]','wang-password-1');await p.fill('#dlgForm input[name=p2]','wang-password-1');await ok();await p.waitForTimeout(2500);
+await p.fill('#dlgForm input[name=name]','王小明');await p.fill('#dlgForm input[name=p1]','wang-password-1');await p.fill('#dlgForm input[name=p2]','wang-password-1');await ok();await p.waitForTimeout(2500);await (async()=>{for(let i=0;i<4;i++){await p.waitForTimeout(500);const t=await p.$eval('#dlg[open] #dlgForm>b',b=>b.textContent).catch(()=>'');if(/共用密碼太短|沒有連上雲端/.test(t))await p.click('#dlgForm [data-act=cancel]').catch(()=>{})}})();   /* 2026-11-05：建立第一個身分後，共用密碼 0000 會請管理員換（team.js 的 sharedPwFix），測試先取消 */
 await p.click('#setOv [data-set=team]');await p.waitForTimeout(700);
 log('team dlg:',await p.evaluate(()=>$('#dlg').open&&!!document.querySelector('[data-x=done]')),await p.textContent('.tm-note:last-of-type'));
 await p.fill('#newStaff','陳專員');await p.click('[data-x=addstaff]');await p.waitForTimeout(300);await p.click('[data-x=done]');await p.waitForTimeout(2500);

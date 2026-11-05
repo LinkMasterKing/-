@@ -8,7 +8,7 @@ await ctx.route('https://api.github.com/**',async r=>{const q=r.request(),u=q.ur
 const p=await ctx.newPage();const e=[];p.on('pageerror',x=>e.push(x.message));await p.goto('http://127.0.0.1:8300/index.html');await p.waitForTimeout(1500);
 await p.evaluate(()=>localStorage.setItem('workboard:ghtoken','T'));
 await p.click('#editBtn');await p.waitForTimeout(400);await p.fill('#dlgForm input[name=pw]','0000');await p.click('#dlgForm [data-act=ok]');await p.waitForTimeout(400);
-await p.fill('#dlgForm input[name=name]','甲');await p.fill('#dlgForm input[name=p1]','password-long-1');await p.fill('#dlgForm input[name=p2]','password-long-1');await p.click('#dlgForm [data-act=ok]');await p.waitForTimeout(2000);
+await p.fill('#dlgForm input[name=name]','甲');await p.fill('#dlgForm input[name=p1]','password-long-1');await p.fill('#dlgForm input[name=p2]','password-long-1');await p.click('#dlgForm [data-act=ok]');await p.waitForTimeout(2000);await (async()=>{for(let i=0;i<4;i++){await p.waitForTimeout(500);const t=await p.$eval('#dlg[open] #dlgForm>b',b=>b.textContent).catch(()=>'');if(/共用密碼太短|沒有連上雲端/.test(t))await p.click('#dlgForm [data-act=cancel]').catch(()=>{})}})();   /* 2026-11-05：建立第一個身分後，共用密碼 0000 會請管理員換（team.js 的 sharedPwFix），測試先取消 */
 await p.click('#tabbar [data-tab=progress]');await p.waitForTimeout(900);
 const c=await p.$('#cards .card:nth-child(2)');const id=await c.getAttribute('data-issue');
 await c.$eval('[data-closeissue]',x=>x.click());await p.waitForTimeout(400);

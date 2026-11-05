@@ -19,20 +19,31 @@ function dlgOpen(modal){
   if(host){d.classList.add("in-pane");if(d.parentNode!==host)host.append(d);d.show()}
   else{d.classList.remove("in-pane");if(d.parentNode!==document.body)document.body.append(d);d.showModal()}
 }
-function ask(title,fields,{danger,wide,alt}={}){
+/* ask(標題, 欄位, 選項)：
+   note＝標題下面的使用提示（一般文字，可以多行）；
+   validate(值)＝按「確定」時先檢查，回傳錯誤文字就在視窗裡用紅字顯示、視窗不關（可以是 async）；回傳空值才關掉並回傳結果 */
+function ask(title,fields,{danger,wide,alt,note,validate}={}){
   return new Promise(res=>{
     const d=$("#dlg"),f=$("#dlgForm");
     d.classList.toggle("wide",!!wide);
-    f.innerHTML=`<b>${esc(title)}</b>`+fields.map(fieldHTML).join("")
+    f.innerHTML=`<b>${esc(title)}</b>`+(note?`<p class="dlg-note">${esc(note).replace(/\n/g,"<br>")}</p>`:"")+`<p class="dlg-err" role="alert" hidden></p>`+fields.map(fieldHTML).join("")
       +(!fields.length&&danger
         ?`<div class="dlg-actions"><button type="button" data-act="delete" class="danger-solid">${esc(danger)}</button><button type="button" data-act="cancel">取消</button></div>`
         :`<div class="dlg-actions"><button type="button" data-act="ok" class="primary">確定</button><button type="button" data-act="cancel">取消</button>${danger?`<button type="button" data-act="delete" class="danger-btn">${esc(danger)}</button>`:""}${alt?`<button type="button" data-act="alt" class="ghost alt-btn">${esc(alt)}</button>`:""}</div>`);
     f.querySelectorAll("[data-sw]").forEach(b=>b.onclick=()=>{f.querySelectorAll("[data-sw]").forEach(x=>x.setAttribute("aria-pressed",x===b));f.querySelector("input[type=color]").value=b.dataset.sw});
     /* no form submission: works inside sandboxed previews too */
-    f.querySelectorAll("[data-act]").forEach(b=>b.onclick=()=>d.close(b.dataset.act));
-    f.onsubmit=ev=>{ev.preventDefault();d.close(!fields.length&&danger?"delete":"ok")};
-    f.onkeydown=ev=>{if(ev.key==="Enter"&&!ev.isComposing&&ev.target.tagName==="INPUT"&&ev.target.type!=="color"&&ev.target.type!=="checkbox"){ev.preventDefault();d.close("ok")}};
-    d.onclose=()=>{const v=d.returnValue;if(v==="ok"){const o={},fd=new FormData(f);fd.forEach((val,k)=>o[k]=f.querySelector(`textarea[name="${k}"]`)?String(val).replace(/\s+$/,""):String(val).trim());fields.filter(x=>x.type==="multi"||x.type==="labels").forEach(x=>o[x.name]=fd.getAll(x.name).map(String));res(o)}else res(v==="delete"?"delete":v==="alt"?"alt":null)};
+    const collect=()=>{const o={},fd=new FormData(f);fd.forEach((val,k)=>o[k]=f.querySelector(`textarea[name="${k}"]`)?String(val).replace(/\s+$/,""):String(val).trim());fields.filter(x=>x.type==="multi"||x.type==="labels").forEach(x=>o[x.name]=fd.getAll(x.name).map(String));return o};
+    /* 按「確定」：有 validate 就先檢查，錯了在視窗裡顯示紅字（每次重新顯示時輕輕晃一下），游標回到第一個輸入框 */
+    let busy=false;
+    const ok=async()=>{if(busy)return;
+      if(validate){busy=true;let m;try{m=await validate(collect())}finally{busy=false}
+        if(m){const e=f.querySelector(".dlg-err");e.textContent=m;e.hidden=false;if(!reduceMotion())e.animate([{transform:"translateX(-4px)"},{transform:"translateX(4px)"},{transform:"none"}],{duration:240,easing:"ease-out"});
+          f.querySelector("input:not([type=hidden]):not([type=checkbox])")?.focus();return}}
+      d.close("ok")};
+    f.querySelectorAll("[data-act]").forEach(b=>b.onclick=()=>b.dataset.act==="ok"?ok():d.close(b.dataset.act));
+    f.onsubmit=ev=>{ev.preventDefault();if(!fields.length&&danger)d.close("delete");else ok()};
+    f.onkeydown=ev=>{if(ev.key==="Enter"&&!ev.isComposing&&ev.target.tagName==="INPUT"&&ev.target.type!=="color"&&ev.target.type!=="checkbox"){ev.preventDefault();ok()}};
+    d.onclose=()=>{const v=d.returnValue;if(v==="ok")res(collect());else res(v==="delete"?"delete":v==="alt"?"alt":null)};
     d.returnValue="";dlgOpen(!fields.length||fields.every(x=>x.type==="password"||x.type==="check"));(f.querySelector("textarea")||f.querySelector("input"))?.focus();
   });
 }
