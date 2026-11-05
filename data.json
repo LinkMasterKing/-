@@ -3,7 +3,7 @@
  "id": "board-main",
  "title": "權益部工作進度",
  "locked": false,
- "savedAt": "2026-11-05 20:10",
+ "savedAt": "2026-11-05 20:44",
  "range": {
   "start": "2026-09",
   "end": "2027-09"
@@ -137,7 +137,8 @@
    ],
    "links": [],
    "note": "過期公告已移除\n待處室(保管組)說明報廢進度",
-   "staff": []
+   "staff": [],
+   "labels": []
   },
   {
    "id": "imvpdb6ytyi3s",
@@ -164,7 +165,8 @@
    ],
    "links": [],
    "note": "等待秘書處安排校方單位會晤",
-   "staff": []
+   "staff": [],
+   "labels": []
   },
   {
    "id": "imvpc1cuefjii",
@@ -192,7 +194,8 @@
    ],
    "links": [],
    "note": "已確認校內所有補給站具體位置\n建立用量統計表；衛保組對接窗口待確認。",
-   "staff": []
+   "staff": [],
+   "labels": []
   },
   {
    "id": "imvpddh3153m1",
@@ -219,7 +222,8 @@
    ],
    "links": [],
    "note": "等待大型活動與副校長/學務長約談",
-   "staff": []
+   "staff": [],
+   "labels": []
   }
  ],
  "events": [
@@ -236,7 +240,8 @@
     "2026-11-05"
    ],
    "report": false,
-   "touchedAt": "2026-11-05T18:51"
+   "touchedAt": "2026-11-05T18:51",
+   "labels": []
   },
   {
    "id": "emvpd2q3bes2i",
@@ -249,7 +254,8 @@
    "times": [],
    "round": 1,
    "touched": [],
-   "report": false
+   "report": false,
+   "labels": []
   },
   {
    "id": "emvpd2zcx95t3",
@@ -261,7 +267,8 @@
    "times": [],
    "round": 1,
    "touched": [],
-   "report": false
+   "report": false,
+   "labels": []
   },
   {
    "id": "emvpd6qonvam7",
@@ -295,41 +302,47 @@
      "label": "回家投票指南產出",
      "start": "2026-11-09",
      "end": "2026-11-14",
-     "toIssue": false
+     "toIssue": false,
+     "place": ""
     },
     {
      "id": "tmvz5nt6rux6z",
      "label": "回家投票指南發布",
      "start": "2026-11-14",
      "end": "",
-     "toIssue": false
+     "toIssue": false,
+     "place": ""
     },
     {
      "id": "tmvz5p7lh03yi",
      "label": "回家投票指南限動",
      "start": "2026-11-27",
      "end": "",
-     "toIssue": false
+     "toIssue": false,
+     "place": ""
     },
     {
      "id": "tmvz5pobcf97a",
      "label": "衛生棉補給站貼文 + 女權日限時動態產出",
      "start": "2026-11-22",
      "end": "2026-11-30",
-     "toIssue": false
+     "toIssue": false,
+     "place": ""
     },
     {
      "id": "tmvz5qraybay3",
      "label": "世新學運報導初版",
      "start": "2026-11-20",
      "end": "2026-12-09",
-     "toIssue": false
+     "toIssue": false,
+     "place": ""
     }
    ],
    "round": 2,
    "touchedAt": "2026-11-05T16:44",
    "report": false,
-   "roundAt": "2026-11-05T16:44"
+   "roundAt": "2026-11-05T16:44",
+   "labels": []
   },
   {
    "id": "emvqlvpkgu9x6",
@@ -348,7 +361,8 @@
    "round": 2,
    "touchedAt": "2026-11-05T16:53",
    "report": false,
-   "roundAt": "2026-11-05T16:48"
+   "roundAt": "2026-11-05T16:48",
+   "labels": []
   },
   {
    "id": "emvpd82rr1kit",
@@ -360,7 +374,8 @@
    "times": [],
    "round": 1,
    "touched": [],
-   "report": false
+   "report": false,
+   "labels": []
   },
   {
    "id": "emvpd90c3a8l9",
@@ -379,7 +394,8 @@
    "times": [],
    "round": 1,
    "touched": [],
-   "report": false
+   "report": false,
+   "labels": []
   },
   {
    "id": "emvpdjy1qige9",
@@ -391,7 +407,8 @@
    "times": [],
    "round": 1,
    "touched": [],
-   "report": false
+   "report": false,
+   "labels": []
   },
   {
    "id": "emvpdk8nf5mxh",
@@ -403,7 +420,8 @@
    "times": [],
    "round": 1,
    "touched": [],
-   "report": false
+   "report": false,
+   "labels": []
   },
   {
    "id": "emvpdlkubpzoe",
@@ -415,7 +433,8 @@
    "times": [],
    "round": 1,
    "touched": [],
-   "report": false
+   "report": false,
+   "labels": []
   },
   {
    "id": "emvpdmkvs29s1",
@@ -434,7 +453,8 @@
    "times": [],
    "round": 1,
    "touched": [],
-   "report": false
+   "report": false,
+   "labels": []
   },
   {
    "id": "emvpdnwp0gola",
@@ -447,7 +467,8 @@
    "times": [],
    "round": 1,
    "touched": [],
-   "report": false
+   "report": false,
+   "labels": []
   },
   {
    "id": "emvpdp6p3hitj",
@@ -467,7 +488,8 @@
    "times": [],
    "round": 1,
    "touched": [],
-   "report": false
+   "report": false,
+   "labels": []
   },
   {
    "id": "emvpdq4rpx6v8",
@@ -480,7 +502,8 @@
    "times": [],
    "round": 1,
    "touched": [],
-   "report": false
+   "report": false,
+   "labels": []
   },
   {
    "id": "emvpdros6mg9o",
@@ -493,7 +516,8 @@
    "times": [],
    "round": 1,
    "touched": [],
-   "report": false
+   "report": false,
+   "labels": []
   },
   {
    "id": "emvqlupnq2ij4",
@@ -506,7 +530,8 @@
    "times": [],
    "round": 1,
    "touched": [],
-   "report": false
+   "report": false,
+   "labels": []
   },
   {
    "id": "emvt1ohjjrkyg",
@@ -523,7 +548,8 @@
    "round": 2,
    "report": false,
    "touchedAt": "2026-11-05T16:52",
-   "roundAt": "2026-11-05T16:52"
+   "roundAt": "2026-11-05T16:52",
+   "labels": []
   },
   {
    "id": "emvqocysbhm9s",
@@ -543,13 +569,15 @@
      "label": "會議參與",
      "start": "2026-10-28T16:00",
      "end": "2026-10-28T17:00",
-     "toIssue": false
+     "toIssue": false,
+     "place": ""
     }
    ],
    "round": 1,
    "touchedAt": "2026-11-03T20:39",
    "doneAt": "2026-11-03",
-   "report": false
+   "report": false,
+   "labels": []
   },
   {
    "id": "emvt1lnzfh1kf",
@@ -569,13 +597,15 @@
      "label": "部門會議",
      "start": "2026-10-29T16:00",
      "end": "2026-10-29T18:00",
-     "toIssue": false
+     "toIssue": false,
+     "place": ""
     }
    ],
    "round": 1,
    "touchedAt": "2026-11-03T20:45",
    "doneAt": "2026-11-03",
-   "report": false
+   "report": false,
+   "labels": []
   },
   {
    "id": "emvt1nac1jf6f",
@@ -592,7 +622,8 @@
    "round": 1,
    "doneAt": "2026-11-03",
    "touchedAt": "2026-11-03T20:39",
-   "report": false
+   "report": false,
+   "labels": []
   },
   {
    "id": "emvt1pwvqrhyw",
@@ -612,13 +643,15 @@
      "label": "安全場勘時間順代提出",
      "start": "2026-11-09T16:00",
      "end": "",
-     "toIssue": false
+     "toIssue": false,
+     "place": ""
     }
    ],
    "round": 2,
    "touchedAt": "2026-11-05T16:54",
    "report": false,
-   "roundAt": "2026-11-05T16:54"
+   "roundAt": "2026-11-05T16:54",
+   "labels": []
   },
   {
    "id": "emvteefflmm61",
@@ -638,14 +671,16 @@
      "label": "安全場勘時間",
      "start": "2026-11-09T16:00",
      "end": "",
-     "toIssue": true
+     "toIssue": true,
+     "place": ""
     }
    ],
    "round": 2,
    "touchedAt": "2026-11-05T16:55",
    "report": false,
    "issueId": "imvpc3f0dcpi6",
-   "roundAt": "2026-11-05T16:55"
+   "roundAt": "2026-11-05T16:55",
+   "labels": []
   },
   {
    "id": "emvz5bo0gi726",
@@ -679,14 +714,16 @@
      "label": "初版評估",
      "start": "2026-11-29",
      "end": "",
-     "toIssue": false
+     "toIssue": false,
+     "place": ""
     },
     {
      "id": "tmw3cq666wkce",
      "label": "發布調查表單",
      "start": "2026-11-23",
      "end": "",
-     "toIssue": false
+     "toIssue": false,
+     "place": ""
     }
    ],
    "round": 2,
@@ -697,7 +734,8 @@
    ],
    "touchedAt": "2026-11-05T17:37",
    "report": false,
-   "roundAt": "2026-11-05T17:37"
+   "roundAt": "2026-11-05T17:37",
+   "labels": []
   },
   {
    "id": "emw0l32ggpdmw",
@@ -719,7 +757,8 @@
     "2026-11-03"
    ],
    "touchedAt": "2026-11-03T19:19",
-   "report": false
+   "report": false,
+   "labels": []
   },
   {
    "id": "emw0lb1djdnco",
@@ -734,7 +773,8 @@
      "label": "秘書處會議資料格式重整",
      "start": "2026-11-06",
      "end": "",
-     "toIssue": false
+     "toIssue": false,
+     "place": ""
     }
    ],
    "round": 1,
@@ -742,7 +782,8 @@
     "2026-11-03"
    ],
    "touchedAt": "2026-11-03T20:05",
-   "report": false
+   "report": false,
+   "labels": []
   },
   {
    "id": "emw0mszjya8iv",
@@ -757,7 +798,8 @@
      "label": "討論時間",
      "start": "2026-11-03",
      "end": "",
-     "toIssue": false
+     "toIssue": false,
+     "place": ""
     }
    ],
    "round": 1,
@@ -765,7 +807,8 @@
     "2026-11-03"
    ],
    "touchedAt": "2026-11-03T19:59",
-   "report": false
+   "report": false,
+   "labels": []
   },
   {
    "id": "emw0lqzfmw4dl",
@@ -786,7 +829,8 @@
    "round": 1,
    "fromEv": "emvpd4765r0ch",
    "touched": [],
-   "report": false
+   "report": false,
+   "labels": []
   },
   {
    "id": "emw0myswnrccf",
@@ -803,7 +847,8 @@
    ],
    "touchedAt": "2026-11-05T17:06",
    "report": false,
-   "roundAt": "2026-11-05T17:06"
+   "roundAt": "2026-11-05T17:06",
+   "labels": []
   },
   {
    "id": "emw0pwllmeivk",
@@ -818,7 +863,8 @@
     "2026-11-03"
    ],
    "touchedAt": "2026-11-03T21:22",
-   "report": false
+   "report": false,
+   "labels": []
   },
   {
    "id": "emvpd4765r0ch",
@@ -845,13 +891,15 @@
      "label": "打招呼",
      "start": "2026-11-11T14:00",
      "end": "",
-     "toIssue": false
+     "toIssue": false,
+     "place": ""
     }
    ],
    "round": 3,
    "touchedAt": "2026-11-05T17:12",
    "roundAt": "2026-11-05T17:12",
-   "report": false
+   "report": false,
+   "labels": []
   },
   {
    "id": "emw3aujc3kz9f",
@@ -878,7 +926,8 @@
    "round": 1,
    "fromEv": "emvpd6qonvam7",
    "touched": [],
-   "report": false
+   "report": false,
+   "labels": []
   },
   {
    "id": "emw3azafd14l2",
@@ -893,7 +942,8 @@
    "round": 1,
    "fromEv": "emvqlvpkgu9x6",
    "touched": [],
-   "report": false
+   "report": false,
+   "labels": []
   },
   {
    "id": "emw3b5i0g9u65",
@@ -908,7 +958,8 @@
    "round": 1,
    "fromEv": "emvt1ohjjrkyg",
    "touched": [],
-   "report": false
+   "report": false,
+   "labels": []
   },
   {
    "id": "emw3b7rucq6pn",
@@ -923,7 +974,8 @@
    "round": 1,
    "fromEv": "emvt1pwvqrhyw",
    "touched": [],
-   "report": false
+   "report": false,
+   "labels": []
   },
   {
    "id": "emw3b8jiql70l",
@@ -938,7 +990,8 @@
    "round": 1,
    "fromEv": "emvteefflmm61",
    "touched": [],
-   "report": false
+   "report": false,
+   "labels": []
   },
   {
    "id": "emw3bmw40mh3r",
@@ -953,7 +1006,8 @@
    "round": 1,
    "fromEv": "emw0myswnrccf",
    "touched": [],
-   "report": false
+   "report": false,
+   "labels": []
   },
   {
    "id": "emw3bufhlpm4z",
@@ -974,7 +1028,8 @@
    "round": 2,
    "fromEv": "emvpd4765r0ch",
    "touched": [],
-   "report": false
+   "report": false,
+   "labels": []
   },
   {
    "id": "emw3cqm17k1um",
@@ -1008,7 +1063,8 @@
    "round": 1,
    "fromEv": "emvz5bo0gi726",
    "touched": [],
-   "report": false
+   "report": false,
+   "labels": []
   }
  ],
  "yearLabel": "115學年",
@@ -1050,7 +1106,7 @@
   }
  },
  "pwKdf": "bHArgaGywMuqExjsHz6wqQ==:ToDdfKkqEWWeZkIcY7d1LlyFUmgL0bb/axDeF5lI8cY=",
- "schemaVersion": 7,
+ "schemaVersion": 8,
  "members": [
   {
    "id": "mmvx2r1i3ffnm",
@@ -1077,7 +1133,7 @@
    }
   }
  ],
- "staff": [],
  "savedBy": "戴銨霆",
- "follows": []
+ "follows": [],
+ "labels": []
 }
