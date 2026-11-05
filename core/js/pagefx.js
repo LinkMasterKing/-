@@ -7,12 +7,15 @@
      模糊量跟「這一刻的速度」成正比（縮放曲線的斜率），所以舊頁剛開始退的時候清楚、越退越糊；新頁剛浮出來最糊、停下來時清楚。
    - 縮放的中心是「畫面正中央」（換算成元素自己的座標），長頁面捲到一半也一樣往畫面中央退。
    - 模糊屬於 DESIGN.md「動畫規則」裡換頁動畫的例外（使用者要求）；手機忙的時候可能掉格。
+   - 同一時間只有兩層在動（舊頁、新頁）：新頁等舊頁退到八成五、幾乎淡掉才出發，並在前 15% 就變成不透明，
+     兩層同時半透明的時間很短，不會看起來像三層疊在一起（2026-11-05 使用者回報「圖層太多、太透」）；
+     上一次換頁還沒播完的其他層，新的換頁一開始就直接藏起來，不跟著一起淡。
    - 減少動態（prefers-reduced-motion）時直接換，不播動畫。
    這個檔不依賴看板的其他程式（home.html 也載入它）。 */
 const PageFx=(()=>{
   const RM=()=>matchMedia("(prefers-reduced-motion: reduce)").matches;
-  const OUT=280,IN=440,OVER=.62,BLUR=14,SCALE=.12;   /* 舊頁退多久、新頁浮多久、新頁在舊頁退到幾成時出發、最大模糊（px）、退到多小（1−SCALE） */
-  let tok=0;const owner=new WeakMap();   /* 每個元素目前歸哪一次換頁管：被新的換頁接手，舊的那段就停下 */
+  const OUT=280,IN=440,OVER=.85,BLUR=14,SCALE=.12,FADE_IN=.15;   /* 舊頁退多久、新頁浮多久、新頁在舊頁退到幾成時出發、最大模糊（px）、退到多小（1−SCALE）、新頁在前幾成變成不透明 */
+  let tok=0;const owner=new WeakMap();const live=new Set();   /* live：目前還在換頁動畫裡的元素；owner：每個元素目前歸哪一次換頁管：被新的換頁接手，舊的那段就停下 */
   const keep=new WeakMap();
   function save(el){if(!keep.has(el))keep.set(el,{t:el.style.transform,g:el.style.transformOrigin,f:el.style.filter,o:el.style.opacity,w:el.style.willChange,p:el.style.pointerEvents})}
   function reset(el){const k=keep.get(el);if(!k)return;keep.delete(el);el.style.transform=k.t;el.style.transformOrigin=k.g;el.style.filter=k.f;el.style.opacity=k.o;el.style.willChange=k.w;el.style.pointerEvents=k.p}
@@ -30,7 +33,7 @@ const PageFx=(()=>{
         if(owner.get(el)!==my){res();return}   /* 這個元素被下一次換頁接手（或 settle）：停下 */
         const t=Math.min(1,(now-t0)/dur),out=dir==="out";
         const k=out?SCALE*t*t*t:SCALE*Math.pow(1-t,3),v=out?t*t:Math.pow(1-t,2);
-        const o=out?(t<.4?1:Math.max(0,1-(t-.4)/.6)):Math.min(1,t/.3);
+        const o=out?(t<.35?1:Math.max(0,1-(t-.35)/.65)):Math.min(1,t/FADE_IN);
         el.style.transform=`scale(${(1-k).toFixed(4)})`;el.style.filter=`blur(${(BLUR*v).toFixed(2)}px)`;el.style.opacity=o.toFixed(3);
         if(t<1)requestAnimationFrame(frame);else res();
       };
@@ -43,16 +46,18 @@ const PageFx=(()=>{
   async function swap(from,to,{mid,done}={}){
     const my=++tok;let m=false;const M=()=>{if(!m){m=true;mid&&mid()}};
     if(RM()||!from||!to){M();done&&done();return}
-    owner.set(from,my);owner.set(to,my);
+    /* 上一次換頁還沒播完、這次又不用的層（例如快速開關設定）：直接藏起來，畫面上只留這次的前後兩層 */
+    const stale=[...live].filter(el=>el!==from&&el!==to);stale.forEach(el=>{owner.set(el,my);save(el);el.style.opacity="0"});
+    owner.set(from,my);owner.set(to,my);live.add(from);live.add(to);
     if(from!==to)hold(to);
     if(from===to){await run(from,"out",my);M();await run(to,"in",my)}
     else{const pOut=run(from,"out",my);await wait(OUT*OVER);M();await Promise.all([pOut,run(to,"in",my)])}
     /* 中途被打斷也一樣把該做的做完（顯示新頁、藏起舊頁），只是還在別次換頁手上的元素不還原樣式 */
     M();done&&done();
-    for(const el of new Set([from,to]))if(owner.get(el)===my){owner.delete(el);reset(el)}
+    for(const el of new Set([from,to,...stale]))if(owner.get(el)===my){owner.delete(el);live.delete(el);reset(el)}
   }
   /* 立刻停掉這些元素的換頁動畫並還原樣式（例如關閉動畫還沒播完又打開） */
-  function settle(...els){els.forEach(el=>{if(!el)return;owner.delete(el);reset(el)})}
+  function settle(...els){els.forEach(el=>{if(!el)return;owner.delete(el);live.delete(el);reset(el)})}
 
   /* ---------- 跨頁（總覽 ↔ 看板） ----------
      離開：攔下站內的連結（同網站的 .html 或資料夾），整頁往後退完再換頁。
