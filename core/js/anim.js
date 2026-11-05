@@ -88,7 +88,10 @@ const Anim=(()=>{
   /* 顯示／隱藏（hidden 屬性）也有過渡 */
   async function show(el,kind="rise"){if(!el)return;el.hidden=false;return enter(el,kind)}
   async function hide(el,kind="fade"){if(!el||el.hidden)return;await leave(el,kind);el.hidden=true;el.getAnimations().forEach(a=>a.cancel())}
-  return {capture,play,enter,leave,swap,show,hide,lift,drop};
+  /* 燈號擴散（CSS 動畫 ping）：重畫後新的燈號會從頭播，跟原本的節奏對不上、看起來像跳一下。
+     把每個 ping 動畫的起點都對齊到頁面時間軸 0，重畫前後相位一樣，所有燈號也同步 */
+  function syncPings(){if(reduced())return;try{document.getAnimations().forEach(x=>{if(x.animationName==="ping"&&x.startTime!==0&&x.playState==="running")x.startTime=0})}catch(_){}}
+  return {capture,play,enter,leave,swap,show,hide,lift,drop,syncPings};
 })();
 
 /* ---------- 液態分段切換 LiquidSeg（2026-11-05） ----------

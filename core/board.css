@@ -40,8 +40,6 @@ input:focus,textarea:focus,select:focus{outline:2px solid var(--ink);outline-off
 summary{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
 .dwrap{display:block;padding:0;margin:0}
 .animating{box-shadow:none}
-.animating .live-dot::after,.animating .ok-dot::after{animation:none!important;opacity:0}
-.animating .ok-dot{box-shadow:none}
 body.log-open{overflow:hidden}
 @media (prefers-color-scheme:dark){
   :root:not([data-theme="light"]){--bg:#000;--surface:#000;--ink:#f1f1f4;--pop:rgba(30,30,34,.96);--pop-sh:inset 0 0 0 .5px rgba(255,255,255,.22),inset 1.5px 1.5px 1px -1px rgba(255,255,255,.5),0 16px 36px rgba(0,0,0,.5);--muted:#a3a3ae;--line:#ececf0;--hair:#2c2c34;--grid:#1a1a20;--teal:#f1f1f4;--teal-soft:#000;--lime:var(--accent-dark);--warn:var(--accent-dark);--onteal:#111114;--done:var(--ok);--red:var(--accent-dark);--green:var(--ok);--rest:#4a4a54;color-scheme:dark;--glow:0 0 0 1.5px #fff,0 0 22px 3px rgba(255,255,255,.55),0 0 50px -6px rgba(255,255,255,.35);--glow-soft:0 0 0 1px rgba(255,255,255,.7),0 0 34px -6px rgba(255,255,255,.4);--flash:#fff}
@@ -238,7 +236,7 @@ body.edit .sec-edit-btn{display:inline-flex;animation:fadeSlide .4s var(--ease) 
 .ok-dot{position:relative;flex:none;width:9px;height:9px;border-radius:50%;transition:transform .35s cubic-bezier(.3,1.6,.5,1);background:var(--ok-dot)!important;box-shadow:0 0 6px 1px var(--ok-dot),0 0 12px 2px rgba(43,255,136,.45);transform:translateZ(0)}
 .ok-dot::after{content:"";position:absolute;inset:0;border-radius:50%;animation:ping 2.4s cubic-bezier(0,0,.2,1) infinite;background:var(--ok-dot);will-change:transform,opacity}
 @keyframes ping{75%,100%{transform:scale(2.4);opacity:0}}
-.motion-busy .live-dot::after,.motion-busy .ok-dot::after{animation-play-state:paused}   /* 展開收合動畫進行中先停，見 motion.js 的 motionBusy */
+/* 燈號擴散只動 transform／opacity（交給合成執行緒），展開收合時也不暫停（暫停再繼續看起來像卡住）；重畫後的相位由 anim.js 的 Anim.syncPings 接回去 */
 
 /* ===== 即時回報 ===== */
 /* 膠囊一律白底黑字（細框），狀態只放在左邊的燈號：data-st＝ok 綠（期限前有更新）／go 黃（學生會黃 --su-yellow；這週完成過一段，或期限後才補更新）／stall 紅（沒有進度）。
