@@ -433,6 +433,54 @@ html.ev-drag-on,html.ev-drag-on *{-webkit-user-select:none;user-select:none;curs
   .fw{padding:12px 14px 14px}
 }
 
+/* ===== 各部門編輯量（會長室，activity.js） =====
+   細線平滑曲線（每個部門一條，部門色）；沒有格子，只有兩條淡橫線與每天一條淡直線；今天的日期粗體；
+   游標＝文字色細直線＋曲線上的小點＋文字色底的小標籤（跟甘特圖註記同一種實心膠囊） */
+.act-panel{margin-bottom:var(--gap,16px)}
+.act-panel[hidden]{display:none}
+.ac-info{margin:-4px 0 10px}
+.ac-info b{color:var(--ink);font-weight:500}
+.ac-info .num{color:var(--ink)}
+.ac-err{color:var(--red)}
+.ac-chart{position:relative;min-height:120px;padding-top:58px;touch-action:pan-y;-webkit-user-select:none;user-select:none}
+.ac-msg{margin:0;padding:24px 0}
+.ac-svg{display:block;width:100%;height:auto;overflow:visible;cursor:crosshair}
+.ac-grid,.ac-day{stroke:var(--hair);stroke-width:1}
+.ac-day{stroke-dasharray:2 4}
+.ac-base{stroke:var(--ink);stroke-width:1}
+.ac-yl{fill:var(--muted);font:11px "Jost",sans-serif;text-anchor:end}
+.ac-xl{fill:var(--muted);font:11.5px "Jost","Noto Sans TC",sans-serif;letter-spacing:.04em}
+.ac-xl.is-today{fill:var(--ink);font-weight:600}
+.ac-line{fill:none;stroke:var(--c);stroke-width:1.6;stroke-linejoin:round;stroke-linecap:round;transition:opacity var(--mo-base) var(--mo-out)}
+.ac-line.zero{opacity:.35}
+.ac-line.dim{opacity:.12}
+.ac-cur:not(.on){display:none}   /* SVG 不吃 hidden 屬性，用 class 開關 */
+.ac-cur line{stroke:var(--ink);stroke-width:1}
+.ac-cur circle{fill:var(--bg);stroke:var(--c);stroke-width:2;transition:opacity var(--mo-fast) var(--mo-out)}
+.ac-cur circle.dim{opacity:0}
+/* 小標籤：在圖的上方（padding-top 留的空間），左右跟著游標、不超出區塊 */
+.ac-tip{position:absolute;left:0;top:0;display:flex;flex-wrap:wrap;align-items:center;gap:2px 10px;max-width:min(100%,360px);padding:6px 12px;border-radius:14px;background:var(--ink);color:var(--bg);font-size:12px;line-height:1.5;pointer-events:none;box-shadow:0 8px 20px rgba(0,0,0,.18)}
+.ac-tip[hidden]{display:none}
+.ac-tip b{font-weight:500;letter-spacing:.04em;margin-right:2px}
+.ac-tip span{display:inline-flex;align-items:center;gap:5px;white-space:nowrap}
+.ac-tip i{width:7px;height:7px;border-radius:50%;background:var(--c);box-shadow:0 0 0 1px var(--bg)}
+.ac-tip em{font-style:normal;font-weight:500}
+.ac-none{opacity:.7}
+/* 圖例：每個部門一顆小膠囊（色點＋名稱＋這週總數）；點了只看那個部門 */
+.ac-legend{display:flex;flex-wrap:wrap;gap:6px;margin-top:12px}
+.ac-k{display:inline-flex;align-items:center;gap:6px;min-height:30px;padding:3px 12px;font-size:12.5px;border-color:var(--hair);transition:opacity var(--mo-base) var(--mo-out),background-color var(--mo-base) var(--mo-out),color var(--mo-base) var(--mo-out),transform .22s var(--ease)}
+.ac-k i{width:8px;height:8px;border-radius:50%;background:var(--c)}
+.ac-k .num{color:var(--muted)}
+.ac-k.zero{color:var(--muted)}
+.ac-k.dim{opacity:.45}
+.ac-k.on{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.ac-k.on .num{color:inherit;opacity:.7}
+@media (max-width:640px){
+  .ac-chart{padding-top:64px}
+  .ac-xl{font-size:10px;letter-spacing:0}
+  .ac-k{min-height:28px;padding:2px 10px;font-size:12px}
+}
+
 /* ===== 會議報告事項（秘書處，meeting.js） =====
    沿用追蹤面板的外框；依部門分組，每組標題列＝部門標籤＋數量＋開啟看板；卡片排成格，跟追蹤同一種細線清單 */
 .mt-depts{display:grid;gap:18px}
