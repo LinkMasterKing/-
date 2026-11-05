@@ -1110,6 +1110,7 @@ dialog#dlg:has(.csel.open){overflow:visible}
 .noti-ov{z-index:37}
 .noti-inner{max-width:920px;margin:0 auto;padding:22px 0 calc(32px + var(--bar-in) + env(safe-area-inset-bottom));display:grid;gap:22px}
 .noti-bar{max-width:920px;margin:0 auto;padding-top:14px}
+.noti-ov .set-scroll{padding-inline:10px;margin-inline:-10px}   /* 本部門／全會貼著內容左邊：捲動區左右多留 10px，按下放大時玻璃的外陰影不會被切掉（內容位置不變） */
 .noti-note{margin:-12px 0 0}
 .noti-days{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:22px}
 .noti-day h3{display:flex;align-items:baseline;gap:10px;margin:0 0 8px;padding-bottom:8px;border-bottom:1px solid var(--ink);font-size:17px;font-weight:700;letter-spacing:.1em}
