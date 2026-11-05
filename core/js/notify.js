@@ -94,16 +94,17 @@ function openNoti(){
     elastic(ov.querySelector(".set-scroll"),ov.querySelector(".noti-inner"))}
   if(notiOpen)return;
   if(setOpen)closeSettings(true);
+  const from=pageUnder(ov);PageFx.settle(ov);
   notiOpen=true;NOTI.month=today().slice(0,7);NOTI.day=null;ov.getAnimations().forEach(a=>a.cancel());ov.hidden=false;Back.layers.noti();document.body.classList.add("set-open");
-  renderNoti();requestAnimationFrame(()=>notiSeg.set(NOTI.scope,true));Anim.enter(ov,"rise",{duration:380});
+  renderNoti();requestAnimationFrame(()=>notiSeg.set(NOTI.scope,true));PageFx.swap(from,ov);   /* 換頁動畫 */
   if(NOTI.scope==="all")notiLoadAll();
 }
 function closeNoti(instant){
   const ov=$("#notiOv");if(!ov||!notiOpen)return;
   notiOpen=false;Back.closed("noti");
   const done=()=>{if(!notiOpen){ov.hidden=true;ov.getAnimations().forEach(a=>a.cancel());if(!setOpen)document.body.classList.remove("set-open")}};
-  if(instant)return done();
-  Anim.backOut(ov,done);   /* 跟返回手勢同一個收尾 */
+  if(instant){PageFx.settle(ov);return done()}
+  PageFx.swap(ov,pageUnder(ov),{done});   /* 換頁動畫：通知往下沉、底下那頁從下方升上來 */
 }
 async function notiLoadAll(){
   NOTI.loading=true;renderNoti();

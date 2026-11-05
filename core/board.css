@@ -96,7 +96,7 @@ button.ghost{border-color:var(--muted)}
 }
 
 /* ===== 頁面：主頁｜每週概述左右切換 ===== */
-.pager{display:flex;height:100vh;height:100dvh;overflow-x:auto;overflow-y:hidden;scroll-snap-type:x mandatory;overscroll-behavior-x:contain;scrollbar-width:thin}
+.pager{display:flex;height:100vh;height:100dvh;overflow-x:hidden;overflow-y:hidden;scroll-snap-type:x mandatory;overscroll-behavior-x:contain;scrollbar-width:thin}
 .page{flex:none;height:100%;overflow-y:auto;scroll-snap-align:start;scrollbar-gutter:stable}
 .page-main{width:100vw}
 .wrap{max-width:1500px;margin:0 auto;padding:calc(20px + env(safe-area-inset-top)) max(16px,env(safe-area-inset-right)) calc(20px + var(--bar-in) + env(safe-area-inset-bottom)) calc(var(--rail-in) + max(16px,env(safe-area-inset-left)))}
@@ -845,19 +845,9 @@ a.link:active{transform:scale(.96)}
 .sp-grp svg{position:absolute;display:block;overflow:visible}
 .sp-emb path{will-change:transform,opacity}
 
-/* ===== 頁面切換（總覽 ↔ 看板） ===== */
-/* 跨頁的 View Transitions：往下一層新頁從右推進；返回時舊頁縮小、右移、淡出（跟邊緣滑動的預測返回同一個樣子）。類型由 back.js 標記 */
-@view-transition{navigation:auto}
-::view-transition-old(root),::view-transition-new(root){animation-duration:.36s;animation-timing-function:cubic-bezier(.2,.9,.25,1)}
-::view-transition-old(root){animation-name:vt-out}
-::view-transition-new(root){animation-name:vt-in}
-html:active-view-transition-type(back)::view-transition-old(root){animation-name:vt-back-out;z-index:2}
-html:active-view-transition-type(back)::view-transition-new(root){animation-name:vt-back-in}
-@keyframes vt-out{to{transform:translateX(-12%);opacity:.5}}
-@keyframes vt-in{from{transform:translateX(100%)}}
-@keyframes vt-back-out{to{transform:translateX(22vw) scale(.86);border-radius:32px;opacity:0}}
-@keyframes vt-back-in{from{transform:scale(.95);opacity:.4}}
-@media (prefers-reduced-motion:reduce){@view-transition{navigation:none}}
+/* ===== 換頁動畫（core/js/pagefx.js） ===== */
+/* 舊頁往下沉並往下方向模糊、新頁模糊著從下方升上來；位置、透明度、模糊都由 pagefx.js 每格設定，這裡只有「站內換頁過來時 body 先透明」 */
+.pfx-arrive body{opacity:0}
 
 /* ===== 對話框與下拉選單 ===== */
 .danger-btn{color:var(--warn)}

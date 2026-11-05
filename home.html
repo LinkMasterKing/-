@@ -46,21 +46,11 @@ html,body{margin:0;background:var(--bg);color:var(--ink);font-family:"Noto Sans 
 .lead .dept{border-top:1px solid var(--line);border-bottom:1px solid var(--line);padding:22px 4px}
 .lead .dept b{font-size:24px}
 .foot{margin-top:36px;font-size:12px;color:var(--muted)}
-/* ===== 頁面切換（總覽 ↔ 看板） ===== */
-/* 跨頁的 View Transitions：往下一層新頁從右推進；返回時舊頁縮小、右移、淡出（跟邊緣滑動的預測返回同一個樣子）。類型由下方程式標記 */
-@view-transition{navigation:auto}
-::view-transition-old(root),::view-transition-new(root){animation-duration:.36s;animation-timing-function:cubic-bezier(.2,.9,.25,1)}
-::view-transition-old(root){animation-name:vt-out}
-::view-transition-new(root){animation-name:vt-in}
-html:active-view-transition-type(back)::view-transition-old(root){animation-name:vt-back-out;z-index:2}
-html:active-view-transition-type(back)::view-transition-new(root){animation-name:vt-back-in}
-@keyframes vt-out{to{transform:translateX(-12%);opacity:.5}}
-@keyframes vt-in{from{transform:translateX(100%)}}
-@keyframes vt-back-out{to{transform:translateX(22vw) scale(.86);border-radius:32px;opacity:0}}
-@keyframes vt-back-in{from{transform:scale(.95);opacity:.4}}
-@media (prefers-reduced-motion:reduce){@view-transition{navigation:none}}
+/* 換頁動畫（core/js/pagefx.js）：站內換頁過來時 body 先透明，等它從下方升上來 */
+.pfx-arrive body{opacity:0}
 @media (prefers-reduced-motion:no-preference){.dept{animation:in .5s var(--ease) both;animation-delay:calc(var(--i,0)*40ms)}@keyframes in{from{opacity:0;transform:translateY(8px)}}}
 </style>
+<script>/* 換頁動畫（core/js/pagefx.js）：從站內換頁過來的，body 先透明，等它從下方升上來（不會先閃一下完整的畫面） */try{var r=document.referrer,n=performance.getEntriesByType("navigation")[0];if(r&&new URL(r).origin===location.origin&&(!n||n.type!=="reload")&&!matchMedia("(prefers-reduced-motion: reduce)").matches)document.documentElement.classList.add("pfx-arrive")}catch(e){}</script>
 </head>
 <body>
 <div class="wrap">
@@ -74,18 +64,7 @@ html:active-view-transition-type(back)::view-transition-new(root){animation-name
   <div class="list" id="list"></div>
   <p class="foot">數字是各部門最近一次儲存的內容；「沒有進度」＝即時回報在回報期限前後都沒有更新。</p>
 </div>
-<script>
-/* ---------- 跨頁（總覽 ↔ 看板）的頁面切換動畫 ----------
-   往下一層（總覽→看板）：新頁從右邊推進來；往上一層或瀏覽器返回：舊頁縮小、右移、淡出（跟預測返回同一個樣子） */
-(()=>{
-  const lvl=u=>{try{return new URL(u,location.href).pathname.endsWith("/home.html")?0:1}catch(_){return 1}};
-  const isBack=(from,to,act)=>lvl(to)<lvl(from)||!!(act&&act.navigationType==="traverse"&&act.entry&&act.from&&act.entry.index<act.from.index);
-  addEventListener("pagereveal",e=>{if(!e.viewTransition)return;const act=window.navigation&&navigation.activation;
-    const from=(act&&act.from&&act.from.url)||document.referrer;if(from&&isBack(from,location.href,act))e.viewTransition.types.add("back")});
-  addEventListener("pageswap",e=>{if(!e.viewTransition||!e.activation)return;
-    if(isBack(location.href,e.activation.entry.url,e.activation))e.viewTransition.types.add("back")});
-})();
-</script>
+<script src="core/js/pagefx.js"></script>
 <script src="dept/config.js"></script>
 <script>
 /* 各部門清單來自 dept/config.js 的 BOARD_DEPTS；數字讀各部門網站上的資料檔（只讀） */
