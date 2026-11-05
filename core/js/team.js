@@ -30,9 +30,10 @@ async function ensureLogin(){
 /* 用記住的裝置登入時手上沒有密碼；要加密新權杖時再問一次 */
 async function needPw(){
   const me=meMember();if(sessionPw||!me)return !!sessionPw;
-  const v=await ask("輸入個人密碼",[{name:"pw",label:`${me.name} 的個人密碼（用來加密新權杖，其他裝置登入後才會自動連上）`,type:"password"}]);
-  if(v&&await kdfCheck(me.kdf,v.pw)){sessionPw=v.pw;return true}
-  if(v)toast("密碼不正確，新權杖只存在這台裝置");return false;
+  const v=await ask("輸入個人密碼",[{name:"pw",label:`${me.name} 的個人密碼（用來加密新權杖，其他裝置登入後才會自動連上）`,type:"password"}],
+    {validate:async o=>await kdfCheck(me.kdf,o.pw)?"":"個人密碼不正確，請再輸入一次（按取消的話，新權杖只存在這台裝置）"});
+  if(v){sessionPw=v.pw;return true}
+  return false;
 }
 async function kdfMake(pw){const salt=toB64(crypto.getRandomValues(new Uint8Array(16)));return salt+":"+await kdfHash(pw,salt)}
 async function kdfCheck(stored,pw){if(!stored||!pw)return false;const [s,h]=stored.split(":");try{return (await kdfHash(pw,s))===h}catch(_){return false}}
@@ -42,41 +43,80 @@ async function unlockEdit(){
   if(!hasSubtle()){toast("這個瀏覽器不支援加密功能，無法使用編輯身分");return false}
   if(!state.members.length){
     /* 舊版看板：先用現有的共用密碼登入，再建立第一個個人身分 */
-    const pw=await unlockShared("輸入目前的編輯密碼");if(pw===null)return false;
+    const init=!!(state.sync&&state.sync.initial);
+    const pw=await unlockShared(init?"第一次使用：輸入初始密碼":"輸入目前的編輯密碼",
+      init?"這個部門已經由學生會開通雲端。請輸入學生會給你的初始密碼，接著建立你的身分，你會是這個部門的第一位管理員。":"");
+    if(pw===null)return false;
     sharedPwSession=pw;
     const ok=await createMember(true);if(!ok)return false;
-    if(pw.length<MIN_PW)setTimeout(()=>toast(`提醒：共用密碼少於 ${MIN_PW} 碼，建議到「身分與專員」更換`),2800);
+    if(init)await ownSharedPw();
+    else if(pw.length<MIN_PW)await sharedPwFix();
+    await cloudWarn();
     return true;
   }
   let last="";try{last=localStorage.getItem(ME_KEY)||""}catch(_){}
   for(;;){
     const opts=state.members.map(m=>[m.id,m.name+(m.role==="admin"?"（管理員）":"")]);
-    const v=await ask("選擇編輯身分",[{name:"who",label:"我是",type:"select",value:last||opts[0][0],options:opts},{name:"pw",label:"個人密碼",type:"password"},{name:"rem",label:"在這個裝置上記住密碼",type:"check"}],{alt:"＋ 新增身分"});
+    const v=await ask("選擇編輯身分",[{name:"who",label:"我是",type:"select",value:last||opts[0][0],options:opts},{name:"pw",label:"個人密碼",type:"password"},{name:"rem",label:"在這個裝置上記住密碼",type:"check"}],
+      {alt:"＋ 新增身分",note:"選自己的名字、輸入個人密碼。勾「記住密碼」之後，這台裝置就不用再輸入。\n還沒有身分的人按「＋ 新增身分」（要輸入部門共用密碼）。",
+       validate:async o=>{const m=state.members.find(x=>x.id===o.who);return m&&await kdfCheck(m.kdf,o.pw)?"":"個人密碼不正確。忘記的話請部門管理員刪掉你的身分，再用「＋ 新增身分」重新建立。"}});
     if(v===null)return false;
     if(v==="alt"){
-      const pw=await unlockShared("新增身分：先輸入部門共用密碼");if(pw===null)continue;
-      sharedPwSession=pw;if(await createMember(false))return true;continue;
+      const pw=await unlockShared("新增身分：先輸入部門共用密碼","共用密碼由部門管理員提供（剛開通的部門是學生會給的初始密碼）。輸入後就能建立自己的身分。");if(pw===null)continue;
+      sharedPwSession=pw;if(await createMember(false)){await cloudWarn();return true}continue;
     }
     const m=state.members.find(x=>x.id===v.who);last=v.who;
     if(m&&await kdfCheck(m.kdf,v.pw)){
       meId=m.id;sessionPw=v.pw;try{localStorage.setItem(ME_KEY,m.id)}catch(_){}
       if(v.rem)await remSave(m);
       if(!ghToken()&&m.tok){try{localStorage.setItem(TOKEN_KEY,await decToken(m.tok,v.pw));toast("已自動連上雲端")}catch(_){}}
+      await cloudWarn();
       return true;
     }
     toast("密碼錯誤");
   }
 }
+/* 新密碼的檢查（個人密碼、共用密碼共用）：錯了回傳要顯示在視窗裡的紅字 */
+function pwProblem(p1,p2,what){
+  if(!p1)return `請輸入${what}`;
+  if(p1.length<MIN_PW)return `${what}至少要 ${MIN_PW} 碼（現在是 ${p1.length} 碼）。密碼會用來加密上傳權限，太短的密碼別人猜得到；可以用一句好記的話，例如「權益部2026開會用」。`;
+  if(p1!==p2)return "兩次輸入的密碼不一樣，請再輸入一次";
+  return "";
+}
 async function askNewPassword(title,extra=[]){
-  for(;;){
-    const v=await ask(title,[...extra,{name:"p1",label:`個人密碼（至少 ${MIN_PW} 碼）`,type:"password"},{name:"p2",label:"再輸入一次",type:"password"}]);
-    if(!v||v==="alt")return null;
-    if(extra.some(f=>f.name==="name")){const n=(v.name||"").trim();if(!n){toast("請填名字");extra=extra.map(f=>({...f,value:v[f.name]}));continue}
-      if(state.members.some(m=>m.name===n)){toast("已經有同名的身分");extra=extra.map(f=>({...f,value:v[f.name]}));continue}}
-    if((v.p1||"").length<MIN_PW){toast(`密碼至少要 ${MIN_PW} 碼`);extra=extra.map(f=>({...f,value:v[f.name]}));continue}
-    if(v.p1!==v.p2){toast("兩次輸入的密碼不一樣");extra=extra.map(f=>({...f,value:v[f.name]}));continue}
-    return v;
-  }
+  const named=extra.some(f=>f.name==="name");
+  const v=await ask(title,[...extra,{name:"p1",label:`個人密碼（至少 ${MIN_PW} 碼）`,type:"password"},{name:"p2",label:"再輸入一次",type:"password"}],
+    {note:`個人密碼只有你自己知道，之後換裝置就用它登入。登入時勾「記住密碼」，同一台裝置就不用再打。`,
+     validate:o=>{if(named){const n=(o.name||"").trim();if(!n)return "請填名字";if(state.members.some(m=>m.name===n))return "已經有同名的身分，請換一個名字（例如加上職稱）"}
+       return pwProblem(o.p1||"",o.p2||"","個人密碼")}});
+  return !v||v==="alt"?null:v;
+}
+/* 部門第一位管理員：初始密碼是全會共用的，建議換成部門自己的共用密碼（可以稍後再說） */
+async function ownSharedPw(){
+  const v=await ask("設定部門自己的共用密碼",[{name:"n1",label:`新的共用密碼（至少 ${MIN_PW} 碼）`,type:"password"},{name:"n2",label:"再輸入一次",type:"password"}],
+    {note:"剛才的初始密碼是學生會全會共用的。建議換成只有你們部門知道的密碼：之後新成員加入（「＋ 新增身分」）時要輸入這組密碼。\n按「取消」＝先沿用初始密碼，之後可以到「設定 → 身分與專員」更改。",
+     validate:o=>pwProblem(o.n1||"",o.n2||"","共用密碼")});
+  if(!v)return;
+  await setSharedPw(v.n1);await persist("已設定部門共用密碼");
+}
+/* 舊看板的共用密碼太短（例如預設的 0000）：新成員拿不到上傳權限，建議第一位管理員馬上換 */
+async function sharedPwFix(){
+  const v=await ask("部門共用密碼太短",[{name:"n1",label:`新的共用密碼（至少 ${MIN_PW} 碼）`,type:"password"},{name:"n2",label:"再輸入一次",type:"password"}],
+    {note:`目前的共用密碼少於 ${MIN_PW} 碼，看板不會用它保管上傳權限，所以其他裝置的新成員建立身分後連不上雲端。建議現在換一組；按「取消」可以之後到「設定 → 身分與專員」更改。`,
+     validate:o=>pwProblem(o.n1||"",o.n2||"","共用密碼")});
+  if(!v)return;
+  await setSharedPw(v.n1);await persist("已更換部門共用密碼");
+}
+/* 換共用密碼：重新加密上傳權限（這台裝置有權杖時），初始密碼的標記拿掉 */
+async function setSharedPw(pw){
+  await setPw(pw);sharedPwSession=pw;
+  if(ghToken())await rememberToken(ghToken(),pw);else if(state.sync)delete state.sync.tokenEnc;
+  if(state.sync)delete state.sync.initial;
+}
+/* 登入後這台裝置還是沒有連上雲端（部門還沒開通）：明白告訴使用者資料只會存在這台裝置 */
+async function cloudWarn(){
+  if(!cloudOn()||ghToken())return;
+  await ask("這台裝置沒有連上雲端",[],{note:"這個部門還沒開通雲端，你的修改只會存在這台裝置的瀏覽器，其他人、其他裝置都看不到。\n請學生會管理員在自己的電腦打開「設定 → 開通部門」開通後，再重新登入。"});
 }
 async function createMember(first){
   const v=await askNewPassword(first?"建立你的編輯身分（第一位會是管理員）":"新增編輯身分",[{name:"name",label:"名字（會顯示在編輯紀錄）",ph:"例如：王小明"}]);
@@ -119,19 +159,17 @@ async function teamSettings(){
         if(ok==="delete"){state.members=state.members.filter(y=>y!==m);[...state.issues,...state.events].forEach(o=>{if(o.staff)o.staff=o.staff.filter(s=>s!==m.id)});dirty=true}
         reopen();return}
       if(x==="mypw"){await leave();const me=meMember();
-        const old=await ask("更改個人密碼",[{name:"old",label:"目前的個人密碼",type:"password"}]);
-        if(old&&me){if(!(await kdfCheck(me.kdf,old.old))){toast("目前密碼不正確");reopen();return}
+        const old=await ask("更改個人密碼",[{name:"old",label:"目前的個人密碼",type:"password"}],{validate:async o=>me&&await kdfCheck(me.kdf,o.old)?"":"目前的個人密碼不正確"});
+        if(old&&me){
           const v=await askNewPassword("設定新的個人密碼");
           if(v){me.kdf=await kdfMake(v.p1);sessionPw=v.p1;if(ghToken())me.tok=await encToken(ghToken(),v.p1);else delete me.tok;dirty=true;toast("個人密碼已更改，儲存後生效")}}
         reopen();return}
-      if(x==="sharedpw"){await leave();
-        const old=await ask("更改部門共用密碼",[{name:"old",label:"目前的共用密碼",type:"password"}]);
-        if(old){if(!(await checkPw(old.old||""))){toast("目前共用密碼不正確");reopen();return}
-          for(;;){const v=await ask("新的部門共用密碼",[{name:"n1",label:`新密碼（至少 ${MIN_PW} 碼，新成員建立身分時要用）`,type:"password"},{name:"n2",label:"再輸入一次",type:"password"}]);
-            if(!v)break;if((v.n1||"").length<MIN_PW){toast(`至少要 ${MIN_PW} 碼`);continue}if(v.n1!==v.n2){toast("兩次輸入不一樣");continue}
-            await setPw(v.n1);sharedPwSession=v.n1;
-            if(ghToken()){await rememberToken(ghToken(),v.n1)}else if(state.sync)delete state.sync.tokenEnc;
-            dirty=true;toast("共用密碼已更改，儲存後生效");break}}
+      /* 更改部門共用密碼：只有管理員看得到這顆，不用輸入舊密碼（忘了也能重設） */
+      if(x==="sharedpw"&&isAdmin()){await leave();
+        const v=await ask("設定新的部門共用密碼",[{name:"n1",label:`新的共用密碼（至少 ${MIN_PW} 碼）`,type:"password"},{name:"n2",label:"再輸入一次",type:"password"}],
+          {note:"新成員按「＋ 新增身分」時要輸入這組密碼。改了以後舊的共用密碼就不能用；已經有身分的人照常用自己的個人密碼登入，不受影響。"+(ghToken()?"":"\n注意：這台裝置沒有連上雲端，改完後新成員仍然拿不到上傳權限，請在有權杖的裝置上改。"),
+           validate:o=>pwProblem(o.n1||"",o.n2||"","共用密碼")});
+        if(v){await setSharedPw(v.n1);dirty=true;toast("共用密碼已更改，按「完成」後儲存生效")}
         reopen();return}
     });
   };
@@ -210,7 +248,7 @@ function diffState(a,b){
     if(o.role!==m.role)L.push(`設定｜${m.role==="admin"?"設為管理員":"取消管理員"}｜${m.name}`);if(o.kdf!==m.kdf)L.push(`設定｜更改個人密碼｜${m.name}`)}
   for(const [id,m] of AMb)if(!BMb.has(id))L.push(`設定｜刪除編輯身分｜${m.name}`);
   if(a.pwKdf!==b.pwKdf&&a.pwKdf&&b.pwKdf)L.push("設定｜更改部門共用密碼");else if(!a.pwKdf&&b.pwKdf)L.push("設定｜共用密碼升級加密");
-  const sy=x=>{const s={...(x.sync||{})};delete s.tokenEnc;return s};
+  const sy=x=>{const s={...(x.sync||{})};delete s.tokenEnc;delete s.initial;return s};
   if(!same(sy(a),sy(b)))L.push("設定｜雲端同步設定");else if(!same((a.sync||{}).tokenEnc,(b.sync||{}).tokenEnc))L.push("設定｜更新雲端連線");
   /* 會長室的追蹤項目 */
   const AF=byId(a.follows),BF=byId(b.follows),fl=f=>{const d=(window.BOARD_DEPTS||[]).find(x=>x.id===f.dept);return `${d?d.name:f.dept}的${(typeof FW_KIND!=="undefined"&&FW_KIND[f.kind])||f.kind}`};

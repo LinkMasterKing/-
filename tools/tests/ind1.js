@@ -13,7 +13,7 @@ await p.evaluate(()=>localStorage.setItem('workboard:ghtoken','T'));
 await p.click('#setBtn');await p.waitForTimeout(500);await p.click('#setOv .set-gate .primary');await p.waitForTimeout(400);
 const ok=()=>p.click('#dlgForm [data-act=ok]');
 await p.fill('#dlgForm input[name=pw]','0000');await ok();await p.waitForTimeout(500);
-await p.fill('#dlgForm input[name=name]','王');await p.fill('#dlgForm input[name=p1]','wang-password-1');await p.fill('#dlgForm input[name=p2]','wang-password-1');await ok();await p.waitForTimeout(2500);
+await p.fill('#dlgForm input[name=name]','王');await p.fill('#dlgForm input[name=p1]','wang-password-1');await p.fill('#dlgForm input[name=p2]','wang-password-1');await ok();await p.waitForTimeout(2500);await (async()=>{for(let i=0;i<4;i++){await p.waitForTimeout(500);const t=await p.$eval('#dlg[open] #dlgForm>b',b=>b.textContent).catch(()=>'');if(/共用密碼太短|沒有連上雲端/.test(t))await p.click('#dlgForm [data-act=cancel]').catch(()=>{})}})();   /* 2026-11-05：建立第一個身分後，共用密碼 0000 會請管理員換（team.js 的 sharedPwFix），測試先取消 */
 await p.$eval('#setOv [data-set=report]',e=>e.scrollIntoView({block:'center'}));await p.click('#setOv [data-set=report]');await p.waitForTimeout(700);await ok();await p.waitForTimeout(900);
 const long='這是一段很長的內文，用來測試換行之後第二行的起點是否對齊段落本身的左邊，而不是整份文件最左邊。'.repeat(3);
 await p.click('.rpt-free .rpt-text');

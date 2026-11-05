@@ -186,7 +186,8 @@ function settingsInner(){
     setSec("看板資訊",setRow("title","edit","看板名稱",esc(state.title))+
       setRow("year","cap","學年",esc(state.yearLabel||"未設定"))+setRow("term","flag","開學日",state.termStart?fmt(state.termStart):"未設定"))+
     setSec("雲端與分享",setRow("cloud","cloud","雲端同步",cloudOn()?`${esc(c.owner)}/${esc(c.repo)} · ${ghToken()?"這台裝置已連上":"這台裝置還沒有權杖"}`:"尚未設定")+
-      setRow("share","share","分享預覽","貼連結到 LINE、IG、FB 時顯示的標題與說明"))+
+      setRow("share","share","分享預覽","貼連結到 LINE、IG、FB 時顯示的標題與說明")+
+      (cloudOn()&&ghToken()?setRow("provision","people","開通部門（全會）","用一組初始密碼，讓各部門不用權杖也能連上雲端"):""))+
     setSec("匯出與備份",setRow("exportEdit","download","匯出備份","JSON 檔，之後可以再匯入")+
       setRow("import","upload","匯入備份","用備份檔取代目前的看板內容")+setRow("report","doc","匯出工作報告","選期間、補寫內容，再存成 PDF"))+
     setSec("這台裝置",setRow("forget","device","忘記這台裝置",remName?`目前記住：${esc(remName)}（登入時勾選「在這個裝置上記住密碼」）`:"這台裝置沒有記住任何身分",!remName)))+
@@ -289,6 +290,7 @@ const SET_FLOWS={
   title:()=>editBoardInfo("title"),year:()=>editBoardInfo("year"),term:()=>editBoardInfo("term"),
   cloud:async()=>{const before=JSON.stringify(state);const ok=await cloudSettings();if(ok&&!editing&&JSON.stringify(state)!==before)await settingSave(()=>{},"雲端設定已更新");else render()},
   share:()=>shareSettings(),
+  provision:()=>provisionDepts(),
   report:()=>reportDialog(),
 };
 document.addEventListener("click",async e=>{

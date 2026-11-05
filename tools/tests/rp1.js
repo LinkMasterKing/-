@@ -21,7 +21,7 @@ for(const [w,h,sc,tag] of [[1300,860,'dark','d'],[412,915,'light','m']]){
   await p.click('#setOv .set-gate .primary');await p.waitForTimeout(400);
   const ok=()=>p.click('#dlgForm [data-act=ok]');
   if(tag==='d'){await p.fill('#dlgForm input[name=pw]','0000');await ok();await p.waitForTimeout(500);
-    await p.fill('#dlgForm input[name=name]','王小明');await p.fill('#dlgForm input[name=p1]','wang-password-1');await p.fill('#dlgForm input[name=p2]','wang-password-1');await ok();await p.waitForTimeout(2500)}
+    await p.fill('#dlgForm input[name=name]','王小明');await p.fill('#dlgForm input[name=p1]','wang-password-1');await p.fill('#dlgForm input[name=p2]','wang-password-1');await ok();await p.waitForTimeout(2500);await (async()=>{for(let i=0;i<4;i++){await p.waitForTimeout(500);const t=await p.$eval('#dlg[open] #dlgForm>b',b=>b.textContent).catch(()=>'');if(/共用密碼太短|沒有連上雲端/.test(t))await p.click('#dlgForm [data-act=cancel]').catch(()=>{})}})();}   /* 2026-11-05：建立第一個身分後，共用密碼 0000 會請管理員換（team.js 的 sharedPwFix），測試先取消 */
   else{await p.fill('#dlgForm input[name=pw]','wang-password-1');await ok();await p.waitForTimeout(1500)}
   await p.$eval('#setOv [data-set=report]',e=>e.scrollIntoView({block:'center'}));await p.waitForTimeout(150);
   console.log(tag,'row:',await p.$eval('#setOv [data-set=report]',e=>e.textContent+'|'+e.getAttribute('aria-disabled')));
