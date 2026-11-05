@@ -341,7 +341,7 @@ elastic($("#pageWeek"),document.querySelector("#pageWeek .week-wrap"));
 /* ---------- 工具列文字依背後顏色自動反轉 ---------- */
 function lumUnder(x,y){
   for(const el of document.elementsFromPoint(x,y)){
-    if(el.closest("#tabbar")||el.classList.contains("dlg-ghost-bd"))continue;
+    if(el.closest("#tabbar,#splash")||el.classList.contains("dlg-ghost-bd"))continue;   /* 開場畫面（白底）蓋在上面時不算，看的是底下的看板 */
     for(let n=el;n&&n.nodeType===1;n=n.parentElement){
       const m=(getComputedStyle(n).backgroundColor.match(/[\d.]+/g)||[]).map(Number);
       if(m.length>=3&&(m.length<4||m[3]>.45))return (0.2126*m[0]+0.7152*m[1]+0.0722*m[2])/255;

@@ -19,8 +19,9 @@ function splashOut(){
   const played=Promise.all(sp.getAnimations({subtree:true}).map(a=>a.finished.catch(()=>{})));
   Promise.race([Promise.all([document.fonts?document.fonts.ready:0,played,new Promise(r=>setTimeout(r,wait))]),new Promise(r=>setTimeout(r,3500))]).then(()=>{
     go();
-    if(reduceMotion())return sp.remove();
-    sp.animate([{opacity:1},{opacity:0}],{duration:520,easing:"ease-out"}).onfinish=()=>sp.remove();
+    const gone=()=>{sp.remove();tbContrastSoon()};   /* 開場收掉後，工具列重新判斷背後的顏色 */
+    if(reduceMotion())return gone();
+    sp.animate([{opacity:1},{opacity:0}],{duration:520,easing:"ease-out"}).onfinish=gone;
     sp.querySelector(".sp-logo").animate([{transform:"none"},{transform:"scale(1.06)",opacity:0}],{duration:520,easing:"cubic-bezier(.4,0,1,1)",fill:"forwards"});
   });
 }
