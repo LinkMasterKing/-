@@ -1096,10 +1096,8 @@ dialog#dlg:has(.csel.open){overflow:visible}
    版面沿用設定頁的 .set-ov；內容寬度上限 920px 置中 */
 .noti-ov{z-index:37}
 .noti-inner{max-width:920px;margin:0 auto;padding:14px 0 calc(32px + var(--bar-in) + env(safe-area-inset-bottom));display:grid;gap:22px}
-.noti-seg{justify-self:start;display:inline-flex;gap:2px;padding:3px;border:1px solid var(--line);border-radius:999px}
-.noti-seg button{min-height:30px;padding:3px 16px;border:0;font-size:13.5px;background:transparent;transition:background-color .28s var(--ease),color .28s var(--ease)}
-.noti-seg button[aria-selected="true"]{background:var(--ink);color:var(--surface)}
-.noti-seg button:hover{transform:none}
+.noti-seg{justify-self:start}
+.noti-seg button{min-height:30px;padding:3px 16px;font-size:13.5px}
 .noti-note{margin:-12px 0 0}
 .noti-days{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:22px}
 .noti-day h3{display:flex;align-items:baseline;gap:10px;margin:0 0 8px;padding-bottom:8px;border-bottom:1px solid var(--ink);font-size:17px;font-weight:700;letter-spacing:.1em}
@@ -1144,6 +1142,14 @@ dialog#dlg:has(.csel.open){overflow:visible}
   .cal-d{min-height:52px;padding:4px}
   .cal-bars i{height:4px}
 }
+
+/* ===== 分段切換（anim.js 的 Anim.seg；目前用在通知層的本部門／全會） =====
+   細框膠囊，選到的那顆底下是實心鏡片（.seg-lens，跟工具列鏡片同一個樣子）；文字顏色跟著鏡片換 */
+.seg{position:relative;display:inline-flex;gap:2px;padding:3px;border:1px solid var(--line);border-radius:999px;isolation:isolate}
+.seg-lens{position:absolute;top:3px;bottom:3px;left:3px;z-index:0;border-radius:999px;background:var(--ink);transform-origin:center;pointer-events:none;will-change:transform}
+.seg>[role="tab"]{position:relative;z-index:1;border:0;background:transparent;transition:color var(--mo-base) var(--mo-out)}
+.seg>[role="tab"][aria-selected="true"]{color:var(--surface)}
+.seg>[role="tab"]:hover,.seg>[role="tab"]:active,.seg>[role="tab"]:focus{transform:none;box-shadow:none}   /* 不套一般按鈕的放大與光暈：回饋交給鏡片 */
 
 /* ===== 身分與專員 ===== */
 .staff-row{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:8px 0 2px}

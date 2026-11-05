@@ -69,7 +69,7 @@ function notiInner(){
   const legend=NOTI.scope==="all"
     ?(window.BOARD_DEPTS||[]).map(d=>`<span><i style="--c:${deptColor(d.id)}"></i>${esc(d.name)}</span>`).join("")
     :Object.values(NOTI_KIND).map(k=>`<span><i style="--c:${k.c}"></i>${k.t}</span>`).join("");
-  return `<div class="noti-seg" role="tablist" aria-label="範圍">${[["mine",CFG.dept.name||"本部門"],["all","全會"]].map(([k,n])=>`<button type="button" role="tab" data-nscope="${k}" aria-selected="${NOTI.scope===k}">${esc(n)}</button>`).join("")}</div>
+  return `<div class="noti-seg seg" role="tablist" aria-label="範圍">${[["mine",CFG.dept.name||"本部門"],["all","全會"]].map(([k,n])=>`<button type="button" role="tab" data-nscope="${k}" aria-selected="${NOTI.scope===k}">${esc(n)}</button>`).join("")}</div>
     ${NOTI.scope==="all"?`<p class="sub noti-note">${NOTI.loading?"讀取各部門資料中…":"全會：讀各部門的資料檔，只能看、不能改。"}</p>`:""}
     <div class="noti-days">${notiDayHTML("今日",t,list)}${notiDayHTML("明日",addDays(t,1),list)}</div>
     <section class="noti-cal">
@@ -82,7 +82,7 @@ function notiInner(){
 }
 function renderNoti(){
   const el=$("#notiOv .noti-inner");if(!el||!notiOpen)return;
-  const snap=Anim.capture();el.innerHTML=notiInner();Anim.play(snap);flowWatch();
+  const snap=Anim.capture();el.innerHTML=notiInner();Anim.play(snap);flowWatch();el.querySelectorAll(".seg").forEach(Anim.segPlace);
 }
 /* ---------- 開關 ---------- */
 function openNoti(){
@@ -129,7 +129,8 @@ document.addEventListener("click",e=>{
   if(t.closest("#notiBtn")){notiOpen?closeNoti():openNoti();return}
   if(!notiOpen||!t.closest("#notiOv"))return;
   if(t.closest("#notiClose")){closeNoti();return}
-  const sc=t.closest("[data-nscope]");if(sc){if(NOTI.scope===sc.dataset.nscope)return;NOTI.scope=sc.dataset.nscope;NOTI.day=null;if(NOTI.scope==="all"&&!NOTI.all)notiLoadAll();else renderNoti();return}
+  const sc=t.closest("[data-nscope]");if(sc){if(NOTI.scope===sc.dataset.nscope)return;NOTI.scope=sc.dataset.nscope;NOTI.day=null;
+    Anim.seg(sc.parentElement,sc).then(()=>{if(NOTI.scope==="all"&&!NOTI.all)notiLoadAll();else renderNoti()});return}   /* 鏡片先滑過去，再換內容 */
   const mo=t.closest("[data-nmon]");if(mo){const k=+mo.dataset.nmon,d=pd(NOTI.month+"-01");if(k)d.setMonth(d.getMonth()+k);const nm=k?ym(d):today().slice(0,7);if(nm===NOTI.month)return;
     NOTI.day=null;notiMonth(nm,k<0?-1:1);return}
   if(t.closest("[data-nday]")){NOTI.day=null;renderNoti();return}
