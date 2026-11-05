@@ -105,7 +105,7 @@ document.addEventListener("keydown",e=>{
       /* 右側面板裡的表單：先在原地淡出、往右滑一點再關，避免內容一關就整片消失（面板接著自己收起）。
          淡出中又要打開（例如時間格式錯了重問）時，dlgOpen 會先把這次關完 */
       if(reduceMotion()||this._fade)return nativeClose.call(this,v);
-      const a=this._fade=this.animate([{opacity:1,transform:"none"},{opacity:0,transform:"translateX(18px)"}],{duration:200,easing:"cubic-bezier(.4,0,1,1)",fill:"forwards"});
+      const a=this._fade=this.animate([{opacity:1,transform:"none"},{opacity:0,transform:"translateX(18px)"}],{duration:MO.fast+40,easing:MO.in,fill:"forwards"});
       this._fadeEnd=()=>{a.onfinish=null;a.cancel();this._fade=null;this._fadeEnd=null;nativeClose.call(this,v)};
       a.onfinish=this._fadeEnd;return;
     }

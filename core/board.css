@@ -903,7 +903,12 @@ label.fld-check{display:flex;align-items:center;gap:10px;font-size:13.5px;color:
 .csel-opt[aria-selected="true"]{background:var(--ink);color:var(--surface)}
 dialog#dlg:has(.csel.open){overflow:visible}
 /* 放在設定頁右側面板裡（.in-pane，非強制回應）：不是浮起來的玻璃視窗，而是面板本身的內容 */
-#setOv .set-pane dialog#dlg.glass{position:static;width:auto;max-width:640px;margin:0;padding:0;background:none;-webkit-backdrop-filter:none;backdrop-filter:none;box-shadow:none;border-radius:0;animation:none;overflow:visible}
+#setOv .set-pane dialog#dlg.glass{position:static;width:auto;max-width:640px;margin:0;padding:0;background:none;-webkit-backdrop-filter:none;backdrop-filter:none;box-shadow:none;border-radius:0;animation:paneFormIn var(--mo-slow) var(--mo-out) both;overflow:visible}   /* 換項目時：舊表單往右淡出（dialog.js），新表單從右邊滑入淡入，不用跳出視窗那種放大回彈 */
+#setOv .set-pane dialog#dlg.glass>form>*{animation:paneFormIn var(--mo-slow) var(--mo-out) both}
+#setOv .set-pane dialog#dlg.glass>form>:nth-child(2){animation-delay:40ms}
+#setOv .set-pane dialog#dlg.glass>form>:nth-child(3){animation-delay:80ms}
+#setOv .set-pane dialog#dlg.glass>form>:nth-child(n+4){animation-delay:120ms}
+@keyframes paneFormIn{from{opacity:0;transform:translateX(22px)}}
 #setOv .set-pane dialog#dlg.glass::after{content:none}
 #setOv .set-pane dialog#dlg>form{gap:14px}
 #setOv .set-pane dialog#dlg>form>b:first-child{font-size:20px;font-weight:500;letter-spacing:.08em;padding-bottom:12px;margin-bottom:4px;border-bottom:1px solid var(--hair)}
