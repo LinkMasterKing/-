@@ -1148,7 +1148,8 @@ dialog#dlg:has(.csel.open){overflow:visible}
 /* ===== 液態分段切換（anim.js 的 LiquidSeg；目前用在通知層的本部門／全會） =====
    跟底部工具列同一個樣子：毛玻璃 .glass 膠囊、實心鏡片（文字色）、鏡片底下那一格（.lit）文字反白；
    按下白光（--hp／--hx）、整列放大與偏移、鏡片形變都由 JS 寫 inline（這裡不對 transform／scale 設 transition，避免跟彈簧打架） */
-.lseg{display:inline-flex;padding:4px;border-radius:999px;touch-action:none;-webkit-user-select:none;user-select:none}
+.lseg{display:inline-flex;padding:4px;border-radius:999px;transform-origin:0 50%;   /* 按下時往右放大，貼著內容左邊也不會被切到 */
+  touch-action:none;-webkit-user-select:none;user-select:none}
 .lseg::before{content:"";position:absolute;inset:0;z-index:-1;border-radius:inherit;pointer-events:none;
   background:radial-gradient(circle 70px at var(--hx,50%) 50%,rgba(255,255,255,calc(.15 * var(--hp,0))) 50%,rgba(255,255,255,0)),linear-gradient(rgba(255,255,255,calc(.08 * var(--hp,0))),rgba(255,255,255,calc(.08 * var(--hp,0))))}
 .lseg-lens{position:absolute;left:0;top:4px;bottom:4px;z-index:0;border-radius:999px;background:var(--ink);pointer-events:none;will-change:transform}
