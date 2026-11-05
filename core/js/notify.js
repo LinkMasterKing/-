@@ -104,7 +104,7 @@ function closeNoti(instant){
   notiOpen=false;Back.closed("noti");
   const done=()=>{if(!notiOpen){ov.hidden=true;ov.getAnimations().forEach(a=>a.cancel());if(!setOpen)document.body.classList.remove("set-open")}};
   if(instant){PageFx.settle(ov);return done()}
-  PageFx.swap(ov,pageUnder(ov),{done});   /* 換頁動畫：通知往下沉、底下那頁從下方升上來 */
+  PageFx.swap(ov,pageUnder(ov),{done});   /* 換頁動畫：通知往後退、底下那頁從後面浮上來 */
 }
 async function notiLoadAll(){
   NOTI.loading=true;renderNoti();

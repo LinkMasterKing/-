@@ -846,7 +846,7 @@ a.link:active{transform:scale(.96)}
 .sp-emb path{will-change:transform,opacity}
 
 /* ===== 換頁動畫（core/js/pagefx.js） ===== */
-/* 舊頁往下沉並往下方向模糊、新頁模糊著從下方升上來；位置、透明度、模糊都由 pagefx.js 每格設定，這裡只有「站內換頁過來時 body 先透明」 */
+/* 舊頁往後退（縮小、遠離）並模糊、新頁模糊著從後面浮上來；縮放、透明度、模糊都由 pagefx.js 每格設定，這裡只有「站內換頁過來時 body 先透明」 */
 .pfx-arrive body{opacity:0}
 
 /* ===== 對話框與下拉選單 ===== */
