@@ -14,7 +14,14 @@ pager.addEventListener("scroll",()=>{
 },{passive:true});
 $("#pageWeek").addEventListener("scroll",e=>{$(".week-top").classList.toggle("scrolled",e.target.scrollTop>4)},{passive:true});
 function goMain(instant){if(!onWeek)return;const go=()=>pager.scrollTo({left:0,behavior:"instant"});if(instant===true){PageFx.settle(pager);go();return}PageFx.swap(pager,pager,{mid:go})}
-$("#weekBtn").onclick=goWeek;$("#backMain").onclick=()=>goMain();
+$("#backMain").onclick=()=>goMain();
+{const l=$("#weekSecLink");if(l)l.hidden=!!CFG.meeting||CFG.deptId==="secretariat"}   /* 秘書處自己就不顯示「秘書處調閱」 */
+/* 2026-11-05：頁首的「每週概述」按鈕拿掉，改從設定頁「每週概述」進來（nav.js 的 weekFromSettings）：
+   設定往後退的同時，底下的看板已經換到每週概述那一頁，浮上來的就是每週概述 */
+function weekFromSettings(){
+  if(!setOpen){goWeek();return}
+  closeSettings();pager.scrollTo({left:pager.scrollWidth,behavior:"instant"});
+}
 
 /* ---------- 即時回報：母議題連結、分段、狀態、時間標記 ---------- */
 const parentOf=ev=>ev&&ev.issueId?state.issues.find(i=>i.id===ev.issueId):null;
@@ -70,14 +77,18 @@ function snapshotBase(date){
   const issues={};state.issues.forEach(i=>issues[i.id]={stage:i.tags[i.cur]||"",note:i.note||""});
   state.reportBase={date,issues};
 }
-/* 每週概述按鈕的紅點：每週五起亮，直到這一週（週一到週日）有一份週報產出為止；
+/* 每週概述的紅點（設定鍵右上角、設定頁「每週概述」那一列）：每週五起亮，直到這一週（週一到週日）有一份週報產出為止；
    沒產出就一直亮到產出（下週一到週四仍以上週為準），下個週五再開始新的一輪 */
 const WEEK_DUE_DAY=5;
 function weekDue(t=today()){
   const d=pd(t),back=(d.getDay()-WEEK_DUE_DAY+7)%7,fri=addDays(t,-back),mon=addDays(fri,-4);
   return !state.weeks.some(w=>w.date&&w.date>=mon);
 }
-function weekDotSync(){const due=weekDue(),wb=$("#weekBtn");if(!wb)return;wb.classList.toggle("due",due);wb.title=due?"本週週報還沒產出":""}
+function weekDotSync(){
+  const due=weekDue()&&!readOnly();
+  document.querySelectorAll("#setBtn,#setOv [data-set=week]").forEach(el=>el.classList.toggle("due",due));
+  const g=$("#setBtn");if(g)g.title=due?"本週週報還沒產出（設定 → 每週概述）":"";
+}
 /* 網頁一直開著跨過週五也要冒出來：每 10 分鐘、回到這個分頁時再檢查一次 */
 setInterval(weekDotSync,6e5);document.addEventListener("visibilitychange",()=>{if(!document.hidden)weekDotSync()});
 /* 「本週」＝上一份週報之後到今天（生成週報、動畫模式共用） */

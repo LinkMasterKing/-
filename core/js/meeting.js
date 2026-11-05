@@ -53,6 +53,7 @@ function renderMeet(){
     :`<span class="grant-off">${ico("close","sm")}尚未開放</span>：要會長室在他們的看板上把「秘書處會議編輯」切到「開放今天」，開放後當天有效。`;
   const ed=mtCanEdit();
   $("#meetEdList").innerHTML=!g?"":loading+(mtGroupsHTML(ed)||none)+(ed&&!ghToken()?`<p class="sub">這台裝置沒有權杖，改了也寫不回其他部門。</p>`:"");
+  renderWeekRead();
 }
 /* ---------- 會長室：開放秘書處會議編輯的開關（設定檔 grant:true） ----------
    切到「開放今天」＝寫入 state.meetGrant＝{date:今天,by,at}，立刻儲存並同步（編輯中就併入這次編輯）；隔天自動失效。
@@ -94,3 +95,38 @@ async function mtPushAll(){
 function mtDiscard(){MT.depts.forEach(m=>{if(m.dirty&&m.base){m.data=JSON.parse(JSON.stringify(m.base));m.dirty=false}})}
 document.addEventListener("click",e=>{const b=e.target.closest&&e.target.closest("[data-mtrefresh]");if(b){MT.at=0;mtLoadAll(true)}});
 if(CFG.meeting)document.addEventListener("visibilitychange",()=>{if(!document.hidden)mtLoadAll()});
+
+/* ---------- 秘書處：各部門週報調閱（2026-11-05，使用者要求「秘書處有按鈕可以擷取每個部門的每週概述跟調閱」） ----------
+   只讀：直接用上面 MT.depts 讀到的各部門資料（weeks[]），不另外存任何東西。「擷取最新」＝重新讀一次各部門的資料檔。
+   上面一排部門膠囊（後面是週報份數；這週有新的亮綠點），下面是選到的部門：週次膠囊（新到舊）＋那一份的全文＋「複製文字」；
+   「全部部門最新一份」把每個部門最新那份接在一起，可以一次複製。 */
+const WK={dept:"all",week:null};
+function wkThisWeek(d){return !!d&&d>=addDays(today(),-((pd(today()).getDay()+6)%7))}   /* 這週（週一起）產出的 */
+function renderWeekRead(){
+  const p=$("#wkPanel");if(!p)return;p.hidden=!CFG.meeting;if(!CFG.meeting)return;
+  const ms=[...MT.depts.values()],ws=m=>m.data?[...m.data.weeks].filter(w=>w.text).sort((a,b)=>b.date.localeCompare(a.date)):[];
+  if(WK.dept!=="all"&&!MT.depts.has(WK.dept))WK.dept="all";
+  $("#wkDepts").innerHTML=[`<button type="button" role="tab" class="wk-d" data-wkd="all" aria-selected="${WK.dept==="all"}">全部最新</button>`,
+    ...ms.map(m=>{const n=ws(m).length,fresh=n&&wkThisWeek(ws(m)[0].date);return `<button type="button" role="tab" class="wk-d${n?"":" none"}" data-wkd="${m.id}" aria-selected="${WK.dept===m.id}">${fresh?'<i class="wk-new" aria-label="這週有新的"></i>':""}${esc(m.name)}<span class="num">${n}</span></button>`})].join("");
+  const body=$("#wkBody");
+  if(MT.loading&&!ms.length){body.innerHTML=`<p class="sub">讀取各部門資料中…</p>`;return}
+  const block=(m,w,head)=>`<article class="wk-doc" data-wkdoc><div class="wk-top">${head}<span class="num">${fmt(w.date)}</span>${wkThisWeek(w.date)?'<span class="wk-fresh">本週</span>':""}<button type="button" class="icon" data-wkcopy>複製文字</button></div><pre class="wk-text">${esc(w.text)}</pre></article>`;
+  if(WK.dept==="all"){
+    const docs=ms.map(m=>{const w=ws(m)[0];return w?block(m,w,`<span class="tag sm">${esc(m.name)}</span>`):""}).filter(Boolean);
+    const miss=ms.filter(m=>!ws(m).length).map(m=>m.name);
+    body.innerHTML=(docs.length?`<div class="wk-all-tools"><button type="button" class="icon" data-wkcopyall>全部複製</button></div>${docs.join("")}`:`<p class="empty">還沒有任何部門產出週報。</p>`)+(miss.length?`<p class="sub wk-miss">還沒有週報：${miss.map(esc).join("、")}</p>`:"");
+    return;
+  }
+  const m=MT.depts.get(WK.dept),list=ws(m);
+  if(!list.length){body.innerHTML=`<p class="empty">${esc(m.name)}${m.data?"還沒有週報。":esc(m.err||"讀不到資料")}</p>`;return}
+  const w=list.find(x=>x.id===WK.week)||list[0];
+  body.innerHTML=`<div class="wk-weeks" role="tablist" aria-label="週次">${list.slice(0,12).map(x=>`<button type="button" role="tab" class="wk-w" data-wkw="${x.id}" aria-selected="${x.id===w.id}"><span class="num">${fmt(x.date).slice(5)}</span></button>`).join("")}</div>
+    ${block(m,w,`<span class="tag sm">${esc(m.name)}</span>`)}<a class="wk-open" href="?d=${encodeURIComponent(m.id)}" target="_blank" rel="noopener">開啟${esc(m.name)}看板 →</a>`;
+}
+document.addEventListener("click",e=>{
+  const t=e.target;if(!t.closest||!t.closest("#wkPanel"))return;
+  const d=t.closest("[data-wkd]");if(d){WK.dept=d.dataset.wkd;WK.week=null;renderWeekRead();return}
+  const w=t.closest("[data-wkw]");if(w){WK.week=w.dataset.wkw;renderWeekRead();return}
+  const c=t.closest("[data-wkcopy]");if(c){navigator.clipboard.writeText(c.closest("[data-wkdoc]").querySelector(".wk-text").textContent).then(()=>toast("已複製"),()=>toast("複製失敗"));return}
+  if(t.closest("[data-wkcopyall]")){const txt=[...document.querySelectorAll("#wkBody .wk-text")].map(x=>x.textContent).join("\n\n————————\n\n");navigator.clipboard.writeText(txt).then(()=>toast("已複製全部"),()=>toast("複製失敗"))}
+});
