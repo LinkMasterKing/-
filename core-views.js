@@ -190,7 +190,7 @@ function evTimesHTML(ev,edit){
 /* 即時回報右側詳情（桌面、即時回報被選到時）：檢視時只看內容；編輯中所有功能都直接在這裡改，不另外跳視窗 */
 function evDetailHTML(ev){
   const st=evStatus(ev),par=parentOf(ev),inp=(k,v,ph,type)=>`<input ${type?`type="${type}"`:""} data-tmf="${k}" value="${esc(v||"")}" ${ph?`placeholder="${esc(ph)}"`:""}>`;
-  const head=`<div class="evd-head"><span class="live-dot" aria-hidden="true"></span><b>${esc(ev.name)}</b><button type="button" class="icon md-close" data-mdclose="live" aria-label="收起右側">${ico("close")}收起</button></div>
+  const head=`<div class="evd-head"><span class="live-dot" aria-hidden="true"></span><b>${esc(ev.name)}</b>${mdStepHTML("live",state.events.filter(e=>!e.doneAt).map(e=>e.id),ev.id)}<button type="button" class="icon md-close" data-mdclose="live" aria-label="收起右側">${ico("close")}收起</button></div>
     <p class="ev-meta"><span class="ev-st">${EV_ST[st]}</span>${ev.round>1?`<span>第 ${ev.round} 段</span>`:""}${ev.touchedAt?`<span>最後更新 <span class="num">${fmt(ev.touchedAt).slice(5)} ${ev.touchedAt.slice(11,16)}</span></span>`:""}</p>`;
   if(!editing)return `<div class="evd" data-ev="${ev.id}" data-st="${st}">${head}
     ${par?`<p class="sub evd-par">母議題：${esc(par.title)}</p>`:""}
@@ -221,13 +221,17 @@ function evDetailHTML(ev){
       <div class="evd-btns evd-main"><button type="button" class="icon danger" data-evdel>刪除</button><span class="evd-gap"></span><button type="button" class="icon" data-evd="round">${ico("progress")}完成這一段</button><button type="button" class="icon" data-evdone>${ico("check")}結案</button></div>
     </section></div>`;
 }
+/* 左右兩欄詳情卡上的「上一個／下一個」（開會時照清單順序一路講下去；鍵盤左右鍵同功能，見 motion.js） */
+function mdStepHTML(k,ids,id){const i=ids.indexOf(id);
+  return `<span class="md-step"><button type="button" class="icon" data-mdstep="${k}" data-dir="-1" ${i<=0?"disabled":""} aria-label="上一個">${ico("prev")}上一個</button><button type="button" class="icon" data-mdstep="${k}" data-dir="1" ${i<0||i>=ids.length-1?"disabled":""} aria-label="下一個">下一個${ico("next")}</button></span>`}
 function renderEvents(){
   const live=state.events.filter(ev=>!ev.doneAt);if(selEv&&!live.some(e=>e.id===selEv))selEv=null;
   /* 左右兩欄只在點選一筆之後才出現；沒選的時候照常排成膠囊格 */
   const md=mdOn("live")&&!!selEv,pane=$("#evDetail");mdLast.live=mdOn("live");
   $("#liveMD").classList.toggle("split",md);
+  const nextEv=md?(live[live.findIndex(e=>e.id===selEv)+1]||{}).id:null;   /* 清單順序裡的下一顆，加「下一個」記號 */
   $("#events").innerHTML=live.map(ev=>{const st=evStatus(ev),par=parentOf(ev);
-    return `<details class="ev ${md&&ev.id===selEv?"sel":""}" data-ev="${ev.id}" data-st="${st}" ${!md&&openEv.has(ev.id)?"open":""}${md&&ev.id===selEv?' aria-current="true"':""}>
+    return `<details class="ev ${md&&ev.id===selEv?"sel":""} ${ev.id===nextEv?"next":""}" data-ev="${ev.id}" data-st="${st}" ${!md&&openEv.has(ev.id)?"open":""}${md&&ev.id===selEv?' aria-current="true"':""}>
       <summary><span class="live-dot" aria-hidden="true"></span><b>${esc(ev.name)}</b>${par?`<span class="ev-parent">→ ${esc(par.title)}</span>`:""}<button type="button" class="ev-del edit-only" data-evdel aria-label="刪除「${esc(ev.name)}」">${ico("close","solo")}</button><span class="ev-chev" aria-hidden="true">▾</span></summary>
       <div class="ev-body">${par?`<p class="ev-parent-full">母議題：${esc(par.title)}</p>`:""}<p class="ev-meta"><span class="ev-st">${EV_ST[st]}</span>${ev.round>1?`<span>第 ${ev.round} 段</span>`:""}${ev.touchedAt?`<span>最後更新 <span class="num">${fmt(ev.touchedAt).slice(5)} ${ev.touchedAt.slice(11,16)}</span></span>`:""}</p>${ev.desc?`<p>${esc(ev.desc)}</p>`:`<p class="sub">（沒有說明）</p>`}
         ${evTimesHTML(ev,editing)}${staffHTML(ev.staff)}
@@ -266,9 +270,10 @@ function renderDone(){
   $("#doneMD").classList.toggle("split",md);
   $("#doneCount").textContent=items.length;
   if(md){
-    $("#doneList").innerHTML=items.map(x=>`<details class="done-item ${dnew(x.id)} ${x.id===selDone?"sel":""}" ${x.attr}${x.id===selDone?' aria-current="true"':""}>${sum(x)}</details>`).join("");
+    const nextDone=(items[items.findIndex(y=>y.id===selDone)+1]||{}).id;
+    $("#doneList").innerHTML=items.map(x=>`<details class="done-item ${dnew(x.id)} ${x.id===selDone?"sel":""} ${x.id===nextDone?"next":""}" ${x.attr}${x.id===selDone?' aria-current="true"':""}>${sum(x)}</details>`).join("");
     const x=items.find(y=>y.id===selDone);
-    pane.innerHTML=`<div class="done-detail" ${x.attr}><h3 class="done-dt"><span class="ok-dot" aria-hidden="true"></span>${x.title}<button type="button" class="icon md-close" data-mdclose="done" aria-label="收起右側">${ico("close")}收起</button></h3><p class="sub done-ds">${x.sub}</p><div class="done-body">${x.body}</div></div>`;pane.hidden=false;
+    pane.innerHTML=`<div class="done-detail" ${x.attr}><h3 class="done-dt"><span class="ok-dot" aria-hidden="true"></span>${x.title}${mdStepHTML("done",items.map(y=>y.id),x.id)}<button type="button" class="icon md-close" data-mdclose="done" aria-label="收起右側">${ico("close")}收起</button></h3><p class="sub done-ds">${x.sub}</p><div class="done-body">${x.body}</div></div>`;pane.hidden=false;
   }else{
     $("#doneList").innerHTML=items.map(x=>`<details class="done-item ${dnew(x.id)}" ${x.attr} ${openDone.has(x.id)?"open":""}>${sum(x)}<div class="done-body">${x.body}</div></details>`).join("")
       ||`<p class="empty">結案的議題和完成的即時回報會收進這裡。</p>`;

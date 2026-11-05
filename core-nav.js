@@ -1,36 +1,97 @@
 /* 核心｜底部工具列、設定頁、拉到底回彈、工具列依背景反轉 */
 const IS_IOS=/iPhone|iPad|iPod/.test(navigator.userAgent)||(navigator.platform==="MacIntel"&&navigator.maxTouchPoints>1);
-/* ---------- 底部工具列 ---------- */
+/* ---------- 底部工具列（手機）／左側細欄（桌面 900px 以上） ----------
+   材質：毛玻璃 .glass（util.js 的 glassify，跟對話框同一套）；選取鏡片是實心膠囊（文字色），鏡片底下的圖示反白。
+   按鈕機制照 Convx（Kyant backdrop catalog 的 LiquidBottomTabs／DampedDragAnimation／InteractiveHighlight／LiquidButton），手機與桌面同一套，
+   差別只在方向（手機水平、桌面直立）：
+     - 只有按在鏡片那一格才能拖；拖的時候位置跟著指標（不加彈簧），整條列跟著偏最多 4px；放開吸到最近的分頁
+     - 按下時鏡片放大到 78/56（主軸彈簧 .6／250、側軸 .7／250），移動時依速度沿主軸拉伸；整條列沿長邊放大 16px、分頁內容放大 1.2；
+       鏡片位置一圈白光（彈簧 .5／300）
+     - 點分頁＝「按下 → 鏡片移過去（彈簧 1／1000）→ 接近目標或 400ms 後放開」
+   設定鍵：按下放大 4px、白光跟著指標、被指標拖著微微偏移與拉伸（tanh 阻尼），放開彈回 */
 let setOpen=false;
 const TABS=()=>[["live","即時回報","live"],["progress","進度","progress"],["done","完成紀錄","done"]].filter(([k])=>secOn(k));
 /* 動畫或設定打開時，三個分頁都不亮；點任一個就關掉並回到那一區 */
 const tbActive=()=>animOpen||setOpen?"":curSec;
-const lens={x:0,v:0,t:0,s:1,sv:0,st:1,raf:0,drag:false,inited:false};   /* x 位置、s 按下放大的倍率（都是彈簧） */
+const RAIL_MQ=matchMedia("(min-width:900px)");
+const isRail=()=>RAIL_MQ.matches;
+/* 彈簧（跟 Compose 的 spring(dampingRatio, stiffness) 一樣，質量 1） */
+const spring=(x,z,k)=>({x,v:0,t:x,z,k});
+function sprStep(s,dt){const c=2*s.z*Math.sqrt(s.k),n=4,h=dt/n;for(let i=0;i<n;i++){s.v+=(-s.k*(s.x-s.t)-c*s.v)*h;s.x+=s.v*h}}
+const sprDone=(s,e)=>Math.abs(s.x-s.t)<e&&Math.abs(s.v)<e*20;
+const sprSnap=(s,x)=>{s.x=s.t=x;s.v=0};
+const PRESSED=78/56;
+const lens={
+  val:spring(0,1,1000),     /* 鏡片位置（第幾個分頁，可以有小數） */
+  press:spring(0,1,1000),   /* 按下的程度 0–1：鏡片放大、整列放大、分頁內容放大 */
+  sx:spring(1,.6,250),sy:spring(1,.7,250),
+  vel:spring(0,.5,300),     /* 速度（每秒幾個分頁 ÷ 分頁間距數），放開時回到 0 */
+  off:spring(0,1,300),      /* 整條列跟著拖曳的累積位移（px），顯示時壓成最多 4px */
+  hl:spring(0,.5,300),      /* 整條列的白光 */
+  drag:null,releaseAt:0,releasing:false,raf:0,last:0,shown:false,
+};
+const gearSt={p:spring(0,.5,300),ox:spring(0,.5,300),oy:spring(0,.5,300),sx0:0,sy0:0,down:false};
+function tabEls(){return [...$("#tabbar").querySelectorAll(".tab")]}
 /* 用版面位置（offset）計算，不受全螢幕／縮放動畫影響 */
-function tabCenter(k){const tb=$("#tabbar");const ind=tb&&tb.querySelector(`.tab[data-tab="${k}"] .tab-ind`);if(!ind||!ind.offsetWidth)return null;const box=tb.querySelector(".tb-tabs");return {x:box.offsetLeft+ind.offsetLeft+ind.offsetWidth/2,y:box.offsetTop+ind.offsetTop}}
-function nearestTab(x){let best=null,d=1e9;$("#tabbar").querySelectorAll(".tab").forEach(b=>{const c=tabCenter(b.dataset.tab);if(c&&Math.abs(c.x-x)<d){d=Math.abs(c.x-x);best=b.dataset.tab}});return best}
-function lensApply(){
-  const el=$("#tabbar .tb-lens");if(!el)return;
-  const st=lens.drag?0:Math.min(.3,Math.abs(lens.v)/2800),g=lens.drag?1.32:lens.s;
-  el.style.transform=`translate(${(lens.x-28).toFixed(2)}px,0) scale(${(g*(1+st)).toFixed(3)},${(g*(1-st*.45)).toFixed(3)})`;
+function tabCenters(){
+  /* 相對於 .tb-main（鏡片的定位容器）。分頁有 scale（--ts）時會變成圖示的 offsetParent，所以要看圖示的 offset 是相對誰 */
+  const box=$("#tabbar").querySelector(".tb-tabs");
+  return tabEls().map(b=>{const ind=b.querySelector(".tab-ind"),inB=ind.offsetParent===b,ix=(inB?b.offsetLeft:0)+ind.offsetLeft,iy=(inB?b.offsetTop:0)+ind.offsetTop;
+    return {k:b.dataset.tab,x:box.offsetLeft+ix+ind.offsetWidth/2,y:box.offsetTop+b.offsetTop+b.offsetHeight/2,top:box.offsetTop+iy}});
 }
-/* 按下放大用的彈簧：阻尼比約 .45，放開時會稍微縮過頭再柔和回到 1，不會硬切 */
-const SPRING_K=360,SPRING_C=17;
-function springStep(o,p,v,t,dt){o[v]+=(-SPRING_K*(o[p]-o[t])-SPRING_C*o[v])*dt;o[p]+=o[v]*dt}
-const springDone=(o,p,v,t)=>Math.abs(o[v])<.02&&Math.abs(o[p]-o[t])<.001;
-function lensStep(){
-  const k=520,c=33,dt=1/60,a=-k*(lens.x-lens.t)-c*lens.v;lens.v+=a*dt;lens.x+=lens.v*dt;
-  springStep(lens,"s","sv","st",dt);
-  if(Math.abs(lens.v)<4&&Math.abs(lens.x-lens.t)<.3&&springDone(lens,"s","sv","st")){lens.x=lens.t;lens.v=0;lens.s=lens.st;lens.sv=0;lens.raf=0;lensApply();return}
-  lensApply();lens.raf=requestAnimationFrame(lensStep);
+const tabIndex=k=>tabEls().findIndex(b=>b.dataset.tab===k);
+function interp(cs,v,key){if(!cs.length)return 0;const i=Math.max(0,Math.min(cs.length-1,Math.floor(v))),j=Math.min(cs.length-1,i+1),f=v-i;return cs[i][key]+(cs[j][key]-cs[i][key])*f}
+const clampV=(v,lo,hi)=>Math.max(lo,Math.min(hi,v));
+function tbFrame(){
+  const tb=$("#tabbar");if(!tb)return;
+  const main=tb.querySelector(".tb-main"),el=tb.querySelector(".tb-lens"),gear=tb.querySelector(".tb-gear");
+  const cs=tabCenters();if(!cs.length||!cs[0].x&&!cs[0].y)return;
+  /* 手機沿 x、桌面沿 y；其他都一樣 */
+  const rail=isRail(),ax=rail?"y":"x",n=cs.length,p=lens.press.x,pos=interp(cs,lens.val.x,ax),len=(rail?main.offsetHeight:main.offsetWidth)||1;
+  const v=lens.vel.x/10,ma=lens.sx.x/(1-clampV(v*.75,-.2,.2)),cr=lens.sy.x*(1-clampV(v*.25,-.2,.2));   /* 主軸、側軸的縮放 */
+  if(rail){el.style.top="";el.style.transform=`translate(0,${(pos-el.offsetHeight/2).toFixed(2)}px) scale(${cr.toFixed(4)},${ma.toFixed(4)})`}
+  else{el.style.top=cs[0].top+"px";el.style.transform=`translate(${(pos-el.offsetWidth/2).toFixed(2)}px,0) scale(${ma.toFixed(4)},${cr.toFixed(4)})`}
+  /* 鏡片底下那一格的圖示反白（跟著鏡片走，不是跟著選取狀態） */
+  const lit=el.classList.contains("off")?-1:Math.round(clampV(lens.val.x,0,n-1));
+  tabEls().forEach((b,i)=>b.classList.toggle("lit",i===lit));
+  /* 整條列：拖曳時跟著偏最多 4px（EaseOut），按下時沿長邊放大 16px */
+  const fr=clampV(lens.off.x/len,-1,1),ease=1-Math.pow(1-Math.abs(fr),2),po=4*Math.sign(fr)*ease;
+  main.style.transform=po?`translate${rail?"Y":"X"}(${po.toFixed(2)}px)`:"";main.style.scale=p>.0005?(1+16/len*p).toFixed(4):"";
+  tb.querySelector(".tb-tabs").style.setProperty("--ts",(1+.2*p).toFixed(4));
+  main.style.setProperty("--hp",lens.hl.x.toFixed(4));
+  main.style.setProperty("--hx",rail?"50%":(pos+po).toFixed(1)+"px");main.style.setProperty("--hy",rail?(pos+po).toFixed(1)+"px":"50%");
+  /* 設定鍵（手機、桌面同一套） */
+  const g=gearSt,gh=gear.offsetHeight||1,gw=gear.offsetWidth||1,md=Math.min(gw,gh),mx=Math.max(gw,gh),ox=g.ox.x,oy=g.oy.x;
+  const gs=1+4/gh*g.p.x,ang=Math.atan2(oy,ox),mds=4/gh;
+  const tx=md*Math.tanh(.05*ox/md),ty=md*Math.tanh(.05*oy/md);
+  const gsx=gs+mds*Math.abs(Math.cos(ang)*ox/mx)*Math.min(gw/gh,1),gsy=gs+mds*Math.abs(Math.sin(ang)*oy/mx)*Math.min(gh/gw,1);
+  gear.style.transform=(tx||ty)?`translate(${tx.toFixed(2)}px,${ty.toFixed(2)}px)`:"";
+  gear.style.scale=g.p.x>.0005||tx||ty?`${gsx.toFixed(4)} ${gsy.toFixed(4)}`:"";
+  gear.style.setProperty("--hp",g.p.x.toFixed(4));gear.style.setProperty("--hx",(g.sx0+ox).toFixed(1)+"px");gear.style.setProperty("--hy",(g.sy0+oy).toFixed(1)+"px");
 }
+const TB_SPRINGS=()=>[lens.val,lens.press,lens.sx,lens.sy,lens.vel,lens.off,lens.hl,gearSt.p,gearSt.ox,gearSt.oy];
+function tbLoop(now){
+  const dt=Math.min(1/30,Math.max(1/240,(now-(lens.last||now))/1000||1/60));lens.last=now;
+  if(!lens.drag)TB_SPRINGS().forEach(s=>sprStep(s,dt));
+  else{[lens.press,lens.sx,lens.sy,lens.hl,gearSt.p,gearSt.ox,gearSt.oy].forEach(s=>sprStep(s,dt));
+    if(now-lens.drag.t>80)sprSnap(lens.vel,0)}   /* 手指停住：速度歸零（Convx 的速度追蹤器也是看最近的移動） */
+  /* 放開：等鏡片接近目標（間距的 2.5%）或最多 400ms，才讓按下的形變消失 */
+  if(lens.releasing){const n=Math.max(1,tabEls().length-1);if(Math.abs(lens.val.x-lens.val.t)<n*.025||now-lens.releaseAt>400){lens.releasing=false;lens.vel.t=0;lens.press.t=0;lens.sx.t=1;lens.sy.t=1}}
+  tbFrame();
+  if(lens.drag||lens.releasing||gearSt.down||!TB_SPRINGS().every(s=>sprDone(s,.0008))){lens.raf=requestAnimationFrame(tbLoop);return}
+  TB_SPRINGS().forEach(s=>sprSnap(s,s.t));tbFrame();lens.raf=0;lens.last=0;
+}
+const tbKick=()=>{if(!lens.raf){lens.last=0;lens.raf=requestAnimationFrame(tbLoop)}};
+function lensPress(){if(reduceMotion())return;lens.press.t=1;lens.sx.t=PRESSED;lens.sy.t=PRESSED;lens.releasing=false}
+function lensRelease(){lens.releasing=true;lens.releaseAt=performance.now()}
+/* 移到某個分頁：照 animateToValue（按下 → 移過去 → 放開），手機、桌面一樣 */
 function lensTo(k,instant){
-  const el=$("#tabbar .tb-lens");if(!el)return;
-  const c=k?tabCenter(k):null;
-  el.classList.toggle("off",!c);if(!c)return;
-  el.style.top=c.y+"px";lens.t=c.x;
-  if(instant||reduceMotion()||!lens.inited){lens.inited=true;lens.x=c.x;lens.v=0;cancelAnimationFrame(lens.raf);lens.raf=0;lensApply();if(!springDone(lens,"s","sv","st"))lens.raf=requestAnimationFrame(lensStep);return}
-  if(!lens.raf&&!lens.drag)lens.raf=requestAnimationFrame(lensStep);
+  const tb=$("#tabbar");if(!tb)return;const el=tb.querySelector(".tb-lens");
+  const i=k?tabIndex(k):-1;el.classList.toggle("off",i<0);
+  if(i<0){lens.shown=false;tabEls().forEach(b=>b.classList.remove("lit"));return}
+  if(instant||reduceMotion()||!lens.shown){lens.shown=true;sprSnap(lens.val,i);tbFrame();return}
+  if(lens.val.t!==i&&!lens.drag){lens.val.t=i;lensPress();lensRelease()}   /* 點分頁：按下 → 移過去 → 放開 */
+  tbKick();
 }
 function renderTabbar(){
   let tb=$("#tabbar");
@@ -40,7 +101,7 @@ function renderTabbar(){
     document.body.append(tb);setupTabbar(tb);
   }
   const tabs=TABS(),box=tb.querySelector(".tb-tabs"),sig=tabs.map(t=>t[0]).join();
-  if(box._sig!==sig){box._sig=sig;box.innerHTML=tabs.map(([k,t,ic])=>`<button type="button" class="tab" role="tab" data-tab="${k}"><span class="tab-ind">${ico(ic,"solo")}</span><span class="tab-l">${t}</span></button>`).join("");lens.inited=false}
+  if(box._sig!==sig){box._sig=sig;box.innerHTML=tabs.map(([k,t,ic])=>`<button type="button" class="tab" role="tab" data-tab="${k}" aria-label="${t}"><span class="tab-ind">${ico(ic,"solo")}</span><span class="tab-l">${t}</span></button>`).join("");lens.shown=false}
   const act=tbActive();
   box.querySelectorAll(".tab").forEach(b=>{const on=b.dataset.tab===act;b.classList.toggle("on",on);b.setAttribute("aria-selected",on)});
   const g=tb.querySelector("#setBtn");g.classList.toggle("on",setOpen);g.setAttribute("aria-expanded",setOpen);
@@ -49,63 +110,54 @@ function renderTabbar(){
 }
 function tabGo(k){if(animOpen)closeAnim();if(setOpen)closeSettings();goMain();setSection(k)}
 function setupTabbar(tb){
-  const main=tb.querySelector(".tb-main");
-  glassify(main);glassify(tb.querySelector(".tb-gear"));
-  let st=null,suppress=false,lastX=0,lastT=0;
+  const main=tb.querySelector(".tb-main"),gear=tb.querySelector(".tb-gear"),lensEl=tb.querySelector(".tb-lens");
+  /* 毛玻璃：分頁列、設定鍵各一塊（桌面也一樣，分頁列直立） */
+  glassify(main);glassify(gear);
+  let suppress=false,lastX=0,lastT=0,lastV=0;
+  const at=e=>isRail()?e.clientY:e.clientX;   /* 指標在主軸上的位置 */
   tb.addEventListener("click",e=>{if(suppress&&e.isTrusted){e.stopPropagation();e.preventDefault()}},true);
-  main.addEventListener("pointerdown",e=>{if(e.button>0)return;st={x:e.clientX,lx:lens.x,id:e.pointerId,moved:false};lastX=e.clientX;lastT=performance.now()});
-  main.addEventListener("pointermove",e=>{
-    if(!st||e.pointerId!==st.id)return;
-    if(e.pointerType==="mouse"&&e.buttons===0){end();return}
-    const dx=e.clientX-st.x;
-    if(!st.moved){if(Math.abs(dx)<7)return;st.moved=true;lens.drag=true;try{main.setPointerCapture(e.pointerId)}catch(_){}tb.classList.add("dragging");lens.s=lens.st=1;lens.sv=0;   /* 拖曳時鏡片本來就放大，取消按下的放大 */cancelAnimationFrame(lens.raf);lens.raf=0;$("#tabbar .tb-lens").classList.remove("off")}
-    const xs=[...main.querySelectorAll(".tab")].map(b=>tabCenter(b.dataset.tab).x),lo=Math.min(...xs),hi=Math.max(...xs);
-    let x=st.lx+dx,over=0;if(x<lo){over=x-lo;x=lo+over*.3}else if(x>hi){over=x-hi;x=hi+over*.3}
-    const now=performance.now();lens.v=(e.clientX-lastX)/Math.max(1,now-lastT)*1000;lastX=e.clientX;lastT=now;
-    lens.x=x;lensApply();
-    main.style.transformOrigin=over<0?"right center":"left center";main.style.transform=over?`scaleX(${(1+Math.min(.07,Math.abs(over)/700)).toFixed(4)})`:"";
-    const near=nearestTab(x);main.querySelectorAll(".tab").forEach(b=>b.classList.toggle("hov",b.dataset.tab===near));
+  /* 只有按在鏡片那一格才拖；按下立刻放大（手機、桌面一樣） */
+  main.addEventListener("pointerdown",e=>{
+    if(e.button>0||lens.drag||!e.target.closest(".tab"))return;
+    const cs=tabCenters();if(!cs.length||lens.press.t===0&&$("#tabbar .tb-lens").classList.contains("off"))return;
+    const rail=isRail(),ax=rail?"y":"x",r=main.getBoundingClientRect();
+    const slot=cs.length>1?Math.abs(cs[1][ax]-cs[0][ax]):(rail?main.offsetHeight:main.offsetWidth);
+    const lp=interp(cs,lens.val.x,ax);if(Math.abs(at(e)-(rail?r.top:r.left)-lp)>slot/2)return;
+    lens.drag={id:e.pointerId,x:at(e),moved:false,slot,n:cs.length,t:performance.now()};lastX=at(e);lastT=performance.now();lastV=lens.val.x;
+    try{main.setPointerCapture(e.pointerId)}catch(_){}
+    tb.classList.add("dragging");lensPress();lens.hl.t=reduceMotion()?0:1;tbKick();
   });
-  function end(){
-    if(!st)return;const was=st.moved;st=null;main.style.transform="";main.style.transformOrigin="";main.querySelectorAll(".tab.hov").forEach(b=>b.classList.remove("hov"));
-    if(!was)return;lens.drag=false;tb.classList.remove("dragging");suppress=true;setTimeout(()=>suppress=false,80);
-    const k=nearestTab(lens.x);lensTo(k);if(!lens.raf)lens.raf=requestAnimationFrame(lensStep);
-    if(k!==tbActive()){setTimeout(()=>tabGo(k),60);setTimeout(()=>lensTo(tbActive()),420)}else lensTo(tbActive());
+  main.addEventListener("pointermove",e=>{
+    const d=lens.drag;if(!d||e.pointerId!==d.id)return;
+    if(e.pointerType==="mouse"&&e.buttons===0){dragEnd();return}
+    const c=at(e),dx=c-d.x;d.x=c;if(!dx)return;if(Math.abs(c-lastX)>2||d.moved)d.moved=true;
+    sprSnap(lens.val,clampV(lens.val.x+dx/d.slot,0,d.n-1));sprSnap(lens.off,lens.off.x+dx);
+    const now=performance.now(),dt=Math.max(8,now-lastT)/1000;sprSnap(lens.vel,(lens.val.x-lastV)/dt/Math.max(1,d.n-1));lastV=lens.val.x;lastT=now;d.t=now;lastX=c;
+    const near=Math.round(lens.val.x);tabEls().forEach((b,i)=>b.classList.toggle("hov",i===near));
+    tbKick();
+  });
+  function dragEnd(){
+    const d=lens.drag;if(!d)return;lens.drag=null;tb.classList.remove("dragging");tabEls().forEach(b=>b.classList.remove("hov"));
+    if(d.moved){suppress=true;setTimeout(()=>suppress=false,80)}
+    const i=Math.round(clampV(lens.val.x,0,d.n-1)),k=tabEls()[i]&&tabEls()[i].dataset.tab;
+    lens.vel.t=lens.vel.x;lens.off.t=0;lens.hl.t=0;lens.val.t=i;lensRelease();tbKick();
+    if(d.moved&&k&&k!==tbActive())setTimeout(()=>tabGo(k),60);
   }
-  main.addEventListener("pointerup",end);main.addEventListener("pointercancel",end);
-  /* 按下的回饋（跟鏡片移動一起當雙重回饋）：
-     - 放大的是被按的那顆：分頁＝鏡片（選取膠囊），設定鍵＝設定鍵本身；都用彈簧（鏡片併入鏡片的彈簧迴圈），按太快也至少放大 150ms
-     - 整條分頁列不放大，只朝按下的位置線性微晃一下（最多 2.5px，Web Animations、composite:"add" 疊在橡皮筋上） */
-  const gear=tb.querySelector(".tb-gear");
-  const PRESS={lens:1.16,gear:1.1};
-  gear._sp={s:1,sv:0,st:1,raf:0};
-  const gearStep=()=>{const o=gear._sp;springStep(o,"s","sv","st",1/60);
-    if(springDone(o,"s","sv","st")){o.s=o.st;o.sv=0;o.raf=0;gear.style.scale=o.s===1?"":String(o.s);return}
-    gear.style.scale=o.s.toFixed(4);o.raf=requestAnimationFrame(gearStep)};
-  let pressAt=0,relT=0;
-  const press=which=>{
-    if(reduceMotion())return;pressAt=performance.now();clearTimeout(relT);
-    if(which==="lens"){lens.st=PRESS.lens;if(!lens.raf)lens.raf=requestAnimationFrame(lensStep)}
-    else{gear._sp.st=PRESS.gear;if(!gear._sp.raf)gear._sp.raf=requestAnimationFrame(gearStep)}
-  };
-  const releaseAll=()=>{
-    if(lens.st===1&&gear._sp.st===1)return;
-    relT=setTimeout(()=>{
-      if(lens.st!==1){lens.st=1;if(!lens.raf&&!lens.drag)lens.raf=requestAnimationFrame(lensStep)}
-      if(gear._sp.st!==1){gear._sp.st=1;if(!gear._sp.raf)gear._sp.raf=requestAnimationFrame(gearStep)}
-    },Math.max(0,150-(performance.now()-pressAt)));
-  };
-  const nudge=x=>{
-    if(reduceMotion())return;
-    const r=main.getBoundingClientRect(),dx=Math.max(-1,Math.min(1,(x-(r.left+r.width/2))/(r.width/2)))*2.5;
-    main.animate([{transform:"translateX(0)"},{transform:`translateX(${dx.toFixed(2)}px)`,offset:.3},{transform:`translateX(${(-dx*.35).toFixed(2)}px)`,offset:.7},{transform:"translateX(0)"}],{duration:380,easing:"linear",composite:"add"});
-  };
-  main.addEventListener("pointerdown",e=>{if(e.button>0||!e.target.closest(".tab"))return;press("lens");nudge(e.clientX)});
-  gear.addEventListener("pointerdown",e=>{if(e.button>0)return;press("gear");nudge(e.clientX)});
-  addEventListener("pointerup",releaseAll);addEventListener("pointercancel",releaseAll);
+  main.addEventListener("pointerup",dragEnd);main.addEventListener("pointercancel",dragEnd);
   /* 觸控時瀏覽器會先把指標鎖在按下的那顆按鈕；改鎖到整列時，那顆按鈕送出的 lostpointercapture 會冒泡上來，不能當成放開 */
-  main.addEventListener("lostpointercapture",e=>{if(e.target===main)end()});
-  addEventListener("pointerup",end);addEventListener("pointercancel",end);addEventListener("blur",end);
+  main.addEventListener("lostpointercapture",e=>{if(e.target===main)dragEnd()});
+  addEventListener("pointerup",dragEnd);addEventListener("pointercancel",dragEnd);addEventListener("blur",dragEnd);
+  /* 設定鍵：LiquidButton */
+  gear.addEventListener("pointerdown",e=>{
+    if(e.button>0||reduceMotion())return;const r=gear.getBoundingClientRect(),g=gearSt;
+    g.down=e.pointerId;g.sx0=e.clientX-r.left;g.sy0=e.clientY-r.top;g.x0=e.clientX;g.y0=e.clientY;sprSnap(g.ox,0);sprSnap(g.oy,0);g.p.t=1;
+    try{gear.setPointerCapture(e.pointerId)}catch(_){}tbKick();
+  });
+  gear.addEventListener("pointermove",e=>{const g=gearSt;if(g.down!==e.pointerId)return;sprSnap(g.ox,e.clientX-g.x0);sprSnap(g.oy,e.clientY-g.y0);tbKick()});
+  const gearUp=e=>{const g=gearSt;if(g.down===false||e&&e.pointerId!==undefined&&e.pointerId!==g.down)return;g.down=false;g.p.t=0;g.ox.t=0;g.oy.t=0;tbKick()};
+  gear.addEventListener("pointerup",gearUp);gear.addEventListener("pointercancel",gearUp);addEventListener("pointerup",gearUp);addEventListener("blur",()=>gearUp());
+  const relayout=()=>{lensTo(tbActive(),true);tbContrastSoon()};
+  RAIL_MQ.addEventListener("change",()=>{TB_SPRINGS().forEach(s=>sprSnap(s,s===lens.val?s.x:(s===lens.sx||s===lens.sy?1:0)));lens.drag=null;lens.releasing=false;[main,gear].forEach(n=>n.classList.remove("on-light","on-dark"));requestAnimationFrame(relayout)});
   addEventListener("resize",()=>lensTo(tbActive(),true));
   document.fonts?.ready.then(()=>lensTo(tbActive(),true));
 }
@@ -308,12 +360,12 @@ function tbContrastSoon(){
   tbCR=1;const go=()=>{if(document.querySelector(".animating"))return setTimeout(go,120);idle(()=>{tbCR=0;tbContrast()},{timeout:300})};
   requestAnimationFrame(go);
 }
-/* 主列和設定鈕各自判斷；多點取樣＋遲滯，避免邊界附近來回閃 */
+/* 主列和設定鈕各自判斷（桌面主列是直的，取樣點改成上下排）；多點取樣＋遲滯，避免邊界附近來回閃 */
 function tbContrast(){
-  const tb=$("#tabbar");if(!tb)return;
+  const tb=$("#tabbar");if(!tb)return;const rail=isRail();
   tb.querySelectorAll(".tb-main,.tb-gear").forEach(el=>{
     const r=el.getBoundingClientRect();if(!r.width)return;
-    const fx=el.classList.contains("tb-gear")?[.3,.5,.7]:[.1,.3,.5,.7,.9],fy=[.3,.5,.7];
+    const g=el.classList.contains("tb-gear"),fx=g||rail?[.3,.5,.7]:[.1,.3,.5,.7,.9],fy=rail&&!g?[.1,.3,.5,.7,.9]:[.3,.5,.7];
     const ls=[];fx.forEach(a=>fy.forEach(b=>ls.push(lumUnder(r.left+r.width*a,r.top+r.height*b))));
     const light=ls.filter(v=>v>.6).length/ls.length,dark=ls.filter(v=>v<.4).length/ls.length;
     if(light>=.7){el.classList.add("on-light");el.classList.remove("on-dark")}

@@ -5,6 +5,9 @@
 :root{--bg:#fff;--surface:#fff;--ink:#111114;--muted:#5d5d66;--line:#111114;--hair:#e2e2e8;--grid:#f0f0f4;--accent-light:#e0342a;--accent-dark:#ff5a4e;--ok:#3ccf7f;--neon:#00ff6a;--ok-dot:#2bff88;--teal:#111114;--teal-soft:#fff;--lime:var(--accent-light);--warn:var(--accent-light);--onteal:#fff;--done:var(--ok);--red:var(--accent-light);--green:var(--ok);--rest:#c9c9d0;--prog-hi:var(--green);--prog-lo:var(--red);--prog-hi-ink:var(--prog-hi);--prog-lo-ink:var(--prog-lo);--today:var(--ink);--st-ok:var(--ok);--st-ok-ink:#0b1f12;--su-yellow:#f0bc23;--su-blue:#0a5baa;--st-go:var(--su-yellow);--st-go-ink:#111114;--st-stall:var(--red);--st-stall-ink:#fff;color-scheme:light;--glow:0 0 0 1.5px rgba(255,255,255,.95),0 0 18px 2px rgba(255,255,255,.55),0 8px 26px -6px rgba(0,0,0,.18);--glow-soft:0 0 0 1px rgba(255,255,255,.8),0 0 26px -4px rgba(255,255,255,.45),0 10px 30px -14px rgba(0,0,0,.18);--glow-bar:0 0 14px rgba(255,255,255,.85);--ease:cubic-bezier(.2,.8,.2,1);--flash:#111114;accent-color:var(--ink)}
 :root[data-theme="dark"]{--bg:#000;--surface:#000;--ink:#f1f1f4;--muted:#a3a3ae;--line:#ececf0;--hair:#2c2c34;--grid:#1a1a20;--teal:#f1f1f4;--teal-soft:#000;--lime:var(--accent-dark);--warn:var(--accent-dark);--onteal:#111114;--done:var(--ok);--red:var(--accent-dark);--green:var(--ok);--rest:#4a4a54;color-scheme:dark;--glow:0 0 0 1.5px #fff,0 0 22px 3px rgba(255,255,255,.55),0 0 50px -6px rgba(255,255,255,.35);--glow-soft:0 0 0 1px rgba(255,255,255,.7),0 0 34px -6px rgba(255,255,255,.4);--flash:#fff}
 *,*::before,*::after{box-sizing:border-box}
+/* 工具列讓出的空間：手機在下方（--bar-in），桌面 900px 以上改成左側細欄（--rail-in）；細欄本身在「底部工具列」段 */
+:root{--bar-in:88px;--rail-in:0px}
+@media (min-width:900px){:root{--bar-in:0px;--rail-in:78px}}
 html{height:100%;-webkit-tap-highlight-color:transparent}
 body{height:100%;margin:0;overflow:hidden;background:var(--bg);color:var(--ink);font:15px/1.6 "Noto Sans TC",system-ui,"PingFang TC","Microsoft JhengHei",sans-serif}
 .sub{color:var(--muted);font-size:13px}
@@ -89,7 +92,7 @@ button.ghost{border-color:var(--muted)}
 .pager{display:flex;height:100vh;height:100dvh;overflow-x:auto;overflow-y:hidden;scroll-snap-type:x mandatory;overscroll-behavior-x:contain;scrollbar-width:thin}
 .page{flex:none;height:100%;overflow-y:auto;scroll-snap-align:start;scrollbar-gutter:stable}
 .page-main{width:100vw}
-.wrap{max-width:1500px;margin:0 auto;padding:calc(20px + env(safe-area-inset-top)) max(16px,env(safe-area-inset-right)) calc(108px + env(safe-area-inset-bottom)) max(16px,env(safe-area-inset-left))}
+.wrap{max-width:1500px;margin:0 auto;padding:calc(20px + env(safe-area-inset-top)) max(16px,env(safe-area-inset-right)) calc(20px + var(--bar-in) + env(safe-area-inset-bottom)) calc(var(--rail-in) + max(16px,env(safe-area-inset-left)))}
 .pager::-webkit-scrollbar{display:none}
 @media (max-width:640px){
   .wrap{padding-top:calc(14px + env(safe-area-inset-top));padding-right:max(14px,env(safe-area-inset-right));padding-left:max(14px,env(safe-area-inset-left))}
@@ -220,13 +223,19 @@ body.edit .banner{display:flex;animation:rise .3s var(--ease)}
 /* 膠囊一律白底黑字（細框），狀態只放在左邊的燈號：data-st＝ok 綠（期限前有更新）／go 黃（學生會黃 --su-yellow；這週完成過一段，或期限後才補更新）／stall 紅（沒有進度）。
    只有紅色（沒有進度）的燈號會一直向外擴散提醒，其他靜止——一整排同時閃很吵，也會讓展開收合動畫變卡。
    --st＝燈號與狀態標籤的顏色，--st-ink＝狀態標籤上的字色 */
+/* --- 狀態色 --- */
 .ev,.kid-ev,.evd{--st:var(--st-stall);--st-ink:var(--st-stall-ink)}
 .ev[data-st="ok"],.kid-ev[data-st="ok"],.evd[data-st="ok"]{--st:var(--st-ok);--st-ink:var(--st-ok-ink)}
 .ev[data-st="go"],.kid-ev[data-st="go"],.evd[data-st="go"]{--st:var(--st-go);--st-ink:var(--st-go-ink)}
 :is(.ev,.kid-ev,.evd) .live-dot,:is(.ev,.kid-ev,.evd) .live-dot::after{background:var(--st)}
 :is(.ev,.kid-ev,.evd):not([data-st="stall"]) .live-dot::after{animation:none;opacity:0}
+/* --- 膠囊格（手機一欄） --- */
 .events{display:grid;gap:10px;align-items:start;grid-template-columns:repeat(auto-fill,minmax(min(100%,270px),1fr))}
 .events .empty{grid-column:1/-1}
+@media (max-width:640px){
+  .events{grid-template-columns:1fr}
+}
+/* --- 膠囊：收合白色、展開淺灰 --- */
 .ev{position:relative;display:block;padding:0;border:1px solid var(--line);border-radius:18px;background:var(--surface);transition:background-color .3s,color .3s,transform .22s var(--ease),box-shadow .22s var(--ease),border-color .3s}
 .ev summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:10px;padding:12px 14px;border-radius:14px}
 .ev summary::-webkit-details-marker{display:none}
@@ -244,15 +253,7 @@ body.edit .banner{display:flex;animation:rise .3s var(--ease)}
 /* 展開：深淺色模式都是淺灰底黑字（在這張卡片上重設色彩變數） */
 .ev[open]{--surface:#f6f6f8;--bg:#fff;--ink:#111114;--muted:#5d5d66;--line:#dcdce2;--teal:#111114;--onteal:#fff;--teal-soft:#e6e6ec;background:var(--surface);color:var(--ink);border-color:var(--surface)}
 .ev[open] .ev-del{color:var(--red);border-color:var(--red)}
-/* 編輯中拖曳排序（events.js 的「即時回報排序」）：標題可抓，拖著的那顆浮在最上面、跟著指標走 */
-body.edit #events>.ev>summary{cursor:grab;-webkit-touch-callout:none}
-.ev.ev-dragging{z-index:5;cursor:grabbing;box-shadow:0 14px 34px rgba(0,0,0,.35);transition:none}
-html.ev-drag-on,html.ev-drag-on *{-webkit-user-select:none;user-select:none;cursor:grabbing}
-/* 手機焦點：有一張展開時，其他還收著的膠囊變暗（展開那一下的「拿起來」動畫在 motion.js 的 animateDetails） */
-@media (max-width:640px){
-  .events .ev{transition:background-color .3s,color .3s,transform .22s var(--ease),box-shadow .22s var(--ease),border-color .3s,opacity .3s var(--ease)}
-  .events:has(>.ev[open]:not(.closing))>.ev:not([open]){opacity:.45}
-}
+/* --- 展開後的內容 --- */
 .ev-body{flex:1;min-width:0;padding:0 14px 12px 33px}
 .ev-body p{margin:0;font-size:13.5px;line-height:1.75;color:var(--ink);white-space:pre-wrap;word-break:break-word;-webkit-user-select:text;user-select:text}
 .ev-body .ev-parent-full{font-size:12px;color:var(--muted);margin:0 0 6px}
@@ -269,15 +270,41 @@ html.ev-drag-on,html.ev-drag-on *{-webkit-user-select:none;user-select:none;curs
 .ev-tools{display:flex;gap:6px;justify-content:flex-end;margin-top:10px;flex-wrap:wrap}
 .ev-links{margin-top:10px}
 .ev .staff-row{margin-top:10px}
+/* --- 焦點與減少動態 --- */
+/* 手機焦點：有一張展開時，其他還收著的膠囊變暗（展開那一下的「拿起來」動畫在 motion.js 的 animateDetails） */
+@media (max-width:640px){
+  .events .ev{transition:background-color .3s,color .3s,transform .22s var(--ease),box-shadow .22s var(--ease),border-color .3s,opacity .3s var(--ease)}
+  .events:has(>.ev[open]:not(.closing))>.ev:not([open]){opacity:.45}
+}
+@media (prefers-reduced-motion:reduce){
+  .ev:hover{transform:none}
+}
+/* --- 編輯中拖曳排序 --- */
+/* 編輯中拖曳排序（events.js 的「即時回報排序」）：標題可抓，拖著的那顆浮在最上面、跟著指標走 */
+body.edit #events>.ev>summary{cursor:grab;-webkit-touch-callout:none}
+.ev.ev-dragging{z-index:5;cursor:grabbing;box-shadow:0 14px 34px rgba(0,0,0,.35);transition:none}
+html.ev-drag-on,html.ev-drag-on *{-webkit-user-select:none;user-select:none;cursor:grabbing}
+/* --- 左右兩欄：清單＋右半邊詳情卡 --- */
 /* 左右兩欄（桌面 1000px 以上、即時回報被選到時）：左半邊膠囊照樣排成格（通常兩欄），被點的那一顆長成右半邊的詳情卡（motion.js 的 mdGrow）；
    詳情卡固定在右邊，外觀跟展開的膠囊同一套（淺灰底黑字、大圓角），編輯中所有功能都在右側直接改 */
 #liveMD.split{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:20px;align-items:start}
 #liveMD.split .events{grid-template-columns:repeat(auto-fill,minmax(min(100%,200px),1fr))}
 #liveMD.split .ev-chev{display:none}
-.events .ev.sel{box-shadow:0 0 0 3px color-mix(in srgb,var(--ink) 40%,transparent)}
+/* 被選到的那一顆「飛到」右邊：原位留一個虛線空位（其他膠囊不動，位置好記），收起時縮回這個空位、膠囊再出現 */
+.events .ev.sel{border-style:dashed;border-color:color-mix(in srgb,var(--ink) 35%,transparent);background:transparent;box-shadow:none;pointer-events:none}
+.events .ev.sel>*{visibility:hidden}
 #evDetail{--surface:#f6f6f8;--bg:#fff;--ink:#111114;--muted:#5d5d66;--line:#dcdce2;--hair:#e2e2e8;--teal:#111114;--onteal:#fff;--teal-soft:#e6e6ec;position:sticky;top:12px;max-height:calc(100dvh - 150px);overflow:auto;overscroll-behavior:contain;min-width:0;border:0;border-radius:24px;padding:18px 26px 24px 24px;background:var(--surface);color:var(--ink)}
 .evd-head{display:flex;align-items:center;gap:10px;font-size:20px;line-height:1.4}
 .md-close{margin-left:auto;flex:none;font-size:12.5px;font-weight:400}   /* 即時回報、完成紀錄右側的「收起」 */
+/* 詳情卡標題列的「上一個／下一個」：放在收起前面；到頭或到尾時那一顆變淡不能按 */
+.md-step{margin-left:auto;display:flex;flex:none;gap:6px}
+.md-step+.md-close{margin-left:0}
+.md-step button{font-size:12.5px;font-weight:400;letter-spacing:0}
+.md-step button:disabled{opacity:.35;pointer-events:none}
+/* 清單裡「下一個」記號：開會時台下先知道接下來看哪一顆（即時回報、完成紀錄共用） */
+.events .ev.next>summary::after,#donePanel .done-item.next>summary .t::after{content:"下一個";flex:none;margin-left:6px;padding:0 8px;border-radius:999px;font-size:11px;font-weight:500;line-height:18px;letter-spacing:.04em;background:#111114;color:#fff;animation:nextIn .3s var(--ease)}
+#donePanel .done-item.next>summary .t::after{display:inline-block;vertical-align:1px;background:var(--ink);color:var(--surface)}   /* 完成紀錄是反白區：跟著區內的字色反過來 */
+@keyframes nextIn{from{opacity:0;transform:translateX(-4px)}}
 @media (hover:hover){#evDetail button:hover,#doneDetail button:hover{box-shadow:0 0 0 1px var(--ink),0 0 10px rgba(255,255,255,.18)}}   /* 右側會捲動，外散的光暈會被邊緣切掉：改成貼著按鈕的小光暈 */
 .done-detail .done-dt .md-close{letter-spacing:0}
 .evd-head b{font-weight:700;min-width:0;overflow-wrap:anywhere}
@@ -301,17 +328,12 @@ html.ev-drag-on,html.ev-drag-on *{-webkit-user-select:none;user-select:none;curs
 .evd-gap{flex:1}
 .evd-round{display:grid;gap:4px;padding:4px 14px 14px;border:1px solid var(--hair);border-radius:14px;margin-bottom:6px}
 .evd-round[hidden]{display:none}
+/* --- 議題卡片裡的小膠囊 --- */
 /* 議題卡片裡「進行中的即時回報」小膠囊：同樣白底、燈號帶狀態色 */
 .kid-evs{display:grid;gap:4px}
 .kid-list{display:flex;flex-wrap:wrap;gap:6px}
 .kid-ev{display:inline-flex;align-items:center;gap:7px;background:#fff;color:#111114;border-radius:999px;padding:3px 12px 3px 10px;font-size:13px;box-shadow:inset 0 0 0 1px var(--line)}
 .kid-ev .live-dot{width:7px;height:7px}
-@media (prefers-reduced-motion:reduce){
-  .ev:hover{transform:none}
-}
-@media (max-width:640px){
-  .events{grid-template-columns:1fr}
-}
 
 /* ===== 追蹤（會長室） ===== */
 /* 跟個別進度同一種清單：整列滿版、列與列之間細線；寬的時候多欄 */
@@ -621,7 +643,8 @@ body.edit #donePanel .done-item summary>.sub{overflow:visible}
 #doneMD{flex:1;min-height:0;display:flex;flex-direction:column}
 #doneMD.split{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);align-items:start;margin:0 -18px -16px}   /* 清單、詳情各半；詳情一樣從被點的那一列展開 */
 #doneMD.split #doneList{display:block;margin:0;border-right:1px solid var(--line);align-self:stretch}
-#donePanel .done-item.sel{background:color-mix(in srgb,var(--ink) 10%,transparent)}
+#donePanel .done-item.sel{outline:1px dashed color-mix(in srgb,var(--ink) 35%,transparent);outline-offset:-6px;pointer-events:none}   /* 被選到的那一列飛到右邊：原位留虛線空位 */
+#donePanel .done-item.sel>*{visibility:hidden}
 #doneDetail{position:sticky;top:12px;max-height:calc(100dvh - 150px);overflow:auto;overscroll-behavior:contain;min-width:0;padding:18px 26px 24px 24px}
 .done-detail .done-dt{display:flex;align-items:center;gap:10px;margin:0;font-size:20px;font-weight:700;line-height:1.4}
 .done-detail .done-ds{margin:6px 0 0 19px;font-size:12.5px}
@@ -694,7 +717,7 @@ body.edit #donePanel .done-item summary>.sub{overflow:visible}
 
 /* ===== 每週概述 ===== */
 .page-week{width:min(620px,94vw);background:var(--surface);border-left:1px solid var(--line);scroll-snap-align:end;box-shadow:-8px 0 24px rgba(0,0,0,.06);background-color:var(--surface)}
-.week-wrap{--wt:calc(20px + env(safe-area-inset-top));--wr:max(18px,env(safe-area-inset-right));--wl:max(18px,env(safe-area-inset-left));padding:var(--wt) var(--wr) calc(108px + env(safe-area-inset-bottom)) var(--wl)}
+.week-wrap{--wt:calc(20px + env(safe-area-inset-top));--wr:max(18px,env(safe-area-inset-right));--wl:max(18px,env(safe-area-inset-left));padding:var(--wt) var(--wr) calc(20px + var(--bar-in) + env(safe-area-inset-bottom)) var(--wl)}
 .week-top{display:flex;justify-content:space-between;align-items:center;gap:8px;position:sticky;top:0;background:var(--surface);z-index:5;margin:calc(-1*var(--wt)) calc(-1*var(--wr)) 14px calc(-1*var(--wl));padding:var(--wt) var(--wr) 12px var(--wl);border-bottom:1px solid var(--line);flex-wrap:wrap;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;border-color:var(--hair);transition:box-shadow .25s,background-color .25s;backdrop-filter:blur(8px)}
 .week{margin-bottom:10px;background:var(--surface);border-radius:14px;transition:transform .22s var(--ease),box-shadow .22s var(--ease),border-color .22s var(--ease),background-color .2s,opacity .2s;position:relative;background-color:var(--surface);border:1px solid var(--line)}
 .week summary{cursor:pointer;padding:8px 12px;display:flex;align-items:center;gap:8px;list-style:none}
@@ -766,7 +789,7 @@ body.edit #donePanel .done-item summary>.sub{overflow:visible}
 
 /* ===== 動畫模式 ===== */
 @property --n{syntax:"<integer>";inherits:false;initial-value:0}
-.anim-ov{position:fixed;inset:0;z-index:40;background:var(--bg);display:flex;flex-direction:column;opacity:0;transform:scale(.985);padding:calc(14px + env(safe-area-inset-top)) max(clamp(14px,3vw,40px),env(safe-area-inset-right)) calc(96px + env(safe-area-inset-bottom)) max(clamp(14px,3vw,40px),env(safe-area-inset-left));gap:10px}
+.anim-ov{position:fixed;inset:0;z-index:40;background:var(--bg);display:flex;flex-direction:column;opacity:0;transform:scale(.985);padding:calc(14px + env(safe-area-inset-top)) max(clamp(14px,3vw,40px),env(safe-area-inset-right)) calc(8px + var(--bar-in) + env(safe-area-inset-bottom)) calc(var(--rail-in) + max(clamp(14px,3vw,40px),env(safe-area-inset-left)));gap:10px}
 .anim-ov[hidden]{display:none}
 .anim-ov.show{animation:ovIn .5s cubic-bezier(.2,.9,.25,1) forwards}
 .anim-top{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;border-bottom:1.5px solid var(--ink);padding-bottom:12px}
@@ -1003,46 +1026,54 @@ dialog#dlg:has(.csel.open){overflow:visible}
 @media (prefers-reduced-motion:no-preference){@keyframes icoX{0%,100%{transform:rotate(0)}50%{transform:rotate(90deg) scale(.85)}}}
 
 /* ===== 液態玻璃材質 ===== */
-.glass{position:relative;isolation:isolate;background:rgba(28,28,30,.34);-webkit-backdrop-filter:blur(14px) saturate(150%);backdrop-filter:blur(14px) saturate(150%);box-shadow:inset 0 0 0 .5px rgba(255,255,255,.2),inset 1.5px 1.5px 1px -1px rgba(255,255,255,.6),inset -1.5px -1.5px 1px -1px rgba(255,255,255,.2),inset 0 0 24px rgba(255,255,255,.045),0 14px 34px rgba(0,0,0,.45)}
+/* .glass：毛玻璃（對話框、底部工具列）。背景模糊＋內緣高光＋跟著指標移動的反光（--mx／--my，util.js 的 glassify），不用 SVG 折射 */
+.glass{--glass-sh:inset 0 0 0 .5px rgba(255,255,255,.2),inset 1.5px 1.5px 1px -1px rgba(255,255,255,.6),inset -1.5px -1.5px 1px -1px rgba(255,255,255,.2),inset 0 0 24px rgba(255,255,255,.045),0 14px 34px rgba(0,0,0,.45);position:relative;isolation:isolate;background:rgba(28,28,30,.34);-webkit-backdrop-filter:blur(14px) saturate(150%);backdrop-filter:blur(14px) saturate(150%);box-shadow:var(--glass-sh)}   /* 光影放在 --glass-sh，別的規則要保留它時直接引用 */
 .glass::after{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;background:radial-gradient(140px circle at var(--mx,28%) var(--my,-30%),rgba(255,255,255,.13),transparent 70%)}
-:root:not([data-theme="dark"]) .glass{background:rgba(255,255,255,.42);box-shadow:inset 0 0 0 .5px rgba(0,0,0,.1),inset 1.5px 1.5px 1px -1px rgba(255,255,255,.95),inset -1.5px -1.5px 1px -1px rgba(255,255,255,.6),inset 0 0 22px rgba(255,255,255,.35),0 12px 30px rgba(0,0,0,.14)}
+:root:not([data-theme="dark"]) .glass{--glass-sh:inset 0 0 0 .5px rgba(0,0,0,.1),inset 1.5px 1.5px 1px -1px rgba(255,255,255,.95),inset -1.5px -1.5px 1px -1px rgba(255,255,255,.6),inset 0 0 22px rgba(255,255,255,.35),0 12px 30px rgba(0,0,0,.14);background:rgba(255,255,255,.42)}
 @media (prefers-color-scheme:dark){
-  :root:not([data-theme="light"]) .glass{background:rgba(28,28,30,.34);box-shadow:inset 0 0 0 .5px rgba(255,255,255,.2),inset 1.5px 1.5px 1px -1px rgba(255,255,255,.6),inset -1.5px -1.5px 1px -1px rgba(255,255,255,.2),inset 0 0 24px rgba(255,255,255,.045),0 14px 34px rgba(0,0,0,.45)}
+  :root:not([data-theme="light"]) .glass{--glass-sh:inset 0 0 0 .5px rgba(255,255,255,.2),inset 1.5px 1.5px 1px -1px rgba(255,255,255,.6),inset -1.5px -1.5px 1px -1px rgba(255,255,255,.2),inset 0 0 24px rgba(255,255,255,.045),0 14px 34px rgba(0,0,0,.45);background:rgba(28,28,30,.34)}
 }
 @supports not ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))){
   .glass{background:var(--surface)!important}
 }
 
-/* ===== 底部工具列 ===== */
-.tabbar{--tb-ink:var(--ink);--tb-surface:var(--surface);--tb-muted:var(--muted);position:fixed;left:50%;bottom:calc(14px + env(safe-area-inset-bottom));z-index:45;display:flex;align-items:center;gap:10px;transform:translateX(-50%);transition:transform .55s cubic-bezier(.2,.9,.25,1),opacity .35s}
-.tb-main{display:flex;padding:6px;border-radius:999px;touch-action:none;transition:transform .5s cubic-bezier(.2,1.5,.4,1)}
-.tabbar.dragging .tb-main{transition:none}
+/* ===== 底部工具列（手機）／左側細欄（桌面 900px 以上） =====
+   材質是毛玻璃 .glass；鏡片是實心膠囊，鏡片底下那一格（.lit，nav.js 每格判斷）的圖示反白。
+   按鈕機制照 Convx（見 nav.js 開頭），手機與桌面同一套。JS 每一格寫入：--ts 分頁內容放大、--hp／--hx／--hy 按下白光；
+   整條列的放大與偏移、鏡片與設定鍵的形變用 inline 的 scale／transform（這兩個屬性在這段不設 transition，避免跟彈簧打架） */
+.tabbar{--tb-ink:var(--ink);--tb-surface:var(--surface);--tb-muted:var(--muted);position:fixed;left:50%;bottom:calc(14px + env(safe-area-inset-bottom));z-index:45;display:flex;align-items:center;gap:10px;transform:translateX(-50%);transition:opacity .35s}
+.tb-main{display:flex;padding:6px;border-radius:999px;touch-action:none;--hr:92px}
+/* 按下白光（Convx InteractiveHighlight：中心半徑內 .15、外圈淡出；整片再亮 .08；--hp＝按下程度）。在毛玻璃底色之上、內容之下 */
+#tabbar .tb-main::before,#tabbar .tb-gear::before{content:"";position:absolute;inset:0;z-index:-1;border-radius:inherit;pointer-events:none;
+  background:radial-gradient(circle var(--hr,60px) at var(--hx,50%) var(--hy,50%),rgba(255,255,255,calc(.15 * var(--hp,0))) 50%,rgba(255,255,255,0)),linear-gradient(rgba(255,255,255,calc(.08 * var(--hp,0))),rgba(255,255,255,calc(.08 * var(--hp,0))))}
 .tb-tabs{position:relative;z-index:1;display:flex;gap:2px}
-.tabbar .tab{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;width:76px;min-height:0;padding:5px 2px 4px;border:0;border-radius:24px;background:transparent;color:var(--tb-muted);font-size:11.5px;letter-spacing:.08em;line-height:1.2;-webkit-tap-highlight-color:transparent}
-#tabbar .tab:hover,#tabbar .tab:active,#tabbar .tb-gear:hover,#tabbar .tb-gear:active{transform:none;box-shadow:none}   /* 取消一般按鈕的 hover 浮起；不用 !important，按下的放大動畫才不會被擋掉 */
+.tabbar .tab{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;width:76px;min-height:0;padding:5px 2px 4px;border:0;border-radius:24px;background:transparent;color:var(--tb-muted);font-size:11.5px;letter-spacing:.08em;line-height:1.2;scale:var(--ts,1);-webkit-tap-highlight-color:transparent}
+#tabbar .tab:hover,#tabbar .tab:active{transform:none;box-shadow:none}   /* 取消一般按鈕的 hover 浮起與光暈；不用 !important，按下的形變（inline）才不會被擋掉 */
+#tabbar .tb-gear:hover,#tabbar .tb-gear:active{transform:none;box-shadow:var(--glass-sh)}   /* 設定鍵：同上，但保留毛玻璃的光影 */
 .tab-ind{display:grid;place-items:center;width:56px;height:30px;border-radius:999px;font-size:19px;color:var(--tb-ink);transition:color .25s}
-.tab.on .tab-ind{color:var(--tb-surface)}
 .tab .tab-l{transition:color .2s}
 .tab.on .tab-l,.tab.hov .tab-l{color:var(--tb-ink);font-weight:500}
 .tab .ico{stroke-width:1.7}
-.tb-lens{position:absolute;left:0;top:6px;z-index:0;width:56px;height:30px;border-radius:999px;pointer-events:none;will-change:transform;transition:opacity .25s,background-color .25s}
-#tabbar .tb-lens{background:var(--tb-ink);box-shadow:none;-webkit-backdrop-filter:none;backdrop-filter:none}
-#tabbar .tb-lens::after,#tabbar .tb-lens.off{opacity:0}
-#tabbar.dragging .tb-lens{z-index:2;background:rgba(255,255,255,.06);-webkit-backdrop-filter:blur(.6px) saturate(160%) brightness(1.12);backdrop-filter:blur(.6px) saturate(160%) brightness(1.12);box-shadow:inset 0 0 0 .5px rgba(255,255,255,.35),inset 1.5px 1.5px 1px -1px rgba(255,255,255,.8),inset -1.5px -1.5px 1px -1px rgba(255,255,255,.3),0 6px 18px rgba(0,0,0,.3)}
-.tabbar.dragging .tab.on .tab-ind{color:var(--tb-ink)}
-.tab-ind .ico{transition:transform .3s cubic-bezier(.2,1.4,.4,1)}
-.tabbar.dragging .tab.hov .tab-ind .ico{transform:scale(1.18)}
-.tb-gear{width:62px;height:62px;padding:0;border:0;border-radius:50%;display:grid;place-items:center;min-height:0;color:var(--tb-ink);font-size:21px;-webkit-tap-highlight-color:transparent;transition:color .35s,background-color .35s}
-#tabbar .tb-gear.on{background:var(--tb-ink)!important;color:var(--tb-surface)}
+.tab.on .ico{stroke-width:2}
+/* 選取鏡片：實心膠囊（文字色），永遠在圖示底下；鏡片底下那一格的圖示反白 */
+.tb-lens{position:absolute;left:0;top:6px;z-index:0;width:56px;height:30px;border-radius:999px;background:var(--tb-ink);pointer-events:none;will-change:transform;transition:opacity .25s,background-color .35s}
+#tabbar .tb-lens.off{opacity:0}
+#tabbar .tab.lit .tab-ind{color:var(--tb-surface)}
+.tb-gear{width:62px;height:62px;padding:0;border:0;border-radius:50%;display:grid;place-items:center;min-height:0;color:var(--tb-ink);font-size:21px;--hr:92px;-webkit-tap-highlight-color:transparent;transition:color .35s,background-color .35s}
+/* 依背後亮度反轉（nav.js 的 tbContrast，標在分頁列與設定鍵上）：文字色與玻璃底色一起換 */
 .tabbar .on-light{--tb-ink:#111114;--tb-surface:#fff;--tb-muted:#4a4a53}
-.tabbar .glass.on-light{background:rgba(255,255,255,.5)!important}
+#tabbar .glass.on-light{background:rgba(255,255,255,.42)}
 .tabbar .on-dark{--tb-ink:#f4f4f6;--tb-surface:#111114;--tb-muted:#b9b9c2}
-.tabbar .glass.on-dark{background:rgba(28,28,30,.42)!important}
-.tabbar .glass{transition:background-color .35s}
+#tabbar .glass.on-dark{background:rgba(28,28,30,.34)}
+/* 設定鍵選取＝跟鏡片一樣的實心（放在反轉色之後，選取時蓋過玻璃底色） */
+#tabbar .tb-gear.on{background:var(--tb-ink);color:var(--tb-surface)}
+#tabbar .tb-gear.on .ico{stroke-width:2}
 .tabbar .tab-l,.tabbar .tab-ind{transition:color .35s,background-color .35s}
 #tabbar .tab:focus-visible,#tabbar .tb-gear:focus-visible{outline:none}
 #tabbar .tab:focus-visible .tab-l{text-decoration:underline;text-decoration-thickness:1.5px;text-underline-offset:4px}
 #tabbar .tb-gear:focus-visible .ico{transform:scale(1.15)}
+#tabbar .tab:focus-visible .tab-ind .ico{transform:scale(1.15)}
+.tab-ind .ico{transition:transform .3s cubic-bezier(.2,1.4,.4,1)}
 @media (max-width:640px){
   .tabbar{width:calc(100% - 24px);max-width:480px}
   .tb-main{flex:1}
@@ -1050,9 +1081,21 @@ dialog#dlg:has(.csel.open){overflow:visible}
   .tabbar .tab{flex:1;width:auto}
   .tb-gear{width:58px;height:58px;flex:none}
 }
+/* 桌面：左側直立的分頁列（只有圖示，照手機分頁列的比例：外框 6px、按鈕 50×48、跟設定鍵同寬 62），設定鍵一樣分開放在下面，整組垂直置中。
+   文字標籤只留給讀屏；鏡片 50×44，互動跟手機一樣（按下放大、按住鏡片可上下拖，見 nav.js）。
+   內容讓出的寬度是基礎段的 --rail-in */
+@media (min-width:900px){
+  .tabbar{left:calc(14px + env(safe-area-inset-left));top:50%;bottom:auto;transform:translateY(-50%);flex-direction:column;gap:10px}
+  .tb-main{flex-direction:column}
+  .tb-tabs{flex-direction:column;gap:0}
+  .tabbar .tab{width:50px;height:48px;padding:0;border-radius:999px;color:var(--tb-muted)}
+  .tab-ind{width:auto;height:auto;font-size:20px;color:var(--tb-muted)}
+  .tabbar .tab-l{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+  .tb-lens{left:6px;top:0;width:50px;height:44px}
+}
 
 /* ===== 設定頁 ===== */
-.set-ov{position:fixed;inset:0;z-index:38;background:var(--bg);color:var(--ink);display:flex;flex-direction:column;gap:10px;padding:calc(14px + env(safe-area-inset-top)) max(clamp(14px,3vw,40px),env(safe-area-inset-right)) 0 max(clamp(14px,3vw,40px),env(safe-area-inset-left))}
+.set-ov{position:fixed;inset:0;z-index:38;background:var(--bg);color:var(--ink);display:flex;flex-direction:column;gap:10px;padding:calc(14px + env(safe-area-inset-top)) max(clamp(14px,3vw,40px),env(safe-area-inset-right)) 0 calc(var(--rail-in) + max(clamp(14px,3vw,40px),env(safe-area-inset-left)))}
 .set-ov[hidden]{display:none}
 .set-ov .anim-top{padding-bottom:8px}
 /* 清單（.set-scroll）與右側面板（.set-pane）：平常清單佔滿、內容置中；
@@ -1060,7 +1103,7 @@ dialog#dlg:has(.csel.open){overflow:visible}
 .set-body{flex:1;min-height:0;display:flex;gap:clamp(20px,3vw,48px)}
 .set-scroll{flex:1 1 100%;min-width:0;overflow:auto;overscroll-behavior:contain;scrollbar-gutter:stable}
 .set-body.split .set-scroll{flex:0 0 min(440px,40%)}
-.set-pane{flex:1 1 0;min-width:0;overflow:auto;overscroll-behavior:contain;scrollbar-gutter:stable;padding:14px 4px calc(120px + env(safe-area-inset-bottom))}
+.set-pane{flex:1 1 0;min-width:0;overflow:auto;overscroll-behavior:contain;scrollbar-gutter:stable;padding:14px 4px calc(32px + var(--bar-in) + env(safe-area-inset-bottom))}
 .set-pane[hidden]{display:none}
 .set-row[aria-current="true"]{background:color-mix(in srgb,var(--ink) 10%,transparent)}
 .set-row[aria-current="true"] .sr-chev{color:var(--ink)}
@@ -1072,7 +1115,7 @@ dialog#dlg:has(.csel.open){overflow:visible}
 .set-gate-ico{display:grid;place-items:center;width:168px;height:168px;padding:0;border-radius:50%;border:1px solid var(--line);background:transparent;color:var(--ink);margin-bottom:8px}
 .set-gate-ico svg{overflow:visible}
 .set-gate-ico:hover{transform:none;box-shadow:0 0 28px 2px color-mix(in srgb,var(--ink) 22%,transparent)}
-.set-inner{max-width:720px;margin:0 auto;grid-template-columns:minmax(0,1fr);padding:14px 0 calc(120px + env(safe-area-inset-bottom));display:grid;gap:28px}
+.set-inner{max-width:720px;margin:0 auto;grid-template-columns:minmax(0,1fr);padding:14px 0 calc(32px + var(--bar-in) + env(safe-area-inset-bottom));display:grid;gap:28px}
 .set-h{margin:0 0 10px;padding:0;border:0;font-size:12.5px;font-weight:500;color:var(--muted);letter-spacing:.16em}
 .set-row:hover{transform:none;box-shadow:none;background:color-mix(in srgb,var(--ink) 6%,transparent)}
 .set-row:active{transform:none;background:color-mix(in srgb,var(--ink) 11%,transparent)}
@@ -1188,14 +1231,18 @@ dialog#dlg:has(.csel.open){overflow:visible}
 .rpt-tl li{margin:1px 0}
 .rpt-d{display:inline-block;min-width:4.6em;color:var(--muted);font-family:"Jost",sans-serif}
 .rpt-none{margin:0;color:var(--muted)}
-.rpt-text{min-height:5.25em;white-space:pre-wrap;counter-reset:rh1}
+.rpt-text{--rw1:45px;--rw2:24px;min-height:5.25em;white-space:pre-wrap;counter-reset:rh1}   /* --rw1 大段編號「（一）」的寬、--rw2 小段編號「1. 」的寬 */
 .rpt-text:empty::before{content:attr(data-ph);color:#9a9aa3}
 /* 自訂區塊裡的段落層級：大段（（一）（二））、小段（1. 2.，每個大段重新算）、內文；編號自動排 */
 .rpt-text>p{margin:0 0 .35em}
-.rpt-text>.rpt-h1{margin:.9em 0 .3em;font-size:15px;font-weight:600;letter-spacing:.04em;counter-increment:rh1;counter-reset:rh2}
-.rpt-text>.rpt-h1::before{content:"（" counter(rh1,trad-chinese-informal) "）"}
-.rpt-text>.rpt-h2{margin:.6em 0 .2em;padding-left:1.2em;font-size:14px;font-weight:600;counter-increment:rh2}
-.rpt-text>.rpt-h2::before{content:counter(rh2) ". "}
+.rpt-text>.rpt-h1{margin:.9em 0 .3em;padding-left:var(--rw1);font-size:15px;font-weight:600;letter-spacing:.04em;counter-increment:rh1;counter-reset:rh2}
+.rpt-text>.rpt-h1::before{content:"（" counter(rh1,trad-chinese-informal) "）";display:inline-block;min-width:var(--rw1);margin-left:calc(-1 * var(--rw1));letter-spacing:0}
+.rpt-text>.rpt-h2{margin:.6em 0 .2em;font-size:14px;font-weight:600;counter-increment:rh2}
+.rpt-text>.rpt-h2::before{content:counter(rh2) ". ";display:inline-block;min-width:var(--rw2);margin-left:calc(-1 * var(--rw2))}
+/* 縮排：對齊所屬標題的文字起點（report.js 的 indent 標 data-in；標題的編號用負邊距凸出在左邊，換行也對齊文字） */
+.rpt-text>[data-in="a"]{padding-left:var(--rw1)}
+.rpt-text>[data-in="b"]{padding-left:var(--rw2)}
+.rpt-text>[data-in="ab"]{padding-left:calc(var(--rw1) + var(--rw2))}
 .rpt-text>.rpt-h1:first-child,.rpt-text>.rpt-h2:first-child{margin-top:0}
 /* 段落小工具：桌面放在紙張左邊界、對齊游標那一段；手機放在區塊下方。不印出來 */
 .rpt-pt{position:absolute;left:-46px;top:var(--y,0);z-index:1;display:grid;gap:4px;animation:rptPtIn .2s cubic-bezier(.2,.9,.25,1)}

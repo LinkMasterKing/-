@@ -26,8 +26,9 @@ function dateAtPct(i,p){const sp=issueSpan(i);if(!sp)return "";const a=pd(sp[0])
 /* 註記在時程條上的位置：有日期的議題照註記日期放，沒日期的照舊用 at（%） */
 const mkAt=(i,m)=>hasDates(i)&&m.date?schedPct(i,m.date):m.at;
 const schedLabel=i=>{const p=schedPct(i);return p==null?"未排程":`時程 ${p}%`};
-/* 液態玻璃材質：加上 .glass，並讓高光跟著指標位置走 */
+/* 毛玻璃材質 .glass（對話框、底部工具列），並讓反光跟著指標位置走（--mx／--my） */
 function glassify(el){
   if(!el||el._glass)return;el._glass=true;el.classList.add("glass");
-  el.addEventListener("pointermove",e=>{const r=el.getBoundingClientRect();el.style.setProperty("--mx",((e.clientX-r.left)/r.width*100).toFixed(1)+"%");el.style.setProperty("--my",((e.clientY-r.top)/r.height*100).toFixed(1)+"%")},{passive:true});
+  el.addEventListener("pointermove",e=>{const r=el.getBoundingClientRect();
+    el.style.setProperty("--mx",((e.clientX-r.left)/r.width*100).toFixed(1)+"%");el.style.setProperty("--my",((e.clientY-r.top)/r.height*100).toFixed(1)+"%")},{passive:true});
 }

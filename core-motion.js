@@ -109,42 +109,50 @@ document.addEventListener("click",e=>{
 document.addEventListener("mouseover",e=>{const m=e.target.closest(".marker.quiet,.g-mk.quiet");const tr=m&&m.closest(".c-track,.g-track");document.querySelectorAll(".peeking").forEach(x=>{if(x!==tr)x.classList.remove("peeking")});if(tr)tr.classList.add("peeking")});
 
 /* ---------- 左右兩欄的開合（即時回報、完成紀錄） ----------
-   清單從格狀排列變成左欄（或反過來）時，每一項從原本的位置與寬度滑到新的位置（FLIP），右側從右邊滑入 */
+   被點的那一項「飛」到右半邊變成詳情卡，原位留虛線空位（CSS 的 .sel）；收起時詳情卡縮小彈回空位，那一項再出現。
+   三種動作都走 mdSelect：
+   - 打開（沒選→選）：清單 FLIP 縮到左半邊，詳情卡從被點那一項原本的位置彈出放大（mdPop "out"）
+   - 換選（選 A→選 B）：A 的詳情卡先縮回 A 的空位（mdPop "in"），A 出現；再從 B 彈出
+   - 收起（選→沒選）：詳情卡縮回空位，那一項出現，清單 FLIP 展開回全寬
+   只動 transform／clip-path（不縮放內容，字不變形）；動作進行中 mdBusy 擋住重複點擊 */
 const MD={live:{list:"#events",item:".ev",key:el=>el.dataset.ev,pane:"#evDetail",get:()=>selEv,set:v=>{selEv=v},render:()=>renderEvents()},
   done:{list:"#doneList",item:".done-item",key:el=>el.dataset.issue||el.dataset.ev,pane:"#doneDetail",get:()=>selDone,set:v=>{selDone=v},render:()=>renderDone()}};
-/* 打開：被點的那一項「長成」右半邊的詳情卡（詳情卡從那一項的位置與大小展開，內容稍後淡入），其他項目 FLIP 滑到新位置。
-   收起：詳情卡先縮回那一項的位置淡出，清單再展開回全寬。換選另一項：詳情卡從新點的那一項再長一次。只動 transform／clip-path */
+const MD_POP={out:{duration:560,easing:"cubic-bezier(.3,1.3,.5,1)"},in:{duration:300,easing:"cubic-bezier(.5,0,.3,1)"}};
 let mdBusy=false;
 const mdItem=(m,id)=>id&&[...document.querySelectorAll(`${m.list} ${m.item}`)].find(el=>m.key(el)===id);
-function mdSelect(k,id){
+const mdBox=el=>el&&{rect:el.getBoundingClientRect(),r:parseFloat(getComputedStyle(el).borderRadius)||0};
+async function mdSelect(k,id){
   if(mdBusy)return;
-  const m=MD[k],cur=m.get(),next=cur===id?null:id,from=mdItem(m,next||cur),a=from&&from.getBoundingClientRect(),r=from?parseFloat(getComputedStyle(from).borderRadius)||0:0;
-  if(cur&&next){m.set(next);m.render();mdGrow($(m.pane),a,r);return}   /* 已經分欄：只換右側內容 */
-  if(!next){                                                          /* 收起 */
-    const pane=$(m.pane),done=()=>{mdBusy=false;mdFlip(m,()=>{m.set(null);m.render();layoutAll()});pane&&pane.getAnimations().forEach(x=>x.cancel())};
-    if(reduceMotion()||!a||!pane||pane.hidden)return done();
-    mdBusy=true;mdShrink(pane,a,r).then(done);return;
-  }
-  mdFlip(m,()=>{m.set(next);m.render();layoutAll()});
-  mdGrow($(m.pane),a,r);
+  const m=MD[k],cur=m.get(),next=cur===id?null:id,pane=$(m.pane);
+  const set=v=>{m.set(v);m.render();layoutAll()};
+  if(reduceMotion()){set(next);if(next)mdPaneIn(pane);return}
+  mdBusy=true;
+  try{
+    /* 1. 原本開著的先彈回自己的空位 */
+    if(cur&&pane&&!pane.hidden){const home=mdBox(mdItem(m,cur));if(home)await mdPop(pane,home,"in")}
+    /* 2. 切換：打開／收起要換版面（FLIP），換選只換內容 */
+    const from=next&&!cur?mdBox(mdItem(m,next)):null;           /* 打開：從清單換版面之前的位置彈出 */
+    if(!!cur!==!!next)mdFlip(m,()=>set(next));else set(next);
+    pane&&pane.getAnimations().forEach(x=>x.cancel());
+    if(cur)mdLand(mdItem(m,cur));
+    /* 3. 新選的彈出去 */
+    if(next&&pane)mdPop(pane,from||mdBox(mdItem(m,next)),"out");
+  }finally{mdBusy=false}
 }
-/* 詳情卡從 a（被點那一項的位置）展開成自己的大小：位移＋clip-path 圓角裁切（不縮放，字不會變形） */
-function mdGrow(pane,a,r){
-  if(!pane)return;if(reduceMotion()||!a)return mdPaneIn(pane);
-  const b=pane.getBoundingClientRect(),R=parseFloat(getComputedStyle(pane).borderRadius)||0;
+/* 詳情卡在「清單那一項的位置與大小」和「自己的位置」之間變形：位移＋clip-path 圓角裁切 */
+function mdPop(pane,home,dir){
+  if(!home)return Promise.resolve();
+  const a=home.rect,b=pane.getBoundingClientRect(),R=parseFloat(getComputedStyle(pane).borderRadius)||0;
   const w=Math.min(a.width,b.width),h=Math.min(a.height,b.height);
-  pane.animate([{transform:`translate(${a.left-b.left}px,${a.top-b.top}px)`,clipPath:`inset(0px ${b.width-w}px ${b.height-h}px 0px round ${Math.min(r,h/2)}px)`},
-    {transform:"none",clipPath:`inset(0px 0px 0px 0px round ${R}px)`}],{duration:540,easing:EXPAND.easing});
-  [...pane.children].forEach(c=>c.animate([{opacity:0},{opacity:0,offset:.3},{opacity:1}],{duration:540,easing:"ease-out"}));
+  const small={transform:`translate(${a.left-b.left}px,${a.top-b.top}px)`,clipPath:`inset(0px ${b.width-w}px ${b.height-h}px 0px round ${Math.min(home.r,h/2)}px)`};
+  const big={transform:"none",clipPath:`inset(0px 0px 0px 0px round ${R}px)`};
+  const kids=[...pane.children],o=MD_POP[dir];
+  if(dir==="out"){kids.forEach(c=>c.animate([{opacity:0},{opacity:0,offset:.3},{opacity:1}],{duration:o.duration,easing:"ease-out"}));return pane.animate([small,big],o).finished.catch(()=>{})}
+  kids.forEach(c=>c.animate([{opacity:1},{opacity:0}],{duration:120,fill:"forwards"}));
+  return pane.animate([big,small],{...o,fill:"forwards"}).finished.catch(()=>{});
 }
-function mdShrink(pane,a,r){
-  const b=pane.getBoundingClientRect(),R=parseFloat(getComputedStyle(pane).borderRadius)||0;
-  const w=Math.min(a.width,b.width),h=Math.min(a.height,b.height);
-  [...pane.children].forEach(c=>c.animate([{opacity:1},{opacity:0}],{duration:140,fill:"forwards"}));
-  const an=pane.animate([{transform:"none",clipPath:`inset(0px 0px 0px 0px round ${R}px)`,opacity:1},
-    {transform:`translate(${a.left-b.left}px,${a.top-b.top}px)`,clipPath:`inset(0px ${b.width-w}px ${b.height-h}px 0px round ${Math.min(r,h/2)}px)`,opacity:.3}],{duration:260,easing:"cubic-bezier(.4,0,.2,1)",fill:"forwards"});
-  return an.finished.catch(()=>{});
-}
+/* 那一項回到清單：輕輕彈一下，像剛落回原位 */
+function mdLand(el){if(el)el.animate([{scale:1.05},{scale:1}],{duration:320,easing:"cubic-bezier(.3,1.5,.5,1)"})}
 function mdFlip(m,mutate){
   if(reduceMotion())return mutate();
   const first=new Map([...document.querySelectorAll(`${m.list} ${m.item}`)].map(el=>[m.key(el),el.getBoundingClientRect()]));
@@ -156,3 +164,12 @@ function mdFlip(m,mutate){
   });
 }
 document.addEventListener("click",e=>{const b=e.target.closest&&e.target.closest("[data-mdclose]");if(b){e.preventDefault();const k=b.dataset.mdclose;mdSelect(k,MD[k].get())}});
+/* 上一個／下一個：照清單畫面上的順序換選（現在這張縮回空位、下一張彈出）；鍵盤左右鍵同功能（游標在輸入框裡時不搶） */
+function mdStep(k,dir){const m=MD[k],ids=[...document.querySelectorAll(`${m.list} ${m.item}`)].map(m.key),to=ids[ids.indexOf(m.get())+dir];if(to)mdSelect(k,to)}
+document.addEventListener("click",e=>{const b=e.target.closest&&e.target.closest("[data-mdstep]");if(b&&!b.disabled){e.preventDefault();mdStep(b.dataset.mdstep,+b.dataset.dir)}});
+document.addEventListener("keydown",e=>{
+  if((e.key!=="ArrowLeft"&&e.key!=="ArrowRight")||e.altKey||e.ctrlKey||e.metaKey||setOpen||animOpen||$("#dlg").open)return;
+  const a=document.activeElement;if(a&&(a.isContentEditable||/^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName)))return;
+  const k=selEv&&mdOn("live")?"live":selDone&&mdOn("done")?"done":null;if(!k)return;
+  e.preventDefault();mdStep(k,e.key==="ArrowRight"?1:-1);
+});

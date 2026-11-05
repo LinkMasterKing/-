@@ -94,7 +94,9 @@ function rptAdd(){
 }
 /* ---------- 段落小工具（自訂區塊：工作檢討、下期規劃、新區塊） ----------
    游標在自訂區塊裡時，那一段左邊（手機在區塊下方）浮出三個小鈕：大段（（一）自動編號）、小段（1. 自動編號）、內文。
-   游標在這段最後面＝在下面換一個新段落；在段落中間或這段是空的＝把這段改成那一層。編號由 CSS counter 自動排。 */
+   游標在這段最後面＝在下面換一個新段落；在段落中間或這段是空的＝把這段改成那一層。編號由 CSS counter 自動排。
+   縮排：每一段的左邊對齊它所屬那一層標題的「文字起點」（編號凸出在左邊），不是整份文件的最左邊。
+   由 indent() 依前面最近的標題標 data-in：a＝大段之下、b＝小段之下（前面沒有大段）、ab＝大段裡的小段之下；寬度在 CSS 的 --rw1／--rw2。 */
 const RPT_LV={h1:{tag:"H3",cls:"rpt-h1",name:"大段"},h2:{tag:"H4",cls:"rpt-h2",name:"小段"},p:{tag:"P",cls:"",name:"內文"}};
 function rptParaTool(ov){
   const pt=document.createElement("div");pt.className="rpt-pt";pt.contentEditable="false";pt.hidden=true;
@@ -106,7 +108,14 @@ function rptParaTool(ov){
       if(n.nodeType===3){if(!n.textContent.trim()){n.remove();return}const q=document.createElement("p");n.replaceWith(q);q.append(n)}
       else if(n.nodeName==="DIV"||n.nodeName==="BR"){const q=document.createElement("p");if(n.nodeName==="DIV")q.append(...n.childNodes);n.replaceWith(q);if(!q.firstChild)q.append(document.createElement("br"))}
     });
+    indent(box);
   };
+  const indent=box=>{let h1=false,h2=false;
+    [...box.children].forEach(n=>{
+      if(n.classList.contains("rpt-h1")){h1=true;h2=false;n.removeAttribute("data-in");return}
+      if(n.classList.contains("rpt-h2"))h2=true;
+      const v=(h1?"a":"")+(h2?"b":"");if(v)n.dataset.in=v;else n.removeAttribute("data-in");
+    })};
   const blockOf=(box,node)=>{while(node&&node.parentNode!==box)node=node.parentNode;return node&&node.nodeType===1?node:null};
   const caretIn=()=>{const sel=getSelection();if(!sel.rangeCount)return null;const n=sel.anchorNode,box=n&&(n.nodeType===1?n:n.parentNode).closest(".rpt-text");return box&&ov.contains(box)?{box,sel}:null};
   const place=()=>{
@@ -130,13 +139,14 @@ function rptParaTool(ov){
     const atEnd=!tail.toString().length,empty=!blk.textContent.trim(),lv=b.dataset.lv,el=make(lv);
     if(empty||!atEnd){el.append(...blk.childNodes);if(!el.firstChild)el.append(document.createElement("br"));blk.replaceWith(el);caretTo(el,true)}   /* 改這段的層級 */
     else{el.append(document.createElement("br"));blk.after(el);caretTo(el,false)}                                          /* 換新段落 */
+    indent(box);
     if(!reduceMotion())el.animate([{opacity:0,transform:"translateY(-3px)"},{opacity:1,transform:"none"}],{duration:220,easing:"cubic-bezier(.2,.9,.25,1)"});
     b.animate([{transform:"scale(.92)"},{transform:"none"}],{duration:200,easing:"cubic-bezier(.3,1.6,.5,1)"});
     place();
   });
   /* 區塊裡按 Enter 一律產生 <p>；整段刪光時清空，讓提示字回來、列印時跳過 */
   ov.addEventListener("focusin",e=>{if(e.target.closest(".rpt-text")){try{document.execCommand("defaultParagraphSeparator",false,"p")}catch(_){}tidy(e.target.closest(".rpt-text"))}});
-  ov.addEventListener("input",e=>{const box=e.target.closest&&e.target.closest(".rpt-text");if(box&&!box.textContent.trim()&&!box.querySelector("h3,h4"))box.innerHTML=""});
+  ov.addEventListener("input",e=>{const box=e.target.closest&&e.target.closest(".rpt-text");if(!box)return;if(!box.textContent.trim()&&!box.querySelector("h3,h4"))box.innerHTML="";else indent(box)});
   ov.addEventListener("focusout",e=>{const box=e.target.closest(".rpt-text");if(box)tidy(box);setTimeout(()=>{if(!caretIn())pt.hidden=true},0)});
   document.addEventListener("selectionchange",place);
   ov.querySelector(".rpt-scroll").addEventListener("scroll",place,{passive:true});
