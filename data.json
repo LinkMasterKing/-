@@ -3,7 +3,7 @@
  "id": "board-main",
  "title": "權益部工作進度",
  "locked": false,
- "savedAt": "2026-11-06 00:38",
+ "savedAt": "2026-11-06 01:55",
  "range": {
   "start": "2026-09",
   "end": "2027-09"
@@ -1060,7 +1060,9 @@
     }
    ],
    "round": 1,
-   "fromEv": "emw0mszjya8iv"
+   "fromEv": "emw0mszjya8iv",
+   "touched": [],
+   "report": false
   },
   {
    "id": "emw3roxbj65xp",
@@ -1074,7 +1076,9 @@
    "labels": [],
    "times": [],
    "round": 1,
-   "fromEv": "emw0pwllmeivk"
+   "fromEv": "emw0pwllmeivk",
+   "touched": [],
+   "report": false
   }
  ],
  "yearLabel": "115學年",
