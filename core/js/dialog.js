@@ -3,6 +3,7 @@
 function fieldHTML(x){
   if(x.type==="labels")return `<fieldset class="multi"><legend>${esc(x.label)}</legend>${labelPickerHTML(x.name,x.value)}</fieldset>`;
   if(x.type==="multi")return `<fieldset class="multi"><legend>${esc(x.label)}</legend><div class="chips">${x.options.map(([v,t])=>`<label class="chip"><input type="checkbox" name="${x.name}" value="${esc(v)}" ${(x.value||[]).includes(v)?"checked":""}><span>${esc(t)}</span></label>`).join("")}</div></fieldset>`;
+  if(x.type==="stepper")return `<div class="fld"><span class="fld-l">${esc(x.label)}</span><div class="stepper" data-min="${x.min??-1e9}" data-max="${x.max??1e9}"><button type="button" data-step="-1" aria-label="減一">−</button><span class="stepper-v"><span class="stepper-n num" aria-live="polite">${+x.value||0}</span>${x.suffix?`<span class="stepper-s">${esc(x.suffix)}</span>`:""}</span><button type="button" data-step="1" aria-label="加一">＋</button><input type="hidden" name="${x.name}" value="${+x.value||0}"></div></div>`;
   if(x.type==="check")return `<label class="fld-check"><input type="checkbox" name="${x.name}" ${x.value?"checked":""}><span>${esc(x.label)}</span></label>`;
   if(x.type==="textarea")return `<label>${esc(x.label)}<textarea name="${x.name}" rows="${x.rows||16}" placeholder="${esc(x.ph||"")}">${esc(x.value||"")}</textarea></label>`;
   if(x.type==="select"){const cur=x.options.find(o=>o[0]===x.value)||x.options[0]||["",""];
@@ -30,6 +31,11 @@ function ask(title,fields,{danger,wide,alt,note,validate}={}){
       +(!fields.length&&danger
         ?`<div class="dlg-actions"><button type="button" data-act="delete" class="danger-solid">${esc(danger)}</button><button type="button" data-act="cancel">取消</button></div>`
         :`<div class="dlg-actions"><button type="button" data-act="ok" class="primary">確定</button><button type="button" data-act="cancel">取消</button>${danger?`<button type="button" data-act="delete" class="danger-btn">${esc(danger)}</button>`:""}${alt?`<button type="button" data-act="alt" class="ghost alt-btn">${esc(alt)}</button>`:""}</div>`);
+    /* 數字上下按鈕：按一下加減 1，數字往按的方向滾一下 */
+    f.querySelectorAll(".stepper").forEach(st=>st.querySelectorAll("[data-step]").forEach(b=>b.onclick=()=>{
+      const inp=st.querySelector("input"),n=st.querySelector(".stepper-n"),d=+b.dataset.step,v=Math.min(+st.dataset.max,Math.max(+st.dataset.min,(+inp.value||0)+d));
+      if(v===+inp.value)return;inp.value=v;n.textContent=v;
+      if(!reduceMotion())n.animate([{transform:`translateY(${d>0?60:-60}%)`,opacity:0},{transform:"none",opacity:1}],{duration:220,easing:"cubic-bezier(.2,.9,.25,1)"})}));
     f.querySelectorAll("[data-sw]").forEach(b=>b.onclick=()=>{f.querySelectorAll("[data-sw]").forEach(x=>x.setAttribute("aria-pressed",x===b));f.querySelector("input[type=color]").value=b.dataset.sw});
     /* no form submission: works inside sandboxed previews too */
     const collect=()=>{const o={},fd=new FormData(f);fd.forEach((val,k)=>o[k]=f.querySelector(`textarea[name="${k}"]`)?String(val).replace(/\s+$/,""):String(val).trim());fields.filter(x=>x.type==="multi"||x.type==="labels").forEach(x=>o[x.name]=fd.getAll(x.name).map(String));return o};

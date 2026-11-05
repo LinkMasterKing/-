@@ -78,7 +78,7 @@ function openReport(from,to){
   /* 貼上時只留純文字，不帶別處的格式 */
   ov.addEventListener("paste",e=>{const t=e.clipboardData&&e.clipboardData.getData("text/plain");if(t==null||!e.target.closest('[contenteditable="true"]'))return;e.preventDefault();document.execCommand("insertText",false,t)});
   rptParaTool(ov);
-  PageFx.swap(pageUnder(ov),ov);   /* 換頁動畫：底下那頁往下沉、報告從下方升上來 */
+  PageFx.swap(pageUnder(ov),ov);   /* 換頁動畫：底下那頁往後退、報告從後面浮上來 */
 }
 function closeReport(instant){
   const ov=$("#rptOv");if(!ov)return;rptOpen=false;Back.closed("report");if(ov._paraOff)ov._paraOff();
