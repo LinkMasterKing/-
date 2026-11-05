@@ -15,6 +15,7 @@
    時間與曲線一律用 MO（CSS 同名變數 --mo-*，board.css 開頭）：
      fast 160ms（退場、小東西）｜base 280ms（淡入、換內容）｜slow 460ms（位置移動）｜layout 560ms（區塊放大、展開）
      out＝減速（進場、移動）｜in＝加速（退場）｜spring＝略帶回彈（彈出、放下）
+   分段切換（.seg）：鏡片滑過去、途中拉長略扁、到位回彈，見 Anim.seg。
    減少動態（prefers-reduced-motion）時全部直接跳到結果。
    不做的情況：膠囊正在展開收合（motion-busy）、左右兩欄正在開合（mdBusy）、拖曳排序中、分頁在背景、開頁進場中。 */
 const MO={fast:160,base:280,slow:460,layout:560,out:"cubic-bezier(.2,.9,.25,1)",in:"cubic-bezier(.4,0,1,1)",spring:"cubic-bezier(.3,1.3,.5,1)"};
@@ -87,5 +88,31 @@ const Anim=(()=>{
   /* 顯示／隱藏（hidden 屬性）也有過渡 */
   async function show(el,kind="rise"){if(!el)return;el.hidden=false;return enter(el,kind)}
   async function hide(el,kind="fade"){if(!el||el.hidden)return;await leave(el,kind);el.hidden=true;el.getAnimations().forEach(a=>a.cancel())}
-  return {capture,play,enter,leave,swap,show,hide,lift,drop};
+  /* ---------- 分段切換（.seg：一排 role="tab" 的按鈕） ----------
+     跟底部工具列同一種感覺：實心鏡片（.seg-lens）在選到的那顆底下；換選時鏡片滑過去，
+     途中沿移動方向拉長、上下略扁，到位時輕輕回彈；按住時鏡片略放大。
+     segPlace：重畫後把鏡片放到選到的那顆（沒有動畫）；seg：換選並播動畫，動畫結束才 resolve */
+  function segPlace(box){
+    if(!box)return;let l=box.querySelector(":scope>.seg-lens");
+    if(!l){l=document.createElement("span");l.className="seg-lens";l.setAttribute("aria-hidden","true");box.prepend(l)}
+    const on=box.querySelector('[role="tab"][aria-selected="true"]');if(!on)return;
+    l.style.left=on.offsetLeft+"px";l.style.width=on.offsetWidth+"px";
+  }
+  function seg(box,to){
+    const from=box.querySelector('[role="tab"][aria-selected="true"]');
+    const pick=()=>box.querySelectorAll('[role="tab"]').forEach(b=>b.setAttribute("aria-selected",b===to));
+    segPlace(box);const l=box.querySelector(":scope>.seg-lens");
+    if(!l||!from||from===to||reduced()){pick();segPlace(box);return Promise.resolve()}
+    const a={x:from.offsetLeft,w:from.offsetWidth},b={x:to.offsetLeft,w:to.offsetWidth};
+    l.style.left=b.x+"px";l.style.width=b.w+"px";
+    const L=Math.min(a.x,b.x),R=Math.max(a.x+a.w,b.x+b.w),mw=(R-L)*.78,mx=(a.x+b.x)/2+(a.w+b.w)/4-mw/2;
+    const k=(x,w,sy)=>({transform:`translateX(${(x-b.x).toFixed(1)}px) scale(${(w/b.w).toFixed(3)},${sy})`});
+    const D=580;setTimeout(pick,D*.42);   /* 字色在鏡片滑過一半時才換（跟工具列一樣，反白跟著鏡片走） */
+    return l.animate([{...k(a.x,a.w,1),easing:"cubic-bezier(.35,0,.65,1)"},{...k(mx,mw,.86),offset:.38,easing:"cubic-bezier(.25,.75,.35,1.18)"},k(b.x,b.w,1)],{duration:D}).finished.catch(()=>{}).then(pick);
+  }
+  /* 按住：鏡片略放大（跟工具列按下一樣），放開還原 */
+  document.addEventListener("pointerdown",e=>{const t=e.target.closest&&e.target.closest('.seg [role="tab"][aria-selected="true"]');if(!t||reduced())return;
+    const l=t.parentElement.querySelector(":scope>.seg-lens");if(!l)return;const p=l.animate([{scale:1},{scale:1.08}],{duration:160,easing:MO.out,fill:"forwards"});
+    addEventListener("pointerup",()=>{p.cancel();l.animate([{scale:1.08},{scale:1}],{duration:320,easing:MO.spring})},{once:true})},{passive:true});
+  return {capture,play,enter,leave,swap,show,hide,lift,drop,seg,segPlace};
 })();
