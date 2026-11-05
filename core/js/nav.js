@@ -240,7 +240,8 @@ function paneShow(k){
 function paneHide(){
   const e=setEls();paneKey="";paneMark();if(!e||!e.body.classList.contains("split"))return;
   const back=()=>{if(paneKey)return;const w0=e.sc.getBoundingClientRect().width;paneReset();const w1=e.sc.getBoundingClientRect().width;
-    if(!reduceMotion())e.sc.animate([{flexBasis:w0+"px"},{flexBasis:w1+"px"}],{duration:480,easing:"cubic-bezier(.2,.9,.25,1)"})};
+    /* 收回後的清單是 flex-grow:1（撐滿），只動 flex-basis 會一下子就撐滿、看不到動畫；動畫期間把 grow 壓成 0 */
+    if(!reduceMotion())e.sc.animate([{flexBasis:w0+"px",flexGrow:0},{flexBasis:w1+"px",flexGrow:0}],{duration:MO.slow+20,easing:MO.out})};
   if(reduceMotion())return back();
   e.pane.animate([{opacity:1},{opacity:0,transform:"translateX(24px)"}],{duration:180,easing:"ease-in"}).onfinish=back;
 }
@@ -341,7 +342,7 @@ elastic($("#pageWeek"),document.querySelector("#pageWeek .week-wrap"));
 /* ---------- 工具列文字依背後顏色自動反轉 ---------- */
 function lumUnder(x,y){
   for(const el of document.elementsFromPoint(x,y)){
-    if(el.closest("#tabbar")||el.classList.contains("dlg-ghost-bd"))continue;
+    if(el.closest("#tabbar,#splash")||el.classList.contains("dlg-ghost-bd"))continue;   /* 開場畫面（白底）蓋在上面時不算，看的是底下的看板 */
     for(let n=el;n&&n.nodeType===1;n=n.parentElement){
       const m=(getComputedStyle(n).backgroundColor.match(/[\d.]+/g)||[]).map(Number);
       if(m.length>=3&&(m.length<4||m[3]>.45))return (0.2126*m[0]+0.7152*m[1]+0.0722*m[2])/255;
