@@ -230,7 +230,7 @@ window.addEventListener("beforeunload",e=>{if(editing&&dirty){e.preventDefault()
 
 /* 桌面即時回報的右側：Esc 收起（有對話框或設定開著時不管） */
 /* Esc：收起即時回報／完成紀錄的右側 */
-document.addEventListener("keydown",e=>{if(e.key!=="Escape"||setOpen||$("#dlg").open)return;
+document.addEventListener("keydown",e=>{if(e.key!=="Escape"||setOpen||notiOpen||$("#dlg").open)return;
   const k=selEv&&mdOn("live")?"live":selDone&&mdOn("done")?"done":null;if(!k)return;
   if(document.activeElement&&document.activeElement.closest&&document.activeElement.closest(MD[k].pane))document.activeElement.blur();mdSelect(k,MD[k].get())});
 

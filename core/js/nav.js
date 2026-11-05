@@ -108,7 +108,7 @@ function renderTabbar(){
   requestAnimationFrame(()=>lensTo(act));
   tbContrastSoon();
 }
-function tabGo(k){if(setOpen)closeSettings();goMain();setSection(k)}
+function tabGo(k){if(setOpen)closeSettings();if(notiOpen)closeNoti();goMain();setSection(k)}
 function setupTabbar(tb){
   const main=tb.querySelector(".tb-main"),gear=tb.querySelector(".tb-gear"),lensEl=tb.querySelector(".tb-lens");
   /* 毛玻璃：分頁列、設定鍵各一塊（桌面也一樣，分頁列直立） */
@@ -166,7 +166,7 @@ document.addEventListener("click",e=>{
   /* 用滑鼠／手指點的：先放掉焦點，關掉對話框後才不會在按鈕上留下焦點框 */
   const tbBtn=t.closest("#tabbar button");if(tbBtn&&e.detail>0)tbBtn.blur();
   const tab=t.closest("#tabbar .tab");if(tab){tabGo(tab.dataset.tab);return}
-  if(t.closest("#setBtn")){setOpen?closeSettings():openSettings();return}
+  if(t.closest("#setBtn")){if(notiOpen)closeNoti(true);setOpen?closeSettings():openSettings();return}
 },true);
 
 /* ---------- 設定頁 ---------- */

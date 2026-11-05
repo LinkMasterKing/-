@@ -33,7 +33,7 @@ const Back=(()=>{
     const top=stack[stack.length-1];
     if(top&&top.name==="week")return;                       /* 每週概述本來就能左右滑 */
     if(document.querySelector("dialog[open]"))return;
-    if(!top&&(editing||setOpen))return;            /* 編輯中不要一滑就離開看板 */
+    if(!top&&(editing||setOpen||notiOpen))return;            /* 編輯中不要一滑就離開看板 */
     const el=top?top.el():$("#pageMain");if(!el)return;
     g={x:t.clientX,y:t.clientY,top,el,on:false,v:0,lx:t.clientX,lt:e.timeStamp};
   },{passive:true,capture:true});
@@ -66,6 +66,7 @@ const Back=(()=>{
 /* 各層打開時登記（el 回傳拖動時要縮放的那個畫面） */
 Back.layers={
   settings:()=>Back.opened("settings",i=>closeSettings(i),()=>$("#setOv")),
+  noti:()=>Back.opened("noti",i=>closeNoti(i),()=>$("#notiOv")),
   log:()=>Back.opened("log",()=>closeLog(),()=>$("#logOv")),
   report:()=>Back.opened("report",i=>closeReport(i),()=>$("#rptOv")),
   week:()=>Back.opened("week",i=>pager.scrollTo({left:0,behavior:i?"instant":"smooth"}),()=>$("#pageWeek")),

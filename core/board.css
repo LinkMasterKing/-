@@ -2,6 +2,8 @@
    每個元件的樣式集中在自己的段落：基本樣式在前，手機版、深色模式等條件在同一段的後面。 */
 
 /* ===== 基礎：色彩變數、元素預設 ===== */
+/* 動畫規則的時間與曲線（anim.js 的 MO 同一組數字；新的 transition 也用這些） */
+:root{--mo-fast:160ms;--mo-base:280ms;--mo-slow:460ms;--mo-layout:560ms;--mo-out:cubic-bezier(.2,.9,.25,1);--mo-in:cubic-bezier(.4,0,1,1);--mo-spring:cubic-bezier(.3,1.3,.5,1)}
 :root{--bg:#fff;--surface:#fff;--ink:#111114;--pop:#fff;--pop-sh:inset 0 0 0 .5px rgba(0,0,0,.1),0 14px 32px rgba(0,0,0,.16);--muted:#5d5d66;--line:#111114;--hair:#e2e2e8;--grid:#f0f0f4;--accent-light:#e0342a;--accent-dark:#ff5a4e;--ok:#3ccf7f;--neon:#00ff6a;--ok-dot:#2bff88;--teal:#111114;--teal-soft:#fff;--lime:var(--accent-light);--warn:var(--accent-light);--onteal:#fff;--done:var(--ok);--red:var(--accent-light);--green:var(--ok);--rest:#c9c9d0;--prog-hi:var(--green);--prog-lo:var(--red);--prog-hi-ink:var(--prog-hi);--prog-lo-ink:var(--prog-lo);--today:var(--ink);--st-ok:var(--ok);--st-ok-ink:#0b1f12;--su-yellow:#f0bc23;--su-blue:#0a5baa;--st-go:var(--su-yellow);--st-go-ink:#111114;--st-stall:var(--red);--st-stall-ink:#fff;color-scheme:light;--glow:0 0 0 1.5px rgba(255,255,255,.95),0 0 18px 2px rgba(255,255,255,.55),0 8px 26px -6px rgba(0,0,0,.18);--glow-soft:0 0 0 1px rgba(255,255,255,.8),0 0 26px -4px rgba(255,255,255,.45),0 10px 30px -14px rgba(0,0,0,.18);--glow-bar:0 0 14px rgba(255,255,255,.85);--ease:cubic-bezier(.2,.8,.2,1);--flash:#111114;accent-color:var(--ink)}
 :root[data-theme="dark"]{--bg:#000;--surface:#000;--ink:#f1f1f4;--pop:rgba(30,30,34,.96);--pop-sh:inset 0 0 0 .5px rgba(255,255,255,.22),inset 1.5px 1.5px 1px -1px rgba(255,255,255,.5),0 16px 36px rgba(0,0,0,.5);--muted:#a3a3ae;--line:#ececf0;--hair:#2c2c34;--grid:#1a1a20;--teal:#f1f1f4;--teal-soft:#000;--lime:var(--accent-dark);--warn:var(--accent-dark);--onteal:#111114;--done:var(--ok);--red:var(--accent-dark);--green:var(--ok);--rest:#4a4a54;color-scheme:dark;--glow:0 0 0 1.5px #fff,0 0 22px 3px rgba(255,255,255,.55),0 0 50px -6px rgba(255,255,255,.35);--glow-soft:0 0 0 1px rgba(255,255,255,.7),0 0 34px -6px rgba(255,255,255,.4);--flash:#fff}
 *,*::before,*::after{box-sizing:border-box}
@@ -156,6 +158,10 @@ a.logo-box:focus-visible{outline:2px solid var(--ink);outline-offset:4px}
 .offline-pill{display:inline-flex;align-items:center;gap:8px;height:26px;padding:0 12px 0 10px;border-radius:999px;border:1px solid var(--red);color:var(--red);font-size:12px;letter-spacing:.14em;line-height:1;animation:rise .4s var(--ease) both}
 .offline-pill[hidden]{display:none}
 .offline-pill .live-dot{width:7px;height:7px}
+/* 通知鈕（鈴鐺）：圓形外框鈕，今明兩天有事時右上角紅色數字（彈出動畫由 anim.js 的 pop） */
+.noti-btn{position:relative;flex:none;width:36px;padding:0}
+.noti-n{position:absolute;top:-5px;right:-7px;min-width:18px;height:18px;padding:0 5px;border-radius:999px;background:var(--red);color:#fff;font-size:11px;line-height:18px;text-align:center;box-shadow:0 0 0 2px var(--bg);pointer-events:none}
+.noti-n[hidden]{display:none}
 @media (max-width:760px){
   .hero{grid-template-columns:1fr auto;gap:14px}
   .logo-box{grid-column:1/-1;border-right:0;padding:0}
@@ -185,6 +191,7 @@ a.logo-box:focus-visible{outline:2px solid var(--ink);outline-offset:4px}
   .hero-rule .actions{width:100%;gap:6px;flex-wrap:nowrap}
   .hero-rule .actions button{flex:1 1 0;min-width:0;min-height:44px;padding:6px 8px;font-size:14px;white-space:nowrap}
   .hero-rule .week-btn{flex-grow:1.4}
+  .hero-rule .actions .noti-btn{flex:0 0 44px;padding:0}
 }
 
 /* ===== 編輯中提示列 ===== */
@@ -1076,6 +1083,59 @@ dialog#dlg:has(.csel.open){overflow:visible}
 .sr-t small{color:var(--muted);font-size:12.5px}
 .sr-chev{color:var(--muted);display:grid}
 .set-p{margin:0;color:var(--muted);font-size:14px;line-height:1.85;padding:0}
+
+/* ===== 通知層（notify.js）：今日／明日＋行事曆 =====
+   版面沿用設定頁的 .set-ov；內容寬度上限 920px 置中 */
+.noti-ov{z-index:37}
+.noti-inner{max-width:920px;margin:0 auto;padding:14px 0 calc(32px + var(--bar-in) + env(safe-area-inset-bottom));display:grid;gap:22px}
+.noti-seg{justify-self:start;display:inline-flex;gap:2px;padding:3px;border:1px solid var(--line);border-radius:999px}
+.noti-seg button{min-height:30px;padding:3px 16px;border:0;font-size:13.5px;background:transparent;transition:background-color .28s var(--ease),color .28s var(--ease)}
+.noti-seg button[aria-selected="true"]{background:var(--ink);color:var(--surface)}
+.noti-seg button:hover{transform:none}
+.noti-note{margin:-12px 0 0}
+.noti-days{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:22px}
+.noti-day h3{display:flex;align-items:baseline;gap:10px;margin:0 0 8px;padding-bottom:8px;border-bottom:1px solid var(--ink);font-size:17px;font-weight:700;letter-spacing:.1em}
+.noti-day h3 .num{font-size:13px;font-weight:400;color:var(--muted);letter-spacing:.06em}
+.noti-items,.noti-list{display:grid}
+.noti-none{margin:8px 0}
+/* 一件事：左邊顏色條（全會＝部門色、本部門＝類別色）、時間、標題與出處、右邊類別或部門 */
+.ni{display:grid;grid-template-columns:4px 5.4em minmax(0,1fr) auto;align-items:center;gap:10px;width:100%;min-height:48px;padding:7px 10px 7px 0;border:0;border-bottom:1px solid var(--hair);border-radius:0;background:transparent;text-align:left;white-space:normal}
+.ni:hover{transform:none;background:color-mix(in srgb,var(--ink) 5%,transparent)}
+.ni-bar{align-self:stretch;border-radius:2px;background:var(--c)}
+.ni-when{font-size:12.5px;color:var(--muted)}
+.ni-main{display:grid;gap:1px;min-width:0}
+.ni-main b{font-weight:500;overflow-wrap:anywhere}
+.ni-main small{font-size:12px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ni-k{font-size:11.5px;color:var(--muted);letter-spacing:.08em}
+/* 月曆：週一開頭；格子只畫顏色條不寫字 */
+.noti-cal{display:grid;gap:12px}
+.cal-top{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.cal-top b{font-size:18px;font-weight:400;letter-spacing:.06em;min-width:8.5em;text-align:center}
+.cal-top button:last-child{margin-left:auto}
+.cal-head,.cal-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr))}
+.cal-head span{padding:0 8px 6px;font-size:12px;color:var(--muted)}
+.cal-grid{border-top:1px solid var(--line);border-left:1px solid var(--hair)}
+.cal-d{display:flex;flex-direction:column;align-items:stretch;justify-content:flex-start;gap:6px;min-height:clamp(64px,10vw,96px);padding:6px 7px;border:0;border-right:1px solid var(--hair);border-bottom:1px solid var(--hair);border-radius:0;background:transparent;transition:background-color .28s var(--ease)}
+.cal-d:hover{transform:none;background:color-mix(in srgb,var(--ink) 5%,transparent)}
+.cal-d.out{color:var(--muted);opacity:.5}
+.cal-n{align-self:flex-start;display:inline-flex;align-items:center;justify-content:center;min-width:24px;height:24px;border-radius:999px;font-size:13px}
+.cal-d.is-today .cal-n{background:var(--red);color:#fff}
+.cal-d.sel{background:color-mix(in srgb,var(--ink) 12%,transparent)}
+.cal-bars{display:grid;gap:3px}
+.cal-bars i{display:block;height:5px;border-radius:3px;background:var(--c)}
+.cal-bars em{font-style:normal;font-size:10.5px;color:var(--muted)}
+.cal-d.flash{animation:calFlash .7s ease-in-out 2}
+@keyframes calFlash{50%{background:color-mix(in srgb,var(--ink) 22%,transparent)}}
+.cal-legend{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:12px;color:var(--muted)}
+.cal-legend span{display:inline-flex;align-items:center;gap:6px}
+.cal-legend i{width:14px;height:5px;border-radius:3px;background:var(--c)}
+@media (max-width:640px){
+  .noti-days{grid-template-columns:minmax(0,1fr)}
+  .ni{grid-template-columns:4px 4.4em minmax(0,1fr)}
+  .ni-k,.ni-dept{display:none}
+  .cal-d{min-height:52px;padding:4px}
+  .cal-bars i{height:4px}
+}
 
 /* ===== 身分與專員 ===== */
 .staff-row{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:8px 0 2px}

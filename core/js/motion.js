@@ -138,7 +138,7 @@ document.addEventListener("click",e=>{const b=e.target.closest&&e.target.closest
 function mdStep(k,dir){const m=MD[k],ids=[...document.querySelectorAll(`${m.list} ${m.item}`)].map(m.key),to=ids[ids.indexOf(m.get())+dir];if(to)mdSelect(k,to)}
 document.addEventListener("click",e=>{const b=e.target.closest&&e.target.closest("[data-mdstep]");if(b&&!b.disabled){e.preventDefault();mdStep(b.dataset.mdstep,+b.dataset.dir)}});
 document.addEventListener("keydown",e=>{
-  if((e.key!=="ArrowLeft"&&e.key!=="ArrowRight")||e.altKey||e.ctrlKey||e.metaKey||setOpen||$("#dlg").open)return;
+  if((e.key!=="ArrowLeft"&&e.key!=="ArrowRight")||e.altKey||e.ctrlKey||e.metaKey||setOpen||notiOpen||$("#dlg").open)return;
   const a=document.activeElement;if(a&&(a.isContentEditable||/^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName)))return;
   const k=selEv&&mdOn("live")?"live":selDone&&mdOn("done")?"done":null;if(!k)return;
   e.preventDefault();mdStep(k,e.key==="ArrowRight"?1:-1);

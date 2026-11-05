@@ -56,7 +56,7 @@ const Anim=(()=>{
     });
   }
   /* 上下層：移動中的項目暫時浮到上面（移動越遠越上面） */
-  function lift(el,z){el.style.zIndex=String(2+Math.min(50,Math.round(z/40)));el.style.position=getComputedStyle(el).position==="static"?"relative":el.style.position}
+  function lift(el,z){el.style.zIndex=String(2+Math.min(6,Math.round(z/80)));   /* 最多 8：只在同一區裡排上下，不會蓋過疊層頁（設定 38、通知 37） */el.style.position=getComputedStyle(el).position==="static"?"relative":el.style.position}
   function drop(el){el.style.zIndex="";if(el.style.position==="relative")el.style.position=""}
   /* 消失的項目：在原位放一個分身淡出縮小（分身不能點、沒有 id） */
   function ghost(r,src){
