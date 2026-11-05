@@ -42,10 +42,10 @@ const vis=p=>p.evaluate(()=>[...document.querySelectorAll('.layout>.sgroup')].ma
  await p.click('#setOv [data-set=title]');await p.waitForTimeout(700);
  log('D dlg3:',await dlgTitle(p),'| in pane:',await p.evaluate(()=>$('#dlg').classList.contains('in-pane')));
  await p.fill('#dlgForm input[name=v]','權益部工作進度（測試）');await ok(p);await p.waitForTimeout(2500);
- log('D title saved:',await T(p),'| h1:',await p.textContent('#titleSlot h1'),'| remote:',remote.title,'| commit:',(commits[0]||{commit:{}}).commit.message);
+ log('D title saved:',await T(p),'| document.title:',await p.evaluate(()=>document.title),'| remote:',remote.title,'| commit:',(commits[0]||{commit:{}}).commit.message);
  log('D rows after login:',await p.$$eval('#setOv .set-row',x=>x.length));
  // 看板日期已拿掉（schemaVersion 8）：大日期＝上次儲存日期，設定頁沒有這一列
- log('D no date row:',!(await p.$('#setOv [data-set=date]')),'| bigDate=savedAt:',await p.evaluate(()=>$('#bigDate').firstChild.data===`${+state.savedAt.slice(5,7)}.${state.savedAt.slice(8,10)}`));
+ log('D no date row:',!(await p.$('#setOv [data-set=date]')),'| 頁首沒有大日期（2026-11-05 精簡）:',await p.evaluate(()=>!$('#bigDate')));
  await p.click('#setClose');await p.waitForTimeout(400);
  // 進入編輯：已登入就不再問密碼
  await p.click('#editBtn');await p.waitForTimeout(900);

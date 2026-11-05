@@ -111,45 +111,52 @@ button.ghost{border-color:var(--muted)}
   .pager{scrollbar-width:none}
 }
 
-/* ===== 頁首 ===== */
+/* ===== 頁首 =====
+   2026-11-05 使用者要求精簡：只留「logo（置中）＋玻璃搜尋欄（搜尋這個部門）＋開學第幾週」；
+   看板名稱、學年、大日期、上次儲存不再顯示（上次儲存留給螢幕報讀，#saveInfo 用 .sr-only）。
+   下面一列是「編輯」（編輯中是取消／儲存）與通知鈕；手機的通知鈕移到最右上（跟 logo 同一列） */
+.sr-only{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
 a.logo-box{color:inherit;text-decoration:none}   /* 頁首 logo＝回各部門總覽 */
 a.logo-box:focus-visible{outline:2px solid var(--ink);outline-offset:4px}
-.actions{display:flex;gap:8px;flex-wrap:wrap}
-.arrow-line{content:"";flex:1;min-width:44px;height:26px;background:var(--ink);-webkit-mask:linear-gradient(#000,#000) left center/calc(100% - 3px) 1.2px no-repeat,url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='127.49 16.61 16.13 31.41'%3E%3Cpath d='M129.07,17.38v-.77h-1.58l.06,1.53a16.13,16.13,0,0,0,11.16,14.55,16.14,16.14,0,0,0-11.160,14.55l-.06,1.54h1.58V48a14.57,14.57,0,0,1,14.55-14.55V31.93A14.57,14.57,0,0,1,129.07,17.38Z'/%3E%3C/svg%3E") right center/12.4px 24.2px no-repeat;mask:linear-gradient(#000,#000) left center/calc(100% - 3px) 1.2px no-repeat,url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='127.49 16.61 16.13 31.41'%3E%3Cpath d='M129.07,17.38v-.77h-1.58l.06,1.53a16.13,16.13,0,0,0,11.16,14.55,16.14,16.14,0,0,0-11.160,14.55l-.06,1.54h1.58V48a14.57,14.57,0,0,1,14.55-14.55V31.93A14.57,14.57,0,0,1,129.07,17.38Z'/%3E%3C/svg%3E") right center/12.4px 24.2px no-repeat}
-.zh-sm{font-family:"Noto Sans TC",sans-serif;font-size:12px;letter-spacing:.3em;margin-left:10px;color:var(--muted)}
-.pill-zh{font-family:"Noto Sans TC",sans-serif;font-size:12px;letter-spacing:.1em;margin-left:8px;padding-left:8px;border-left:1px solid var(--ink);line-height:1.2}
-.hero{display:grid;grid-template-columns:auto max-content minmax(0,1fr);align-items:center;gap:14px 40px;padding-top:6px;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
-.hero-l{min-width:0;display:flex;flex-direction:column;justify-content:center;gap:8px}
-.eyebrow{display:flex;align-items:center;gap:12px;font-family:"Jost",sans-serif;font-size:15px;letter-spacing:.14em;font-weight:400;margin-bottom:6px}
-.eyebrow .arrow-line{display:inline-block;flex:1;min-width:60px}
-.hero-title{display:flex;align-items:center;gap:14px;flex-wrap:wrap;line-height:1}
-.pill{display:inline-flex;align-items:center;border:1.5px solid var(--ink);border-radius:999px;padding:1px 16px;font-family:"Jost",sans-serif;font-size:17px;letter-spacing:.06em;line-height:1.6;transition:transform .22s var(--ease),box-shadow .22s var(--ease),border-color .22s var(--ease),background-color .2s,opacity .2s;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
-.logo-box{align-self:center;height:76px;display:flex;align-items:center;padding-right:36px;border-right:1px solid var(--ink);transition:transform .22s var(--ease),box-shadow .22s var(--ease),border-color .22s var(--ease),background-color .2s,opacity .2s;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
-/* 星期幾置中在大日期下方。數字的字形左右留白不一樣（例如「1」左邊空很多），
-   所以用 --dow-dx 依日期實際的字形墨跡再微調（views.js 的 alignDow 量測後設定） */
-.hero-r{justify-self:end;display:flex;flex-direction:column;align-items:center}
-.hero-l .eyebrow{margin-bottom:0;line-height:1}
-.hero-title h1{line-height:1.1}
+.hero{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:18px 12px;max-width:760px;margin:0 auto;padding-top:6px;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+.logo-box{grid-column:1/-1;justify-self:center;height:64px;display:flex;align-items:center;transition:transform .22s var(--ease),opacity .2s;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
 .logo{display:block;height:46px;width:auto;color:var(--ink)}
 .logo .logo-gap{fill:none;stroke:var(--bg);stroke-width:7;stroke-linejoin:round}   /* 單色學生會 logo：黃藍兩塊之間的分隔縫（shell.js 的 suLogoMono） */
-/* 大日期＝上次編輯（儲存）的日期；左邊直排小字「上次編輯」，不佔版面 */
-.bd-k{position:absolute;right:100%;top:50%;transform:translate(-10px,-50%);writing-mode:vertical-rl;font-family:"Noto Sans TC",sans-serif;font-weight:500;font-size:11px;line-height:1;letter-spacing:.3em;color:var(--muted);white-space:nowrap}
-.bigdate{position:relative;font-family:"Jost",sans-serif;font-weight:200;font-size:clamp(52px,7vw,92px);line-height:.85;letter-spacing:.01em;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
-.dow{display:flex;justify-content:center;align-items:center;transform:translateX(var(--dow-dx,0px));gap:6px;font-family:"Jost",sans-serif;font-size:13px;letter-spacing:.1em;margin-top:6px;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
-.circ{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border:1px solid var(--ink);border-radius:50%;font-size:11.5px;letter-spacing:0;font-family:"Noto Sans TC",sans-serif}
-.hero-rule{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;border-top:1.5px solid var(--ink);margin:14px 0 24px;padding-top:18px;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+/* 搜尋欄：跟底部工具列同一種毛玻璃（.glass，search.js 用 glassify 加上去）；小小淺字「搜尋權益部」 */
+.hero-find{position:relative;min-width:0}
+.hero-search{display:flex;align-items:center;gap:9px;height:44px;padding:0 6px 0 16px;border-radius:999px;cursor:text}
+.hs-ico{flex:none;width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;opacity:.55}
+.hero-search input{flex:1;min-width:0;height:100%;padding:0;border:0;border-radius:0;background:transparent;box-shadow:none;color:var(--ink);font-size:13.5px;letter-spacing:.06em;outline:none;-webkit-appearance:none;appearance:none}
+.hero-search input::placeholder{color:var(--muted);opacity:.75}
+.hero-search input:focus,.hero-search input:focus-visible{outline:none}
+.hero-search:focus-within{box-shadow:var(--glass-sh),inset 0 0 0 1.5px var(--ink)}
+.hq-clear{flex:none;width:32px;height:32px;min-height:0;padding:0;border:0;border-radius:50%;background:transparent;display:grid;place-items:center;opacity:0;pointer-events:none;transform:scale(.6);transition:opacity var(--mo-fast) var(--mo-out),transform var(--mo-base) var(--mo-spring)}
+.hero-search.has-q .hq-clear{opacity:.7;pointer-events:auto;transform:none}
+.hq-clear .ico{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round}
+@media (hover:hover){.hq-clear:hover{transform:none;box-shadow:none;opacity:1}}
+/* 搜尋結果：搜尋欄下面浮出的毛玻璃清單（疊在看板上面） */
+/* 要比 .glass（position:relative，在後面的「液態玻璃材質」段）權重高，才會浮在看板上面而不是把頁首撐開 */
+.hero-find .hero-res{position:absolute;left:0;right:0;top:calc(100% + 8px);z-index:20;max-height:min(60vh,420px);overflow:auto;overscroll-behavior:contain;border-radius:22px;padding:6px;display:grid;align-content:start;-webkit-user-select:none;user-select:none}
+.hero-find .hero-res[hidden]{display:none}
+.hr-item{display:grid;grid-template-columns:auto minmax(0,1fr);gap:12px;align-items:baseline;width:100%;min-height:0;padding:10px 12px;border:0;border-radius:16px;background:transparent;text-align:left;white-space:normal}
+.hr-item+.hr-item{box-shadow:0 -1px 0 color-mix(in srgb,var(--ink) 8%,transparent)}
+.hr-item:hover,.hr-item:focus-visible,.hr-item.on{transform:none;box-shadow:none;background:color-mix(in srgb,var(--ink) 7%,transparent)}
+.hr-k{min-width:4.6em;font-size:12px;color:var(--muted);letter-spacing:.06em;position:relative;padding-left:12px}
+.hr-k::before{content:"";position:absolute;left:0;top:.42em;width:6px;height:6px;border-radius:50%;background:var(--c,var(--ink))}
+.hr-main{display:grid;gap:1px;min-width:0}
+.hr-main b{font-weight:500}
+.hr-main small{font-size:12px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.hero-res mark{background:color-mix(in srgb,var(--su-yellow) 55%,transparent);color:inherit;border-radius:3px;padding:0 1px}
+.hr-none{margin:0;padding:12px;color:var(--muted);font-size:13.5px}
+/* 開學第幾週：細框膠囊，滑過去看學年 */
+.pill{display:inline-flex;align-items:center;height:44px;border:1.5px solid var(--ink);border-radius:999px;padding:0 16px;font-family:"Jost",sans-serif;font-size:16px;letter-spacing:.06em;line-height:1;white-space:nowrap;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+.pill-zh{font-family:"Noto Sans TC",sans-serif;font-size:12px;letter-spacing:.1em;margin-left:8px;padding-left:8px;border-left:1px solid var(--ink);line-height:1.2}
+.hero-rule{display:flex;justify-content:center;align-items:center;gap:12px;flex-wrap:wrap;max-width:760px;margin:14px auto 24px}
 .hero-rule .sub{letter-spacing:.12em}
-.hero-info{display:flex;gap:14px;align-items:center;flex-wrap:wrap}
+.hero-info{display:contents}
 .hero-btns{display:contents}
-/* 每週概述按鈕：深淺色都是白色實心＋黑字＋細框；本週週報還沒產出時（週五起，.due）左上角冒出紅點。
-   紅點中心放在左上角圓弧上（約 45° 的位置），不要浮在膠囊外面；
-   用 #weekBtn 的權重蓋過一般按鈕的 hover 光暈／框色與手機版的 padding，不用 !important */
+.actions{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
 #editBtn{padding:5px 17.5px 7px 14.5px}   /* 視覺置中：鉛筆圖示重心偏下偏右，內容往上 1px、往左 1.5px（依實機截圖量測） */
-#weekBtn{position:relative;background:#fff;border-color:var(--ink);color:#111114;font-weight:700;letter-spacing:.04em;box-shadow:none;animation:none;padding-left:19px;padding-right:14px;gap:6px}
-#weekBtn.due::before{content:"";animation:dotIn .5s cubic-bezier(.3,1.6,.5,1) both;position:absolute;top:0;left:1px;width:10px;height:10px;border-radius:50%;background:var(--red);box-shadow:0 0 0 2px var(--bg);pointer-events:none}
-#weekBtn:hover{background:#fff;border-color:var(--ink);box-shadow:0 0 20px 1px color-mix(in srgb,var(--ink) 35%,transparent)}
-.week-btn span{display:inline-block;transition:transform .25s var(--ease)}
-.week-btn:hover span{transform:translateX(4px)}
 #cancelBtn,#saveBtn{padding-left:16.5px;padding-right:15.5px}
 .offline-pill{display:inline-flex;align-items:center;gap:8px;height:26px;padding:0 12px 0 10px;border-radius:999px;border:1px solid var(--red);color:var(--red);font-size:12px;letter-spacing:.14em;line-height:1;animation:rise .4s var(--ease) both}
 .offline-pill[hidden]{display:none}
@@ -158,38 +165,23 @@ a.logo-box:focus-visible{outline:2px solid var(--ink);outline-offset:4px}
 .noti-btn{position:relative;flex:none;width:36px;padding:0}
 .noti-n{position:absolute;top:-5px;right:-7px;min-width:18px;height:18px;padding:0 5px;border-radius:999px;background:var(--red);color:#fff;font-size:11px;line-height:18px;text-align:center;box-shadow:0 0 0 2px var(--bg);pointer-events:none}
 .noti-n[hidden]{display:none}
-@media (max-width:760px){
-  .hero{grid-template-columns:1fr auto;gap:14px}
-  .logo-box{grid-column:1/-1;border-right:0;padding:0}
-  .logo{height:38px}
-  .eyebrow{white-space:nowrap;font-size:12px;gap:8px}
-  .eyebrow .zh-sm{display:none}
-  .bigdate{font-size:46px}
-  .eyebrow .arrow-line{width:60px}
-}
 @media (hover:hover){
-  .pill:hover{box-shadow:var(--glow)}
   .logo-box:hover{transform:scale(1.03)}
 }
-@media (max-width:640px){
-  .hero{grid-template-columns:minmax(0,1fr) auto;gap:10px 12px;padding-top:0}
-  .hero-l{gap:6px}
-  .hero-title{gap:8px}
-  .pill{font-size:14px;padding:0 12px}
+@media (max-width:760px){
+  .logo{height:38px}
 }
-.pill{padding-left:16px;padding-right:16px}
 @media (max-width:640px){
-  .bigdate{font-size:40px}
-  .bd-k{right:auto;left:2px;top:-15px;transform:none;writing-mode:horizontal-tb;font-size:10px;letter-spacing:.2em}   /* 手機：旁邊太擠，改放在數字正上方 */
-  .dow{font-size:11px}
-  .hero-rule{margin:10px 0 22px;padding-top:14px;gap:8px}   /* 按鈕下面是區塊外框或編輯中提示列：至少留 18px */
-  .hero-rule>span:first-child{width:100%}
+  .hero{gap:14px 8px;padding-top:0}
+  .logo-box{height:56px}
+  .pill{padding:0 14px;font-size:15px}
+  .pill-zh{display:none}   /* 手機只留「W09」 */
+  .hero-rule{margin:12px 0 22px;gap:8px}   /* 按鈕下面是區塊外框或編輯中提示列：至少留 18px */
   .hero-rule .actions{width:100%;gap:6px;flex-wrap:nowrap}
   .hero-rule .actions button{flex:1 1 0;min-width:0;min-height:44px;padding:6px 8px;font-size:14px;white-space:nowrap}
-  .hero-rule .week-btn{flex-grow:1.4}
-  /* 手機：通知鈕移到最右上（跟 logo 同一列、垂直置中；logo 列高 76px、從 .wrap 上緣 14px 開始）。.wrap 當定位基準 */
+  /* 手機：通知鈕在最右上（跟 logo 同一列、垂直置中；logo 列高 56px、從 .wrap 上緣 14px 開始）。.wrap 當定位基準 */
   .page-main .wrap{position:relative}
-  .hero-rule .actions .noti-btn{position:absolute;top:calc(14px + 38px - 22px + env(safe-area-inset-top));right:max(14px,env(safe-area-inset-right));flex:none;width:44px;height:44px;padding:0}
+  .hero-rule .actions .noti-btn{position:absolute;top:calc(14px + 28px - 22px + env(safe-area-inset-top));right:max(14px,env(safe-area-inset-right));flex:none;width:44px;height:44px;padding:0}
 }
 
 /* ===== 編輯中提示列 ===== */
@@ -453,6 +445,29 @@ html.ev-drag-on,html.ev-drag-on *{-webkit-user-select:none;user-select:none;curs
   .mt-list{margin:0 -14px}
   .mt-ev{padding:12px 14px 14px}
 }
+
+/* ===== 各部門週報（秘書處調閱，meeting.js 的 renderWeekRead） =====
+   上面一排部門膠囊（選到的實心；後面是份數；這週有新的亮綠點），下面週次小膠囊＋全文（等寬換行）＋複製 */
+.wk-panel[hidden]{display:none}
+.wk-depts{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px}
+.wk-d{display:inline-flex;align-items:center;gap:6px;min-height:32px;padding:3px 12px;font-size:13px;border-color:var(--hair)}
+.wk-d .num{font-size:12px;color:var(--muted)}
+.wk-d.none{color:var(--muted)}
+.wk-d[aria-selected="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.wk-d[aria-selected="true"] .num{color:inherit;opacity:.7}
+.wk-new{width:7px;height:7px;border-radius:50%;background:var(--ok)}
+.wk-weeks{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px;margin-bottom:10px;scrollbar-width:none}
+.wk-w{flex:none;min-height:28px;padding:2px 11px;font-size:12.5px;border-color:var(--hair)}
+.wk-w[aria-selected="true"]{border-color:var(--ink);background:color-mix(in srgb,var(--ink) 8%,transparent)}
+.wk-all-tools{display:flex;justify-content:flex-end;margin:-6px 0 6px}
+.wk-doc{padding:12px 0 14px;border-top:1px solid var(--line)}
+.wk-top{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:12.5px;color:var(--muted)}
+.wk-top .icon{margin-left:auto}
+.wk-fresh{color:var(--ok);font-weight:500;letter-spacing:.08em}
+.wk-text{margin:10px 0 0;font:inherit;font-size:13.5px;line-height:1.75;white-space:pre-wrap;word-break:break-word}
+.wk-open{display:inline-block;margin-top:6px;font-size:12.5px;color:var(--muted);text-decoration:none}
+.wk-open:hover{color:var(--ink)}
+.wk-miss{margin:8px 0 0}
 
 /* ===== 秘書處會議編輯的授權（會長室的開關 #grantPanel、秘書處「會議編輯」的狀態列，meeting.js） =====
    開關用液態分段切換（LiquidSeg）；狀態文字：開放中＝綠字、尚未開放＝紅字 */
@@ -766,6 +781,10 @@ a.link:active{transform:scale(.96)}
 .page-week{width:min(620px,94vw);background:var(--surface);border-left:1px solid var(--line);scroll-snap-align:end;box-shadow:-8px 0 24px rgba(0,0,0,.06);background-color:var(--surface)}
 .week-wrap{--wt:calc(20px + env(safe-area-inset-top));--wr:max(18px,env(safe-area-inset-right));--wl:max(18px,env(safe-area-inset-left));padding:var(--wt) var(--wr) calc(20px + var(--bar-in) + env(safe-area-inset-bottom)) var(--wl)}
 .week-top{display:flex;justify-content:space-between;align-items:center;gap:8px;position:sticky;top:0;background:var(--surface);z-index:5;margin:calc(-1*var(--wt)) calc(-1*var(--wr)) 14px calc(-1*var(--wl));padding:var(--wt) var(--wr) 18px var(--wl);border-bottom:1px solid var(--line);flex-wrap:wrap;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;border-color:var(--hair);transition:box-shadow .25s,background-color .25s;backdrop-filter:blur(8px)}
+/* 「秘書處調閱 →」：秘書處的看板有「各部門週報」可以調閱每個部門的週報（秘書處自己不顯示） */
+.week-sec{flex:none;font-size:12.5px;color:var(--muted);text-decoration:none;letter-spacing:.06em;transition:color var(--mo-fast) var(--mo-out)}
+.week-sec:hover{color:var(--ink)}
+.week-sec[hidden]{display:none}
 .week{margin-bottom:10px;background:var(--surface);border-radius:14px;transition:transform .22s var(--ease),box-shadow .22s var(--ease),border-color .22s var(--ease),background-color .2s,opacity .2s;position:relative;background-color:var(--surface);border:1px solid var(--line)}
 .week summary{cursor:pointer;padding:8px 12px;display:flex;align-items:center;gap:8px;list-style:none}
 .week .week-del{margin-left:auto}
@@ -1031,6 +1050,9 @@ dialog#dlg:has(.csel.open){overflow:visible}
 #tabbar .tb-lens.off{opacity:0}
 #tabbar .tab.lit .tab-ind{color:var(--tb-surface)}
 .tb-gear{width:62px;height:62px;padding:0;border:0;border-radius:50%;display:grid;place-items:center;min-height:0;color:var(--tb-ink);font-size:21px;--hr:92px;-webkit-tap-highlight-color:transparent;transition:color .35s,background-color .35s}
+/* 本週週報還沒產出（週五起，weekly.js 的 weekDotSync）：設定鍵右上角一顆紅點（以前在頁首「每週概述」鈕上） */
+.tb-due{position:absolute;top:6px;right:6px;width:10px;height:10px;border-radius:50%;background:var(--red);box-shadow:0 0 0 2px var(--bg);opacity:0;transform:scale(0);pointer-events:none;transition:opacity var(--mo-base) var(--mo-out),transform var(--mo-slow) var(--mo-spring)}
+#setBtn.due .tb-due{opacity:1;transform:none}
 /* 依背後亮度反轉（nav.js 的 tbContrast，標在分頁列與設定鍵上）：文字色與玻璃底色一起換 */
 .tabbar .on-light{--tb-ink:#111114;--tb-surface:#fff;--tb-muted:#4a4a53}
 #tabbar .glass.on-light{background:rgba(255,255,255,.42)}
@@ -1083,6 +1105,9 @@ dialog#dlg:has(.csel.open){overflow:visible}
 .set-sub-body{flex:1;min-height:0;overflow:auto;overscroll-behavior:contain;padding:10px 2px calc(32px + var(--bar-in) + env(safe-area-inset-bottom))}
 .set-row[aria-current="true"]{background:color-mix(in srgb,var(--ink) 10%,transparent)}
 .set-row[aria-current="true"] .sr-chev{color:var(--ink)}
+/* 設定頁「每週概述」那一列：本週週報還沒產出時，圖示右上角紅點 */
+.set-row[data-set="week"] .sr-ico{position:relative}
+.set-row[data-set="week"].due .sr-ico::after{content:"";position:absolute;top:-2px;right:-4px;width:9px;height:9px;border-radius:50%;background:var(--red);box-shadow:0 0 0 2px var(--bg)}
 /* 登入前：整頁只有鎖頭（鎖扣循環開合，nav.js 的 gateAnim） */
 .set-gate{display:grid;justify-items:center;gap:10px;text-align:center;padding:12vh 0 0}
 .set-gate>b{font-size:18px;font-weight:500;letter-spacing:.08em}

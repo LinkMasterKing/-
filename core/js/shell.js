@@ -6,17 +6,13 @@ const SHELL_HTML=`<div class="pager" id="pager">
     <div class="wrap">
       <header class="hero">
         <a class="logo-box" href="home.html" title="各部門總覽"></a>
-        <div class="hero-l">
-          <div class="eyebrow">WORK&nbsp;&nbsp;BOARD<span class="zh-sm">工作看板</span> <span class="arrow-line" aria-hidden="true"></span> <span id="yearTxt"></span></div>
-          <div class="hero-title"><span class="pill"><span id="weekPill"></span><span class="pill-zh" id="weekZh"></span></span><span id="titleSlot"></span></div>
+        <div class="hero-find">
+          <label class="hero-search"><svg class="hs-ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.8" cy="10.8" r="6.3"/><path d="m15.6 15.6 4.4 4.4"/></svg><input id="boardQ" type="text" inputmode="search" enterkeyhint="search" autocomplete="off" aria-label="搜尋這個看板" aria-controls="boardRes"><button type="button" class="hq-clear" aria-label="清除搜尋"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button></label>
+          <div class="hero-res glass" id="boardRes" role="listbox" aria-label="搜尋結果" hidden></div>
         </div>
-
-        <div class="hero-r">
-          <div class="bigdate" id="bigDate"><span class="bd-k" aria-hidden="true">上次編輯</span></div>
-          <div class="dow"><span id="dowEn"></span><span class="circ" id="dowZh"></span></div>
-        </div>
+        <span class="pill" id="weekPillBox"><span id="weekPill"></span><span class="pill-zh" id="weekZh"></span></span>
       </header>
-      <div class="hero-rule"><span class="hero-info"><span class="sub" id="saveInfo"></span></span><span class="actions"><span class="hero-btns" id="actions"></span><button type="button" class="noti-btn" id="notiBtn" aria-label="通知" title="今日／明日要處理的事、行事曆"><svg class="ico solo" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><g class="i-bell"><path d="M6.2 16.4V11a5.8 5.8 0 0 1 11.6 0v5.4l1.6 1.8H4.6z"/><path d="M10.2 20.4a2 2 0 0 0 3.6 0"/></g></svg><span class="noti-n num" hidden></span></button><button type="button" class="week-btn" id="weekBtn">每週概述 <span aria-hidden="true">→</span></button></span></div>
+      <div class="hero-rule"><span class="hero-info"><span class="sub sr-only" id="saveInfo" role="status"></span></span><span class="actions"><span class="hero-btns" id="actions"></span><button type="button" class="noti-btn" id="notiBtn" aria-label="通知" title="今日／明日要處理的事、行事曆"><svg class="ico solo" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><g class="i-bell"><path d="M6.2 16.4V11a5.8 5.8 0 0 1 11.6 0v5.4l1.6 1.8H4.6z"/><path d="M10.2 20.4a2 2 0 0 0 3.6 0"/></g></svg><span class="noti-n num" hidden></span></button></span></div>
       <div class="banner"><span class="live-dot" aria-hidden="true"></span><b>編輯中</b><span class="sub">即時回報、進度、完成紀錄：點哪一欄就改哪一欄 · 其他區按標題列的「編輯這區」 · 全部改完按「儲存並同步」</span></div>
 
       <section class="panel grant-panel" id="grantPanel" aria-labelledby="grH" hidden>
@@ -31,6 +27,11 @@ const SHELL_HTML=`<div class="pager" id="pager">
       <section class="panel follow-panel meet-panel" id="meetPanel" data-secbox="meet" aria-labelledby="mtH" hidden>
         <div class="panel-head"><h2 id="mtH">會議報告事項<span class="en">MEETING</span></h2><button type="button" class="icon" data-mtrefresh>重新整理</button></div>
         <div class="mt-depts" id="meetList" data-flip></div>
+      </section>
+      <section class="panel follow-panel meet-panel wk-panel" id="wkPanel" aria-labelledby="wkH" hidden>
+        <div class="panel-head"><h2 id="wkH">各部門週報<span class="en">WEEKLY</span></h2><button type="button" class="icon" data-mtrefresh>擷取最新</button></div>
+        <div class="wk-depts" id="wkDepts" role="tablist" aria-label="部門"></div>
+        <div class="wk-body" id="wkBody" data-flow></div>
       </section>
       <section class="panel follow-panel meet-panel meet-edit" id="meetEdPanel" data-secbox="meetedit" aria-labelledby="meH" hidden>
         <div class="panel-head"><h2 id="meH">會議編輯<span class="en">EDIT</span></h2><button type="button" class="icon" data-mtrefresh>重新整理</button><button type="button" class="icon sec-edit-btn" data-secedit="meetedit" aria-pressed="false" hidden>編輯這區</button></div>
@@ -78,6 +79,7 @@ const SHELL_HTML=`<div class="pager" id="pager">
       <div class="week-top">
         <button class="icon" id="backMain" aria-label="回到主畫面"><svg class="ico" viewBox="0 0 8 14" width="7" height="12" aria-hidden="true"><path d="M6.5 1.5 1.5 7l5 5.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg><span>返回</span></button>
         <h2 id="weekH">每週更新概述<span class="en">WEEKLY</span></h2>
+        <a class="week-sec" id="weekSecLink" href="?d=secretariat" title="秘書處可以調閱各部門的週報">秘書處調閱 →</a>
         <button class="gen-btn" id="genWeek"><svg class="spark" viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M10 3l1.9 5.1L17 10l-5.1 1.9L10 17l-1.9-5.1L3 10l5.1-1.9z"/><path fill="currentColor" d="M18.5 2l.8 2.2 2.2.8-2.2.8-.8 2.2-.8-2.2-2.2-.8 2.2-.8z"/><path fill="currentColor" d="M18 14.5l.9 2.1 2.1.9-2.1.9-.9 2.1-.9-2.1-2.1-.9 2.1-.9z"/></svg>生成週報</button>
         <button class="ghost edit-only" id="addWeek">+ 新增週報</button>
       </div>

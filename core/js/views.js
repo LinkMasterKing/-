@@ -1,7 +1,7 @@
 /* 核心｜各區塊畫面：頁首、週報、甘特圖、議題卡片、即時回報、完成紀錄 */
 function renderHeader(){
-  {const ts=$("#titleSlot"),h=`<h1>${esc(state.title)}</h1>`;if(ts._h!==h){ts._h=h;ts.innerHTML=h}}
   document.title=state.title;renderHero();
+  {const q=$("#boardQ"),ph=`搜尋${CFG.dept.name||state.title||"看板"}`;if(q&&q.placeholder!==ph)q.placeholder=ph}
   $("#saveInfo").textContent=readOnly()?`更新於 ${fmt(state.savedAt)||"—"}`
     :(state.savedAt?`上次儲存 ${state.savedAt}${state.savedBy?`（${state.savedBy}）`:""}`:"尚未儲存")+(cloudOn()?` · ${({ok:"雲端已同步",empty:"雲端尚無資料，儲存後建立",offline:"離線中",limited:"GitHub 讀取次數暫時用完",error:"雲端讀取失敗"})[cloud.status]||"連線雲端中…"}${cloudOn()&&!ghToken()&&loggedIn()?" · 這台裝置沒有連上雲端，儲存只會留在這台裝置":""}`:"")+(localOK?"":" · 這個瀏覽器無法本機保存，請用「匯出備份」");
   offlinePill();notiBadge();if(notiOpen)renderNoti();
@@ -15,29 +15,12 @@ function renderHeader(){
 
 function isoWeek(d){const t=new Date(Date.UTC(d.getFullYear(),d.getMonth(),d.getDate()));const day=t.getUTCDay()||7;t.setUTCDate(t.getUTCDate()+4-day);const y=new Date(Date.UTC(t.getUTCFullYear(),0,1));return Math.ceil(((t-y)/864e5+1)/7)}
 function termWeek(d){if(!state.termStart)return 0;const diff=Math.floor((pd(ymd(d))-pd(state.termStart))/864e5);return diff<0?0:Math.floor(diff/7)+1}
-/* 星期幾對齊大日期的「字形墨跡」中心，而不是文字框中心：數字左右留白不同（「1」左邊空很多），只靠框置中會偏 */
-const _dowCtx=document.createElement("canvas").getContext("2d");
-function alignDow(){
-  const el=$("#bigDate"),r=el&&el.closest(".hero-r"),txt=el&&el.firstChild&&el.firstChild.nodeType===3?el.firstChild.data:"";if(!r||!txt)return;
-  const cs=getComputedStyle(el);
-  _dowCtx.font=`${cs.fontWeight} ${cs.fontSize} ${cs.fontFamily}`;_dowCtx.letterSpacing=cs.letterSpacing;
-  const m=_dowCtx.measureText(txt),box=el.getBoundingClientRect().width;
-  r.style.setProperty("--dow-dx",((m.actualBoundingBoxRight-m.actualBoundingBoxLeft)/2-box/2).toFixed(2)+"px");
-}
-if(document.fonts)document.fonts.ready.then(alignDow);
-addEventListener("resize",()=>requestAnimationFrame(alignDow),{passive:true});
-
 function renderHero(){
-  const d=state.savedAt?pd(state.savedAt.slice(0,10)):new Date();   /* 看板日期＝上次編輯（儲存）的日期，不另外設定 */
-  $("#yearTxt").textContent=state.yearLabel||"";
-  const tw=termWeek(d);
+  /* 頁首只留 logo、搜尋欄、開學第幾週（2026-11-05 使用者要求精簡；看板名稱、學年、大日期、上次儲存不再顯示在頁首） */
+  const tw=termWeek(new Date());
   $("#weekPill").textContent=tw>0?"W"+pad(tw):"PRE";$("#weekZh").textContent=tw>0?`開學第${tw}週`:"開學前";
-  {const bd=$("#bigDate");bd.firstChild&&bd.firstChild.nodeType===3?bd.firstChild.data=`${d.getMonth()+1}.${pad(d.getDate())}`:bd.prepend(`${d.getMonth()+1}.${pad(d.getDate())}`);bd.title=state.savedAt?`上次編輯 ${state.savedAt}`:"尚未儲存"}
-  $("#dowEn").textContent=["SUN","MON","TUE","WED","THU","FRI","SAT"][d.getDay()];
-  $("#dowZh").textContent="日一二三四五六"[d.getDay()];
-  alignDow();
+  $("#weekPillBox").title=state.yearLabel?`${state.yearLabel}・${tw>0?`開學第${tw}週`:"開學前"}`:"";
   weekDotSync();
-
 }
 
 function renderWeeks(){
