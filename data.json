@@ -3,7 +3,7 @@
  "id": "board-main",
  "title": "權益部工作進度",
  "locked": false,
- "savedAt": "2026-11-06 03:03",
+ "savedAt": "2026-11-06 03:45",
  "range": {
   "start": "2026-09",
   "end": "2027-09"
@@ -346,28 +346,26 @@
    ],
    "round": 2,
    "touchedAt": "2026-11-05T16:44",
-   "report": false,
+   "report": true,
    "roundAt": "2026-11-05T16:44",
    "labels": []
   },
   {
-   "id": "emvqlvpkgu9x6",
-   "name": "總務會議代表",
-   "desc": "留意會議提及修改設置辦法 確保學生自治單位席次",
-   "createdAt": "2026-10-27",
+   "id": "emvt1ohjjrkyg",
+   "name": "權益部網站線上化",
+   "desc": "申訴案件線上化考量 優先做\n法規公開\n衛生棉補給站站點地圖\n\n加入學代名單與系統\n(部門內)提案單產生器",
+   "createdAt": "2026-10-29",
    "staff": [],
    "touched": [
     "2026-10-27",
-    "2026-11-02",
-    "2026-11-03",
     "2026-11-05"
    ],
    "links": [],
    "times": [],
    "round": 2,
-   "touchedAt": "2026-11-05T16:53",
-   "report": false,
-   "roundAt": "2026-11-05T16:48",
+   "report": true,
+   "touchedAt": "2026-11-05T16:52",
+   "roundAt": "2026-11-05T16:52",
    "labels": []
   },
   {
@@ -540,21 +538,31 @@
    "labels": []
   },
   {
-   "id": "emvt1ohjjrkyg",
-   "name": "權益部網站線上化",
-   "desc": "申訴案件線上化考量 優先做\n法規公開\n衛生棉補給站站點地圖\n\n加入學代名單與系統\n(部門內)提案單產生器",
+   "id": "emvt1pwvqrhyw",
+   "name": "停車場冷氣機報廢後續",
+   "desc": "報廢要求被退回學務處\n\n與宿舍/生輔組確認",
    "createdAt": "2026-10-29",
    "staff": [],
    "touched": [
     "2026-10-27",
+    "2026-11-03",
     "2026-11-05"
    ],
    "links": [],
-   "times": [],
+   "times": [
+    {
+     "id": "tmw3b6j9am1v8",
+     "label": "安全場勘時間順代提出",
+     "start": "2026-11-09T16:00",
+     "end": "",
+     "toIssue": false,
+     "place": ""
+    }
+   ],
    "round": 2,
-   "report": false,
-   "touchedAt": "2026-11-05T16:52",
-   "roundAt": "2026-11-05T16:52",
+   "touchedAt": "2026-11-05T16:54",
+   "report": true,
+   "roundAt": "2026-11-05T16:54",
    "labels": []
   },
   {
@@ -632,31 +640,38 @@
    "labels": []
   },
   {
-   "id": "emvt1pwvqrhyw",
-   "name": "停車場冷氣機報廢後續",
-   "desc": "報廢要求被退回學務處\n\n與宿舍/生輔組確認",
-   "createdAt": "2026-10-29",
+   "id": "emvpd4765r0ch",
+   "name": "數位校務改革",
+   "desc": "等回覆 敲共同商議時間 或提出方案取得反饋",
+   "links": [
+    {
+     "id": "lmvqlr6quzwgj",
+     "name": "建議方案",
+     "url": "https://drive.google.com/file/d/1qv76O5Or6Qs0bb6EMvLNNf5E5OvLV4qH/view?usp=drive_link",
+     "color": "#3d7fe0"
+    }
+   ],
+   "doneAt": null,
    "staff": [],
    "touched": [
     "2026-10-27",
     "2026-11-03",
     "2026-11-05"
    ],
-   "links": [],
    "times": [
     {
-     "id": "tmw3b6j9am1v8",
-     "label": "安全場勘時間順代提出",
-     "start": "2026-11-09T16:00",
+     "id": "tmw3bt7meduhn",
+     "label": "打招呼",
+     "start": "2026-11-11T14:00",
      "end": "",
      "toIssue": false,
      "place": ""
     }
    ],
-   "round": 2,
-   "touchedAt": "2026-11-05T16:54",
-   "report": false,
-   "roundAt": "2026-11-05T16:54",
+   "round": 3,
+   "touchedAt": "2026-11-05T17:12",
+   "roundAt": "2026-11-05T17:12",
+   "report": true,
    "labels": []
   },
   {
@@ -683,7 +698,7 @@
    ],
    "round": 2,
    "touchedAt": "2026-11-05T16:55",
-   "report": false,
+   "report": true,
    "issueId": "imvpc3f0dcpi6",
    "roundAt": "2026-11-05T16:55",
    "labels": []
@@ -739,7 +754,7 @@
     "2026-11-05"
    ],
    "touchedAt": "2026-11-05T17:37",
-   "report": false,
+   "report": true,
    "roundAt": "2026-11-05T17:37",
    "labels": []
   },
@@ -765,7 +780,7 @@
     "2026-11-03"
    ],
    "touchedAt": "2026-11-03T20:05",
-   "report": false,
+   "report": true,
    "labels": []
   },
   {
@@ -782,7 +797,7 @@
     "2026-11-06"
    ],
    "touchedAt": "2026-11-06T00:35",
-   "report": false,
+   "report": true,
    "labels": [],
    "roundAt": "2026-11-06T00:35"
   },
@@ -823,8 +838,28 @@
     "2026-11-06"
    ],
    "touchedAt": "2026-11-06T00:37",
-   "report": false,
+   "report": true,
    "roundAt": "2026-11-05T17:06",
+   "labels": []
+  },
+  {
+   "id": "emvqlvpkgu9x6",
+   "name": "總務會議代表",
+   "desc": "留意會議提及修改設置辦法 確保學生自治單位席次",
+   "createdAt": "2026-10-27",
+   "staff": [],
+   "touched": [
+    "2026-10-27",
+    "2026-11-02",
+    "2026-11-03",
+    "2026-11-05"
+   ],
+   "links": [],
+   "times": [],
+   "round": 2,
+   "touchedAt": "2026-11-05T16:53",
+   "report": false,
+   "roundAt": "2026-11-05T16:48",
    "labels": []
   },
   {
@@ -844,41 +879,6 @@
    "report": false,
    "labels": [],
    "roundAt": "2026-11-06T00:35"
-  },
-  {
-   "id": "emvpd4765r0ch",
-   "name": "數位校務改革",
-   "desc": "等回覆 敲共同商議時間 或提出方案取得反饋",
-   "links": [
-    {
-     "id": "lmvqlr6quzwgj",
-     "name": "建議方案",
-     "url": "https://drive.google.com/file/d/1qv76O5Or6Qs0bb6EMvLNNf5E5OvLV4qH/view?usp=drive_link",
-     "color": "#3d7fe0"
-    }
-   ],
-   "doneAt": null,
-   "staff": [],
-   "touched": [
-    "2026-10-27",
-    "2026-11-03",
-    "2026-11-05"
-   ],
-   "times": [
-    {
-     "id": "tmw3bt7meduhn",
-     "label": "打招呼",
-     "start": "2026-11-11T14:00",
-     "end": "",
-     "toIssue": false,
-     "place": ""
-    }
-   ],
-   "round": 3,
-   "touchedAt": "2026-11-05T17:12",
-   "roundAt": "2026-11-05T17:12",
-   "report": false,
-   "labels": []
   },
   {
    "id": "emw3aujc3kz9f",
