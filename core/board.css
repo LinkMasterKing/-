@@ -833,23 +833,12 @@ a.link:active{transform:scale(.96)}
 }
 
 /* ===== 開頁進場畫面（學生會） ===== */
-/* 全螢幕純黑（淺色模式白），中間是學生會字標：英文小字淡入、中文字距由寬收攏、細線由左畫到右、部門名稱最後浮上 */
-.splash{position:fixed;inset:0;z-index:90;display:grid;place-items:center;background:var(--bg);color:var(--ink)}
-.sp-mark{display:grid;justify-items:center;gap:12px;text-align:center}
-.sp-emb{display:block;width:clamp(64px,11vw,88px);height:auto;margin-bottom:8px;overflow:visible}
-.sp-y{fill:var(--su-yellow);transform-box:fill-box;transform-origin:50% 50%;animation:spPieceY .9s cubic-bezier(.3,1.35,.45,1) both}
-.sp-b{fill:var(--su-blue);transform-box:fill-box;transform-origin:50% 50%;animation:spPieceB .9s .12s cubic-bezier(.3,1.35,.45,1) both}
-@keyframes spPieceY{from{opacity:0;transform:translate(-34%,-16%) scale(.7) rotate(-8deg)}40%{opacity:1}}
-@keyframes spPieceB{from{opacity:0;transform:translate(34%,16%) scale(.7) rotate(8deg)}40%{opacity:1}}
-.sp-k{font-family:"Jost",sans-serif;font-size:11px;letter-spacing:.32em;color:var(--muted);animation:spFade .7s .1s both}
-.sp-t{font-size:clamp(24px,4.6vw,40px);font-weight:500;letter-spacing:.14em;animation:spTrack 1s cubic-bezier(.2,.9,.25,1) both}
-.sp-line{display:block;width:min(280px,60vw);height:1px;background:var(--ink);transform-origin:left;animation:spDraw .8s .25s cubic-bezier(.6,0,.2,1) both}
-.sp-d{min-height:1em;font-size:13px;letter-spacing:.3em;color:var(--muted);animation:spUp .6s .6s cubic-bezier(.2,.9,.25,1) both}
-@keyframes spFade{from{opacity:0}}
-@keyframes spTrack{from{opacity:0;letter-spacing:.6em;filter:blur(4px)}}
-@keyframes spDraw{from{transform:scaleX(0)}}
-@keyframes spUp{from{opacity:0;transform:translateY(8px)}}
-@media (prefers-reduced-motion:reduce){.sp-y,.sp-b,.sp-k,.sp-t,.sp-line,.sp-d{animation:none}}
+/* 一律白底（刻意不跟深淺色）：整個學生會 logo（shell.js 的 SU_LOGO），每個字是自己的小 svg、用 % 定位在 .sp-logo 裡；
+   動畫由 shell.js 的 splashPlay 用 Web Animations 做（只動 transform／opacity），這裡只負責版面 */
+.splash{position:fixed;inset:0;z-index:90;display:grid;place-items:center;background:#fff}
+.sp-logo{position:relative;width:min(560px,78vw);aspect-ratio:547/186}
+.sp-logo>svg{position:absolute;display:block;overflow:visible;will-change:transform,opacity}
+.sp-emb path{transform-box:fill-box;transform-origin:50% 50%}
 
 /* ===== 頁面切換（總覽 ↔ 看板） ===== */
 /* 跨頁的 View Transitions：往下一層新頁從右推進；返回時舊頁縮小、右移、淡出（跟邊緣滑動的預測返回同一個樣子）。類型由 back.js 標記 */

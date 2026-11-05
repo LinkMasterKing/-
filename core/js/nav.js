@@ -203,10 +203,10 @@ function gateAnim(){
   sh.animate([{transform:"none",offset:0,easing:"cubic-bezier(.3,0,.2,1)"},{transform:"translateY(-8px)",offset:.24},{transform:"translateY(-8px)",offset:.56,easing:"cubic-bezier(.5,0,.8,.4)"},{transform:"translateY(1px)",offset:.68},{transform:"none",offset:.76},{transform:"none",offset:1}],o);
   bd.animate([{transform:"none",offset:0},{transform:"none",offset:.67},{transform:"translateY(1.5px)",offset:.71},{transform:"none",offset:.8},{transform:"none",offset:1}],o);
 }
-function renderSettings(){const el=$("#setOv .set-inner");if(el&&setOpen){el.innerHTML=settingsInner();gateAnim();flowWatch()}}
+function renderSettings(){const el=$("#setOv .set-inner");if(el&&setOpen){const flip=Anim.capture();el.innerHTML=settingsInner();gateAnim();flowWatch();Anim.play(flip)}}   /* 列有增減（登入前後、標籤數）時照動畫規則 2 滑動／淡入 */
 async function openSettings(){
   let ov=$("#setOv");
-  if(!ov){document.body.insertAdjacentHTML("beforeend",`<div class="set-ov" id="setOv" role="dialog" aria-modal="true" aria-label="設定" hidden>${settingsHTML()}</div>`);ov=$("#setOv");
+  if(!ov){document.body.insertAdjacentHTML("beforeend",`<div class="set-ov" id="setOv" role="dialog" aria-modal="true" aria-label="設定" hidden>${settingsHTML().replace('<div class="set-inner">','<div class="set-inner" data-flip="set">')}</div>`);ov=$("#setOv");
     $("#setClose").onclick=()=>closeSettings();elastic(ov.querySelector(".set-scroll"),ov.querySelector(".set-inner"))}
   if(setOpen)return;
   if(!loggedIn()&&remRead())await remLogin();   /* 這台裝置記住了身分：直接進去，不顯示鎖頭 */

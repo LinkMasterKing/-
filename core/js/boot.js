@@ -9,17 +9,19 @@
   TEMPLATE="<!doctype html>\n"+root.outerHTML;BODY_SRC=root.querySelector("body").innerHTML;
 })();
 
-/* 進場畫面：至少放 1.1 秒（讓動畫跑完），資料與字型準備好就收；最多等 3.5 秒。收掉後才開始看板本身的進場動畫 */
+/* 進場畫面：等 logo 的動畫真的播完（getAnimations 的 finished）、資料與字型也好了才收；最多等 3.5 秒。
+   收場：logo 略放大淡出、白底淡出露出看板；收掉後才開始看板本身的進場動畫 */
 const splashT0=performance.now();
 function splashOut(){
   const sp=$("#splash"),go=()=>{document.body.classList.add("intro");setTimeout(()=>document.body.classList.remove("intro"),1400)};
   if(!sp)return go();
-  const wait=Math.max(0,(reduceMotion()?300:1100)-(performance.now()-splashT0));
-  Promise.race([Promise.all([document.fonts?document.fonts.ready:0,new Promise(r=>setTimeout(r,wait))]),new Promise(r=>setTimeout(r,3500))]).then(()=>{
+  const wait=Math.max(0,(reduceMotion()?300:600)-(performance.now()-splashT0));
+  const played=Promise.all(sp.getAnimations({subtree:true}).map(a=>a.finished.catch(()=>{})));
+  Promise.race([Promise.all([document.fonts?document.fonts.ready:0,played,new Promise(r=>setTimeout(r,wait))]),new Promise(r=>setTimeout(r,3500))]).then(()=>{
     go();
     if(reduceMotion())return sp.remove();
     sp.animate([{opacity:1},{opacity:0}],{duration:520,easing:"ease-out"}).onfinish=()=>sp.remove();
-    sp.querySelector(".sp-mark").animate([{transform:"none"},{transform:"scale(1.06)",opacity:0}],{duration:520,easing:"cubic-bezier(.4,0,1,1)",fill:"forwards"});
+    sp.querySelector(".sp-logo").animate([{transform:"none"},{transform:"scale(1.06)",opacity:0}],{duration:520,easing:"cubic-bezier(.4,0,1,1)",fill:"forwards"});
   });
 }
 /* 拆檔版：資料放在 data.json（與網頁同一個 repo），開頁時先讀它 */

@@ -58,8 +58,8 @@ document.addEventListener("click",async e=>{
   /* 右側詳情（編輯中）：完成這一段的展開框 */
   const evd=t.closest("#evDetail [data-evd]");
   if(evd){const ev=evOf(evd),k=evd.dataset.evd,box=$("#evDetail .evd-round");
-    if(k==="round"){box.hidden=false;box.animate([{opacity:0,transform:"translateY(-6px)"},{opacity:1,transform:"none"}],{duration:240,easing:"cubic-bezier(.2,.9,.25,1)"});box.querySelector("textarea").focus();return}
-    if(k==="roundcancel"){box.hidden=true;return}
+    if(k==="round"){Anim.show(box,"down");box.querySelector("textarea").focus();return}
+    if(k==="roundcancel"){Anim.hide(box);return}
     if(k==="roundok"){evRoundDone(ev,box.querySelector('[data-rf="done"]').value.trim(),box.querySelector('[data-rf="next"]').value.trim());return}
     return}
   /* 完成這一段：把這段的內容複製一份到完成紀錄，卡片留著進入下一段 */
