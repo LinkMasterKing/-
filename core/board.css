@@ -1095,9 +1095,8 @@ dialog#dlg:has(.csel.open){overflow:visible}
 /* ===== 通知層（notify.js）：今日／明日＋行事曆 =====
    版面沿用設定頁的 .set-ov；內容寬度上限 920px 置中 */
 .noti-ov{z-index:37}
-.noti-inner{max-width:920px;margin:0 auto;padding:14px 0 calc(32px + var(--bar-in) + env(safe-area-inset-bottom));display:grid;gap:22px}
-.noti-seg{justify-self:start}
-.noti-seg button{min-height:30px;padding:3px 16px;font-size:13.5px}
+.noti-inner{max-width:920px;margin:0 auto;padding:22px 0 calc(32px + var(--bar-in) + env(safe-area-inset-bottom));display:grid;gap:22px}
+.noti-bar{max-width:920px;margin:0 auto;padding-top:14px}
 .noti-note{margin:-12px 0 0}
 .noti-days{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:22px}
 .noti-day h3{display:flex;align-items:baseline;gap:10px;margin:0 0 8px;padding-bottom:8px;border-bottom:1px solid var(--ink);font-size:17px;font-weight:700;letter-spacing:.1em}
@@ -1143,13 +1142,18 @@ dialog#dlg:has(.csel.open){overflow:visible}
   .cal-bars i{height:4px}
 }
 
-/* ===== 分段切換（anim.js 的 Anim.seg；目前用在通知層的本部門／全會） =====
-   細框膠囊，選到的那顆底下是實心鏡片（.seg-lens，跟工具列鏡片同一個樣子）；文字顏色跟著鏡片換 */
-.seg{position:relative;display:inline-flex;gap:2px;padding:3px;border:1px solid var(--line);border-radius:999px;isolation:isolate}
-.seg-lens{position:absolute;top:3px;bottom:3px;left:3px;z-index:0;border-radius:999px;background:var(--ink);transform-origin:center;pointer-events:none;will-change:transform}
-.seg>[role="tab"]{position:relative;z-index:1;border:0;background:transparent;transition:color var(--mo-base) var(--mo-out)}
-.seg>[role="tab"][aria-selected="true"]{color:var(--surface)}
-.seg>[role="tab"]:hover,.seg>[role="tab"]:active,.seg>[role="tab"]:focus{transform:none;box-shadow:none}   /* 不套一般按鈕的放大與光暈：回饋交給鏡片 */
+/* ===== 液態分段切換（anim.js 的 LiquidSeg；目前用在通知層的本部門／全會） =====
+   跟底部工具列同一個樣子：毛玻璃 .glass 膠囊、實心鏡片（文字色）、鏡片底下那一格（.lit）文字反白；
+   按下白光（--hp／--hx）、整列放大與偏移、鏡片形變都由 JS 寫 inline（這裡不對 transform／scale 設 transition，避免跟彈簧打架） */
+.lseg{display:inline-flex;padding:4px;border-radius:999px;touch-action:none;-webkit-user-select:none;user-select:none}
+.lseg::before{content:"";position:absolute;inset:0;z-index:-1;border-radius:inherit;pointer-events:none;
+  background:radial-gradient(circle 70px at var(--hx,50%) 50%,rgba(255,255,255,calc(.15 * var(--hp,0))) 50%,rgba(255,255,255,0)),linear-gradient(rgba(255,255,255,calc(.08 * var(--hp,0))),rgba(255,255,255,calc(.08 * var(--hp,0))))}
+.lseg-lens{position:absolute;left:0;top:4px;bottom:4px;z-index:0;border-radius:999px;background:var(--ink);pointer-events:none;will-change:transform}
+.lseg>[data-k]{position:relative;z-index:1;min-height:32px;padding:4px 18px;border:0;border-radius:999px;background:transparent;color:var(--muted);font-size:13.5px;letter-spacing:.06em;scale:var(--ts,1);transition:color .35s;-webkit-tap-highlight-color:transparent}
+.lseg>[data-k][aria-selected="true"]{font-weight:500}
+.lseg>[data-k].lit{color:var(--surface)}
+.lseg>[data-k]:hover,.lseg>[data-k]:active{transform:none;box-shadow:none}
+.lseg>[data-k]:focus-visible{outline:none;text-decoration:underline;text-underline-offset:4px}
 
 /* ===== 身分與專員 ===== */
 .staff-row{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:8px 0 2px}
