@@ -16,7 +16,7 @@ const st=p=>p.evaluate(()=>{const d=document.querySelector('#dlg'),sc=document.q
 const login=async p=>{await p.click('#setOv .set-gate .primary');await p.waitForTimeout(500);
   log(' login dlg:',await p.evaluate(()=>[document.querySelector('#dlg form>b').textContent,document.querySelector('#dlg').classList.contains('in-pane')]));
   await p.fill('#dlg input[name=pw]','0000');await ok(p);await p.waitForTimeout(600);
-  await p.fill('#dlg input[name=name]','王小明');await p.fill('#dlg input[name=p1]','wang-password-1');await p.fill('#dlg input[name=p2]','wang-password-1');await ok(p);await p.waitForTimeout(1500)};
+  await p.fill('#dlg input[name=name]','王小明');await p.fill('#dlg input[name=p1]','wang-password-1');await p.fill('#dlg input[name=p2]','wang-password-1');await ok(p);await p.waitForTimeout(1500);await (async()=>{for(let i=0;i<4;i++){await p.waitForTimeout(500);const t=await p.$eval('#dlg[open] #dlgForm>b',b=>b.textContent).catch(()=>'');if(/共用密碼太短|沒有連上雲端/.test(t))await p.click('#dlgForm [data-act=cancel]').catch(()=>{})}})();};   /* 2026-11-05：建立第一個身分後，共用密碼 0000 會請管理員換（team.js 的 sharedPwFix），測試先取消 */
 {const {p}=await mk(1300,820,'dark',false);
  await p.evaluate(()=>localStorage.setItem('workboard:ghtoken','TOK_A_123'));
  await p.click('#setBtn');await p.waitForTimeout(700);

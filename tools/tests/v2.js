@@ -38,7 +38,7 @@ const vis=p=>p.evaluate(()=>[...document.querySelectorAll('.layout>.sgroup')].ma
  // 登入前只有鎖頭 → 按「登入」→ 舊版看板：先共用密碼、再建立身分
  await p.click('#setOv .set-gate .primary');await p.waitForTimeout(500);log('D dlg1:',await dlgTitle(p));
  await p.fill('#dlgForm input[name=pw]','0000');await ok(p);await p.waitForTimeout(500);log('D dlg2:',await dlgTitle(p));
- await p.fill('#dlgForm input[name=name]','王小明');await p.fill('#dlgForm input[name=p1]','wang-password-1');await p.fill('#dlgForm input[name=p2]','wang-password-1');await ok(p);await p.waitForTimeout(2500);
+ await p.fill('#dlgForm input[name=name]','王小明');await p.fill('#dlgForm input[name=p1]','wang-password-1');await p.fill('#dlgForm input[name=p2]','wang-password-1');await ok(p);await p.waitForTimeout(2500);await (async()=>{for(let i=0;i<4;i++){await p.waitForTimeout(500);const t=await p.$eval('#dlg[open] #dlgForm>b',b=>b.textContent).catch(()=>'');if(/共用密碼太短|沒有連上雲端/.test(t))await p.click('#dlgForm [data-act=cancel]').catch(()=>{})}})();   /* 2026-11-05：建立第一個身分後，共用密碼 0000 會請管理員換（team.js 的 sharedPwFix），測試先取消 */
  await p.click('#setOv [data-set=title]');await p.waitForTimeout(700);
  log('D dlg3:',await dlgTitle(p),'| in pane:',await p.evaluate(()=>$('#dlg').classList.contains('in-pane')));
  await p.fill('#dlgForm input[name=v]','權益部工作進度（測試）');await ok(p);await p.waitForTimeout(2500);

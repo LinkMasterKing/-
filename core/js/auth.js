@@ -21,27 +21,26 @@ async function rememberToken(tok,pw){
   if((pw||"").length<8)return "weak";
   state.sync=Object.assign({},state.sync||{},{tokenEnc:await encToken(tok,pw)});return "ok";
 }
-async function unlockShared(title){
+async function unlockShared(title,note){
   for(;;){
-    const v=await ask(title||"輸入部門共用密碼",[{name:"pw",label:"共用密碼",type:"password"}],state.members.length?{}:{alt:"更改密碼"});
+    const v=await ask(title||"輸入部門共用密碼",[{name:"pw",label:state.sync&&state.sync.initial?"初始密碼":"共用密碼",type:"password"}],
+      {...(state.members.length||(state.sync&&state.sync.initial)?{}:{alt:"更改密碼"}),note:note||"",
+       validate:async o=>await checkPw(o.pw||"")?"":"密碼不正確。剛開通的部門請用學生會給的初始密碼；忘記共用密碼請找部門管理員重設。"});
     if(v===null)return null;
     if(v==="alt"){await changePassword();continue}
-    if(await checkPw(v.pw||"")){
+    {
       sessionPw=v.pw||"";
       if(!state.pwKdf&&hasSubtle()){try{await setPw(sessionPw)}catch(_){}}
       const te=state.sync&&state.sync.tokenEnc;
       if(te&&!ghToken()&&hasSubtle()){try{localStorage.setItem(TOKEN_KEY,await decToken(te,sessionPw))}catch(_){}}
       return v.pw||"";
     }
-    toast("密碼錯誤");
   }
 }
 async function changePassword(){
-  const v=await ask("更改密碼",[{name:"old",label:"目前密碼",type:"password"},{name:"n1",label:"新密碼",type:"password"},{name:"n2",label:"再輸入一次新密碼",type:"password"}]);
+  const v=await ask("更改密碼",[{name:"old",label:"目前密碼",type:"password"},{name:"n1",label:"新密碼",type:"password"},{name:"n2",label:"再輸入一次新密碼",type:"password"}],
+    {validate:async o=>!(await checkPw(o.old||""))?"目前密碼不正確":!o.n1?"新密碼不能是空的":o.n1!==o.n2?"兩次輸入的新密碼不一樣":""});
   if(!v||v==="alt")return;
-  if(!(await checkPw(v.old||""))){toast("目前密碼不正確，未更改");return}
-  if(!v.n1){toast("新密碼不能是空的");return}
-  if(v.n1!==v.n2){toast("兩次輸入的新密碼不一樣");return}
   await setPw(v.n1);sessionPw=v.n1;
   let note="";
   if(ghToken()){const r=await rememberToken(ghToken(),v.n1);if(r==="weak"&&state.sync){delete state.sync.tokenEnc;note="（新密碼少於 8 碼，權杖只記在這台裝置）"}}

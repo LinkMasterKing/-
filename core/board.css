@@ -859,6 +859,10 @@ dialog::backdrop{background:rgba(0,0,0,.35)}
 .swatches button[aria-pressed="true"]{outline:3px solid var(--ink);outline-offset:2px}
 .dlg-actions{display:flex;flex-direction:row-reverse;gap:8px}
 .dlg-actions .danger-btn{margin-right:auto}
+/* 對話框的使用提示（ask 的 note）與錯誤訊息（ask 的 validate 回傳的文字；視窗不關，紅字留在標題下面） */
+.dlg-note{margin:0;font-size:13px;line-height:1.7;color:var(--muted)}
+.dlg-err{margin:0;padding:8px 12px;border-radius:12px;font-size:13px;line-height:1.6;color:var(--red);background:color-mix(in srgb,var(--red) 10%,transparent);border:1px solid color-mix(in srgb,var(--red) 40%,transparent)}
+.dlg-err[hidden]{display:none}
 dialog[open]{animation:pop .24s var(--ease)}
 dialog[open]::backdrop{animation:fade .24s ease}
 .danger-solid{background:var(--red)!important;border-color:var(--red);color:#fff}

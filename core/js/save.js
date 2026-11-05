@@ -97,7 +97,13 @@ async function cloudSettings(){
 async function prepareSave(){
   if(cloudOn()&&!ghToken()){
     const c=cloudCfg();
-    const v=await ask("第一次在這台裝置儲存：連結雲端",[{name:"token",label:`貼上 GitHub 權杖，儲存後會同步到 ${c.owner}/${c.repo}，所有人都看得到（只要貼這一次；之後在任何裝置輸入編輯密碼就會自動連上）`,type:"password"}],{danger:"只存這台電腦",alt:"進階設定"});
+    /* 一般成員沒有權杖：說清楚是部門還沒開通（或要重新登入），不要讓人以為存到雲端了；有權杖的管理員才貼上 */
+    const ready=!!(state.sync&&state.sync.tokenEnc);
+    const v=await ask("這台裝置沒有連上雲端",[{name:"token",label:"學生會管理員：貼上 GitHub 權杖（一般成員不用填）",type:"password"}],
+      {danger:"只存在這台裝置",alt:"進階設定",
+       note:(ready?"這個部門已經開通雲端，但這台裝置還沒拿到上傳權限。請按「取消」，重新整理後再按「編輯」登入一次，就會自動連上。"
+         :"這個部門還沒開通雲端。按「只存在這台裝置」的話，資料只留在這個瀏覽器，其他人、其他裝置都看不到。\n請學生會管理員在自己的電腦打開「設定 → 開通部門」開通，之後重新登入就會自動連上。")+`\n（雲端位置：${c.owner}/${c.repo}，公開的網站，所有人都看得到看板內容）`,
+       validate:o=>(o.token||"").trim()?"":"沒有權杖的話，請按「只存在這台裝置」或「取消」"});
     if(v==="alt"){if(!(await cloudSettings()))return null;}
     else if(v&&v.token){try{localStorage.setItem(TOKEN_KEY,v.token.trim())}catch(_){}}
     else if(v===null)return null;
@@ -111,7 +117,8 @@ async function prepareSave(){
 async function saveFlow(){
   const p=await prepareSave();if(!p)return;
   morph(()=>save());
-  if(p.weak)setTimeout(()=>toast("提醒：部門共用密碼太短，新成員建立身分時拿不到上傳權限；請管理員到「身分與專員」把共用密碼改成 12 碼以上"),2600);
+  if(p.weak&&isAdmin())setTimeout(()=>sharedPwFix(),2600);   /* 共用密碼太短：直接請管理員換一組（team.js） */
+  else if(p.weak)setTimeout(()=>toast("提醒：部門共用密碼太短，新成員建立身分時拿不到上傳權限；請管理員到「身分與專員」把共用密碼改成 12 碼以上"),2600);
 }
 /* 設定頁的變更：編輯中就併入這次編輯（按儲存才上傳）；沒在編輯就直接儲存並同步 */
 async function settingSave(apply,msg){

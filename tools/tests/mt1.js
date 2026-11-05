@@ -13,7 +13,7 @@ await p.goto('http://127.0.0.1:8300/index.html'+q);await p.waitForTimeout(1800);
 await p.evaluate(()=>{localStorage.setItem('workboard:ghtoken','T');if(!state.sync)state.sync={owner:'o',repo:'r',branch:'main',path:CFG.data.path};});
 return p};
 const login=async p=>{await p.click('#editBtn');await p.waitForTimeout(400);await p.fill('#dlgForm input[name=pw]','0000');await p.click('#dlgForm [data-act=ok]');await p.waitForTimeout(400);
- await p.fill('#dlgForm input[name=name]','測試').catch(()=>{});await p.fill('#dlgForm input[name=p1]','password-long-1').catch(()=>{});await p.fill('#dlgForm input[name=p2]','password-long-1').catch(()=>{});await p.click('#dlgForm [data-act=ok]').catch(()=>{});await p.waitForTimeout(1500)};
+ await p.fill('#dlgForm input[name=name]','測試').catch(()=>{});await p.fill('#dlgForm input[name=p1]','password-long-1').catch(()=>{});await p.fill('#dlgForm input[name=p2]','password-long-1').catch(()=>{});await p.click('#dlgForm [data-act=ok]').catch(()=>{});await p.waitForTimeout(1500);await (async()=>{for(let i=0;i<4;i++){await p.waitForTimeout(500);const t=await p.$eval('#dlg[open] #dlgForm>b',b=>b.textContent).catch(()=>'');if(/共用密碼太短|沒有連上雲端/.test(t))await p.click('#dlgForm [data-act=cancel]').catch(()=>{})}})();};   /* 2026-11-05：建立第一個身分後，共用密碼 0000 會請管理員換（team.js 的 sharedPwFix），測試先取消 */
 // rights default
 let p=await mk('');console.log('rights',await p.evaluate(()=>[CFG.deptId,state.title,!!document.querySelector('.logo-box svg'),$('#liveMD').classList.contains('split'),$('#followPanel').hidden,cloudCfg().path]));
 await p.click('#events .ev:nth-child(2) summary');await p.waitForTimeout(500);console.log('click->split',await p.evaluate(()=>[$('#liveMD').classList.contains('split'),selEv]));

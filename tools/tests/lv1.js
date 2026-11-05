@@ -18,7 +18,7 @@ await p.click('#editBtn');await p.waitForTimeout(400);
 const t=await p.evaluate(()=>$('#dlgForm b')?.textContent);console.log('login',t);
 if(t&&t.includes('身分')){await p.evaluate(()=>{});} 
 await p.fill('#dlgForm input[name=pw]','0000').catch(()=>{});await p.click('#dlgForm [data-act=ok]');await p.waitForTimeout(500);
-await p.fill('#dlgForm input[name=name]','王').catch(()=>{});await p.fill('#dlgForm input[name=p1]','password-long-1').catch(()=>{});await p.fill('#dlgForm input[name=p2]','password-long-1').catch(()=>{});await p.click('#dlgForm [data-act=ok]').catch(()=>{});await p.waitForTimeout(1800);
+await p.fill('#dlgForm input[name=name]','王').catch(()=>{});await p.fill('#dlgForm input[name=p1]','password-long-1').catch(()=>{});await p.fill('#dlgForm input[name=p2]','password-long-1').catch(()=>{});await p.click('#dlgForm [data-act=ok]').catch(()=>{});await p.waitForTimeout(1800);await (async()=>{for(let i=0;i<4;i++){await p.waitForTimeout(500);const t=await p.$eval('#dlg[open] #dlgForm>b',b=>b.textContent).catch(()=>'');if(/共用密碼太短|沒有連上雲端/.test(t))await p.click('#dlgForm [data-act=cancel]').catch(()=>{})}})();   /* 2026-11-05：建立第一個身分後，共用密碼 0000 會請管理員換（team.js 的 sharedPwFix），測試先取消 */
 console.log('editing（即時回報逐欄編輯，沒有「編輯這區」）',await p.evaluate(()=>[editing,!!$('#evDetail .evd.editing'),!!document.querySelector('[data-secedit=live]')]));
 await p.screenshot({path:'lv_edit.png'});
 const fld=async(k,fn)=>{await p.click(`#evDetail [data-evpen="${k}"]`);await p.waitForTimeout(300);await fn('#evDetail .evf.open ');await p.click('#evDetail .evf.open [data-evfx=ok]');await p.waitForTimeout(300)};

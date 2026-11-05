@@ -22,7 +22,7 @@ const tools=s=>s.evDel>0&&s.pens>0&&s.range>0&&s.addIssue>0;
 let s0=await st();ok(!s0.editing&&s0.evDel===0&&s0.pens===0&&s0.addIssue===0,'檢視中沒有編輯工具');
 await p.click('#editBtn');await p.waitForTimeout(400);
 await p.fill('#dlgForm input[name=pw]','0000').catch(()=>{});await p.click('#dlgForm [data-act=ok]');await p.waitForTimeout(500);
-await p.fill('#dlgForm input[name=name]','王').catch(()=>{});await p.fill('#dlgForm input[name=p1]','password-long-1').catch(()=>{});await p.fill('#dlgForm input[name=p2]','password-long-1').catch(()=>{});await p.click('#dlgForm [data-act=ok]').catch(()=>{});await p.waitForTimeout(1500);
+await p.fill('#dlgForm input[name=name]','王').catch(()=>{});await p.fill('#dlgForm input[name=p1]','password-long-1').catch(()=>{});await p.fill('#dlgForm input[name=p2]','password-long-1').catch(()=>{});await p.click('#dlgForm [data-act=ok]').catch(()=>{});await p.waitForTimeout(1500);await (async()=>{for(let i=0;i<4;i++){await p.waitForTimeout(500);const t=await p.$eval('#dlg[open] #dlgForm>b',b=>b.textContent).catch(()=>'');if(/共用密碼太短|沒有連上雲端/.test(t))await p.click('#dlgForm [data-act=cancel]').catch(()=>{})}})();   /* 2026-11-05：建立第一個身分後，共用密碼 0000 會請管理員換（team.js 的 sharedPwFix），測試先取消 */
 /* 手機一次只顯示一區：range、addIssue 在進度區，先各看一次 */
 const all=async()=>{const a=await st();if(tag!=='m')return a;await p.evaluate(()=>setSection('progress',{instant:true}));await p.waitForTimeout(400);const b2=await st();
   await p.evaluate(()=>setSection('done',{instant:true}));await p.waitForTimeout(400);const c=await st();await p.evaluate(()=>setSection('live',{instant:true}));await p.waitForTimeout(400);
