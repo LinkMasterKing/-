@@ -3,7 +3,7 @@
  "id": "board-main",
  "title": "權益部工作進度",
  "locked": false,
- "savedAt": "2026-11-05 17:37",
+ "savedAt": "2026-11-05 20:10",
  "range": {
   "start": "2026-09",
   "end": "2027-09"
@@ -226,14 +226,17 @@
   {
    "id": "emvpcssozjfv1",
    "name": "臺學聯",
-   "desc": "・個人收到工作小組加入邀請。\n・理事詢問本校加入意願，待本會裁示。\n\n婉轉堆辭",
+   "desc": "・個人收到工作小組加入邀請。\n・理事詢問本校加入意願，待本會裁示。",
    "doneAt": "2026-10-27",
    "staff": [],
    "links": [],
    "times": [],
    "round": 1,
-   "touched": [],
-   "report": false
+   "touched": [
+    "2026-11-05"
+   ],
+   "report": false,
+   "touchedAt": "2026-11-05T18:51"
   },
   {
    "id": "emvpd2q3bes2i",
@@ -873,7 +876,9 @@
    "staff": [],
    "times": [],
    "round": 1,
-   "fromEv": "emvpd6qonvam7"
+   "fromEv": "emvpd6qonvam7",
+   "touched": [],
+   "report": false
   },
   {
    "id": "emw3azafd14l2",
@@ -886,7 +891,9 @@
    "staff": [],
    "times": [],
    "round": 1,
-   "fromEv": "emvqlvpkgu9x6"
+   "fromEv": "emvqlvpkgu9x6",
+   "touched": [],
+   "report": false
   },
   {
    "id": "emw3b5i0g9u65",
@@ -899,7 +906,9 @@
    "staff": [],
    "times": [],
    "round": 1,
-   "fromEv": "emvt1ohjjrkyg"
+   "fromEv": "emvt1ohjjrkyg",
+   "touched": [],
+   "report": false
   },
   {
    "id": "emw3b7rucq6pn",
@@ -912,7 +921,9 @@
    "staff": [],
    "times": [],
    "round": 1,
-   "fromEv": "emvt1pwvqrhyw"
+   "fromEv": "emvt1pwvqrhyw",
+   "touched": [],
+   "report": false
   },
   {
    "id": "emw3b8jiql70l",
@@ -925,7 +936,9 @@
    "staff": [],
    "times": [],
    "round": 1,
-   "fromEv": "emvteefflmm61"
+   "fromEv": "emvteefflmm61",
+   "touched": [],
+   "report": false
   },
   {
    "id": "emw3bmw40mh3r",
@@ -938,7 +951,9 @@
    "staff": [],
    "times": [],
    "round": 1,
-   "fromEv": "emw0myswnrccf"
+   "fromEv": "emw0myswnrccf",
+   "touched": [],
+   "report": false
   },
   {
    "id": "emw3bufhlpm4z",
@@ -957,7 +972,9 @@
    "staff": [],
    "times": [],
    "round": 2,
-   "fromEv": "emvpd4765r0ch"
+   "fromEv": "emvpd4765r0ch",
+   "touched": [],
+   "report": false
   },
   {
    "id": "emw3cqm17k1um",
@@ -989,7 +1006,9 @@
    "staff": [],
    "times": [],
    "round": 1,
-   "fromEv": "emvz5bo0gi726"
+   "fromEv": "emvz5bo0gi726",
+   "touched": [],
+   "report": false
   }
  ],
  "yearLabel": "115學年",
