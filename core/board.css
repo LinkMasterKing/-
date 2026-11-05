@@ -252,7 +252,7 @@ body.edit .sec-edit-btn{display:inline-flex;animation:fadeSlide .4s var(--ease) 
 .events .empty{grid-column:1/-1}
 .events>.add-row{width:auto;min-height:54px;margin-top:0}   /* 新增鈕佔格子裡的一格，大小跟收合的膠囊一樣（只在編輯中出現：膠囊上下內距 12×2＋刪除鈕 28＋框線 2＝54px） */
 @media (max-width:640px){
-  .events{grid-template-columns:1fr}
+  .events{grid-template-columns:minmax(0,1fr)}   /* 不能寫 1fr：最小寬度會跟著不換行的長標題撐開、超出畫面 */
 }
 /* --- 膠囊：收合白色、展開淺灰 --- */
 .ev{position:relative;display:block;padding:0;border:1px solid var(--line);border-radius:18px;background:var(--surface);transition:background-color .3s,color .3s,transform .22s var(--ease),box-shadow .22s var(--ease),border-color .3s}
@@ -885,6 +885,12 @@ dialog#dlg[open]::backdrop{background:rgba(0,0,0,.3);-webkit-backdrop-filter:blu
 #dlg input:not([type=checkbox]),#dlg textarea,#dlg select,.dlg-ghost input:not([type=checkbox]),.dlg-ghost textarea,.dlg-ghost select{background:rgba(0,0,0,.28);border-color:rgba(255,255,255,.32)}
 :root:not([data-theme="dark"]) #dlg :is(input:not([type=checkbox]),textarea,select){background:rgba(255,255,255,.55);border-color:rgba(0,0,0,.18)}
 .fld{display:grid;gap:4px;font-size:12.5px;color:var(--muted)}
+/* 數字的上下按鈕（dialog.js 的 type:"stepper"，例如學年）：不用打字、不跳鍵盤；數字換的時候往按的方向滾一下 */
+.stepper{display:flex;align-items:center;gap:14px;color:var(--ink)}
+.stepper [data-step]{width:48px;height:48px;min-height:0;padding:0;border-radius:50%;font-size:22px;line-height:1;display:inline-flex;align-items:center;justify-content:center}
+.stepper-v{display:inline-flex;align-items:baseline;gap:4px;min-width:5.5em;justify-content:center;overflow:hidden}
+.stepper-n{font-family:"Jost",sans-serif;font-size:34px;font-weight:300;line-height:1.1;display:inline-block}
+.stepper-s{font-size:15px}
 label.fld-check{display:flex;align-items:center;gap:10px;font-size:13.5px;color:var(--ink);cursor:pointer;-webkit-user-select:none;user-select:none}
 .fld-check input{-webkit-appearance:none;appearance:none;flex:none;display:grid;place-content:center;width:20px;height:20px;margin:0;padding:0;border:1.5px solid var(--muted);border-radius:6px;background:transparent;cursor:pointer;transition:background-color .2s,border-color .2s}
 .fld-check input::after{content:"";width:10px;height:5.5px;border:2px solid var(--surface);border-top:0;border-right:0;transform:translateY(-1px) rotate(-45deg) scale(0);transition:transform .28s cubic-bezier(.3,1.6,.5,1)}
@@ -904,16 +910,16 @@ label.fld-check{display:flex;align-items:center;gap:10px;font-size:13.5px;color:
 .csel-opt[aria-selected="true"]{background:var(--ink);color:var(--surface)}
 dialog#dlg:has(.csel.open){overflow:visible}
 /* 放在設定頁右側面板裡（.in-pane，非強制回應）：不是浮起來的玻璃視窗，而是面板本身的內容 */
-#setOv .set-pane dialog#dlg.glass{position:static;width:auto;max-width:640px;margin:0;padding:0;background:none;-webkit-backdrop-filter:none;backdrop-filter:none;box-shadow:none;border-radius:0;animation:paneFormIn var(--mo-slow) var(--mo-out) both;overflow:visible}   /* 換項目時：舊表單往右淡出（dialog.js），新表單從右邊滑入淡入，不用跳出視窗那種放大回彈 */
-#setOv .set-pane dialog#dlg.glass>form>*{animation:paneFormIn var(--mo-slow) var(--mo-out) both}
-#setOv .set-pane dialog#dlg.glass>form>:nth-child(2){animation-delay:40ms}
-#setOv .set-pane dialog#dlg.glass>form>:nth-child(3){animation-delay:80ms}
-#setOv .set-pane dialog#dlg.glass>form>:nth-child(n+4){animation-delay:120ms}
+:is(#setOv .set-pane,#setSub .set-sub-body) dialog#dlg.glass{position:static;width:auto;max-width:640px;margin:0;padding:0;background:none;-webkit-backdrop-filter:none;backdrop-filter:none;box-shadow:none;border-radius:0;animation:paneFormIn var(--mo-slow) var(--mo-out) both;overflow:visible}   /* 換項目時：舊表單往右淡出（dialog.js），新表單從右邊滑入淡入，不用跳出視窗那種放大回彈 */
+:is(#setOv .set-pane,#setSub .set-sub-body) dialog#dlg.glass>form>*{animation:paneFormIn var(--mo-slow) var(--mo-out) both}
+:is(#setOv .set-pane,#setSub .set-sub-body) dialog#dlg.glass>form>:nth-child(2){animation-delay:40ms}
+:is(#setOv .set-pane,#setSub .set-sub-body) dialog#dlg.glass>form>:nth-child(3){animation-delay:80ms}
+:is(#setOv .set-pane,#setSub .set-sub-body) dialog#dlg.glass>form>:nth-child(n+4){animation-delay:120ms}
 @keyframes paneFormIn{from{opacity:0;transform:translateX(22px)}}
-#setOv .set-pane dialog#dlg.glass::after{content:none}
-#setOv .set-pane dialog#dlg>form{gap:14px}
-#setOv .set-pane dialog#dlg>form>b:first-child{font-size:20px;font-weight:500;letter-spacing:.08em;padding-bottom:12px;margin-bottom:4px;border-bottom:1px solid var(--hair)}
-#setOv .set-pane dialog#dlg .dlg-actions{margin-top:6px}
+:is(#setOv .set-pane,#setSub .set-sub-body) dialog#dlg.glass::after{content:none}
+:is(#setOv .set-pane,#setSub .set-sub-body) dialog#dlg>form{gap:14px}
+:is(#setOv .set-pane,#setSub .set-sub-body) dialog#dlg>form>b:first-child{font-size:20px;font-weight:500;letter-spacing:.08em;padding-bottom:12px;margin-bottom:4px;border-bottom:1px solid var(--hair)}
+:is(#setOv .set-pane,#setSub .set-sub-body) dialog#dlg .dlg-actions{margin-top:6px}
 #dlg .csel-btn{background:rgba(0,0,0,.28);border-color:rgba(255,255,255,.32)}
 :root:not([data-theme="dark"]) #dlg .csel-btn{background:rgba(255,255,255,.55);border-color:rgba(0,0,0,.18)}
 @media (max-width:640px){
@@ -1070,6 +1076,11 @@ dialog#dlg:has(.csel.open){overflow:visible}
 .set-body.split .set-scroll{flex:0 0 min(440px,40%)}
 .set-pane{flex:1 1 0;min-width:0;overflow:auto;overscroll-behavior:contain;scrollbar-gutter:stable;padding:14px 4px calc(32px + var(--bar-in) + env(safe-area-inset-bottom))}
 .set-pane[hidden]{display:none}
+/* 手機版的下一層（nav.js 的 subRun）：設定清單點了有下一層的項目，進到這個全畫面子頁，表單畫在 .set-sub-body 裡（樣式跟桌面右側面板同一套）；
+   左上「返回」回到設定清單。進出用換頁動畫（pagefx.js） */
+.set-sub{z-index:39}
+.set-sub .anim-top{padding-bottom:8px}
+.set-sub-body{flex:1;min-height:0;overflow:auto;overscroll-behavior:contain;padding:10px 2px calc(32px + var(--bar-in) + env(safe-area-inset-bottom))}
 .set-row[aria-current="true"]{background:color-mix(in srgb,var(--ink) 10%,transparent)}
 .set-row[aria-current="true"] .sr-chev{color:var(--ink)}
 /* 登入前：整頁只有鎖頭（鎖扣循環開合，nav.js 的 gateAnim） */
