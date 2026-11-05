@@ -3,7 +3,7 @@
  "id": "board-main",
  "title": "權益部工作進度",
  "locked": false,
- "savedAt": "2026-11-06 00:38",
+ "savedAt": "2026-11-06 01:58",
  "range": {
   "start": "2026-09",
   "end": "2027-09"
@@ -1060,7 +1060,9 @@
     }
    ],
    "round": 1,
-   "fromEv": "emw0mszjya8iv"
+   "fromEv": "emw0mszjya8iv",
+   "touched": [],
+   "report": false
   },
   {
    "id": "emw3roxbj65xp",
@@ -1074,7 +1076,9 @@
    "labels": [],
    "times": [],
    "round": 1,
-   "fromEv": "emw0pwllmeivk"
+   "fromEv": "emw0pwllmeivk",
+   "touched": [],
+   "report": false
   }
  ],
  "yearLabel": "115學年",
@@ -1110,24 +1114,24 @@
   "branch": "main",
   "path": "data.json",
   "tokenEnc": {
-   "s": "X9DNnbzaOFRBxgHYkQ0CuA==",
-   "i": "uC3YiTktsd9uqm0s",
-   "c": "5F+vaydlhlA/wVz78HO37lg8UG20QQbtB09v3xhPFe4uQ2DzvrXNywWYpAVq4/fpxvRUT8HBBPU0y/qFXHJBIOZJ8lxAkG0biUNwIQGiN6/rzAVlxREOJlgjo9UpmkiPnMTwuQQJG40Y5CRYsw=="
+   "s": "/NUTU+hXv4evBWDh/KtxLQ==",
+   "i": "0X8VFuE47eL5iayN",
+   "c": "8Hh4DyZJ+lqHEKTPZX1pPl1EggomqyDXqqla6zDffsw5Zd8L/Tv6fcK/MP76qHj1QzsHnKmgcUW2d/v40pNpJGWIZJf/EaK/n98RE0YIc+oewnJuoWO8/pyctfShmmf0YAXfVcYN7HaHpEM55Q=="
   }
  },
- "pwKdf": "bHArgaGywMuqExjsHz6wqQ==:ToDdfKkqEWWeZkIcY7d1LlyFUmgL0bb/axDeF5lI8cY=",
+ "pwKdf": "rQfwjiQjTGPRWifOAuO0bw==:vsYYW5+doH1lk3vytEhM89Wm9AuZDXTvwdShkCssLXs=",
  "schemaVersion": 9,
  "members": [
   {
    "id": "mmvx2r1i3ffnm",
    "name": "戴銨霆",
    "role": "admin",
-   "kdf": "wx7Ta/mdNJL4xQ+yyxmdCg==:FV5u9XSuw1ZwXYzrFvVF76FlwmcwZVB1I7RshFJ+3rQ=",
+   "kdf": "Dv2iWmbagR5nvbqObzHDSA==:+22LBOrErm7cKwpYBKULTNMjRzP32Rs2Daq95c8LWkw=",
    "createdAt": "2026-11-01 08:11",
    "tok": {
-    "s": "oKIOPyNAPqKgxSzSC44d9Q==",
-    "i": "9Wg+ky+/+rjZg0xW",
-    "c": "KwCq01wTOZtG3ETQ2VId7PUt95tpriH/Kcpy5ClL55smqFZYSy1F0f9EhGoF9TzYgxTau0uGBOumlhXWZv3GyXStSYuwiJDy4bIETV1YjRc8A6uJxZcTJQE3wh0Rrjxb8DMheIYRKX/vca7heA=="
+    "s": "RX4xJ6RXesdX2hr5uC718g==",
+    "i": "N4thr2iHns+3W0T8",
+    "c": "Ay70qejViV0MPXBBqelTmbPvaxit5vJZQ6HzmtpKw5cnoA4Zbz4SQv0qjPpJ0AVdaZB9NH2/GScEQfKhMC/P+x22yyudxJLpjyoTJt3fPQlM8yOlrFc7c37+XA/O0FPr6jyJ8/05g1yqCODNkA=="
    }
   },
   {

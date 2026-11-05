@@ -1,7 +1,7 @@
 /* 核心｜左右分頁、即時回報↔議題連結、每週概述產生器 */
 /* ---------- pager ----------
    看板 ↔ 每週概述：2026-11-05 起不能用手指左右滑（.pager 的 overflow-x:hidden），改按按鈕，播換頁動畫（pagefx.js）：
-   整個畫面往下沉 → 瞬間換到另一邊 → 從下方升上來。已經在那一頁就什麼都不做（底部分頁每次都會呼叫 goMain） */
+   整個畫面往後退 → 瞬間換到另一邊 → 從後面浮上來。已經在那一頁就什麼都不做（底部分頁每次都會呼叫 goMain） */
 const pager=$("#pager");
 let onWeek=false;
 const goWeek=()=>{if(onWeek)return;PageFx.swap(pager,pager,{mid:()=>pager.scrollTo({left:pager.scrollWidth,behavior:"instant"})})};
