@@ -3,7 +3,7 @@
  "id": "board-main",
  "title": "權益部工作進度",
  "locked": false,
- "savedAt": "2026-11-05 22:10",
+ "savedAt": "2026-11-06 00:25",
  "range": {
   "start": "2026-09",
   "end": "2027-09"
@@ -1065,6 +1065,20 @@
    "touched": [],
    "report": false,
    "labels": []
+  },
+  {
+   "id": "emw3rax0puwd4",
+   "name": "我雞雞超大",
+   "desc": "我是林宏綸",
+   "createdAt": "2026-11-06",
+   "staff": [],
+   "links": [],
+   "times": [],
+   "round": 1,
+   "touched": [
+    "2026-11-06"
+   ],
+   "touchedAt": "2026-11-06T00:25"
   }
  ],
  "yearLabel": "115學年",
@@ -1106,7 +1120,7 @@
   }
  },
  "pwKdf": "bHArgaGywMuqExjsHz6wqQ==:ToDdfKkqEWWeZkIcY7d1LlyFUmgL0bb/axDeF5lI8cY=",
- "schemaVersion": 8,
+ "schemaVersion": 9,
  "members": [
   {
    "id": "mmvx2r1i3ffnm",
@@ -1135,5 +1149,6 @@
  ],
  "savedBy": "戴銨霆",
  "follows": [],
- "labels": []
+ "labels": [],
+ "meetGrant": null
 }
