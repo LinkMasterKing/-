@@ -27,9 +27,12 @@ const login=async p=>{await p.click('#setOv .set-gate .primary');await p.waitFor
  await p.click('#setOv [data-set=title]');await p.waitForTimeout(800);log('title:',await st(p));await p.screenshot({path:'sp_title.png'});
  await p.click('#setOv [data-set=log]');await p.waitForTimeout(1000);log('log:',await st(p),await p.evaluate(()=>[document.querySelector('#logOv').classList.contains('in-pane'),document.querySelectorAll('#logList .lg-item').length]));await p.screenshot({path:'sp_log.png'});
  await p.click('#setOv [data-set=team]');await p.waitForTimeout(900);log('team:',await st(p));await p.screenshot({path:'sp_team.png'});
- // 刪除專員確認類？加一位專員
- await p.fill('#newStaff','小華');await p.click('#dlg [data-x=addstaff]');await p.waitForTimeout(300);
- await p.click('#dlg [data-x=done]');await p.waitForTimeout(2500);log('team done:',await st(p),'staff:',await p.evaluate(()=>state.staff.map(s=>s.name)));
+ // 專員名單已拿掉（schemaVersion 8，專員＝身分）：只確認沒有專員名單區
+ log('no staff list:',!(await p.$('#newStaff')));
+ await p.click('#dlg [data-x=done]');await p.waitForTimeout(1500);log('team done:',await st(p));
+ // 標籤（人事時地物）：新增一個「地」標籤
+ await p.click('#setOv [data-set=labels]');await p.waitForTimeout(800);await p.fill('#dlg [data-newlbl="地"]','六宿');await p.click('#dlg [data-x=add][data-k="地"]');await p.waitForTimeout(300);
+ await p.click('#dlg [data-x=done]');await p.waitForTimeout(2500);log('labels:',await p.evaluate(()=>state.labels.map(l=>l.kind+l.name)),'commit:',commits[0].commit.message.split('\n')[0]);
  await p.screenshot({path:'sp_back.png'});
  await p.click('#setOv [data-set=year]');await p.waitForTimeout(700);await p.fill('#dlg input[name=v]','116學年');await ok(p);await p.waitForTimeout(2500);
  log('year saved:',await p.evaluate(()=>state.yearLabel),await st(p),'commit:',commits[0].commit.message.split('\n')[0]);

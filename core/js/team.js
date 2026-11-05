@@ -158,6 +158,9 @@ function diffState(a,b){
   const sname=id=>(b.members||[]).concat(a.members||[]).find(s=>s.id===id)?.name||"?";
   const staffD=(o,x,cat,t)=>{const A=new Set(o||[]),B=new Set(x||[]);const add=[...B].filter(i=>!A.has(i)).map(sname),rm=[...A].filter(i=>!B.has(i)).map(sname);
     if(add.length||rm.length)L.push(`${cat}｜專員${add.length?" +"+add.join("、"):""}${rm.length?" −"+rm.join("、"):""}｜${t}`)};
+  const lname=id=>{const l=(b.labels||[]).concat(a.labels||[]).find(x=>x.id===id);return l?l.kind+"·"+l.name:"?"};
+  const lblD=(o,x,cat,t)=>{const A=new Set(o||[]),B=new Set(x||[]);const add=[...B].filter(i=>!A.has(i)).map(lname),rm=[...A].filter(i=>!B.has(i)).map(lname);
+    if(add.length||rm.length)L.push(`${cat}｜標籤${add.length?" +"+add.join("、"):""}${rm.length?" −"+rm.join("、"):""}｜${t}`)};
   const linkD=(o,x,cat,t)=>{const A=byId(o),B=byId(x);for(const [k,l] of B){if(!A.has(k))L.push(`${cat}｜新增連結「${l.name}」｜${t}`);else if(!same(A.get(k),l))L.push(`${cat}｜修改連結「${l.name}」｜${t}`)}for(const [k,l] of A)if(!B.has(k))L.push(`${cat}｜刪除連結「${l.name}」｜${t}`)};
   [["title","看板名稱"],["yearLabel","學年"],["termStart","開學日"]].forEach(([k,t])=>{if((a[k]||"")!==(b[k]||""))L.push(`看板｜${t} ${a[k]||"（空）"}→${b[k]||"（空）"}`)});
   if(!same(a.range,b.range))L.push("看板｜調整時間軸範圍");
@@ -174,7 +177,7 @@ function diffState(a,b){
     const AM=byId(o.markers),BM=byId(x.markers);
     for(const [k,m] of BM){if(!AM.has(k))L.push(`議題｜新增註記「${m.text||""}」｜${t}`);else if(!same(AM.get(k),m))L.push(`議題｜修改註記「${m.text||""}」｜${t}`)}
     for(const [k,m] of AM)if(!BM.has(k))L.push(`議題｜刪除註記「${m.text||""}」｜${t}`);
-    linkD(o.links,x.links,"議題",t);staffD(o.staff,x.staff,"議題",t);
+    linkD(o.links,x.links,"議題",t);staffD(o.staff,x.staff,"議題",t);lblD(o.labels,x.labels,"議題",t);
   }
   for(const [id,o] of AI)if(!BI.has(id))L.push(`議題｜刪除｜${o.title}`);
   const ord=x=>(x.issues||[]).map(i=>i.id).filter(i=>AI.has(i)&&BI.has(i)).join();
@@ -187,7 +190,7 @@ function diffState(a,b){
     if((o.desc||"")!==(x.desc||""))L.push(`即時回報｜更新說明｜${t}`);
     if(!o.doneAt&&x.doneAt)L.push(`即時回報｜結案｜${t}`);else if(o.doneAt&&!x.doneAt)L.push(`即時回報｜重新開啟｜${t}`);else if(o.doneAt&&x.doneAt&&o.doneAt!==x.doneAt)L.push(`即時回報｜完成日期 ${fmt(x.doneAt)}｜${t}`);
     if((o.issueId||"")!==(x.issueId||""))L.push(x.issueId?`即時回報｜連結議題「${iname(x.issueId)}」｜${t}`:`即時回報｜取消議題連結｜${t}`);
-    linkD(o.links,x.links,"即時回報",t);staffD(o.staff,x.staff,"即時回報",t);
+    linkD(o.links,x.links,"即時回報",t);staffD(o.staff,x.staff,"即時回報",t);lblD(o.labels,x.labels,"即時回報",t);
     const OT=byId(o.times),XT=byId(x.times);
     for(const [k,m] of XT){const q=OT.get(k);if(!q)L.push(`即時回報｜新增時間「${m.label}」｜${t}`);else if(!same(q,m))L.push(`即時回報｜修改時間「${m.label}」｜${t}`)}
     for(const [k,m] of OT)if(!XT.has(k))L.push(`即時回報｜刪除時間「${m.label}」｜${t}`);
@@ -198,9 +201,9 @@ function diffState(a,b){
   for(const [id,x] of BW){const o=AW.get(id);if(!o)L.push(`每週概述｜新增｜${fmt(x.date)}`);else if(o.text!==x.text||o.date!==x.date)L.push(`每週概述｜修改｜${fmt(x.date)}`)}
   for(const [id,o] of AW)if(!BW.has(id))L.push(`每週概述｜刪除｜${fmt(o.date)}`);
   /* 設定 */
-  const AS=byId(a.staff),BS=byId(b.staff);
-  for(const [id,s] of BS){if(!AS.has(id))L.push(`設定｜專員名單 新增｜${s.name}`);else if(AS.get(id).name!==s.name)L.push(`設定｜專員改名 ${AS.get(id).name}→${s.name}`)}
-  for(const [id,s] of AS)if(!BS.has(id))L.push(`設定｜專員名單 移除｜${s.name}`);
+  const AL=byId(a.labels),BL=byId(b.labels);
+  for(const [id,l] of BL){if(!AL.has(id))L.push(`設定｜新增標籤｜${l.kind}·${l.name}`);else if(AL.get(id).name!==l.name)L.push(`設定｜標籤改名 ${AL.get(id).name}→${l.name}`)}
+  for(const [id,l] of AL)if(!BL.has(id))L.push(`設定｜刪除標籤｜${l.kind}·${l.name}`);
   const AMb=byId(a.members),BMb=byId(b.members);
   for(const [id,m] of BMb){const o=AMb.get(id);if(!o){L.push(`設定｜新增編輯身分｜${m.name}`);continue}
     if(o.role!==m.role)L.push(`設定｜${m.role==="admin"?"設為管理員":"取消管理員"}｜${m.name}`);if(o.kdf!==m.kdf)L.push(`設定｜更改個人密碼｜${m.name}`)}

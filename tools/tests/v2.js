@@ -44,8 +44,8 @@ const vis=p=>p.evaluate(()=>[...document.querySelectorAll('.layout>.sgroup')].ma
  await p.fill('#dlgForm input[name=v]','權益部工作進度（測試）');await ok(p);await p.waitForTimeout(2500);
  log('D title saved:',await T(p),'| h1:',await p.textContent('#titleSlot h1'),'| remote:',remote.title,'| commit:',(commits[0]||{commit:{}}).commit.message);
  log('D rows after login:',await p.$$eval('#setOv .set-row',x=>x.length));
- await p.click('#setOv [data-set=date]');await p.waitForTimeout(400);await p.fill('#dlgForm input[name=v]','2026-11-01');await ok(p);await p.waitForTimeout(2000);
- log('D date:',await p.textContent('#bigDate'),commits[0].commit.message.split('\n')[0]);
+ // 看板日期已拿掉（schemaVersion 8）：大日期＝上次儲存日期，設定頁沒有這一列
+ log('D no date row:',!(await p.$('#setOv [data-set=date]')),'| bigDate=savedAt:',await p.evaluate(()=>$('#bigDate').firstChild.data===`${+state.savedAt.slice(5,7)}.${state.savedAt.slice(8,10)}`));
  await p.click('#setClose');await p.waitForTimeout(400);
  // 進入編輯：已登入就不再問密碼
  await p.click('#editBtn');await p.waitForTimeout(900);
