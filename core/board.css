@@ -1130,8 +1130,9 @@ dialog#dlg:has(.csel.open){overflow:visible}
 .nq-clear .ico{width:16px;height:16px}
 @media (hover:hover){.nq-clear:hover{transform:none;box-shadow:none;opacity:1}}
 /* 搜尋結果：搜尋欄下面浮出的毛玻璃清單 */
-.noti-res{position:absolute;left:0;right:0;top:calc(100% + 8px);max-height:min(56vh,380px);overflow:auto;overscroll-behavior:contain;border-radius:22px;padding:6px;display:grid;align-content:start}
-.noti-res[hidden]{display:none}
+/* 要比 .glass（position:relative，在後面的「液態玻璃材質」段）權重高，才會浮在內容上面而不是把搜尋欄下面撐開 */
+.noti-find .noti-res{position:absolute;left:0;right:0;top:calc(100% + 8px);max-height:min(56vh,380px);overflow:auto;overscroll-behavior:contain;border-radius:22px;padding:6px;display:grid;align-content:start}
+.noti-find .noti-res[hidden]{display:none}
 .nr{display:grid;grid-template-columns:auto minmax(0,1fr);gap:12px;align-items:baseline;width:100%;min-height:0;padding:10px 12px;border:0;border-radius:16px;background:transparent;text-align:left;white-space:normal}
 .nr+.nr{box-shadow:0 -1px 0 color-mix(in srgb,var(--ink) 8%,transparent)}
 .nr:hover,.nr:focus-visible{transform:none;box-shadow:none;background:color-mix(in srgb,var(--ink) 7%,transparent)}
