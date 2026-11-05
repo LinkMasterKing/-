@@ -229,10 +229,12 @@ body.edit .sec-edit-btn{display:inline-flex;animation:fadeSlide .4s var(--ease) 
 }
 
 /* ===== 燈號（紅點、綠燈） ===== */
-.live-dot{position:relative;flex:none;width:9px;height:9px;border-radius:50%;background:var(--red);transform:translateZ(0)}
-.live-dot::after{content:"";position:absolute;inset:0;border-radius:50%;background:var(--red);animation:ping 1.8s cubic-bezier(0,0,.2,1) infinite;will-change:transform,opacity}
+/* 燈號不要自己成為一層（translateZ、will-change）：卡片開合時變暗、移動，燈號跟著卡片畫在同一層才不會頓一下（2026-11-05）。
+   紅燈的擴散（ping）只動 transform／opacity，播放時瀏覽器本來就會交給顯示卡 */
+.live-dot{position:relative;flex:none;width:9px;height:9px;border-radius:50%;background:var(--red)}
+.live-dot::after{content:"";position:absolute;inset:0;border-radius:50%;background:var(--red);animation:ping 1.8s cubic-bezier(0,0,.2,1) infinite}
 .ok-dot{position:relative;flex:none;width:9px;height:9px;border-radius:50%;transition:transform .35s cubic-bezier(.3,1.6,.5,1);background:var(--ok-dot)!important;box-shadow:0 0 6px 1px var(--ok-dot),0 0 12px 2px rgba(43,255,136,.45);transform:translateZ(0)}
-.ok-dot::after{content:"";position:absolute;inset:0;border-radius:50%;animation:ping 2.4s cubic-bezier(0,0,.2,1) infinite;background:var(--ok-dot);will-change:transform,opacity}
+.ok-dot::after{content:"";position:absolute;inset:0;border-radius:50%;animation:ping 2.4s cubic-bezier(0,0,.2,1) infinite;background:var(--ok-dot)}
 @keyframes ping{75%,100%{transform:scale(2.4);opacity:0}}
 /* 燈號擴散只動 transform／opacity（交給合成執行緒），展開收合時也不暫停（暫停再繼續看起來像卡住）；重畫後的相位由 anim.js 的 Anim.syncPings 接回去 */
 
