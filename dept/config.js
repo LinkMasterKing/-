@@ -32,11 +32,11 @@ const BOARD_BASE = {
    各部門（目前全部放在同一個網站／repo，之後再拆）
    網址加 ?d=代號 開那個部門，例如 …/?d=marketing；沒加就是權益部。
    每個部門的資料是 repo 根目錄下自己的檔案（權益部沿用 data.json）。
-   logo:false＝頁首先用文字代替 logo；follow:true＝有「追蹤」面板（會長室）；meeting:true＝有「會議報告事項」面板（秘書處）
+   logo:false＝頁首先用文字代替 logo；follow:true＝有「追蹤」面板（會長室）；meeting:true＝有「會議報告事項」與「會議編輯」面板（秘書處）；grant:true＝開放秘書處會議編輯的開關（會長室）
    --------------------------------------------------------- */
 const BOARD_DEPTS = [
   { id: "rights",      name: "權益部", path: "data.json", boardId: "board-main", logo: true },
-  { id: "president",   name: "會長室", follow: true },
+  { id: "president",   name: "會長室", follow: true, grant: true },
   { id: "secretariat", name: "秘書處", meeting: true },
   { id: "marketing",   name: "行銷部" },
   { id: "finance",     name: "財務部" },
@@ -44,7 +44,7 @@ const BOARD_DEPTS = [
   { id: "affairs",     name: "社務部" },
   { id: "pr",          name: "公關部" },
   { id: "works",       name: "工務部" },
-].map(d => ({ path: `data-${d.id}.json`, boardId: `board-${d.id}`, logo: false, follow: false, meeting: false, ...d }));
+].map(d => ({ path: `data-${d.id}.json`, boardId: `board-${d.id}`, logo: false, follow: false, meeting: false, grant: false, ...d }));
 
 (() => {
   const q = new URLSearchParams(location.search).get("d") || "rights";
@@ -60,7 +60,8 @@ const BOARD_DEPTS = [
     dept: { name: d.name, org },
     logo: d.logo,
     follow: d.follow,
-    meeting: d.meeting,                       // true＝秘書處的「會議報告事項」面板（core/js/meeting.js）
+    meeting: d.meeting,
+    grant: d.grant,                           // true＝看板上有「開放秘書處會議編輯」開關（會長室）                       // true＝秘書處的「會議報告事項」面板（core/js/meeting.js）
     data: { ...BOARD_BASE.data, path: d.path },
   };
 })();

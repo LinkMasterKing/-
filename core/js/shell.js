@@ -19,14 +19,23 @@ const SHELL_HTML=`<div class="pager" id="pager">
       <div class="hero-rule"><span class="hero-info"><span class="sub" id="saveInfo"></span></span><span class="actions"><span class="hero-btns" id="actions"></span><button type="button" class="noti-btn" id="notiBtn" aria-label="通知" title="今日／明日要處理的事、行事曆"><svg class="ico solo" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><g class="i-bell"><path d="M6.2 16.4V11a5.8 5.8 0 0 1 11.6 0v5.4l1.6 1.8H4.6z"/><path d="M10.2 20.4a2 2 0 0 0 3.6 0"/></g></svg><span class="noti-n num" hidden></span></button><button type="button" class="week-btn" id="weekBtn">每週概述 <span aria-hidden="true">→</span></button></span></div>
       <div class="banner"><span class="live-dot" aria-hidden="true"></span><b>編輯中</b><span class="sub">即時回報：點哪一欄就改哪一欄 · 其他區按標題列的「編輯這區」，一次改一區 · 全部改完按「儲存並同步」</span></div>
 
+      <section class="panel grant-panel" id="grantPanel" aria-labelledby="grH" hidden>
+        <div class="panel-head"><h2 id="grH">秘書處會議編輯<span class="en">GRANT</span></h2></div>
+        <div class="grant-row"><div class="grant-seg lseg" role="tablist" aria-label="秘書處會議編輯"><span class="lseg-lens" aria-hidden="true"></span><button type="button" role="tab" data-k="off" aria-selected="true">關閉</button><button type="button" role="tab" data-k="on" aria-selected="false">開放今天</button></div><p class="sub grant-st" id="grantSt"></p></div>
+      </section>
       <section class="panel follow-panel" id="followPanel" data-secbox="follow" aria-labelledby="fwH" hidden>
         <div class="panel-head"><h2 id="fwH">追蹤<span class="en">FOLLOW</span></h2><button type="button" class="icon sec-edit-btn" data-secedit="follow" aria-pressed="false">編輯這區</button></div>
         <div class="follows" id="follows" data-flip></div>
         <button class="ghost edit-only add-row" id="addFollow">+ 追蹤項目</button>
       </section>
       <section class="panel follow-panel meet-panel" id="meetPanel" data-secbox="meet" aria-labelledby="mtH" hidden>
-        <div class="panel-head"><h2 id="mtH">會議報告事項<span class="en">MEETING</span></h2><button type="button" class="icon" id="meetRefresh">重新整理</button><button type="button" class="icon sec-edit-btn" data-secedit="meet" aria-pressed="false">編輯這區</button></div>
+        <div class="panel-head"><h2 id="mtH">會議報告事項<span class="en">MEETING</span></h2><button type="button" class="icon" data-mtrefresh>重新整理</button></div>
         <div class="mt-depts" id="meetList" data-flip></div>
+      </section>
+      <section class="panel follow-panel meet-panel meet-edit" id="meetEdPanel" data-secbox="meetedit" aria-labelledby="meH" hidden>
+        <div class="panel-head"><h2 id="meH">會議編輯<span class="en">EDIT</span></h2><button type="button" class="icon" data-mtrefresh>重新整理</button><button type="button" class="icon sec-edit-btn" data-secedit="meetedit" aria-pressed="false" hidden>編輯這區</button></div>
+        <p class="sub grant-st" id="meetEdSt"></p>
+        <div class="mt-depts" id="meetEdList" data-flip></div>
       </section>
       <div class="layout">
         <div class="sgroup" data-sec="live" data-secbox="live">

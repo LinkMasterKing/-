@@ -201,6 +201,7 @@ function diffState(a,b){
   for(const [id,x] of BW){const o=AW.get(id);if(!o)L.push(`每週概述｜新增｜${fmt(x.date)}`);else if(o.text!==x.text||o.date!==x.date)L.push(`每週概述｜修改｜${fmt(x.date)}`)}
   for(const [id,o] of AW)if(!BW.has(id))L.push(`每週概述｜刪除｜${fmt(o.date)}`);
   /* 設定 */
+  if(!same(a.meetGrant,b.meetGrant))L.push(b.meetGrant?`設定｜開放秘書處會議編輯（${fmt(b.meetGrant.date)}）`:"設定｜關閉秘書處會議編輯");
   const AL=byId(a.labels),BL=byId(b.labels);
   for(const [id,l] of BL){if(!AL.has(id))L.push(`設定｜新增標籤｜${l.kind}·${l.name}`);else if(AL.get(id).name!==l.name)L.push(`設定｜標籤改名 ${AL.get(id).name}→${l.name}`)}
   for(const [id,l] of AL)if(!BL.has(id))L.push(`設定｜刪除標籤｜${l.kind}·${l.name}`);

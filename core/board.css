@@ -444,6 +444,18 @@ html.ev-drag-on,html.ev-drag-on *{-webkit-user-select:none;user-select:none;curs
   .mt-ev{padding:12px 14px 14px}
 }
 
+/* ===== 秘書處會議編輯的授權（會長室的開關 #grantPanel、秘書處「會議編輯」的狀態列，meeting.js） =====
+   開關用液態分段切換（LiquidSeg）；狀態文字：開放中＝綠字、尚未開放＝紅字 */
+.grant-panel{margin-bottom:var(--gap,16px)}
+.grant-panel[hidden],.meet-edit[hidden]{display:none}
+.grant-row{display:flex;align-items:center;gap:10px 18px;flex-wrap:wrap}
+.grant-row .grant-st{margin:0;flex:1 1 260px;font-size:13px;line-height:1.6}
+.grant-seg>[data-k]{min-width:5.5em}
+.grant-st .grant-on{color:var(--ok);font-weight:500}
+.grant-st .grant-off{color:var(--red);font-weight:500}
+.meet-edit>.grant-st{margin:0 0 12px;font-size:13px}
+.meet-edit{margin-top:var(--gap,16px)}
+
 /* ===== 時間甘特圖 ===== */
 .range{display:none;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:10px;font-size:13px;color:var(--muted)}
 .sec-edit .range{display:flex}
