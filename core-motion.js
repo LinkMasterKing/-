@@ -52,19 +52,19 @@ function animateDetails(d,open){
 }
 document.addEventListener("click",e=>{
   const sm=e.target.closest("summary");if(!sm)return;
-  const d=sm.parentElement;if(!d||!d.matches(".ev,.done-item,.week,.log"))return;
+  const d=sm.parentElement;if(!d||!d.matches(".ev,.week,.log"))return;
   if(e.target.closest("input,button,a")){if(e.target.closest("summary button,summary input"))e.preventDefault();return}
   e.preventDefault();
   /* 桌面、區塊被選到時：點即時回報或完成紀錄的一筆＝在右側打開，再點一次＝收起（不就地展開）。
      例外：在別的區塊被選到時就地展開過、切過來還開著的那一筆，點了先就地收起（不然會收不起來、直接跳去分欄） */
-  if(!d.open&&d.matches(".ev")&&mdOn("live")){mdSelect("live",d.dataset.ev);return}
-  if(!d.open&&d.matches(".done-item")&&mdOn("done")){mdSelect("done",d.dataset.issue||d.dataset.ev);return}
+  if(!d.open&&d.matches(".ev:not([data-done])")&&mdOn("live")){mdSelect("live",d.dataset.ev);return}
+  if(!d.open&&d.matches("[data-done]")&&mdOn("done")){mdSelect("done",d.dataset.issue||d.dataset.ev);return}
   animateDetails(d,!d.open);
 },true);
 
 /* open link buttons robustly: new tab first, fall back to same tab when a viewer blocks pop-ups */
 document.addEventListener("click",e=>{
-  const a=e.target.closest("a.link[href]");if(!a||editing)return;
+  const a=e.target.closest("a.link[href]");if(!a||a.closest(".sec-edit"))return;
   const url=a.getAttribute("href");if(!url||url==="#")return;
   e.preventDefault();e.stopPropagation();
   let w=null;try{w=window.open(url,"_blank")}catch(_){}
@@ -73,7 +73,7 @@ document.addEventListener("click",e=>{
 },true);
 
 document.addEventListener("click",e=>{
-  if(editing)return;const m=e.target.closest(".marker.quiet");if(!m)return;
+  if(secEd("progress"))return;const m=e.target.closest(".marker.quiet");if(!m)return;
   const tr=m.closest(".c-track");m.classList.add("peek");tr&&tr.classList.add("peeking");clearTimeout(m._pk);m._pk=setTimeout(()=>{m.classList.remove("peek");tr&&tr.classList.remove("peeking")},2200);
 });
 document.addEventListener("mouseover",e=>{const m=e.target.closest(".marker.quiet,.g-mk.quiet");const tr=m&&m.closest(".c-track,.g-track");document.querySelectorAll(".peeking").forEach(x=>{if(x!==tr)x.classList.remove("peeking")});if(tr)tr.classList.add("peeking")});
@@ -86,7 +86,7 @@ document.addEventListener("mouseover",e=>{const m=e.target.closest(".marker.quie
    - 收起（選→沒選）：詳情卡縮回空位，那一項出現，清單 FLIP 展開回全寬
    只動 transform／clip-path（不縮放內容，字不變形）；動作進行中 mdBusy 擋住重複點擊 */
 const MD={live:{list:"#events",item:".ev",key:el=>el.dataset.ev,pane:"#evDetail",get:()=>selEv,set:v=>{selEv=v},render:()=>renderEvents()},
-  done:{list:"#doneList",item:".done-item",key:el=>el.dataset.issue||el.dataset.ev,pane:"#doneDetail",get:()=>selDone,set:v=>{selDone=v},render:()=>renderDone()}};
+  done:{list:"#doneList",item:"[data-done]",key:el=>el.dataset.done,pane:"#doneDetail",get:()=>selDone,set:v=>{selDone=v},render:()=>renderDone()}};
 const MD_POP={out:{duration:560,easing:"cubic-bezier(.3,1.3,.5,1)"},in:{duration:300,easing:"cubic-bezier(.5,0,.3,1)"}};
 let mdBusy=false;
 const mdItem=(m,id)=>id&&[...document.querySelectorAll(`${m.list} ${m.item}`)].find(el=>m.key(el)===id);
@@ -143,3 +143,25 @@ document.addEventListener("keydown",e=>{
   const k=selEv&&mdOn("live")?"live":selDone&&mdOn("done")?"done":null;if(!k)return;
   e.preventDefault();mdStep(k,e.key==="ArrowRight"?1:-1);
 });
+
+/* ---------- 版面長度過渡（全介面共用） ----------
+   區塊（.panel）、設定頁的群組與右側面板，內容一變高或變矮，就從原本的高度滑到新的高度，下面的東西跟著滑，不會「卡一下整個往下」。
+   用 ResizeObserver 看高度（在畫面畫出來之前就收到），所以各處的程式不用自己呼叫。
+   不做的情況：裡面的膠囊／清單正在跑自己的展開收合（motionBusy）、第一次出現、從隱藏變顯示（高度 0）、寬度也一起變（換區塊放大、視窗縮放，交給原本的 FLIP）、減少動態、動畫模式。
+   動畫進行中自己造成的尺寸變化不理；動畫結束後如果內容又變了，ResizeObserver 會再收到一次，從目前高度接著滑 */
+const FLOW_SEL=".panel,#setOv .set-list,#setOv .set-pane";
+const flowLast=new WeakMap();
+const flowRO=typeof ResizeObserver==="function"?new ResizeObserver(es=>{
+  for(const e of es){
+    const el=e.target;if(el._flow)continue;
+    const bs=e.borderBoxSize&&e.borderBoxSize[0],w=bs?bs.inlineSize:el.offsetWidth,h=bs?bs.blockSize:el.offsetHeight,last=flowLast.get(el);
+    flowLast.set(el,{w,h});
+    if(!last||!last.h||!h||Math.abs(last.w-w)>1||Math.abs(last.h-h)<3||_busy||reduceMotion()||document.hidden||document.body.matches(".intro"))continue;   /* _busy：膠囊自己在展開收合，區塊本來就跟著平滑變高 */
+    el.style.overflow="clip";
+    const a=el.animate([{height:last.h+"px"},{height:h+"px"}],{duration:Math.min(560,260+Math.abs(h-last.h)*.35),easing:"cubic-bezier(.2,.9,.25,1)"});
+    el._flow=a;
+    const done=()=>{if(el._flow!==a)return;el._flow=null;el.style.overflow="";flowLast.set(el,{w:el.offsetWidth,h:el.offsetHeight})};
+    a.onfinish=done;a.oncancel=done;
+  }
+}):null;
+function flowWatch(){if(flowRO)document.querySelectorAll(FLOW_SEL).forEach(el=>flowRO.observe(el))}

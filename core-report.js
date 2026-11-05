@@ -40,7 +40,8 @@ function rptHTML(d){
   const dept=CFG.dept.name||state.title,logo=CFG.logo?document.getElementById("dept-logo"):null;   /* 沒有 logo 的部門不放 */
   const staffNames=ids=>(ids||[]).map(id=>(state.staff.find(s=>s.id===id)||{}).name).filter(Boolean).join("、");
   const head=`<header class="rpt-head"><div class="rpt-logo">${logo?logo.innerHTML:""}</div>
-    <div class="rpt-ttl"><h1 contenteditable="true">${esc(dept)} 工作報告</h1><p class="rpt-sub" contenteditable="true">${state.yearLabel?esc(state.yearLabel)+"　｜　":""}報告期間 ${fmt(d.from)} – ${fmt(d.to)}</p></div>
+    <div class="rpt-ttl"><h1 contenteditable="true">${esc(dept)} 工作報告</h1><p class="rpt-sub" contenteditable="true">${state.yearLabel?esc(state.yearLabel)+"　｜　":""}報告期間 ${fmt(d.from)} – ${fmt(d.to)}</p>
+      <a class="rpt-live" href="${esc(boardURL())}" target="_blank" rel="noopener">查看看板即時動態<span class="rpt-url">${esc(boardURL().replace(/^https?:\/\//,""))}</span></a></div>
     <dl class="rpt-meta"><div><dt>報告人</dt><dd contenteditable="true">${esc(meName())}</dd></div><div><dt>製表日期</dt><dd contenteditable="true">${fmt(today())}</dd></div></dl></header>`;
   const stat=(n,t,s)=>`<div><b>${n}</b><span>${t}</span><small>${s}</small></div>`;
   const sum=rptSec("sum","本期摘要",`<div class="rpt-stats" contenteditable="true">${stat(d.issues.length,"處理議題",`完成 ${d.nDone}・進行中 ${d.nAct}`)}${stat(d.marks,"處理紀錄","期間內的議題註記")}${stat(d.evNew.length,"新增即時回報",`完成 ${d.evDone.length}・併入議題 ${d.evLinked}`)}${stat(d.weeks.length,"每週概述","期間內的週報")}</div>${rptGantt(d)}`);
@@ -161,3 +162,5 @@ function rptPrint(){
   try{window.print()}catch(_){back();toast("這個環境不能列印：請用瀏覽器打開網站再匯出")}
 }
 document.addEventListener("keydown",e=>{if(e.key==="Escape"&&rptOpen&&!$("#dlg").open)closeReport()});
+/* 報告裡「查看看板即時動態」的網址：目前這個看板（含 ?d=部門），不帶 # 後面的畫面狀態 */
+function boardURL(){return location.href.split("#")[0]}

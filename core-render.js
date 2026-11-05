@@ -6,6 +6,25 @@ function rangeMs(){const s=pd(state.range.start+"-01");const e=pd(state.range.en
 function pos(date){const[s,e]=rangeMs();return clamp((pd(date).getTime()-s)/(e-s)*100)}
 function months(){const out=[];const d=pd(state.range.start+"-01");const end=pd(state.range.end+"-01");while(d<=end){out.push(new Date(d));d.setMonth(d.getMonth()+1)}return out}
 
+/* 分區編輯：頁首「編輯」只負責登入、進入編輯狀態與最後的儲存／取消；
+   每個區塊（即時回報、進度、完成紀錄、會長室的追蹤）標題列各有一顆「編輯這區」，按了這區才出現編輯工具，一次只能開一區。
+   secEdit＝目前在編輯的區塊（最多一個）；進入編輯時清空（events.js 的 #editBtn）。週報頁的編輯照舊跟著 editing */
+let secEdit=new Set();
+const secEd=k=>editing&&secEdit.has(k);
+const SEC_EDIT_LBL={on:"收起編輯",off:"編輯這區"};
+function renderSecEdit(){
+  document.querySelectorAll("[data-secbox]").forEach(b=>b.classList.toggle("sec-edit",secEd(b.dataset.secbox)));
+  document.querySelectorAll("[data-secedit]").forEach(b=>{const on=secEd(b.dataset.secedit),t=on?SEC_EDIT_LBL.on:SEC_EDIT_LBL.off;
+    b.setAttribute("aria-pressed",on);if(b._t!==t){b._t=t;b.innerHTML=(on?"":ico("edit"))+t}});
+}
+/* 按「編輯這區」：一次只能改一區——打開這區時，原本開著的那區自動收起；再按一次收起這區。
+   剛打開的那區，編輯工具淡入（board.css「編輯／檢視切換時的動畫」段的 .sec-anim） */
+function toggleSecEdit(k){
+  const on=!secEdit.has(k);secEdit=on?new Set([k]):new Set();render();
+  const box=document.querySelector(`[data-secbox="${k}"]`);if(!box||!on||reduceMotion())return;
+  box.classList.remove("sec-anim");void box.offsetWidth;box.classList.add("sec-anim");clearTimeout(box._sa);box._sa=setTimeout(()=>box.classList.remove("sec-anim"),900);
+}
+
 const activeIssues=()=>state.issues.filter(i=>!i.doneAt||(editing&&keepIds.has(i.id)));
 const doneIssues=()=>state.issues.filter(i=>i.doneAt&&!(editing&&keepIds.has(i.id))).sort((a,b)=>(b.doneAt||"").localeCompare(a.doneAt||""));
 
@@ -16,7 +35,7 @@ function render(){
   try{
     document.body.classList.toggle("edit",editing);
     document.body.classList.toggle("locked",!!state.locked);
-    renderHeader();renderTabbar();renderSections();renderWeeks();renderGantt();renderEvents();renderCards();renderDone();renderFollows();layoutAll();
+    renderHeader();renderTabbar();renderSections();renderSecEdit();renderWeeks();renderGantt();renderEvents();renderCards();renderDone();renderFollows();layoutAll();flowWatch();
   }finally{rendering=false}
 }
 

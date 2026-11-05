@@ -8,7 +8,6 @@
   root.querySelector("body").removeAttribute("class");
   TEMPLATE="<!doctype html>\n"+root.outerHTML;BODY_SRC=root.querySelector("body").innerHTML;
 })();
-if(TEMPLATE.includes("data-bundle")&&location.protocol!=="file:")setTimeout(()=>bundleTemplate().catch(()=>{}),1500);
 
 /* 進場畫面：至少放 1.1 秒（讓動畫跑完），資料與字型準備好就收；最多等 3.5 秒。收掉後才開始看板本身的進場動畫 */
 const splashT0=performance.now();

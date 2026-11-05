@@ -7,10 +7,8 @@ document.addEventListener("click",async e=>{
   if(tgl&&tgl.closest("#cardDetail"))return;   /* 詳情裡的標題列不收合 */
   /* 進度卡片：點甘特圖的議題列換成該議題詳情，按返回回到甘特圖 */
   if(t.closest("#pvBack")){progShow(null);return}
-  /* 即時回報篩選：全部／只看會議要報告（不用登入，不存檔） */
-  const ef=t.closest("[data-evfilter]");if(ef){const on=ef.dataset.evfilter==="rep";if(on!==evRepOnly){evRepOnly=on;renderEvents();layoutAll()}return}
   if(jump&&!t.closest("[data-marker]")){e.preventDefault();if(curSec!=="progress")setSection("progress",{instant:true});progShow(jump.dataset.jump);return}
-  if(t.closest("#editBtn")){if(!(await ensureLogin()))return;morph(()=>{editing=true;snapshot=JSON.stringify(state);keepIds=new Set(state.issues.filter(i=>!i.doneAt).map(i=>i.id));render()});return}
+  if(t.closest("#editBtn")){if(!(await ensureLogin()))return;morph(()=>{editing=true;secEdit=new Set();snapshot=JSON.stringify(state);keepIds=new Set(state.issues.filter(i=>!i.doneAt).map(i=>i.id));render()});return}
   if(t.closest("#cancelBtn")){morph(()=>{if(dirty)state=normalize(JSON.parse(snapshot));editing=false;dirty=false;render()});return}
   if(t.closest("#saveBtn")){await saveFlow();return}
   if(t.closest("[data-copyweek]")){const bt=t.closest("[data-copyweek]");const w=state.weeks.find(x=>x.id===t.closest("[data-week]").dataset.week);copyText(w.text);bt.classList.add("copied");bt.innerHTML="已複製"+ico("check","sm");clearTimeout(bt._t);bt._t=setTimeout(()=>{bt.classList.remove("copied");bt.textContent="複製文字"},1500);return}
@@ -23,9 +21,10 @@ document.addEventListener("click",async e=>{
     const v=await ask("生成週報",[{name:"date",label:"日期",type:"date",value:r.end},{name:"text",label:`統計期間 ${fmt(r.start)} 之後 – ${fmt(r.end)}：已依即時回報與議題更新自動歸納，可直接修改後按確定`,type:"textarea",value:r.text}],{wide:true});
     if(v&&v.text){{const nw={id:uid("w"),date:v.date||r.end,text:v.text,auto:true};state.weeks.push(nw);state.events.forEach(e=>{e.report=false});newWeekId=nw.id;(openWeeks=openWeeks||new Set()).add(nw.id);setTimeout(()=>{newWeekId=null},1500)}snapshotBase(v.date||r.end);if(editing)changed();else save();toast("已產生並存成週報")}return}
   if(!editing)return;
+  const se=t.closest("[data-secedit]");if(se){toggleSecEdit(se.dataset.secedit);return}
 
   const dd=t.closest("[data-donedate]");
-  if(dd){const box=dd.closest(".done-item");const obj=box.dataset.issue?state.issues.find(i=>i.id===box.dataset.issue):state.events.find(x=>x.id===box.dataset.ev);
+  if(dd){const box=dd.closest("[data-done]");const obj=box.dataset.issue?state.issues.find(i=>i.id===box.dataset.issue):state.events.find(x=>x.id===box.dataset.ev);
     const v=await ask(`「${box.dataset.issue?obj.title:obj.name}」完成日期`,[{name:"d",label:"完成日期",type:"date",value:obj.doneAt||today()}]);
     if(v&&v.d){obj.doneAt=v.d;if(!box.dataset.issue)syncLink(obj);changed();toast("完成日期已更新")}return}
   /* weekly */
@@ -65,7 +64,7 @@ document.addEventListener("click",async e=>{
     return}
   /* 完成這一段：把這段的內容複製一份到完成紀錄，卡片留著進入下一段 */
   /* 會議要報告：只是標記，不算「更新」（不改燈號） */
-  const evRep=t.closest("[data-evrep]");if(evRep){const ev=evOf(evRep);ev.report=!ev.report;changed();toast(ev.report?"已標記會議要報告":"已取消報告標記");return}
+  const evRep=t.closest("[data-evrep]");if(evRep){const ev=evOf(evRep);mdFlip(MD.live,()=>{ev.report=!ev.report;changed()});toast(ev.report?"已標記會議要報告":"已取消報告標記");return}
   const evRound=t.closest("[data-evround]");
   if(evRound){const ev=evOf(evRound);
     const v=await ask(`完成「${ev.name}」第 ${ev.round} 段`,[
@@ -123,7 +122,7 @@ document.addEventListener("click",async e=>{
   const tg=t.closest("[data-tag]");if(tg){it.cur=+tg.dataset.tag;changed();return}
   if(t.closest("[data-addmarker]")){const tr=t.closest("[data-issue]").querySelector(".c-track");tr.scrollIntoView({behavior:"smooth",block:"center"});makePending(tr,schedPct(it)??50);toast("把虛線標記拖到想要的位置後放開");return}
 });
-document.addEventListener("toggle",e=>{const d=e.target;if(d.classList&&d.classList.contains("week")&&!d.classList.contains("closing")){openWeeks=openWeeks||new Set();d.open?openWeeks.add(d.dataset.week):openWeeks.delete(d.dataset.week)}if(d.classList&&d.classList.contains("done-item")){const id=d.dataset.issue||d.dataset.ev;d.open?openDone.add(id):openDone.delete(id)}if(d.classList&&d.classList.contains("ev")){d.open?openEv.add(d.dataset.ev):openEv.delete(d.dataset.ev)}},true);
+document.addEventListener("toggle",e=>{const d=e.target;if(d.classList&&d.classList.contains("week")&&!d.classList.contains("closing")){openWeeks=openWeeks||new Set();d.open?openWeeks.add(d.dataset.week):openWeeks.delete(d.dataset.week)}if(d.classList&&d.dataset.done){const id=d.dataset.issue||d.dataset.ev;d.open?openDone.add(id):openDone.delete(id)}if(d.classList&&d.classList.contains("ev")&&!d.dataset.done){d.open?openEv.add(d.dataset.ev):openEv.delete(d.dataset.ev)}},true);
 document.addEventListener("dblclick",async e=>{
   if(!editing)return;const tg=e.target.closest("[data-tag]");if(!tg)return;const it=findIssue(tg);const k=+tg.dataset.tag;
   const v=await ask("修改標籤",[{name:"t",label:"標籤名稱",value:it.tags[k]}]);if(v&&v.t){it.tags[k]=v.t;changed()}
@@ -136,7 +135,7 @@ document.addEventListener("input",e=>{
 });
 document.addEventListener("change",e=>{
   if(!editing)return;
-  if(e.target.matches("[data-donedate]")){const box=e.target.closest(".done-item");const obj=box.dataset.issue?state.issues.find(i=>i.id===box.dataset.issue):state.events.find(x=>x.id===box.dataset.ev);if(obj&&e.target.value){obj.doneAt=e.target.value;changed();toast("完成日期已更新")}return}const f=e.target.dataset.f;
+  if(e.target.matches("[data-donedate]")){const box=e.target.closest("[data-done]");const obj=box.dataset.issue?state.issues.find(i=>i.id===box.dataset.issue):state.events.find(x=>x.id===box.dataset.ev);if(obj&&e.target.value){obj.doneAt=e.target.value;changed();toast("完成日期已更新")}return}const f=e.target.dataset.f;
   if(f==="start"||f==="end")render();
 });
 ["rStart","rEnd"].forEach(id=>$("#"+id).addEventListener("change",e=>{const k=id==="rStart"?"start":"end";if(e.target.value){state.range[k]=e.target.value;if(state.range.end<state.range.start)state.range.end=state.range.start;changed()}}));
@@ -152,12 +151,12 @@ function evRoundDone(ev,done,next){
 }
 /* 右側詳情（編輯中）的欄位：名稱、說明邊打邊存；其他離開欄位或選完才存並重畫 */
 document.addEventListener("input",e=>{
-  const f=e.target.closest&&e.target.closest("#evDetail [data-evf]");if(!f||!editing)return;
+  const f=e.target.closest&&e.target.closest("#evDetail [data-evf]");if(!f||!secEd("live"))return;
   const ev=evOf(f);ev[f.dataset.evf]=f.value;evTouch(ev);paneDirty();
   if(f.dataset.evf==="name"){const c=document.querySelector(`#events [data-ev="${ev.id}"] summary b`);if(c)c.textContent=f.value;const h=$("#evDetail .evd-head b");if(h)h.textContent=f.value}
 });
 document.addEventListener("change",e=>{
-  const el=e.target;if(!editing||!el.closest||!el.closest("#evDetail"))return;
+  const el=e.target;if(!secEd("live")||!el.closest||!el.closest("#evDetail"))return;
   const ev=evOf(el);
   if(el.name==="evIssue"){ev.issueId=el.value||null;evTouch(ev);syncLink(ev);changed();toast(ev.issueId?`已連結到「${parentOf(ev).title}」`:"已取消連結");return}
   if(el.name==="staff"){ev.staff=[...document.querySelectorAll('#evDetail input[name="staff"]:checked')].map(x=>x.value);evTouch(ev);changed();return}
@@ -193,7 +192,7 @@ async function finishPending(it,at){
   if(v&&v.text){it.markers.push(applyMarker({id:uid("m"),at:Math.round(at)},v,it));changed()}else render();
 }
 document.addEventListener("pointerdown",e=>{
-  if(!editing||e.button>0)return;
+  if(!secEd("progress")||e.button>0)return;
   const m=e.target.closest("[data-marker]");
   if(m){e.preventDefault();const tr=m.closest("[data-track]");drag={m,tr,it:findIssue(m),id:m.dataset.marker,x0:e.clientX,moved:false,pending:m.classList.contains("pending"),pct:parseFloat(m.style.left)};m.setPointerCapture(e.pointerId);return}
   const tr=e.target.closest(".c-track");if(!tr)return;
@@ -242,8 +241,8 @@ document.addEventListener("keydown",e=>{if(e.key!=="Escape"||setOpen||$("#dlg").
    排序不算「更新」（不改狀態燈），存檔時跟其他修改一起上傳 */
 (()=>{
   let d=null,suppress=false;
-  const handle=t=>editing&&t.closest&&!t.closest("button,a,input,textarea,select,.csel")&&t.closest("#events>.ev>summary");
-  const rects=()=>new Map([...document.querySelectorAll("#events>.ev")].map(el=>[el,el.getBoundingClientRect()]));
+  const handle=t=>secEd("live")&&t.closest&&!t.closest("button,a,input,textarea,select,.csel")&&t.closest("#events .events>.ev>summary");
+  const rects=()=>new Map([...document.querySelectorAll("#events .events>.ev")].map(el=>[el,el.getBoundingClientRect()]));
   function begin(el,x,y){
     const r=el.getBoundingClientRect();
     d={el,ox:x-r.left,oy:y-r.top,x,y,on:true};
@@ -253,7 +252,7 @@ document.addEventListener("keydown",e=>{if(e.key!=="Escape"||setOpen||$("#dlg").
   }
   function move(x,y){
     if(!d||!d.on)return;d.x=x;d.y=y;const el=d.el;
-    const hit=[...document.querySelectorAll("#events>.ev")].find(o=>{if(o===el)return false;const r=o.getBoundingClientRect();return x>=r.left&&x<=r.right&&y>=r.top&&y<=r.bottom});
+    const hit=[...document.querySelectorAll("#events .events>.ev")].find(o=>{if(o===el||o.parentNode!==el.parentNode)return false;const r=o.getBoundingClientRect();return x>=r.left&&x<=r.right&&y>=r.top&&y<=r.bottom});
     if(hit&&performance.now()>(d.lock||0)){d.lock=performance.now()+220;   /* 剛換過位，讓位動畫跑一下再判斷，免得來回抖 */
       const list=[...el.parentNode.children],before=rects();
       if(list.indexOf(hit)>list.indexOf(el))hit.after(el);else hit.before(el);
@@ -273,7 +272,7 @@ document.addEventListener("keydown",e=>{if(e.key!=="Escape"||setOpen||$("#dlg").
     suppress=true;setTimeout(()=>suppress=false,0);
   }
   function commit(){
-    const ids=[...document.querySelectorAll("#events>.ev")].map(el=>el.dataset.ev),live=state.events.filter(e=>!e.doneAt);
+    const ids=[...document.querySelectorAll("#events .events>.ev")].map(el=>el.dataset.ev),live=state.events.filter(e=>!e.doneAt);
     if(ids.length!==live.length||ids.every((id,i)=>live[i].id===id))return;
     const by=new Map(live.map(e=>[e.id,e]));let k=0;
     state.events=state.events.map(e=>e.doneAt?e:by.get(ids[k++]));changed();

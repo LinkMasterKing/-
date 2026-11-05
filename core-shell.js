@@ -17,25 +17,25 @@ const SHELL_HTML=`<div class="pager" id="pager">
         </div>
       </header>
       <div class="hero-rule"><span class="hero-info"><span class="sub" id="saveInfo"></span></span><span class="actions"><span class="hero-btns" id="actions"></span><button type="button" class="week-btn" id="weekBtn">每週概述 <span aria-hidden="true">→</span></button></span></div>
-      <div class="banner"><span class="live-dot" aria-hidden="true"></span><b>編輯中</b><span class="sub">在進度條上按住拖曳新增註記 · 拖曳註記調整位置 · 點註記可修改 · 填開始／結束日的議題會出現在甘特圖 · 完成後按「儲存並定型」</span></div>
+      <div class="banner"><span class="live-dot" aria-hidden="true"></span><b>編輯中</b><span class="sub">按各區標題列的「編輯這區」開始修改那一區 · 一次改一區，換區時上一區自動收起 · 全部改完按「儲存並同步」</span></div>
 
-      <section class="panel follow-panel" id="followPanel" aria-labelledby="fwH" hidden>
-        <div class="panel-head"><h2 id="fwH">追蹤<span class="en">FOLLOW</span></h2></div>
+      <section class="panel follow-panel" id="followPanel" data-secbox="follow" aria-labelledby="fwH" hidden>
+        <div class="panel-head"><h2 id="fwH">追蹤<span class="en">FOLLOW</span></h2><button type="button" class="icon sec-edit-btn" data-secedit="follow" aria-pressed="false">編輯這區</button></div>
         <div class="follows" id="follows"></div>
         <button class="ghost edit-only add-row" id="addFollow">+ 追蹤項目</button>
       </section>
       <div class="layout">
-        <div class="sgroup" data-sec="live">
+        <div class="sgroup" data-sec="live" data-secbox="live">
           <section class="panel" id="livePanel" aria-labelledby="evH">
-            <div class="panel-head"><h2 id="evH">即時回報<span class="en">LIVE</span></h2><span class="ev-filter" id="evFilter" role="group" aria-label="篩選即時回報"></span></div>
-            <div class="md" id="liveMD"><div class="events" id="events"></div><div class="md-pane" id="evDetail" hidden></div></div>
+            <div class="panel-head"><h2 id="evH">即時回報<span class="en">LIVE</span></h2><button type="button" class="icon sec-edit-btn" data-secedit="live" aria-pressed="false">編輯這區</button></div>
+            <div class="md" id="liveMD"><div class="ev-zones" id="events"></div><div class="md-pane" id="evDetail" hidden></div></div>
           </section>
         </div>
 
-        <div class="sgroup" data-sec="progress">
+        <div class="sgroup" data-sec="progress" data-secbox="progress">
           <!-- 進度：甘特圖與個別議題合成一張卡片。預設看甘特圖；點議題列換成該議題的詳情，按返回回到甘特圖（views.js 的 progShow） -->
           <section class="panel" id="progPanel" aria-labelledby="ganttH">
-            <div class="panel-head"><h2 id="ganttH">時間甘特圖<span class="en">TIMELINE</span></h2></div>
+            <div class="panel-head"><h2 id="ganttH">時間甘特圖<span class="en">TIMELINE</span></h2><button type="button" class="icon sec-edit-btn" data-secedit="progress" aria-pressed="false">編輯這區</button></div>
             <div class="pv-page" id="pvGantt">
             <div class="legend" aria-label="圖例"><span><i class="lg-today" aria-hidden="true"></i>目前時間</span><span><i class="lg-line" style="--c:var(--prog-hi)" aria-hidden="true"></i>已過時程</span><span><i class="lg-rest" aria-hidden="true"></i>剩餘時程</span><span class="lg-hint">點議題列看詳情 · 左右滑動瀏覽月份</span></div>
             <div class="range">時間軸 <input type="month" id="rStart" aria-label="起始月份"> 到 <input type="month" id="rEnd" aria-label="結束月份"> <button class="icon" id="autoRange">依議題自動調整</button></div>
@@ -49,10 +49,10 @@ const SHELL_HTML=`<div class="pager" id="pager">
           </section>
         </div>
 
-        <div class="sgroup" data-sec="done">
+        <div class="sgroup" data-sec="done" data-secbox="done">
           <aside class="panel" id="donePanel" aria-labelledby="doneH">
-            <div class="panel-head"><h2 id="doneH">完成紀錄<span class="en">DONE</span><span class="count" id="doneCount">0</span></h2></div>
-            <div class="md" id="doneMD"><div class="scroll" id="doneList"></div><div class="md-pane" id="doneDetail" hidden></div></div>
+            <div class="panel-head"><h2 id="doneH">完成紀錄<span class="en">DONE</span><span class="count" id="doneCount">0</span></h2><button type="button" class="icon sec-edit-btn" data-secedit="done" aria-pressed="false">編輯這區</button></div>
+            <div class="md" id="doneMD"><div class="events scroll" id="doneList"></div><div class="md-pane" id="doneDetail" hidden></div></div>
           </aside>
         </div>
       </div>

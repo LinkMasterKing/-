@@ -187,7 +187,7 @@ function settingsInner(){
       setRow("year","cap","學年",esc(state.yearLabel||"未設定"))+setRow("term","flag","開學日",state.termStart?fmt(state.termStart):"未設定"))+
     setSec("雲端與分享",setRow("cloud","cloud","雲端同步",cloudOn()?`${esc(c.owner)}/${esc(c.repo)} · ${ghToken()?"這台裝置已連上":"這台裝置還沒有權杖"}`:"尚未設定")+
       setRow("share","share","分享預覽","貼連結到 LINE、IG、FB 時顯示的標題與說明"))+
-    setSec("匯出與備份",setRow("exportLocked","download","匯出定型版","唯讀的單一網頁檔，可以直接傳給別人看")+setRow("exportEdit","download","匯出備份","JSON 檔，之後可以再匯入")+
+    setSec("匯出與備份",setRow("exportEdit","download","匯出備份","JSON 檔，之後可以再匯入")+
       setRow("import","upload","匯入備份","用備份檔取代目前的看板內容")+setRow("report","doc","匯出工作報告","選期間、補寫內容，再存成 PDF"))+
     setSec("這台裝置",setRow("forget","device","忘記這台裝置",remName?`目前記住：${esc(remName)}（登入時勾選「在這個裝置上記住密碼」）`:"這台裝置沒有記住任何身分",!remName)))+
     `<section class="set-sec"><h3 class="set-h">安裝成 App</h3><p class="set-p">iPhone：用 Safari 打開 → 分享 → 加入主畫面。<br>Android／電腦：瀏覽器選單裡的「安裝」。</p></section>`;
@@ -203,7 +203,7 @@ function gateAnim(){
   sh.animate([{transform:"none",offset:0,easing:"cubic-bezier(.3,0,.2,1)"},{transform:"translateY(-8px)",offset:.24},{transform:"translateY(-8px)",offset:.56,easing:"cubic-bezier(.5,0,.8,.4)"},{transform:"translateY(1px)",offset:.68},{transform:"none",offset:.76},{transform:"none",offset:1}],o);
   bd.animate([{transform:"none",offset:0},{transform:"none",offset:.67},{transform:"translateY(1.5px)",offset:.71},{transform:"none",offset:.8},{transform:"none",offset:1}],o);
 }
-function renderSettings(){const el=$("#setOv .set-inner");if(el&&setOpen){el.innerHTML=settingsInner();gateAnim()}}
+function renderSettings(){const el=$("#setOv .set-inner");if(el&&setOpen){el.innerHTML=settingsInner();gateAnim();flowWatch()}}
 async function openSettings(){
   let ov=$("#setOv");
   if(!ov){document.body.insertAdjacentHTML("beforeend",`<div class="set-ov" id="setOv" role="dialog" aria-modal="true" aria-label="設定" hidden>${settingsHTML()}</div>`);ov=$("#setOv");
@@ -302,8 +302,7 @@ document.addEventListener("click",async e=>{
     await paneRun(k,SET_FLOWS[k]);return;
   }
   if(k==="forget"){forgetDevice();return}
-  if(k==="exportLocked"){exportHTML(true);return}
-  if(k==="exportEdit"){exportHTML(false);return}
+  if(k==="exportEdit"){exportBackup();return}
   if(k==="import"){$("#importFile").click();return}
 });
 document.addEventListener("keydown",e=>{

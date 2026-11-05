@@ -76,9 +76,9 @@ async function addFollow(){
 }
 document.addEventListener("click",async e=>{
   const t=e.target;if(!t.closest)return;
-  if(t.closest("#addFollow")){if(editing)await addFollow();return}
+  if(t.closest("#addFollow")){if(secEd("follow"))await addFollow();return}
   const del=t.closest("[data-fwdel]");
-  if(del&&editing){const id=del.closest("[data-fw]").dataset.fw;state.follows=state.follows.filter(f=>f.id!==id);changed();return}
+  if(del&&secEd("follow")){const id=del.closest("[data-fw]").dataset.fw;state.follows=state.follows.filter(f=>f.id!==id);changed();return}
 });
 if(CFG.follow){
   const refresh=()=>{fwCache.clear();renderFollows()};

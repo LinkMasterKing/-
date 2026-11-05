@@ -1,4 +1,4 @@
-/* 核心｜儲存、匯出定型版（單一檔打包）、雲端設定 */
+/* 核心｜儲存、匯出備份、雲端設定 */
 /* ---------- save / export ---------- */
 function selfDoc(){
   const reset=document.head.querySelector("style")?.textContent||"";
@@ -29,35 +29,11 @@ function save(){
   persist();
 }
 /* 匯出單一 HTML：把拆開的 CSS / JS / 設定檔全部打包回同一個檔案 */
-let bundleP=null;
-function bundleTemplate(){
-  if(bundleP)return bundleP;
-  return bundleP=(async()=>{
-    const doc=new DOMParser().parseFromString(TEMPLATE,"text/html");
-    const ext=[...doc.querySelectorAll("link[data-bundle],script[data-bundle]")];
-    for(const el of ext){
-      const url=el.getAttribute(el.tagName==="LINK"?"href":"src");
-      const r=await fetch(url,{cache:"no-cache"});if(!r.ok)throw new Error(url);
-      const txt=await r.text();
-      const n=doc.createElement(el.tagName==="LINK"?"style":"script");
-      n.setAttribute("data-src",url);
-      n.textContent=el.tagName==="LINK"?txt.replace(/<\/style/gi,"<\\/style"):txt.replace(/<\/script/gi,"<\\/script");
-      el.replaceWith(n);
-    }
-    return ext.length?"<!doctype html>\n"+doc.documentElement.outerHTML:TEMPLATE;
-  })().catch(e=>{bundleP=null;throw e});
-}
-async function exportHTML(locked){
-  const s=JSON.parse(JSON.stringify(state));s.locked=locked;if(!s.savedAt)s.savedAt=nowStr();
-  if(locked){delete s.pwKdf;delete s.pwHash;if(s.sync)delete s.sync.tokenEnc;s.members=(s.members||[]).map(m=>({id:m.id,name:m.name,role:m.role}))}
-  /* 定型版 = 單一 HTML（打開就能看）；備份 = JSON（只有資料，用「匯入備份」還原） */
-  const kind=locked?{mime:"text/html",ext:".html",desc:"HTML"}:{mime:"application/json",ext:".json",desc:"JSON"};
-  let doc;
-  if(!locked)doc=JSON.stringify(s,null,1);
-  else{let tpl;try{tpl=await bundleTemplate()}catch(e){toast("無法打包成單一檔案：請從網站（或本機伺服器）開啟後再匯出");return}
-  doc=tpl.replace(/(<script id="state" type="application\/json">)[\s\S]*?(<\/script>)/,(_,a,b)=>a+"\n"+JSON.stringify(s).replace(/</g,"\\u003c")+"\n"+b)}
-  const name=locked?`${(state.boardDate||today()).replaceAll("-",".")}.html`:`${state.title.replace(/[\\/:*?"<>|]/g,"_")}_備份_${today()}.json`;
-  const label=locked?"定型版":"備份";
+async function exportBackup(){
+  const s=JSON.parse(JSON.stringify(state));s.locked=false;if(!s.savedAt)s.savedAt=nowStr();
+  /* 備份 = JSON（只有資料，用「匯入備份」還原） */
+  const kind={mime:"application/json",ext:".json",desc:"JSON"},doc=JSON.stringify(s,null,1);
+  const name=`${state.title.replace(/[\\/:*?"<>|]/g,"_")}_備份_${today()}.json`,label="備份";
   if(HOSTED){
     const dl=await window.claude.use("downloads");
     if(dl){try{await dl.save({filename:name,data:new Blob([doc],{type:kind.mime})});toast(`已下載${label}`)}catch(e){if(e&&e.code!=="declined")toast("下載失敗："+(e&&e.code||""))}return}
