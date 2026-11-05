@@ -133,7 +133,9 @@ class LiquidSeg{
     const g=this.geo();if(!g.length||!this.box.offsetWidth)return;const s=this.s,l=this.lensEl,n=g.length;
     const it=(key)=>{const v=s.val.x,a=Math.max(0,Math.min(n-1,Math.floor(v))),b=Math.min(n-1,a+1),f=v-a;return g[a][key]+(g[b][key]-g[a][key])*f};
     const pos=it("x"),w=it("w"),v=s.vel.x/10,c=(x,lo,hi)=>Math.max(lo,Math.min(hi,x));
-    const ma=s.sx.x/(1-c(v*.75,-.2,.2)),cr=s.sy.x*(1-c(v*.25,-.2,.2));
+    /* 按下的放大改成固定像素（寬 +8、高 +6），鏡片一定留在玻璃框裡；這排常貼著內容邊緣，用工具列的比例會被捲動區切掉 */
+    const lh=l.offsetHeight||1,P=(s.sx.x-1)/(78/56-1),Q=(s.sy.x-1)/(78/56-1);
+    const ma=(w+8*P)/w/(1-c(v*.75,-.2,.2)),cr=(lh+6*Q)/lh*(1-c(v*.25,-.2,.2));
     l.style.width=w.toFixed(1)+"px";l.style.transform=`translateX(${(pos-w/2).toFixed(2)}px) scale(${ma.toFixed(4)},${cr.toFixed(4)})`;
     const lit=Math.round(c(s.val.x,0,n-1));this.btns().forEach((b,j)=>b.classList.toggle("lit",j===lit));
     const len=this.box.offsetWidth||1,fr=c(s.off.x/len,-1,1),ease=1-Math.pow(1-Math.abs(fr),2),po=4*Math.sign(fr)*ease,p=s.press.x;

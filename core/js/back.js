@@ -1,6 +1,6 @@
 /* 核心｜返回：系統返回鍵／返回手勢、邊緣滑動的預測返回動畫
    - 打開一層（每週概述、設定、編輯紀錄、工作報告）時推一筆瀏覽紀錄：按返回／系統返回手勢先關掉最上面那層，不會直接離開網站
-   - 觸控往右拖：最上面那層跟著手指縮小、右移、圓角變大（預測返回），底下的上一層露出來當預覽；放開過門檻就關掉，不到就彈回。
+   - （已停用，GESTURE=false）觸控往右拖：最上面那層跟著手指縮小、右移、圓角變大（預測返回），底下的上一層露出來當預覽；放開過門檻就關掉，不到就彈回。
      有一層開著時，從畫面左半邊任何地方開始都可以（安卓手勢導航會把最邊緣留給系統）；沒有任何一層時只認左邊緣，在看板上這樣拖＝回各部門總覽（home.html）
    - 系統返回鍵／系統返回手勢：網頁拿不到系統手勢的進度，所以放開後補播同一個收尾動畫（縮小、右移、淡出，露出上一層）再關
    - 瀏覽器自己做了返回動畫（iOS Safari 邊緣滑動等，popstate 的 hasUAVisualTransition），就直接關、不再播一次 */
@@ -36,8 +36,11 @@ const Back=(()=>{
   /* 用 touch 事件：要在 touchmove 裡 preventDefault，才擋得住頁面本身的左右捲動（主頁本來可以滑到每週概述） */
   let g=null;
   const pt=e=>e.changedTouches[0];
+  /* 2026-11-05 使用者決定：手機上取消「手指往右拖返回」的預測返回手勢（GESTURE=false）。
+     返回改由系統返回鍵／系統手勢、各層的「關閉」鈕處理（收尾動畫照舊，見 popstate 與 Anim.backOut）。程式保留，要恢復把 GESTURE 改成 true */
+  const GESTURE=false;
   addEventListener("touchstart",e=>{
-    g=null;if(e.touches.length!==1||RM())return;const t=e.touches[0];
+    g=null;if(!GESTURE||e.touches.length!==1||RM())return;const t=e.touches[0];
     const top=stack[stack.length-1];
     /* 安卓手勢導航會把螢幕最邊緣留給系統（網頁收不到），所以有一層開著時，從畫面左半邊任何地方往右拖都可以；
        在輸入框、可以左右捲的區塊、切換鈕上按下的不算，免得搶走原本的操作 */
