@@ -1,0 +1,4 @@
+# 測試產生的檔案（截圖、PDF、文字報告）不放進 repo
+tools/tests/*.png
+tools/tests/*.pdf
+tools/tests/*_report.txt
