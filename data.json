@@ -3,7 +3,7 @@
  "id": "board-main",
  "title": "權益部工作進度",
  "locked": false,
- "savedAt": "2026-11-05 17:37",
+ "savedAt": "2026-11-05 19:09",
  "range": {
   "start": "2026-09",
   "end": "2027-09"
@@ -226,14 +226,17 @@
   {
    "id": "emvpcssozjfv1",
    "name": "臺學聯",
-   "desc": "・個人收到工作小組加入邀請。\n・理事詢問本校加入意願，待本會裁示。\n\n婉轉堆辭",
+   "desc": "・個人收到工作小組加入邀請。\n・理事詢問本校加入意願，待本會裁示。",
    "doneAt": "2026-10-27",
    "staff": [],
    "links": [],
    "times": [],
    "round": 1,
-   "touched": [],
-   "report": false
+   "touched": [
+    "2026-11-05"
+   ],
+   "report": false,
+   "touchedAt": "2026-11-05T18:51"
   },
   {
    "id": "emvpd2q3bes2i",
