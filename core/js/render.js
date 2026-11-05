@@ -39,7 +39,7 @@ function render(){
     document.body.classList.toggle("locked",!!state.locked);
     renderHeader();renderTabbar();renderSections();renderSecEdit();renderWeeks();renderGantt();renderEvents();renderCards();renderDone();renderFollows();renderMeet();layoutAll();flowWatch();
   }finally{rendering=false}
-  Anim.play(flip);
+  Anim.play(flip);Anim.syncPings();
 }
 
 /* ---------- 區塊切換：底部工具列的三個分頁 ----------

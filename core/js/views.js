@@ -315,6 +315,7 @@ function renderEvents(){
   const zone=(k,h,list,tail)=>`<div class="ev-zone" data-zone="${k}">${h?`<div class="ev-zone-h">${h}<span class="num">${list.length}</span></div>`:""}<div class="events">${list.length?list.map(cap).join(""):h?"":empty}${tail}</div></div>`;
   $("#events").innerHTML=rep.length?zone("rep","會議報告事項",rep,"")+"\n      "+zone("rest","其他回報",rest,addBtn):zone("rest","",live,addBtn);
   if(md){pane.innerHTML=evDetailHTML(live.find(e=>e.id===selEv));pane.hidden=false}else{pane.innerHTML="";pane.hidden=true}
+  Anim.syncPings();
 }
 
 /* 完成紀錄：一般是可展開的清單；桌面放大成全寬時（mdOn）改成左側清單、右側詳情 */
@@ -352,7 +353,7 @@ function renderDone(){
     pane.innerHTML=`<div class="evd" data-st="done" data-done="${x.id}" ${x.attr}><div class="evd-head"><span class="live-dot" aria-hidden="true"></span><b>${x.title}</b>${mdStepHTML("done",items.map(y=>y.id),x.id)}<button type="button" class="icon md-close" data-mdclose="done" aria-label="收起右側">${ico("close")}收起</button></div>
       <p class="ev-meta">${x.sub}</p><div class="done-body">${x.body}</div></div>`;pane.hidden=false;
   }else{pane.innerHTML="";pane.hidden=true}
-  prevDone=ids;
+  prevDone=ids;Anim.syncPings();
 }
 /* 左右兩欄時換選一筆：右側內容淡入（完成紀錄與個別進度共用） */
 function mdPaneIn(el){if(el&&!reduceMotion())el.animate([{opacity:0,transform:"translateX(14px)"},{opacity:1,transform:"none"}],{duration:280,easing:"cubic-bezier(.2,.9,.25,1)"})}

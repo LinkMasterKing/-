@@ -83,8 +83,8 @@ function openReport(from,to){
 function closeReport(instant){
   const ov=$("#rptOv");if(!ov)return;rptOpen=false;Back.closed("report");if(ov._paraOff)ov._paraOff();
   const done=()=>{ov.remove();if(!$("#rptOv"))document.body.classList.remove("rpt-open")};
-  if(instant||reduceMotion())return done();
-  ov.animate([{transform:"none",opacity:1},{transform:"translateX(28px)",opacity:0}],{duration:220,easing:"cubic-bezier(.4,0,1,1)"}).onfinish=done;
+  if(instant)return done();
+  Anim.backOut(ov,done);   /* 跟返回手勢同一個收尾 */
 }
 function rptAdd(){
   const p=$("#rptOv .rpt-paper");if(!p)return;

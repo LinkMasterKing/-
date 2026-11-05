@@ -6,7 +6,7 @@
      注意：各部門資料檔放在公開 repo 時，任何人本來就讀得到；這裡沒有多公開任何東西。
    - 行事曆：事件清單在月曆上方；每天的格子只畫顏色條（不寫字，全會時顏色依部門、本部門時依類別）；
      點清單裡的一件事＝月曆換到那個月、捲到那天，那天（或整個時段）閃兩下；點某一天＝清單只留那天的事，再點一次取消。 */
-let notiOpen=false;
+let notiOpen=false,notiSeg=null;
 const NOTI={scope:"mine",month:null,day:null,all:null,loading:false};
 const NOTI_KIND={time:{t:"即時回報",c:"var(--ink)"},start:{t:"議題開始",c:"var(--prog-hi)"},end:{t:"議題結束",c:"var(--red)"},marker:{t:"註記",c:"var(--su-blue)"}};
 const DEPT_COLORS=["#e0342a","#0a5baa","#f0bc23","#2f8f84","#a24fc0","#d84f92","#c26a12","#3d7fe0","#6b6b75"];
@@ -69,8 +69,7 @@ function notiInner(){
   const legend=NOTI.scope==="all"
     ?(window.BOARD_DEPTS||[]).map(d=>`<span><i style="--c:${deptColor(d.id)}"></i>${esc(d.name)}</span>`).join("")
     :Object.values(NOTI_KIND).map(k=>`<span><i style="--c:${k.c}"></i>${k.t}</span>`).join("");
-  return `<div class="noti-seg seg" role="tablist" aria-label="範圍">${[["mine",CFG.dept.name||"本部門"],["all","全會"]].map(([k,n])=>`<button type="button" role="tab" data-nscope="${k}" aria-selected="${NOTI.scope===k}">${esc(n)}</button>`).join("")}</div>
-    ${NOTI.scope==="all"?`<p class="sub noti-note">${NOTI.loading?"讀取各部門資料中…":"全會：讀各部門的資料檔，只能看、不能改。"}</p>`:""}
+  return `    ${NOTI.scope==="all"?`<p class="sub noti-note">${NOTI.loading?"讀取各部門資料中…":"全會：讀各部門的資料檔，只能看、不能改。"}</p>`:""}
     <div class="noti-days">${notiDayHTML("今日",t,list)}${notiDayHTML("明日",addDays(t,1),list)}</div>
     <section class="noti-cal">
       <div class="cal-top"><button type="button" class="icon" data-nmon="-1" aria-label="上個月">${ico("prev","solo")}</button><b class="num">${m.slice(0,4)} 年 ${+m.slice(5)} 月</b><button type="button" class="icon" data-nmon="1" aria-label="下個月">${ico("next","solo")}</button>
@@ -82,19 +81,21 @@ function notiInner(){
 }
 function renderNoti(){
   const el=$("#notiOv .noti-inner");if(!el||!notiOpen)return;
-  const snap=Anim.capture();el.innerHTML=notiInner();Anim.play(snap);flowWatch();el.querySelectorAll(".seg").forEach(Anim.segPlace);
+  const snap=Anim.capture();el.innerHTML=notiInner();Anim.play(snap);flowWatch();
 }
 /* ---------- 開關 ---------- */
 function openNoti(){
   let ov=$("#notiOv");
   if(!ov){document.body.insertAdjacentHTML("beforeend",`<div class="set-ov noti-ov" id="notiOv" role="dialog" aria-modal="true" aria-label="通知" hidden>
       <div class="anim-top"><div class="anim-title"><span class="anim-k">NOTICE</span><b>通知與行事曆</b></div><div class="anim-ctl"><button type="button" id="notiClose" aria-label="關閉通知">${ico("close")}關閉</button></div></div>
-      <div class="set-body"><div class="set-scroll"><div class="noti-inner" data-flow></div></div></div></div>`);ov=$("#notiOv");
+      <div class="set-body"><div class="set-scroll"><div class="noti-bar"><div class="noti-seg lseg" role="tablist" aria-label="範圍"><span class="lseg-lens" aria-hidden="true"></span>${[["mine",CFG.dept.name||"本部門"],["all","全會"]].map(([k,t])=>`<button type="button" role="tab" data-k="${k}" aria-selected="${NOTI.scope===k}">${esc(t)}</button>`).join("")}</div></div><div class="noti-inner" data-flow></div></div></div></div>`);ov=$("#notiOv");
+    /* 本部門／全會：液態分段切換（anim.js 的 LiquidSeg，跟底部工具列同一套）。放在 .noti-inner 外面，重畫內容時不會被換掉、動畫不會被打斷 */
+    notiSeg=new LiquidSeg(ov.querySelector(".noti-seg"),{onPick:k=>{NOTI.scope=k;NOTI.day=null;if(k==="all"&&!NOTI.all)notiLoadAll();else renderNoti()}});
     elastic(ov.querySelector(".set-scroll"),ov.querySelector(".noti-inner"))}
   if(notiOpen)return;
   if(setOpen)closeSettings(true);
-  notiOpen=true;NOTI.month=today().slice(0,7);NOTI.day=null;ov.hidden=false;Back.layers.noti();document.body.classList.add("set-open");
-  renderNoti();Anim.enter(ov,"rise",{duration:380});
+  notiOpen=true;NOTI.month=today().slice(0,7);NOTI.day=null;ov.getAnimations().forEach(a=>a.cancel());ov.hidden=false;Back.layers.noti();document.body.classList.add("set-open");
+  renderNoti();requestAnimationFrame(()=>notiSeg.set(NOTI.scope,true));Anim.enter(ov,"rise",{duration:380});
   if(NOTI.scope==="all")notiLoadAll();
 }
 function closeNoti(instant){
@@ -102,7 +103,7 @@ function closeNoti(instant){
   notiOpen=false;Back.closed("noti");
   const done=()=>{if(!notiOpen){ov.hidden=true;ov.getAnimations().forEach(a=>a.cancel());if(!setOpen)document.body.classList.remove("set-open")}};
   if(instant)return done();
-  Anim.leave(ov,"rise",{duration:220}).then(done);
+  Anim.backOut(ov,done);   /* 跟返回手勢同一個收尾 */
 }
 async function notiLoadAll(){
   NOTI.loading=true;renderNoti();
@@ -129,8 +130,6 @@ document.addEventListener("click",e=>{
   if(t.closest("#notiBtn")){notiOpen?closeNoti():openNoti();return}
   if(!notiOpen||!t.closest("#notiOv"))return;
   if(t.closest("#notiClose")){closeNoti();return}
-  const sc=t.closest("[data-nscope]");if(sc){if(NOTI.scope===sc.dataset.nscope)return;NOTI.scope=sc.dataset.nscope;NOTI.day=null;
-    Anim.seg(sc.parentElement,sc).then(()=>{if(NOTI.scope==="all"&&!NOTI.all)notiLoadAll();else renderNoti()});return}   /* 鏡片先滑過去，再換內容 */
   const mo=t.closest("[data-nmon]");if(mo){const k=+mo.dataset.nmon,d=pd(NOTI.month+"-01");if(k)d.setMonth(d.getMonth()+k);const nm=k?ym(d):today().slice(0,7);if(nm===NOTI.month)return;
     NOTI.day=null;notiMonth(nm,k<0?-1:1);return}
   if(t.closest("[data-nday]")){NOTI.day=null;renderNoti();return}

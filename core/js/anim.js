@@ -15,7 +15,7 @@
    時間與曲線一律用 MO（CSS 同名變數 --mo-*，board.css 開頭）：
      fast 160ms（退場、小東西）｜base 280ms（淡入、換內容）｜slow 460ms（位置移動）｜layout 560ms（區塊放大、展開）
      out＝減速（進場、移動）｜in＝加速（退場）｜spring＝略帶回彈（彈出、放下）
-   分段切換（.seg）：鏡片滑過去、途中拉長略扁、到位回彈，見 Anim.seg。
+   分段切換：用 LiquidSeg（本檔最後），跟底部工具列同一套鏡片物理與外觀。
    減少動態（prefers-reduced-motion）時全部直接跳到結果。
    不做的情況：膠囊正在展開收合（motion-busy）、左右兩欄正在開合（mdBusy）、拖曳排序中、分頁在背景、開頁進場中。 */
 const MO={fast:160,base:280,slow:460,layout:560,out:"cubic-bezier(.2,.9,.25,1)",in:"cubic-bezier(.4,0,1,1)",spring:"cubic-bezier(.3,1.3,.5,1)"};
@@ -88,31 +88,90 @@ const Anim=(()=>{
   /* 顯示／隱藏（hidden 屬性）也有過渡 */
   async function show(el,kind="rise"){if(!el)return;el.hidden=false;return enter(el,kind)}
   async function hide(el,kind="fade"){if(!el||el.hidden)return;await leave(el,kind);el.hidden=true;el.getAnimations().forEach(a=>a.cancel())}
-  /* ---------- 分段切換（.seg：一排 role="tab" 的按鈕） ----------
-     跟底部工具列同一種感覺：實心鏡片（.seg-lens）在選到的那顆底下；換選時鏡片滑過去，
-     途中沿移動方向拉長、上下略扁，到位時輕輕回彈；按住時鏡片略放大。
-     segPlace：重畫後把鏡片放到選到的那顆（沒有動畫）；seg：換選並播動畫，動畫結束才 resolve */
-  function segPlace(box){
-    if(!box)return;let l=box.querySelector(":scope>.seg-lens");
-    if(!l){l=document.createElement("span");l.className="seg-lens";l.setAttribute("aria-hidden","true");box.prepend(l)}
-    const on=box.querySelector('[role="tab"][aria-selected="true"]');if(!on)return;
-    l.style.left=on.offsetLeft+"px";l.style.width=on.offsetWidth+"px";
+  /* 燈號擴散（CSS 動畫 ping）：重畫後新的燈號會從頭播，跟原本的節奏對不上、看起來像跳一下。
+     把每個 ping 動畫的起點都對齊到頁面時間軸 0，重畫前後相位一樣，所有燈號也同步 */
+  function syncPings(){if(reduced())return;try{document.getAnimations().forEach(x=>{if(x.animationName==="ping"&&x.startTime!==0&&x.playState==="running")x.startTime=0})}catch(_){}}
+  /* 返回收尾（跟預測返回手勢同一個樣子）：這一層縮小、右移、圓角變大、淡出，底下的上一層露出來。
+     系統返回、各層的「關閉」鈕都用它；動畫播完先 done()（藏起來或移除），再把樣式還原 */
+  function backOut(el,done){
+    if(!el||reduced()){done&&done();return Promise.resolve()}
+    const keep={o:el.style.transformOrigin,v:el.style.overflow};el.style.transformOrigin="100% 50%";el.style.overflow="hidden";
+    const a=el.animate([{transform:"none",borderRadius:"0px",opacity:1},{transform:"translateX(4vw) scale(.95)",borderRadius:"24px",opacity:1,offset:.4},{transform:"translateX(22vw) scale(.86)",borderRadius:"32px",opacity:0}],{duration:380,easing:"cubic-bezier(.3,0,.2,1)",fill:"forwards"});
+    return a.finished.catch(()=>{}).then(()=>{done&&done();a.cancel();el.style.transformOrigin=keep.o;el.style.overflow=keep.v});
   }
-  function seg(box,to){
-    const from=box.querySelector('[role="tab"][aria-selected="true"]');
-    const pick=()=>box.querySelectorAll('[role="tab"]').forEach(b=>b.setAttribute("aria-selected",b===to));
-    segPlace(box);const l=box.querySelector(":scope>.seg-lens");
-    if(!l||!from||from===to||reduced()){pick();segPlace(box);return Promise.resolve()}
-    const a={x:from.offsetLeft,w:from.offsetWidth},b={x:to.offsetLeft,w:to.offsetWidth};
-    l.style.left=b.x+"px";l.style.width=b.w+"px";
-    const L=Math.min(a.x,b.x),R=Math.max(a.x+a.w,b.x+b.w),mw=(R-L)*.78,mx=(a.x+b.x)/2+(a.w+b.w)/4-mw/2;
-    const k=(x,w,sy)=>({transform:`translateX(${(x-b.x).toFixed(1)}px) scale(${(w/b.w).toFixed(3)},${sy})`});
-    const D=580;setTimeout(pick,D*.42);   /* 字色在鏡片滑過一半時才換（跟工具列一樣，反白跟著鏡片走） */
-    return l.animate([{...k(a.x,a.w,1),easing:"cubic-bezier(.35,0,.65,1)"},{...k(mx,mw,.86),offset:.38,easing:"cubic-bezier(.25,.75,.35,1.18)"},k(b.x,b.w,1)],{duration:D}).finished.catch(()=>{}).then(pick);
-  }
-  /* 按住：鏡片略放大（跟工具列按下一樣），放開還原 */
-  document.addEventListener("pointerdown",e=>{const t=e.target.closest&&e.target.closest('.seg [role="tab"][aria-selected="true"]');if(!t||reduced())return;
-    const l=t.parentElement.querySelector(":scope>.seg-lens");if(!l)return;const p=l.animate([{scale:1},{scale:1.08}],{duration:160,easing:MO.out,fill:"forwards"});
-    addEventListener("pointerup",()=>{p.cancel();l.animate([{scale:1.08},{scale:1}],{duration:320,easing:MO.spring})},{once:true})},{passive:true});
-  return {capture,play,enter,leave,swap,show,hide,lift,drop,seg,segPlace};
+  return {capture,play,enter,leave,swap,show,hide,lift,drop,syncPings,backOut};
 })();
+
+/* ---------- 液態分段切換 LiquidSeg（2026-11-05） ----------
+   跟底部工具列（nav.js）同一套：毛玻璃底（.glass）、實心鏡片、鏡片底下那一格反白（.lit，跟著鏡片走不是跟著選取）。
+   物理參數照工具列（Convx）：按下鏡片放大 78/56（主軸 .6／250、側軸 .7／250）、移動時依速度沿主軸拉伸、
+   整列按下時放大、拖曳時整列跟著偏最多 4px、白光（--hp／--hx）；只有按在鏡片那一格才能拖，放開吸到最近的一格；
+   點別格＝按下 → 移過去 → 接近目標或 400ms 後放開。
+   用法：new LiquidSeg(box,{onPick:k=>…})；box 裡放 <span class="lseg-lens"> 和一排 button[data-k]（role="tab"）；
+   程式改選取用 seg.set(k)（instant＝不播動畫）。只有橫向（要直向時照 nav.js 的 isRail 加）。spring／sprStep 在 nav.js。 */
+class LiquidSeg{
+  constructor(box,{onPick}={}){
+    this.box=box;this.onPick=onPick;this.lensEl=box.querySelector(".lseg-lens");
+    this.s={val:spring(0,1,1000),press:spring(0,1,1000),sx:spring(1,.6,250),sy:spring(1,.7,250),vel:spring(0,.5,300),off:spring(0,1,300),hl:spring(0,.5,300)};
+    this.drag=null;this.raf=0;this.last=0;this.releasing=false;this.releaseAt=0;this.cur=0;this.suppress=false;
+    glassify(box);this.bind();
+    const on=this.btns().findIndex(b=>b.getAttribute("aria-selected")==="true");this.set(on<0?0:on,true);
+    addEventListener("resize",()=>this.set(this.cur,true));document.fonts?.ready.then(()=>this.set(this.cur,true));
+  }
+  btns(){return [...this.box.querySelectorAll("[data-k]")]}
+  geo(){const bs=this.btns();return bs.map(b=>({x:b.offsetLeft+b.offsetWidth/2,w:b.offsetWidth,k:b.dataset.k}))}
+  set(i,instant){
+    if(typeof i==="string")i=this.btns().findIndex(b=>b.dataset.k===i);if(i<0)return;this.cur=i;
+    this.btns().forEach((b,j)=>b.setAttribute("aria-selected",j===i));
+    if(instant||matchMedia("(prefers-reduced-motion: reduce)").matches||!this.box.offsetWidth){Object.values(this.s).forEach(x=>sprSnap(x,x===this.s.val?i:(x===this.s.sx||x===this.s.sy?1:0)));this.frame();return}
+    if(this.s.val.t!==i&&!this.drag){this.s.val.t=i;this.pressOn();this.release()}   /* 點別格：按下 → 移過去 → 放開 */
+    this.kick();
+  }
+  pressOn(){if(matchMedia("(prefers-reduced-motion: reduce)").matches)return;const s=this.s;s.press.t=1;s.sx.t=78/56;s.sy.t=78/56;this.releasing=false}
+  release(){this.releasing=true;this.releaseAt=performance.now()}
+  frame(){
+    const g=this.geo();if(!g.length||!this.box.offsetWidth)return;const s=this.s,l=this.lensEl,n=g.length;
+    const it=(key)=>{const v=s.val.x,a=Math.max(0,Math.min(n-1,Math.floor(v))),b=Math.min(n-1,a+1),f=v-a;return g[a][key]+(g[b][key]-g[a][key])*f};
+    const pos=it("x"),w=it("w"),v=s.vel.x/10,c=(x,lo,hi)=>Math.max(lo,Math.min(hi,x));
+    const ma=s.sx.x/(1-c(v*.75,-.2,.2)),cr=s.sy.x*(1-c(v*.25,-.2,.2));
+    l.style.width=w.toFixed(1)+"px";l.style.transform=`translateX(${(pos-w/2).toFixed(2)}px) scale(${ma.toFixed(4)},${cr.toFixed(4)})`;
+    const lit=Math.round(c(s.val.x,0,n-1));this.btns().forEach((b,j)=>b.classList.toggle("lit",j===lit));
+    const len=this.box.offsetWidth||1,fr=c(s.off.x/len,-1,1),ease=1-Math.pow(1-Math.abs(fr),2),po=4*Math.sign(fr)*ease,p=s.press.x;
+    this.box.style.transform=po?`translateX(${po.toFixed(2)}px)`:"";this.box.style.scale=p>.0005?(1+12/len*p).toFixed(4):"";
+    this.box.style.setProperty("--ts",(1+.12*p).toFixed(4));this.box.style.setProperty("--hp",s.hl.x.toFixed(4));this.box.style.setProperty("--hx",(pos+po).toFixed(1)+"px");
+  }
+  loop(now){
+    const s=this.s,all=Object.values(s),dt=Math.min(1/30,Math.max(1/240,(now-(this.last||now))/1000||1/60));this.last=now;
+    if(!this.drag)all.forEach(x=>sprStep(x,dt));else{[s.press,s.sx,s.sy,s.hl].forEach(x=>sprStep(x,dt));if(now-this.drag.t>80)sprSnap(s.vel,0)}
+    if(this.releasing){const n=Math.max(1,this.btns().length-1);if(Math.abs(s.val.x-s.val.t)<n*.025||now-this.releaseAt>400){this.releasing=false;s.vel.t=0;s.press.t=0;s.sx.t=1;s.sy.t=1}}
+    this.frame();
+    if(this.drag||this.releasing||!all.every(x=>sprDone(x,.0008))){this.raf=requestAnimationFrame(t=>this.loop(t));return}
+    all.forEach(x=>sprSnap(x,x.t));this.frame();this.raf=0;this.last=0;
+  }
+  kick(){if(!this.raf){this.last=0;this.raf=requestAnimationFrame(t=>this.loop(t))}}
+  bind(){
+    const box=this.box,s=this.s;let lastX=0,lastT=0,lastV=0;
+    box.addEventListener("click",e=>{if(this.suppress){e.stopPropagation();e.preventDefault();return}
+      const b=e.target.closest("[data-k]");if(!b)return;const i=this.btns().indexOf(b);if(i===this.cur)return;this.set(i);this.onPick&&this.onPick(b.dataset.k)},true);
+    box.addEventListener("pointerdown",e=>{
+      if(e.button>0||this.drag||!e.target.closest("[data-k]"))return;
+      const g=this.geo(),r=box.getBoundingClientRect(),slot=g.length>1?Math.abs(g[1].x-g[0].x):box.offsetWidth;
+      const n=g.length,v=s.val.x,a=Math.max(0,Math.min(n-1,Math.floor(v))),b=Math.min(n-1,a+1),lp=g[a].x+(g[b].x-g[a].x)*(v-a);
+      if(Math.abs(e.clientX-r.left-lp)>slot/2)return;   /* 只有按在鏡片那一格才能拖 */
+      this.drag={id:e.pointerId,x:e.clientX,moved:false,slot,n,t:performance.now()};lastX=e.clientX;lastT=performance.now();lastV=s.val.x;
+      try{box.setPointerCapture(e.pointerId)}catch(_){}
+      this.pressOn();s.hl.t=matchMedia("(prefers-reduced-motion: reduce)").matches?0:1;this.kick();
+    });
+    box.addEventListener("pointermove",e=>{
+      const d=this.drag;if(!d||e.pointerId!==d.id)return;if(e.pointerType==="mouse"&&e.buttons===0){end();return}
+      const dx=e.clientX-d.x;d.x=e.clientX;if(!dx)return;if(Math.abs(e.clientX-lastX)>2||d.moved)d.moved=true;
+      sprSnap(s.val,Math.max(0,Math.min(d.n-1,s.val.x+dx/d.slot)));sprSnap(s.off,s.off.x+dx);
+      const now=performance.now(),dt=Math.max(8,now-lastT)/1000;sprSnap(s.vel,(s.val.x-lastV)/dt/Math.max(1,d.n-1));lastV=s.val.x;lastT=now;d.t=now;lastX=e.clientX;this.kick();
+    });
+    const end=()=>{const d=this.drag;if(!d)return;this.drag=null;
+      if(d.moved){this.suppress=true;setTimeout(()=>this.suppress=false,80)}
+      const i=Math.round(Math.max(0,Math.min(d.n-1,s.val.x)));s.vel.t=s.vel.x;s.off.t=0;s.hl.t=0;s.val.t=i;this.release();this.kick();
+      if(i!==this.cur){this.cur=i;this.btns().forEach((b,j)=>b.setAttribute("aria-selected",j===i));this.onPick&&this.onPick(this.btns()[i].dataset.k)}};
+    box.addEventListener("pointerup",end);box.addEventListener("pointercancel",end);box.addEventListener("lostpointercapture",e=>{if(e.target===box)end()});
+  }
+}
