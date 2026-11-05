@@ -91,7 +91,15 @@ const Anim=(()=>{
   /* 燈號擴散（CSS 動畫 ping）：重畫後新的燈號會從頭播，跟原本的節奏對不上、看起來像跳一下。
      把每個 ping 動畫的起點都對齊到頁面時間軸 0，重畫前後相位一樣，所有燈號也同步 */
   function syncPings(){if(reduced())return;try{document.getAnimations().forEach(x=>{if(x.animationName==="ping"&&x.startTime!==0&&x.playState==="running")x.startTime=0})}catch(_){}}
-  return {capture,play,enter,leave,swap,show,hide,lift,drop,syncPings};
+  /* 返回收尾（跟預測返回手勢同一個樣子）：這一層縮小、右移、圓角變大、淡出，底下的上一層露出來。
+     系統返回、各層的「關閉」鈕都用它；動畫播完先 done()（藏起來或移除），再把樣式還原 */
+  function backOut(el,done){
+    if(!el||reduced()){done&&done();return Promise.resolve()}
+    const keep={o:el.style.transformOrigin,v:el.style.overflow};el.style.transformOrigin="100% 50%";el.style.overflow="hidden";
+    const a=el.animate([{transform:"none",borderRadius:"0px",opacity:1},{transform:"translateX(4vw) scale(.95)",borderRadius:"24px",opacity:1,offset:.4},{transform:"translateX(22vw) scale(.86)",borderRadius:"32px",opacity:0}],{duration:380,easing:"cubic-bezier(.3,0,.2,1)",fill:"forwards"});
+    return a.finished.catch(()=>{}).then(()=>{done&&done();a.cancel();el.style.transformOrigin=keep.o;el.style.overflow=keep.v});
+  }
+  return {capture,play,enter,leave,swap,show,hide,lift,drop,syncPings,backOut};
 })();
 
 /* ---------- 液態分段切換 LiquidSeg（2026-11-05） ----------

@@ -94,7 +94,7 @@ function openNoti(){
     elastic(ov.querySelector(".set-scroll"),ov.querySelector(".noti-inner"))}
   if(notiOpen)return;
   if(setOpen)closeSettings(true);
-  notiOpen=true;NOTI.month=today().slice(0,7);NOTI.day=null;ov.hidden=false;Back.layers.noti();document.body.classList.add("set-open");
+  notiOpen=true;NOTI.month=today().slice(0,7);NOTI.day=null;ov.getAnimations().forEach(a=>a.cancel());ov.hidden=false;Back.layers.noti();document.body.classList.add("set-open");
   renderNoti();requestAnimationFrame(()=>notiSeg.set(NOTI.scope,true));Anim.enter(ov,"rise",{duration:380});
   if(NOTI.scope==="all")notiLoadAll();
 }
@@ -103,7 +103,7 @@ function closeNoti(instant){
   notiOpen=false;Back.closed("noti");
   const done=()=>{if(!notiOpen){ov.hidden=true;ov.getAnimations().forEach(a=>a.cancel());if(!setOpen)document.body.classList.remove("set-open")}};
   if(instant)return done();
-  Anim.leave(ov,"rise",{duration:220}).then(done);
+  Anim.backOut(ov,done);   /* 跟返回手勢同一個收尾 */
 }
 async function notiLoadAll(){
   NOTI.loading=true;renderNoti();

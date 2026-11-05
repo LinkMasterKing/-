@@ -279,6 +279,8 @@ function openLog(host){
   renderLog();loadLog();$("#logClose").focus();
   return new Promise(r=>logDone=r);
 }
-function closeLog(){const ov=$("#logOv");if(!ov||ov.hidden)return;if(!ov.classList.contains("in-pane"))Back.closed("log");const done=()=>{ov.hidden=true;document.body.classList.remove("log-open");if(logDone){logDone();logDone=null}};
-  if(reduceMotion())return done();const a=ov.animate([{opacity:1},{opacity:0,transform:"translateY(10px)"}],{duration:200,easing:"ease-in"});a.onfinish=done}
+function closeLog(instant){const ov=$("#logOv");if(!ov||ov.hidden)return;if(!ov.classList.contains("in-pane"))Back.closed("log");const done=()=>{ov.hidden=true;document.body.classList.remove("log-open");if(logDone){logDone();logDone=null}};
+  if(instant===true||reduceMotion())return done();
+  if(!ov.classList.contains("in-pane")){Anim.backOut(ov,done);return}   /* 獨立一層（手機）：跟返回手勢同一個收尾；設定頁右側面板裡的照舊淡出 */
+  const a=ov.animate([{opacity:1},{opacity:0,transform:"translateY(10px)"}],{duration:200,easing:"ease-in"});a.onfinish=done}
 document.addEventListener("keydown",e=>{if(e.key==="Escape"&&$("#logOv")&&!$("#logOv").hidden&&!$("#dlg").open)closeLog()});

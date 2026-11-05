@@ -22,9 +22,7 @@ const Back=(()=>{
     /* 系統返回鍵／系統返回手勢（沒有經過我們的拖曳、瀏覽器也沒自己做動畫）：補播一次預測返回的收尾——
        這一層縮小、右移、圓角變大、淡出，底下的上一層（就是返回後的畫面）跟著露出來，再真的關掉 */
     if(!g2&&!e.hasUAVisualTransition&&top.name!=="week"&&!RM()){const el=top.el();
-      if(el&&!el.hidden){const a=el.animate([{transform:"none",borderRadius:"0px",opacity:1},{transform:"translateX(4vw) scale(.95)",borderRadius:"24px",opacity:1,offset:.4},{transform:"translateX(22vw) scale(.86)",borderRadius:"32px",opacity:0}],{duration:380,easing:"cubic-bezier(.3,0,.2,1)",fill:"forwards"});
-        el.style.transformOrigin="100% 50%";el.style.overflow="hidden";
-        a.onfinish=()=>{top.close(true);a.cancel();reset(el)};return}}
+      if(el&&!el.hidden){Anim.backOut(el,()=>top.close(true));return}}
     top.close(!!e.hasUAVisualTransition||!!g2);
     if(g2){g2.anim.cancel();reset(g2.el)}   /* 已經用手勢動畫收掉了：關完再把樣式復原 */
   });
@@ -83,7 +81,7 @@ const Back=(()=>{
 Back.layers={
   settings:()=>Back.opened("settings",i=>closeSettings(i),()=>$("#setOv")),
   noti:()=>Back.opened("noti",i=>closeNoti(i),()=>$("#notiOv")),
-  log:()=>Back.opened("log",()=>closeLog(),()=>$("#logOv")),
+  log:()=>Back.opened("log",i=>closeLog(i===true),()=>$("#logOv")),
   report:()=>Back.opened("report",i=>closeReport(i),()=>$("#rptOv")),
   week:()=>Back.opened("week",i=>pager.scrollTo({left:0,behavior:i?"instant":"smooth"}),()=>$("#pageWeek")),
 };
