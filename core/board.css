@@ -67,7 +67,7 @@ button.ghost{border-color:var(--muted)}
 }
 
 /* ===== 共用：多個元件一起設定的效果 ===== */
-.actions button:not(#editBtn),.add-row,.edit-block button,.dlg-actions button,.week-tools button,.ev-tools button{padding-top:5.5px;padding-bottom:6.5px}
+.actions button:not(#editBtn),.add-row,.dlg-actions button,.week-tools button,.ev-tools button{padding-top:5.5px;padding-bottom:6.5px}
 /* 進度色調（議題卡片、甘特圖）：--acc 給線條與色塊，--acc-ink 給文字 */
 [data-tone="hi"]{--acc:var(--prog-hi);--acc-ink:var(--prog-hi-ink)}
 [data-tone="lo"]{--acc:var(--prog-lo);--acc-ink:var(--prog-lo-ink)}
@@ -114,9 +114,6 @@ button.ghost{border-color:var(--muted)}
 /* ===== 頁首 ===== */
 a.logo-box{color:inherit;text-decoration:none}   /* 頁首 logo＝回各部門總覽 */
 a.logo-box:focus-visible{outline:2px solid var(--ink);outline-offset:4px}
-.logo-text{display:grid;gap:2px;line-height:1.15}
-.logo-text b{font-size:clamp(20px,2.2vw,26px);font-weight:700;letter-spacing:.12em}
-.logo-text small{font-size:10.5px;letter-spacing:.14em;color:var(--muted)}
 .actions{display:flex;gap:8px;flex-wrap:wrap}
 .arrow-line{content:"";flex:1;min-width:44px;height:26px;background:var(--ink);-webkit-mask:linear-gradient(#000,#000) left center/calc(100% - 3px) 1.2px no-repeat,url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='127.49 16.61 16.13 31.41'%3E%3Cpath d='M129.07,17.38v-.77h-1.58l.06,1.53a16.13,16.13,0,0,0,11.16,14.55,16.14,16.14,0,0,0-11.160,14.55l-.06,1.54h1.58V48a14.57,14.57,0,0,1,14.55-14.55V31.93A14.57,14.57,0,0,1,129.07,17.38Z'/%3E%3C/svg%3E") right center/12.4px 24.2px no-repeat;mask:linear-gradient(#000,#000) left center/calc(100% - 3px) 1.2px no-repeat,url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='127.49 16.61 16.13 31.41'%3E%3Cpath d='M129.07,17.38v-.77h-1.58l.06,1.53a16.13,16.13,0,0,0,11.16,14.55,16.14,16.14,0,0,0-11.160,14.55l-.06,1.54h1.58V48a14.57,14.57,0,0,1,14.55-14.55V31.93A14.57,14.57,0,0,1,129.07,17.38Z'/%3E%3C/svg%3E") right center/12.4px 24.2px no-repeat}
 .zh-sm{font-family:"Noto Sans TC",sans-serif;font-size:12px;letter-spacing:.3em;margin-left:10px;color:var(--muted)}
@@ -134,6 +131,7 @@ a.logo-box:focus-visible{outline:2px solid var(--ink);outline-offset:4px}
 .hero-l .eyebrow{margin-bottom:0;line-height:1}
 .hero-title h1{line-height:1.1}
 .logo{display:block;height:46px;width:auto;color:var(--ink)}
+.logo .logo-gap{fill:none;stroke:var(--bg);stroke-width:7;stroke-linejoin:round}   /* 單色學生會 logo：黃藍兩塊之間的分隔縫（shell.js 的 suLogoMono） */
 /* 大日期＝上次編輯（儲存）的日期；左邊直排小字「上次編輯」，不佔版面 */
 .bd-k{position:absolute;right:100%;top:50%;transform:translate(-10px,-50%);writing-mode:vertical-rl;font-family:"Noto Sans TC",sans-serif;font-weight:500;font-size:11px;line-height:1;letter-spacing:.3em;color:var(--muted);white-space:nowrap}
 .bigdate{position:relative;font-family:"Jost",sans-serif;font-weight:200;font-size:clamp(52px,7vw,92px);line-height:.85;letter-spacing:.01em;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
@@ -388,6 +386,14 @@ html.ev-drag-on,html.ev-drag-on *{-webkit-user-select:none;user-select:none;curs
 .evf-group .evf.open{grid-template-columns:minmax(0,1fr)}
 .evf-group .evf:last-of-type:not(.open){border-bottom:0}
 .evf-group .evd-add{justify-self:start;margin:6px 0 10px}
+/* 議題的「階段」欄（進度的逐欄編輯，views.js 的 stageEditorHTML）：一列一個階段＝「目前」鈕＋名稱＋刪除 */
+.stg-list{display:grid;gap:6px}
+.stg-row{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:6px}
+.stg-cur{min-height:30px;padding:0 12px;font-size:12px;color:var(--muted);border-color:var(--hair);transition:background-color .2s var(--ease),color .2s var(--ease),border-color .2s var(--ease)}
+.stg-cur[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:var(--surface)}
+.stg-del{width:30px;min-height:30px;padding:0}
+.evf-ed>.evd-add{justify-self:start}
+.evf-v .tags{gap:4px}
 .evd-place{display:flex;flex-wrap:wrap;align-items:center;gap:6px}
 .evd-place input{flex:1 1 180px}
 .place-quick{display:flex;flex-wrap:wrap;gap:4px}
@@ -558,7 +564,6 @@ html.ev-drag-on,html.ev-drag-on *{-webkit-user-select:none;user-select:none;curs
 .tags{display:flex;flex-wrap:wrap;gap:5px;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
 .tag{font-size:12px;border-radius:999px;border:1px solid var(--line);background:var(--surface);min-height:24px;border-color:var(--ink);color:var(--ink);transition:transform .22s var(--ease),box-shadow .22s var(--ease),border-color .22s var(--ease),background-color .2s,opacity .2s;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;padding:0 9px 2px!important;line-height:20px}
 .tag.cur{color:var(--onteal);font-weight:500;background:var(--ink);padding-top:.5px!important;padding-bottom:1.5px!important}
-.tag-x{margin-left:5px;opacity:.75}
 .c-track{position:relative;height:84px;margin:0 8px;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
 .c-bar{position:absolute;left:0;right:0;top:34px;height:16px;transition:transform .18s var(--ease),box-shadow .18s,border-color .18s,padding .2s;background:none;overflow:visible!important;border-radius:0}
 .c-bar .fill{transition:width .2s;position:absolute}
@@ -582,16 +587,10 @@ html.ev-drag-on,html.ev-drag-on *{-webkit-user-select:none;user-select:none;curs
 .links{display:flex;flex-wrap:wrap;gap:6px;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
 a.link{display:inline-flex;align-items:center;min-height:32px;text-decoration:none;color:#fff;padding:3px 12px;border-radius:8px;font-size:13.5px;border:1px solid rgba(0,0,0,.08);transition:transform .22s var(--ease),box-shadow .22s var(--ease),border-color .22s var(--ease),background-color .2s,opacity .2s;border-color:rgba(127,127,140,.35)}
 a.link:hover{filter:brightness(1.1)}
-.edit-block{display:none;gap:8px;grid-template-columns:1fr 1fr;background:var(--bg);border-radius:10px;padding:10px;background-color:var(--surface);border:1px solid var(--line)}
-.sec-edit .edit-block{display:grid}
-.edit-block label{font-size:12px;color:var(--muted);display:grid;gap:3px}
-.edit-block .full{grid-column:1/-1}
-.edit-block input{background:var(--surface)}
 .card-toggle:hover,.card-toggle:focus-visible{transform:none;box-shadow:none}
 .card:focus-within{background:color-mix(in srgb,var(--ink) 5%,transparent)}
 .note{margin:2px 0 0;padding:10px 12px;border-radius:12px;background:var(--bg);font-size:14px;line-height:1.7;white-space:pre-wrap;word-break:break-word;-webkit-user-select:text;user-select:text;background-color:var(--surface);border:1px solid var(--line)}
 .note-h{display:block;font-size:11.5px;letter-spacing:.12em;color:var(--muted);margin-bottom:2px}
-.edit-block textarea{background:var(--surface);min-height:0}
 .chev-btn{display:inline-flex;align-items:center;gap:4px;font-size:12px;color:var(--muted);border:1px solid var(--line);border-radius:999px;white-space:nowrap}
 .card-toggle:hover .chev-btn{color:var(--ink);border-color:var(--ink)}
 .mini-bar{cursor:pointer;background:none;overflow:visible!important;border-radius:0;position:relative;height:16px;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
@@ -608,10 +607,6 @@ a.link:hover{filter:brightness(1.1)}
 .log li:last-child{border-left-color:transparent}
 .c-track.peeking .marker:not(.quiet) .lbl{opacity:0}
 .chev-btn .chev{position:relative;top:-1px}
-button.tag:has(.tag-x){padding:0 8px 2px 10px!important}
-button.tag[data-addtag]{padding:0 13px 2px 6px!important}
-button.tag.cur:has(.tag-x){padding:.5px 8px 1.5px 10px!important}
-.edit-block [data-addlink],.edit-block [data-addmarker]{padding-left:15px;padding-right:17px}
 .card-tools [data-move="1"]{padding-top:2px;padding-bottom:4px}
 @media (hover:hover){
   .tag:hover{transform:scale(1.05)}
@@ -648,8 +643,6 @@ a.link:active{transform:scale(.96)}
 @media (max-width:640px){
   .card-toggle .tag.sm{display:none}
   .card-tools{width:100%;justify-content:flex-end}
-  .edit-block{grid-template-columns:1fr;padding:10px}
-  .edit-block .full>span[style*="justify-content:flex-end"]{justify-content:stretch}
 }
 @keyframes flash2{0%,100%{box-shadow:0 0 0 0 rgba(255,255,255,0)}45%{box-shadow:0 0 0 2px var(--flash,#fff),0 0 26px 4px color-mix(in srgb,var(--flash,#fff) 55%,transparent)}}
 
@@ -696,8 +689,6 @@ a.link:active{transform:scale(.96)}
 #donePanel h2{min-width:0}
 #donePanel h2::after{min-width:16px}
 #donePanel .empty{padding:0 0 16px}
-.inline-date{width:auto;display:inline-block;cursor:pointer;font:inherit;font-size:12px;min-height:0;border:1px dashed var(--muted);background:transparent;color:inherit;border-radius:999px;vertical-align:baseline;padding:0 8px 3px 9px!important;line-height:17px}
-.inline-date:hover{border-style:solid;border-color:var(--ink);transform:none!important;box-shadow:none}
 .done-body p{-webkit-user-select:text;user-select:text}
 .done-body .edit-only{flex-wrap:wrap;gap:6px!important}
 .done-body .edit-only button{font-size:12px;padding:3px 10px;min-height:28px}
@@ -849,8 +840,8 @@ a.link:active{transform:scale(.96)}
 .splash{position:fixed;inset:0;z-index:90;display:grid;place-items:center;background:#fff}
 .sp-logo{position:relative;width:min(560px,78vw);aspect-ratio:547/186}
 .sp-grp,.sp-clip,.sp-txt{position:absolute;inset:0}
-.sp-grp,.sp-txt{will-change:transform,opacity}
-.sp-clip{clip-path:inset(-20% -5% -20% var(--cut))}   /* 從標誌中線切開：文字滑到標誌左半邊時看不到，像從標誌後面出來 */
+.sp-grp,.sp-g{will-change:transform}
+.sp-clip{clip-path:inset(-20% -5% -20% var(--cut))}   /* 從標誌右緣切開：還在標誌範圍裡的字看不到（不會從眼睛的洞、黃藍之間的縫透出來），像從標誌後面出來 */
 .sp-grp svg{position:absolute;display:block;overflow:visible}
 .sp-emb path{will-change:transform,opacity}
 
@@ -1136,20 +1127,26 @@ dialog#dlg:has(.csel.open){overflow:visible}
 .cal-top{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .cal-top b{font-size:18px;font-weight:400;letter-spacing:.06em;min-width:8.5em;text-align:center}
 .cal-top button:last-child{margin-left:auto}
+.cal-top [data-nmon]{width:36px;height:36px;min-height:0;padding:0;border-radius:50%;display:inline-flex;align-items:center;justify-content:center}   /* 上一月、下一月：正圓 */
 .cal-head,.cal-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr))}
 .cal-head span{padding:0 8px 6px;font-size:12px;color:var(--muted)}
-.cal-grid{border-top:1px solid var(--line);border-left:1px solid var(--hair)}
-.cal-d{display:flex;flex-direction:column;align-items:stretch;justify-content:flex-start;gap:6px;min-height:clamp(64px,10vw,96px);padding:6px 7px;border:0;border-right:1px solid var(--hair);border-bottom:1px solid var(--hair);border-radius:0;background:transparent;transition:background-color .28s var(--ease)}
-.cal-d:hover{transform:none;background:color-mix(in srgb,var(--ink) 5%,transparent)}
+/* 月曆外框是圓角框（--cal-r），格子之間細線；hover、選到、閃兩下的底色是格子裡內縮的圓角小塊（.cal-d::before），不是整格方塊 */
+.cal-grid{--cal-r:18px;border:1px solid var(--hair);border-radius:var(--cal-r);overflow:hidden}
+.cal-d{position:relative;isolation:isolate;display:flex;flex-direction:column;align-items:stretch;justify-content:flex-start;gap:6px;min-height:clamp(64px,10vw,96px);padding:6px 7px;border:0;border-right:1px solid var(--hair);border-bottom:1px solid var(--hair);border-radius:0;background:transparent}
+.cal-d:nth-child(7n){border-right:0}
+.cal-d:nth-last-child(-n+7){border-bottom:0}
+.cal-d::before{content:"";position:absolute;inset:3px;z-index:-1;border-radius:12px;background:var(--ink);opacity:0;transition:opacity .28s var(--ease)}
+.cal-d:hover{transform:none;box-shadow:none;border-color:var(--hair)}
+.cal-d:hover::before{opacity:.05}
 .cal-d.out{color:var(--muted);opacity:.5}
 .cal-n{align-self:flex-start;display:inline-flex;align-items:center;justify-content:center;min-width:24px;height:24px;border-radius:999px;font-size:13px}
 .cal-d.is-today .cal-n{background:var(--red);color:#fff}
-.cal-d.sel{background:color-mix(in srgb,var(--ink) 12%,transparent)}
+.cal-d.sel::before{opacity:.12}
 .cal-bars{display:grid;gap:3px}
 .cal-bars i{display:block;height:5px;border-radius:3px;background:var(--c)}
 .cal-bars em{font-style:normal;font-size:10.5px;color:var(--muted)}
-.cal-d.flash{animation:calFlash .7s ease-in-out 2}
-@keyframes calFlash{50%{background:color-mix(in srgb,var(--ink) 22%,transparent)}}
+.cal-d.flash::before{animation:calFlash .7s ease-in-out 2}
+@keyframes calFlash{50%{opacity:.22}}
 .cal-legend{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:12px;color:var(--muted)}
 .cal-legend span{display:inline-flex;align-items:center;gap:6px}
 .cal-legend i{width:14px;height:5px;border-radius:3px;background:var(--c)}
@@ -1157,7 +1154,9 @@ dialog#dlg:has(.csel.open){overflow:visible}
   .noti-days{grid-template-columns:minmax(0,1fr)}
   .ni{grid-template-columns:4px 4.4em minmax(0,1fr)}
   .ni-k,.ni-dept{display:none}
+  .cal-grid{--cal-r:14px}
   .cal-d{min-height:52px;padding:4px}
+  .cal-d::before{inset:2px;border-radius:9px}
   .cal-bars i{height:4px}
 }
 
@@ -1429,8 +1428,7 @@ body.view-anim #actions button:nth-child(3){animation-delay:0.15s}
 body.edit-anim .banner{animation:fadeSlide .5s .1s var(--ease) both}
 body.edit-anim .page-week .edit-only{animation:fadeSlide .5s .15s var(--ease) both}
 /* 單一區塊按了「編輯這區」：那一區的編輯工具淡入（render.js 的 toggleSecEdit 加 .sec-anim） */
-.sec-anim .range,.sec-anim .add-row,.sec-anim .edit-block,.sec-anim .card-tools,.sec-anim .tag-x,.sec-anim [data-addtag],.sec-anim .ev-tools,.sec-anim .ev-del,.sec-anim .done-del,.sec-anim .inline-date,.sec-anim .done-body .edit-only,.sec-anim .evd.editing{animation:fadeSlide .5s .05s var(--ease) both}
-.sec-anim .card input[data-f="title"]{animation:fadeIn .45s var(--ease) both}
+.sec-anim .range,.sec-anim .add-row,.sec-anim .card-tools,.sec-anim .ev-tools,.sec-anim .ev-del,.sec-anim .done-del,.sec-anim .done-body .edit-only,.sec-anim .evd.editing{animation:fadeSlide .5s .05s var(--ease) both}
 @keyframes fadeSlide{from{opacity:0;transform:translateY(-6px)}}
 @keyframes fadeIn{from{opacity:0}}
 

@@ -23,10 +23,6 @@ document.addEventListener("click",async e=>{
   if(!editing)return;
   const se=t.closest("[data-secedit]");if(se){toggleSecEdit(se.dataset.secedit);return}
 
-  const dd=t.closest("[data-donedate]");
-  if(dd){const box=dd.closest("[data-done]");const obj=box.dataset.issue?state.issues.find(i=>i.id===box.dataset.issue):state.events.find(x=>x.id===box.dataset.ev);
-    const v=await ask(`「${box.dataset.issue?obj.title:obj.name}」完成日期`,[{name:"d",label:"完成日期",type:"date",value:obj.doneAt||today()}]);
-    if(v&&v.d){obj.doneAt=v.d;if(!box.dataset.issue)syncLink(obj);changed();toast("完成日期已更新")}return}
   /* weekly */
   if(t.closest("#addWeek")){
     const last=[...state.weeks].sort((a,b)=>b.date.localeCompare(a.date))[0];
@@ -52,9 +48,13 @@ document.addEventListener("click",async e=>{
     return}
   /* 逐欄編輯：鉛筆打開一欄、取消／完成／刪除（只在編輯中出現） */
   /* 點一欄：原本開著的那欄先存回（填錯就停在原欄），再打開這一欄 */
-  const pen=t.closest("[data-evpen]");if(pen){const cur=document.querySelector(".evf.open"),id=evOf(pen).id,k=pen.dataset.evpen;
-    if(cur&&!evFldCommit(cur))return;evFld={ev:id,k};render();evFldFocus();return}
+  const pen=t.closest("[data-evpen]");if(pen){const id=evOf(pen).id,k=pen.dataset.evpen;
+    if(!fldCommitOpen())return;ifFld=null;evFld={ev:id,k};render();evFldFocus();return}
   const fx=t.closest("[data-evfx]");if(fx){evFldAct(fx);return}
+  /* 進度、完成紀錄的逐欄編輯（跟即時回報同一套；畫面在 views.js 的 issueFieldsHTML／doneFieldsHTML） */
+  const ipen=t.closest("[data-ifpen]");if(ipen){const r=ipen.closest("[data-ifid]");
+    if(!fldCommitOpen())return;evFld=null;ifFld={t:r.dataset.ift,id:r.dataset.ifid,k:ipen.dataset.ifpen};render();ifFldFocus();return}
+  const ifx=t.closest("[data-iffx]");if(ifx){ifFldAct(ifx);return}
   /* 右側詳情（編輯中）：完成這一段的展開框 */
   const evd=t.closest("#evDetail [data-evd]");
   if(evd){const ev=evOf(evd),k=evd.dataset.evd,box=$("#evDetail .evd-round");
@@ -73,25 +73,11 @@ document.addEventListener("click",async e=>{
     if(!v)return;
     evRoundDone(ev,v.done||"",v.next||"");return}
 
-  /* 完成紀錄裡的即時回報：更改母議題（即時回報區改成逐欄編輯，這裡照舊用對話框） */
-  const evLinkIssue=t.closest("[data-evlinkissue]");
-  if(evLinkIssue){const ev=evOf(evLinkIssue);
-    const opts=[["","（不連結）"],...state.issues.map(i=>[i.id,i.title+(i.doneAt?"（已結案）":"")])];
-    const v=await ask("與議題連結",[{name:"iid",label:"母議題（完成時會自動寫進該議題的時間戳記與處理紀錄）",type:"select",value:ev.issueId||"",options:opts}]);
-    if(v){ev.issueId=v.iid||null;if(!ev.doneAt)evTouch(ev);syncLink(ev);openEv.add(ev.id);changed();toast(ev.issueId?`已連結到「${parentOf(ev).title}」`:"已取消連結")}return}
 
   /* issues */
   if(t.closest("#addIssue")){const it={id:uid("i"),title:"新議題",tags:[...CFG.stageTags],cur:0,start:"",end:"",doneAt:null,markers:[],links:[]};state.issues.push(it);keepIds.add(it.id);changed();
-    progShow(it.id);setTimeout(()=>$("#cardDetail")?.querySelector('[data-f="title"]')?.select(),reduceMotion()?0:180);return}
+    evFld=null;ifFld={t:"i",id:it.id,k:"title"};progShow(it.id,ifFldFocus);return}   /* 新議題直接打開名稱欄 */
   if(t.closest("#autoRange")){const ds=state.issues.flatMap(i=>[i.start,i.end,...i.markers.map(m=>m.date)]).filter(Boolean).sort();if(!ds.length){toast("還沒有填日期的議題");return}state.range={start:ds[0].slice(0,7),end:ds[ds.length-1].slice(0,7)};changed();return}
-  const addLink=t.closest("[data-addlink]");
-  if(addLink){const it=state.issues.find(i=>i.id===addLink.dataset.addlink);
-    const v=await ask("新增超連結按鈕",[{name:"name",label:"按鈕名稱",ph:"例如：會議紀錄"},{name:"url",label:"連結網址",type:"url",ph:"https://"},{name:"color",label:"按鈕顏色",type:"color",value:COLORS[0]}]);
-    if(v&&v.name){it.links.push({id:uid("l"),name:v.name,url:v.url,color:v.color});changed()}return}
-  const el=t.closest("[data-editlink]");
-  if(el){e.preventDefault();const it=state.issues.find(i=>i.id===el.dataset.iid);const l=it.links.find(x=>x.id===el.dataset.editlink);
-    const v=await ask("編輯超連結按鈕",[{name:"name",label:"按鈕名稱",value:l.name},{name:"url",label:"連結網址",type:"url",value:l.url},{name:"color",label:"按鈕顏色",type:"color",value:l.color}],{danger:"刪除按鈕"});
-    if(v==="delete")it.links=it.links.filter(x=>x!==l);else if(v)Object.assign(l,{name:v.name||l.name,url:v.url,color:v.color});if(v)changed();return}
   const it=findIssue(t);if(!it)return;
   if(t.closest("[data-restore]")){it.doneAt=null;keepIds.add(it.id);changed();toast("已取消結案，移回進行中");return}
   /* 結案／取消結案（編輯中，卡片工具列）：結案的議題儲存後移到完成紀錄 */
@@ -99,30 +85,9 @@ document.addEventListener("click",async e=>{
   if(t.closest("[data-deldone]")||t.closest("[data-delissue]")){e.preventDefault();const v=await ask(`刪除「${it.title}」？`,[],{danger:"刪除議題"});if(v==="delete"){state.issues=state.issues.filter(x=>x!==it);changed()}return}
   const mv=t.closest("[data-move]");
   if(mv){const list=activeIssues();const k=list.indexOf(it),o=list[k+(+mv.dataset.move)];if(o){const a=state.issues.indexOf(it),b=state.issues.indexOf(o);[state.issues[a],state.issues[b]]=[o,it];changed()}return}
-  const dt=t.closest("[data-deltag]");
-  if(dt){e.stopPropagation();const k=+dt.dataset.deltag;it.tags.splice(k,1);if(it.cur>=it.tags.length)it.cur=Math.max(0,it.tags.length-1);else if(k<it.cur)it.cur--;changed();return}
-  if(t.closest("[data-editstaff]")){if(!state.members.length){toast("還沒有任何身分：新成員先按「編輯」→「＋ 新增身分」");return}const v=await ask(`「${it.title}」的專員`,staffField(it.staff));if(v){it.staff=v.staff||[];changed()}return}
-  if(t.closest("[data-editlabels]")){if(!state.labels.length){toast("還沒有標籤：管理員可以到「設定 → 標籤」建立");return}const v=await ask(`「${it.title}」的標籤`,[{name:"labels",label:"人事時地物（常用的排前面，可複選）",type:"labels",value:it.labels}],{wide:true});if(v){it.labels=v.labels||[];changed()}return}
-  if(t.closest("[data-addtag]")){const v=await ask("新增階段標籤",[{name:"t",label:"標籤名稱",ph:"例如：公告"}]);if(v&&v.t){it.tags.push(v.t);changed()}return}
-  const tg=t.closest("[data-tag]");if(tg){it.cur=+tg.dataset.tag;changed();return}
   if(t.closest("[data-addmarker]")){const tr=t.closest("[data-issue]").querySelector(".c-track");tr.scrollIntoView({behavior:"smooth",block:"center"});makePending(tr,schedPct(it)??50);toast("把虛線標記拖到想要的位置後放開");return}
 });
 document.addEventListener("toggle",e=>{const d=e.target;if(d.classList&&d.classList.contains("week")&&!d.classList.contains("closing")){openWeeks=openWeeks||new Set();d.open?openWeeks.add(d.dataset.week):openWeeks.delete(d.dataset.week)}if(d.classList&&d.dataset.done){const id=d.dataset.issue||d.dataset.ev;d.open?openDone.add(id):openDone.delete(id)}if(d.classList&&d.classList.contains("ev")&&!d.dataset.done){d.open?openEv.add(d.dataset.ev):openEv.delete(d.dataset.ev)}},true);
-document.addEventListener("dblclick",async e=>{
-  if(!editing)return;const tg=e.target.closest("[data-tag]");if(!tg)return;const it=findIssue(tg);const k=+tg.dataset.tag;
-  const v=await ask("修改標籤",[{name:"t",label:"標籤名稱",value:it.tags[k]}]);if(v&&v.t){it.tags[k]=v.t;changed()}
-});
-document.addEventListener("input",e=>{
-  if(!editing)return;
-  const f=e.target.dataset.f;if(!f)return;const it=findIssue(e.target);if(!it)return;
-  it[f]=e.target.value;
-  dirty=true;
-});
-document.addEventListener("change",e=>{
-  if(!editing)return;
-  if(e.target.matches("[data-donedate]")){const box=e.target.closest("[data-done]");const obj=box.dataset.issue?state.issues.find(i=>i.id===box.dataset.issue):state.events.find(x=>x.id===box.dataset.ev);if(obj&&e.target.value){obj.doneAt=e.target.value;changed();toast("完成日期已更新")}return}const f=e.target.dataset.f;
-  if(f==="start"||f==="end")render();
-});
 ["rStart","rEnd"].forEach(id=>$("#"+id).addEventListener("change",e=>{const k=id==="rStart"?"start":"end";if(e.target.value){state.range[k]=e.target.value;if(state.range.end<state.range.start)state.range.end=state.range.start;changed()}}));
 
 const evOf=el=>{const m=mtOf(el);return (m?m.data:state).events.find(x=>x.id===el.closest("[data-ev]").dataset.ev)};   /* 秘書處面板裡的卡片屬於別的部門（meeting.js） */   /* 元素所在的即時回報（膠囊、完成紀錄、右側詳情都帶 data-ev） */
@@ -136,8 +101,12 @@ function evRoundDone(ev,done,next){
 }
 /* ---------- 即時回報的逐欄編輯（畫面在 views.js 的 evFieldsHTML） ----------
    按「完成」才寫回 state；按「取消」或打開別欄就放棄這一欄的修改。Enter＝完成（說明欄要換行用 Shift+Enter 以外照常），Esc＝取消 */
-function evFldFocus(){
-  const box=$("#evDetail .evf.open")||document.querySelector("#events .evf.open");if(!box)return;
+function evFldFocus(){fldFocus($("#evDetail .evf.open")||document.querySelector("#events .evf.open"))}
+function ifFldFocus(){fldFocus($("#doneDetail .evf.open")||document.querySelector(".evf.open[data-iffk]"))}
+/* 點別欄時，先把目前打開的那一欄存回（即時回報或進度／完成紀錄）；填錯回傳 false、停在原欄 */
+function fldCommitOpen(){const cur=document.querySelector(".evf.open");if(!cur)return true;return cur.dataset.iffk!==undefined?ifFldWrite(cur):evFldCommit(cur)}
+function fldFocus(box){
+  if(!box)return;
   const f=box.querySelector("[data-e],.csel-btn,input[type=checkbox]");if(f){f.focus({preventScroll:true});if(f.select&&f.type!=="date")f.select()}
   box.scrollIntoView({block:"nearest",behavior:reduceMotion()?"auto":"smooth"});
 }
@@ -175,11 +144,46 @@ function evFldWrite(box){
   if(JSON.stringify(ev)===before)return true;   /* 沒改東西：不算「更新」，燈號不動 */
   evTouch(ev);syncLink(ev);openEv.add(ev.id);dirty=true;return true;
 }
+/* ---------- 進度、完成紀錄的逐欄編輯：按鈕與存回 ----------
+   跟即時回報一樣：按「完成」才寫回 state；議題的階段（stg）在打開的欄位裡直接加列、刪列、換「目前」，按完成才一起存 */
+const ifObj=box=>(box.dataset.ift==="e"?state.events:state.issues).find(x=>x.id===box.dataset.ifid);
+function ifFldAct(fx){
+  const box=fx.closest("[data-iffk]"),a=fx.dataset.iffx;
+  if(a==="color"){const c=COLORS[(COLORS.indexOf(fx.dataset.c)+1)%COLORS.length];fx.dataset.c=c;fx.style.background=c;return}
+  if(a==="stgadd"){const list=box.querySelector(".stg-list");list.insertAdjacentHTML("beforeend",stageRowHTML("",!list.querySelector('.stg-cur[aria-pressed="true"]')));list.lastElementChild.querySelector("input").focus();return}
+  if(a==="stgdel"){const row=fx.closest(".stg-row"),was=row.querySelector('.stg-cur[aria-pressed="true"]');row.remove();if(was)box.querySelector(".stg-cur")?.setAttribute("aria-pressed","true");return}
+  if(a==="stgcur"){box.querySelectorAll(".stg-cur").forEach(b=>b.setAttribute("aria-pressed",b===fx));return}
+  if(a==="cancel"){ifFld=null;render();return}
+  if(a==="ok"){if(ifFldWrite(box)){ifFld=null;changed()}return}
+  if(a==="del"){const o=ifObj(box),lid=box.dataset.iffk.slice(2);o.links=o.links.filter(x=>x.id!==lid);ifFld=null;changed();return}
+}
+/* 把打開的那一欄寫回 state（不重畫；有改才標 dirty）；填錯回傳 false、停在原欄。完成紀錄裡的即時回報改了名稱、日期、母議題，同步母議題的處理紀錄 */
+function ifFldWrite(box){
+  const o=ifObj(box);if(!o)return true;
+  const k=box.dataset.iffk,g=n=>box.querySelector(`[data-e="${n}"]`),before=JSON.stringify(o),bad=n=>{g(n).classList.add("bad");g(n).focus();return false};
+  if(k==="title"||k==="name"){const v=g(k).value.trim();if(!v){toast("請填名稱");return bad(k)}o[k]=v}
+  else if(k==="note"||k==="desc")o[k]=g(k).value.trim();
+  else if(k==="dates"){const a=g("start").value,b=g("end").value;if(a&&b&&b<a){toast("結束日不能早於開始日");return bad("end")}o.start=a;o.end=b}
+  else if(k==="stage"){const rows=[...box.querySelectorAll(".stg-row")].map(r=>({n:r.querySelector("input").value.trim(),cur:r.querySelector(".stg-cur").getAttribute("aria-pressed")==="true"})).filter(r=>r.n);
+    o.tags=rows.map(r=>r.n);o.cur=Math.max(0,rows.findIndex(r=>r.cur))}
+  else if(k==="staff")o.staff=[...box.querySelectorAll('input[name="staff"]:checked')].map(x=>x.value);
+  else if(k==="labels")o.labels=[...box.querySelectorAll('input[name="labels"]:checked')].map(x=>x.value);
+  else if(k==="done"){const v=g("done").value;if(!v){toast("請選完成日期");return bad("done")}o.doneAt=v}
+  else if(k==="issue")o.issueId=box.querySelector('input[name="evIssue"]').value||null;
+  else if(k.startsWith("l:")){const lid=k.slice(2),v={name:g("name").value.trim(),url:g("url").value.trim(),color:box.querySelector("[data-c]").dataset.c};
+    if(!v.name){toast("請填按鈕名稱");return bad("name")}
+    if(lid==="+")o.links.push({id:uid("l"),...v});else Object.assign(o.links.find(x=>x.id===lid),v)}
+  if(JSON.stringify(o)===before)return true;
+  if(box.dataset.ift==="e")syncLink(o);
+  dirty=true;return true;
+}
+/* 打開的欄位（即時回報、進度、完成紀錄）：Esc＝取消；Enter（說明欄 Ctrl／⌘＋Enter）＝完成 */
 document.addEventListener("keydown",e=>{
   const box=e.target.closest&&e.target.closest(".evf.open");if(!box||document.querySelector(".csel.open"))return;
-  if(e.key==="Escape"){e.preventDefault();e.stopPropagation();evFld=null;render();return}
-  if(e.key==="Enter"&&!e.isComposing&&e.target.matches("input[data-e]")){e.preventDefault();evFldAct(box.querySelector('[data-evfx="ok"]'))}
-  if(e.key==="Enter"&&(e.ctrlKey||e.metaKey)&&e.target.matches("textarea[data-e]")){e.preventDefault();evFldAct(box.querySelector('[data-evfx="ok"]'))}
+  if(e.key==="Escape"){e.preventDefault();e.stopPropagation();evFld=null;ifFld=null;render();return}
+  const ok=box.querySelector('[data-evfx="ok"],[data-iffx="ok"]');if(!ok)return;
+  if(e.key==="Enter"&&!e.isComposing&&e.target.matches("input[data-e],input[data-stg]")){e.preventDefault();ok.click()}
+  if(e.key==="Enter"&&(e.ctrlKey||e.metaKey)&&e.target.matches("textarea[data-e]")){e.preventDefault();ok.click()}
 },true);
 /* markers on cards: press-and-drag to place a new one, drag to move, click to edit */
 let drag=null;
