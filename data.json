@@ -3,7 +3,7 @@
  "id": "board-main",
  "title": "權益部工作進度",
  "locked": false,
- "savedAt": "2026-11-05 12:41",
+ "savedAt": "2026-11-05 13:05",
  "range": {
   "start": "2026-09",
   "end": "2027-09"
@@ -213,7 +213,8 @@
    "links": [],
    "times": [],
    "round": 1,
-   "touched": []
+   "touched": [],
+   "report": false
   },
   {
    "id": "emvpd2q3bes2i",
@@ -225,7 +226,8 @@
    "links": [],
    "times": [],
    "round": 1,
-   "touched": []
+   "touched": [],
+   "report": false
   },
   {
    "id": "emvpd2zcx95t3",
@@ -236,7 +238,8 @@
    "links": [],
    "times": [],
    "round": 1,
-   "touched": []
+   "touched": [],
+   "report": false
   },
   {
    "id": "emvpd4765r0ch",
@@ -259,7 +262,8 @@
    "times": [],
    "round": 2,
    "touchedAt": "2026-11-03T20:39",
-   "roundAt": "2026-11-03T19:26"
+   "roundAt": "2026-11-03T19:26",
+   "report": false
   },
   {
    "id": "emvpd6qonvam7",
@@ -325,7 +329,8 @@
     }
    ],
    "round": 1,
-   "touchedAt": "2026-11-03T20:37"
+   "touchedAt": "2026-11-03T20:37",
+   "report": true
   },
   {
    "id": "emvpd82rr1kit",
@@ -336,7 +341,8 @@
    "links": [],
    "times": [],
    "round": 1,
-   "touched": []
+   "touched": [],
+   "report": false
   },
   {
    "id": "emvpd90c3a8l9",
@@ -354,7 +360,8 @@
    "staff": [],
    "times": [],
    "round": 1,
-   "touched": []
+   "touched": [],
+   "report": false
   },
   {
    "id": "emvpdjy1qige9",
@@ -365,7 +372,8 @@
    "links": [],
    "times": [],
    "round": 1,
-   "touched": []
+   "touched": [],
+   "report": false
   },
   {
    "id": "emvpdk8nf5mxh",
@@ -376,7 +384,8 @@
    "links": [],
    "times": [],
    "round": 1,
-   "touched": []
+   "touched": [],
+   "report": false
   },
   {
    "id": "emvpdlkubpzoe",
@@ -387,7 +396,8 @@
    "links": [],
    "times": [],
    "round": 1,
-   "touched": []
+   "touched": [],
+   "report": false
   },
   {
    "id": "emvpdmkvs29s1",
@@ -405,7 +415,8 @@
    "staff": [],
    "times": [],
    "round": 1,
-   "touched": []
+   "touched": [],
+   "report": false
   },
   {
    "id": "emvpdnwp0gola",
@@ -417,7 +428,8 @@
    "links": [],
    "times": [],
    "round": 1,
-   "touched": []
+   "touched": [],
+   "report": false
   },
   {
    "id": "emvpdp6p3hitj",
@@ -436,7 +448,8 @@
    "staff": [],
    "times": [],
    "round": 1,
-   "touched": []
+   "touched": [],
+   "report": false
   },
   {
    "id": "emvpdq4rpx6v8",
@@ -448,7 +461,8 @@
    "links": [],
    "times": [],
    "round": 1,
-   "touched": []
+   "touched": [],
+   "report": false
   },
   {
    "id": "emvpdros6mg9o",
@@ -460,7 +474,8 @@
    "links": [],
    "times": [],
    "round": 1,
-   "touched": []
+   "touched": [],
+   "report": false
   },
   {
    "id": "emvqlupnq2ij4",
@@ -472,7 +487,8 @@
    "links": [],
    "times": [],
    "round": 1,
-   "touched": []
+   "touched": [],
+   "report": false
   },
   {
    "id": "emvqlvpkgu9x6",
@@ -503,7 +519,8 @@
     }
    ],
    "round": 1,
-   "touchedAt": "2026-11-03T21:20"
+   "touchedAt": "2026-11-03T21:20",
+   "report": false
   },
   {
    "id": "emvqocysbhm9s",
@@ -528,7 +545,8 @@
    ],
    "round": 1,
    "touchedAt": "2026-11-03T20:39",
-   "doneAt": "2026-11-03"
+   "doneAt": "2026-11-03",
+   "report": false
   },
   {
    "id": "emvt1lnzfh1kf",
@@ -553,7 +571,8 @@
    ],
    "round": 1,
    "touchedAt": "2026-11-03T20:45",
-   "doneAt": "2026-11-03"
+   "doneAt": "2026-11-03",
+   "report": false
   },
   {
    "id": "emvt1nac1jf6f",
@@ -569,7 +588,8 @@
    "times": [],
    "round": 1,
    "doneAt": "2026-11-03",
-   "touchedAt": "2026-11-03T20:39"
+   "touchedAt": "2026-11-03T20:39",
+   "report": false
   },
   {
    "id": "emvt1ohjjrkyg",
@@ -582,7 +602,8 @@
    ],
    "links": [],
    "times": [],
-   "round": 1
+   "round": 1,
+   "report": false
   },
   {
    "id": "emvt1pwvqrhyw",
@@ -597,7 +618,8 @@
    "links": [],
    "times": [],
    "round": 1,
-   "touchedAt": "2026-11-03T20:46"
+   "touchedAt": "2026-11-03T20:46",
+   "report": false
   },
   {
    "id": "emvteefflmm61",
@@ -612,7 +634,8 @@
    "links": [],
    "times": [],
    "round": 1,
-   "touchedAt": "2026-11-03T20:49"
+   "touchedAt": "2026-11-03T20:49",
+   "report": false
   },
   {
    "id": "emvz5bo0gi726",
@@ -646,7 +669,8 @@
     "2026-11-02",
     "2026-11-03"
    ],
-   "touchedAt": "2026-11-03T20:52"
+   "touchedAt": "2026-11-03T20:52",
+   "report": false
   },
   {
    "id": "emw0l32ggpdmw",
@@ -667,7 +691,8 @@
    "touched": [
     "2026-11-03"
    ],
-   "touchedAt": "2026-11-03T19:19"
+   "touchedAt": "2026-11-03T19:19",
+   "report": false
   },
   {
    "id": "emw0lb1djdnco",
@@ -689,7 +714,8 @@
    "touched": [
     "2026-11-03"
    ],
-   "touchedAt": "2026-11-03T20:05"
+   "touchedAt": "2026-11-03T20:05",
+   "report": false
   },
   {
    "id": "emw0lqzfmw4dl",
@@ -709,7 +735,8 @@
    "times": [],
    "round": 1,
    "fromEv": "emvpd4765r0ch",
-   "touched": []
+   "touched": [],
+   "report": false
   },
   {
    "id": "emw0mszjya8iv",
@@ -731,7 +758,8 @@
    "touched": [
     "2026-11-03"
    ],
-   "touchedAt": "2026-11-03T19:59"
+   "touchedAt": "2026-11-03T19:59",
+   "report": false
   },
   {
    "id": "emw0myswnrccf",
@@ -745,7 +773,8 @@
    "touched": [
     "2026-11-03"
    ],
-   "touchedAt": "2026-11-03T20:00"
+   "touchedAt": "2026-11-03T20:00",
+   "report": false
   },
   {
    "id": "emw0pwllmeivk",
@@ -759,7 +788,8 @@
    "touched": [
     "2026-11-03"
    ],
-   "touchedAt": "2026-11-03T21:22"
+   "touchedAt": "2026-11-03T21:22",
+   "report": false
   }
  ],
  "yearLabel": "115學年",
@@ -801,7 +831,7 @@
   }
  },
  "pwKdf": "bHArgaGywMuqExjsHz6wqQ==:ToDdfKkqEWWeZkIcY7d1LlyFUmgL0bb/axDeF5lI8cY=",
- "schemaVersion": 6,
+ "schemaVersion": 7,
  "members": [
   {
    "id": "mmvx2r1i3ffnm",
