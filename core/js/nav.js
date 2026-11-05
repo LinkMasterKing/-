@@ -345,7 +345,7 @@ document.addEventListener("keydown",e=>{
 /* ---------- 拉到底的回彈（iPhone 本來就有，就不重複） ---------- */
 function elastic(sc,inner){
   if(IS_IOS||!sc||!inner||sc._elastic)return;sc._elastic=true;
-  let off=0,acc=0,tm=0,y0=null,base=0,anim=null;
+  let off=0,acc=0,tm=0,y0=null,x0=0,axis="",base=0,anim=null;
   const set=v=>{off=v;inner.style.transform=v?`translate3d(0,${v.toFixed(1)}px,0)`:""};
   const rub=d=>Math.sign(d)*Math.min(120,Math.pow(Math.abs(d),.8)*1.15);
   const back=()=>{if(!off)return;const from=off;set(0);if(reduceMotion())return;anim&&anim.cancel();anim=inner.animate([{transform:`translate3d(0,${from}px,0)`},{transform:"translate3d(0,0,0)"}],{duration:620,easing:"cubic-bezier(.16,1.35,.4,1)"})};
@@ -354,9 +354,12 @@ function elastic(sc,inner){
     if(e.ctrlKey||Math.abs(e.deltaX)>Math.abs(e.deltaY))return;
     if((e.deltaY<0&&atTop())||(e.deltaY>0&&atBot())){anim&&anim.cancel();acc=Math.max(-260,Math.min(260,acc-e.deltaY*.45));set(rub(acc));clearTimeout(tm);tm=setTimeout(()=>{acc=0;back()},120)}
   },{passive:true});
-  sc.addEventListener("touchstart",e=>{if(e.touches.length!==1)return;y0=e.touches[0].clientY;base=null},{passive:true});
+  sc.addEventListener("touchstart",e=>{if(e.touches.length!==1)return;y0=e.touches[0].clientY;x0=e.touches[0].clientX;axis="";base=null},{passive:true});
   sc.addEventListener("touchmove",e=>{
     if(y0===null)return;const y=e.touches[0].clientY,dy=y-y0;
+    /* 先判斷方向：橫向的手勢（例如左右滑甘特圖）整段都不管，不然頁面剛好在頂端／底端時會把橫向捲動擋掉 */
+    if(!axis){const dx=e.touches[0].clientX-x0;if(Math.max(Math.abs(dx),Math.abs(dy))<6)return;axis=Math.abs(dx)>Math.abs(dy)?"x":"y"}
+    if(axis==="x")return;
     if((dy>0&&atTop())||(dy<0&&atBot())){if(base===null)base=dy;if(e.cancelable)e.preventDefault();anim&&anim.cancel();set(rub(dy-base))}
     else if(off){set(0)}
   },{passive:false});

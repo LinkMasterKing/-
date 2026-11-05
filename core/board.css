@@ -187,7 +187,9 @@ a.logo-box:focus-visible{outline:2px solid var(--ink);outline-offset:4px}
   .hero-rule .actions{width:100%;gap:6px;flex-wrap:nowrap}
   .hero-rule .actions button{flex:1 1 0;min-width:0;min-height:44px;padding:6px 8px;font-size:14px;white-space:nowrap}
   .hero-rule .week-btn{flex-grow:1.4}
-  .hero-rule .actions .noti-btn{flex:0 0 44px;padding:0}
+  /* 手機：通知鈕移到最右上（跟 logo 同一列、垂直置中；logo 列高 76px、從 .wrap 上緣 14px 開始）。.wrap 當定位基準 */
+  .page-main .wrap{position:relative}
+  .hero-rule .actions .noti-btn{position:absolute;top:calc(14px + 38px - 22px + env(safe-area-inset-top));right:max(14px,env(safe-area-inset-right));flex:none;width:44px;height:44px;padding:0}
 }
 
 /* ===== 編輯中提示列 ===== */
