@@ -74,7 +74,7 @@ button.ghost{border-color:var(--muted)}
 /* 議題的時程條一律綠色（甘特圖、個別進度），不再依完成度分紅綠 */
 .g-issue,.card{--acc:var(--prog-hi);--acc-ink:var(--prog-hi-ink)}
 /* 疊層頁的標題列（設定頁、編輯紀錄、工作報告共用）：左邊英文小字＋標題，右邊按鈕。class 名稱沿用自已移除的動畫模式 */
-.anim-top{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;border-bottom:1.5px solid var(--ink);padding-bottom:12px}
+.anim-top{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;border-bottom:1.5px solid var(--ink);padding-bottom:18px}   /* 按鈕跟分隔線至少留 18px（使用者不喜歡按鈕貼著線） */
 .anim-title{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap}
 .anim-title b{font-size:clamp(20px,2.4vw,28px);font-weight:500;letter-spacing:.08em}
 .anim-k{font-family:"Jost",sans-serif;font-size:13px;letter-spacing:.2em;color:var(--muted)}
@@ -137,7 +137,7 @@ a.logo-box:focus-visible{outline:2px solid var(--ink);outline-offset:4px}
 .bigdate{position:relative;font-family:"Jost",sans-serif;font-weight:200;font-size:clamp(52px,7vw,92px);line-height:.85;letter-spacing:.01em;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
 .dow{display:flex;justify-content:center;align-items:center;transform:translateX(var(--dow-dx,0px));gap:6px;font-family:"Jost",sans-serif;font-size:13px;letter-spacing:.1em;margin-top:6px;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
 .circ{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border:1px solid var(--ink);border-radius:50%;font-size:11.5px;letter-spacing:0;font-family:"Noto Sans TC",sans-serif}
-.hero-rule{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;border-top:1.5px solid var(--ink);margin:14px 0 18px;padding-top:10px;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+.hero-rule{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;border-top:1.5px solid var(--ink);margin:14px 0 24px;padding-top:18px;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
 .hero-rule .sub{letter-spacing:.12em}
 .hero-info{display:flex;gap:14px;align-items:center;flex-wrap:wrap}
 .hero-btns{display:contents}
@@ -182,7 +182,7 @@ a.logo-box:focus-visible{outline:2px solid var(--ink);outline-offset:4px}
   .bigdate{font-size:40px}
   .bd-k{right:auto;left:2px;top:-15px;transform:none;writing-mode:horizontal-tb;font-size:10px;letter-spacing:.2em}   /* 手機：旁邊太擠，改放在數字正上方 */
   .dow{font-size:11px}
-  .hero-rule{margin:10px 0 14px;gap:8px}
+  .hero-rule{margin:10px 0 22px;padding-top:14px;gap:8px}   /* 按鈕下面是區塊外框或編輯中提示列：至少留 18px */
   .hero-rule>span:first-child{width:100%}
   .hero-rule .actions{width:100%;gap:6px;flex-wrap:nowrap}
   .hero-rule .actions button{flex:1 1 0;min-width:0;min-height:44px;padding:6px 8px;font-size:14px;white-space:nowrap}
@@ -538,7 +538,7 @@ html.ev-drag-on,html.ev-drag-on *{-webkit-user-select:none;user-select:none;curs
    詳情裡的議題用負邊距撐到區塊邊緣；--cpx＝區塊左右內距 */
 #progPanel{--cpx:18px;overflow:hidden}
 .pv-page[hidden]{display:none}
-.pv-back{gap:4px;padding-left:8px;margin-bottom:6px}
+.pv-back{gap:4px;padding-left:8px;margin-bottom:20px}   /* 下面是議題詳情的分隔線：至少留 18px */
 #cardDetail{margin:0 calc(-1*var(--cpx)) -16px}
 #cardDetail .card{background:transparent}
 #cardDetail .card-toggle{pointer-events:none}
@@ -765,7 +765,7 @@ a.link:active{transform:scale(.96)}
 /* ===== 每週概述 ===== */
 .page-week{width:min(620px,94vw);background:var(--surface);border-left:1px solid var(--line);scroll-snap-align:end;box-shadow:-8px 0 24px rgba(0,0,0,.06);background-color:var(--surface)}
 .week-wrap{--wt:calc(20px + env(safe-area-inset-top));--wr:max(18px,env(safe-area-inset-right));--wl:max(18px,env(safe-area-inset-left));padding:var(--wt) var(--wr) calc(20px + var(--bar-in) + env(safe-area-inset-bottom)) var(--wl)}
-.week-top{display:flex;justify-content:space-between;align-items:center;gap:8px;position:sticky;top:0;background:var(--surface);z-index:5;margin:calc(-1*var(--wt)) calc(-1*var(--wr)) 14px calc(-1*var(--wl));padding:var(--wt) var(--wr) 12px var(--wl);border-bottom:1px solid var(--line);flex-wrap:wrap;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;border-color:var(--hair);transition:box-shadow .25s,background-color .25s;backdrop-filter:blur(8px)}
+.week-top{display:flex;justify-content:space-between;align-items:center;gap:8px;position:sticky;top:0;background:var(--surface);z-index:5;margin:calc(-1*var(--wt)) calc(-1*var(--wr)) 14px calc(-1*var(--wl));padding:var(--wt) var(--wr) 18px var(--wl);border-bottom:1px solid var(--line);flex-wrap:wrap;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;border-color:var(--hair);transition:box-shadow .25s,background-color .25s;backdrop-filter:blur(8px)}
 .week{margin-bottom:10px;background:var(--surface);border-radius:14px;transition:transform .22s var(--ease),box-shadow .22s var(--ease),border-color .22s var(--ease),background-color .2s,opacity .2s;position:relative;background-color:var(--surface);border:1px solid var(--line)}
 .week summary{cursor:pointer;padding:8px 12px;display:flex;align-items:center;gap:8px;list-style:none}
 .week .week-del{margin-left:auto}
@@ -1062,7 +1062,7 @@ dialog#dlg:has(.csel.open){overflow:visible}
 /* ===== 設定頁 ===== */
 .set-ov{position:fixed;inset:0;z-index:38;background:var(--bg);color:var(--ink);display:flex;flex-direction:column;gap:10px;padding:calc(14px + env(safe-area-inset-top)) max(clamp(14px,3vw,40px),env(safe-area-inset-right)) 0 calc(var(--rail-in) + max(clamp(14px,3vw,40px),env(safe-area-inset-left)))}
 .set-ov[hidden]{display:none}
-.set-ov .anim-top{padding-bottom:8px}
+.set-ov .anim-top{padding-bottom:18px}
 /* 清單（.set-scroll）與右側面板（.set-pane）：平常清單佔滿、內容置中；
    桌面版選了有下一層的項目時加 .split，清單縮成左欄（寬度變化由 nav.js 用 Web Animations 做），面板從右邊滑入 */
 .set-body{flex:1;min-height:0;display:flex;gap:clamp(20px,3vw,48px)}
@@ -1121,7 +1121,7 @@ dialog#dlg:has(.csel.open){overflow:visible}
 .cal-top{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .cal-top b{font-size:18px;font-weight:400;letter-spacing:.06em;min-width:8.5em;text-align:center}
 .cal-top button:last-child{margin-left:auto}
-.cal-top [data-nmon]{width:36px;height:36px;min-height:0;padding:0;border-radius:50%;display:inline-flex;align-items:center;justify-content:center}   /* 上一月、下一月：正圓 */
+.cal-top :is([data-nmon="-1"],[data-nmon="1"]){width:36px;height:36px;min-height:0;padding:0;border-radius:50%;display:inline-flex;align-items:center;justify-content:center}   /* 上一月、下一月：正圓（「回到本月」是一般膠囊鈕，不能套到） */
 .cal-head,.cal-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr))}
 .cal-head span{padding:0 8px 6px;font-size:12px;color:var(--muted)}
 /* 月曆外框是圓角框（--cal-r），格子之間細線；hover、選到、閃兩下的底色是格子裡內縮的圓角小塊（.cal-d::before），不是整格方塊 */
