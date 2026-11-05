@@ -18,7 +18,7 @@ document.addEventListener("click",async e=>{
     if(v&&v.text)copyText(v.text);return}
   if(t.closest("#genWeek")&&!readOnly()){
     const r=buildWeekly();
-    const v=await ask("生成週報",[{name:"date",label:"日期",type:"date",value:r.end},{name:"text",label:`統計期間 ${fmt(r.start)} 之後 – ${fmt(r.end)}：已依即時回報與議題更新自動歸納，可直接修改後按確定`,type:"textarea",value:r.text}],{wide:true});
+    const v=await ask("生成週報",[{name:"date",label:"日期",type:"date",value:r.end},{name:"text",label:`列出標了「會議要報告」的即時回報，與 ${fmt(r.start)} 之後到 ${fmt(r.end)} 完成的項目（只有標題），可直接修改後按確定`,type:"textarea",value:r.text}],{wide:true});
     if(v&&v.text){{const nw={id:uid("w"),date:v.date||r.end,text:v.text,auto:true};state.weeks.push(nw);state.events.forEach(e=>{e.report=false});newWeekId=nw.id;(openWeeks=openWeeks||new Set()).add(nw.id);setTimeout(()=>{newWeekId=null},1500)}snapshotBase(v.date||r.end);if(editing)changed();else save();toast("已產生並存成週報")}return}
   if(!editing)return;
   const se=t.closest("[data-secedit]");if(se){toggleSecEdit(se.dataset.secedit);return}

@@ -85,48 +85,18 @@ function weekRange(){
   const start=state.reportBase?.date&&state.reportBase.date<end?state.reportBase.date:(lastWeek||addDays(end,-7));
   return {start,end};
 }
+/* 生成週報（2026-11-05 改）：只列兩區、只寫標題，不寫說明與議題進度
+   一、會議報告事項：還沒完成、標了「會議要報告」（ev.report）的即時回報標題（照畫面順序）
+   二、本週完成：完成紀錄裡這一整週（今天往前 7 天）完成的項目標題（議題結案、即時回報結案、完成一段都算），由新到舊 */
 function buildWeekly(){
-  const {start,end}=weekRange();
+  const end=today(),start=addDays(end,-7);   /* 一整週：start 之後到今天（含），共 7 天 */
   const inP=d=>!!d&&d>start&&d<=end;
-  const base=state.reportBase?.issues||{};
-  const clean=t=>String(t||"").split(/\n+/).map(x=>x.replace(/^\s*[・•\-❏*．·]\s*/,"").trim().replace(/[。；，,.]+$/,"")).filter(Boolean).join("；").replace(/[。；]+$/,"");
-  const L=[];const dept=CFG.dept.name||(state.title||"").replace(/(工作)?(看板|進度|進度看板)$/,"").trim()||state.title;
-  L.push(`${dept} 本週例行回報`,`日期：【${end.replaceAll("-",".")}】`,"");
-  // 一、即時回報：未完成的 + 本期間新增的（尚未完成）
-  const evOpen=state.events.filter(e=>!e.doneAt);
-  L.push("一、即時回報");
-  if(evOpen.length)evOpen.forEach(e=>{const d=clean(e.desc);L.push(`❏ ${e.name}${parentOf(e)?`（${parentOf(e).title}）`:""}${inP(e.createdAt)?"（本週新增）":""}${d?"："+d:""}`)});else L.push("❏ 本週無即時回報");
-  L.push("");
-  // 二 / 四：議題
-  const active=state.issues.filter(i=>!i.doneAt);
-  const upd=[],idle=[];
-  active.forEach(i=>{
-    const b=base[i.id],stage=i.tags[i.cur]||"";
-    const mk=sortedMarkers(i).filter(m=>inP(m.date));
-    const sc=b&&b.stage!==stage, nc=b&&(b.note||"")!==(i.note||"");
-    const isNew=!b&&!!state.reportBase;
-    const changed=mk.length||sc||nc||isNew;
-    const head=`❏ ${i.title}（${sc?`${b.stage} → ${stage}`:stage}${stage?"，":""}${schedLabel(i)}）`;
-    const parts=[];
-    if(isNew)parts.push("本週新增議題");
-    mk.forEach(m=>parts.push(`${fmt(m.date).slice(5)} ${m.text}`));
-    if(i.note)parts.push(clean(i.note));
-    if(changed||!state.reportBase)upd.push(head+(parts.length?"："+parts.join("；"):""));
-    else idle.push(head+"："+(i.note?clean(i.note)+"（本週無新進度）":"本週無新進度"));
-  });
-  L.push("二、議題追蹤");
-  if(upd.length)L.push(...upd);else L.push("❏ 本週議題無新進度");
-  L.push("");
-  // 三、本週完成
-  const doneI=state.issues.filter(i=>i.doneAt&&inP(i.doneAt));
-  const doneE=state.events.filter(e=>inP(e.doneAt)&&!parentOf(e));
-  L.push("三、本週完成");
-  if(doneI.length+doneE.length){
-    doneI.forEach(i=>L.push(`❏ ${i.title}${i.note?"："+clean(i.note):"：已完成"}`));
-    doneE.forEach(e=>{const d=clean(e.desc);L.push(`❏ ${evName(e)}${d?"："+d:"：已處理"}`)});
-  }else L.push("❏ 本週無完成項目");
-  // 四、待處理事項
-  if(idle.length){L.push("","四、待處理事項",...idle)}
+  const dept=CFG.dept.name||(state.title||"").replace(/(工作)?(看板|進度|進度看板)$/,"").trim()||state.title;
+  const L=[`${dept} 本週例行回報`,`日期：【${end.replaceAll("-",".")}】`,""];
+  const rep=liveOrder().filter(e=>e.report);
+  L.push("一、會議報告事項",...(rep.length?rep.map(e=>`❏ ${e.name}`):["❏ 本週沒有會議報告事項"]),"");
+  const done=[...state.issues.filter(i=>inP(i.doneAt)).map(i=>({d:i.doneAt,t:i.title})),...state.events.filter(e=>inP(e.doneAt)).map(e=>({d:e.doneAt,t:evName(e)}))].sort((a,b)=>b.d.localeCompare(a.d));
+  L.push("二、本週完成",...(done.length?done.map(x=>`❏ ${x.t}`):["❏ 本週沒有完成項目"]));
   return {start,end,text:L.join("\n")};
 }
 
