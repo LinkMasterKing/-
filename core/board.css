@@ -1039,10 +1039,6 @@ dialog#dlg:has(.csel.open){overflow:visible}
 .tb-tabs{position:relative;z-index:1;display:flex;gap:2px}
 .tabbar .tab{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;width:76px;min-height:0;padding:5px 2px 4px;border:0;border-radius:24px;background:transparent;color:var(--tb-muted);font-size:11.5px;letter-spacing:.08em;line-height:1.2;scale:var(--ts,1);-webkit-tap-highlight-color:transparent}
 #tabbar .tab:hover,#tabbar .tab:active{transform:none;box-shadow:none}   /* 取消一般按鈕的 hover 浮起與光暈；不用 !important，按下的形變（inline）才不會被擋掉 */
-/* 「每週概述」分頁（2026-11-05 從頁首按鈕移過來）：本週週報還沒產出時（週五起，weekly.js 的 weekDotSync），圖示右上角一顆紅點（彈出） */
-.tabbar .tab[data-tab="week"]{position:relative}
-.tb-due{position:absolute;top:4px;left:calc(50% + 9px);width:9px;height:9px;border-radius:50%;background:var(--red);box-shadow:0 0 0 2px var(--tb-bg,var(--bg));opacity:0;transform:scale(0);pointer-events:none;transition:opacity var(--mo-base) var(--mo-out),transform var(--mo-slow) var(--mo-spring)}
-.tab.due .tb-due{opacity:1;transform:none}
 #tabbar .tb-gear:hover,#tabbar .tb-gear:active{transform:none;box-shadow:var(--glass-sh)}   /* 設定鍵：同上，但保留毛玻璃的光影 */
 .tab-ind{display:grid;place-items:center;width:56px;height:30px;border-radius:999px;font-size:19px;color:var(--tb-ink);transition:color .25s}
 .tab .tab-l{transition:color .2s}
@@ -1054,6 +1050,9 @@ dialog#dlg:has(.csel.open){overflow:visible}
 #tabbar .tb-lens.off{opacity:0}
 #tabbar .tab.lit .tab-ind{color:var(--tb-surface)}
 .tb-gear{width:62px;height:62px;padding:0;border:0;border-radius:50%;display:grid;place-items:center;min-height:0;color:var(--tb-ink);font-size:21px;--hr:92px;-webkit-tap-highlight-color:transparent;transition:color .35s,background-color .35s}
+/* 本週週報還沒產出（週五起，weekly.js 的 weekDotSync）：設定鍵右上角一顆紅點（以前在頁首「每週概述」鈕上） */
+.tb-due{position:absolute;top:6px;right:6px;width:10px;height:10px;border-radius:50%;background:var(--red);box-shadow:0 0 0 2px var(--bg);opacity:0;transform:scale(0);pointer-events:none;transition:opacity var(--mo-base) var(--mo-out),transform var(--mo-slow) var(--mo-spring)}
+#setBtn.due .tb-due{opacity:1;transform:none}
 /* 依背後亮度反轉（nav.js 的 tbContrast，標在分頁列與設定鍵上）：文字色與玻璃底色一起換 */
 .tabbar .on-light{--tb-ink:#111114;--tb-surface:#fff;--tb-muted:#4a4a53}
 #tabbar .glass.on-light{background:rgba(255,255,255,.42)}
@@ -1106,6 +1105,9 @@ dialog#dlg:has(.csel.open){overflow:visible}
 .set-sub-body{flex:1;min-height:0;overflow:auto;overscroll-behavior:contain;padding:10px 2px calc(32px + var(--bar-in) + env(safe-area-inset-bottom))}
 .set-row[aria-current="true"]{background:color-mix(in srgb,var(--ink) 10%,transparent)}
 .set-row[aria-current="true"] .sr-chev{color:var(--ink)}
+/* 設定頁「每週概述」那一列：本週週報還沒產出時，圖示右上角紅點 */
+.set-row[data-set="week"] .sr-ico{position:relative}
+.set-row[data-set="week"].due .sr-ico::after{content:"";position:absolute;top:-2px;right:-4px;width:9px;height:9px;border-radius:50%;background:var(--red);box-shadow:0 0 0 2px var(--bg)}
 /* 登入前：整頁只有鎖頭（鎖扣循環開合，nav.js 的 gateAnim） */
 .set-gate{display:grid;justify-items:center;gap:10px;text-align:center;padding:12vh 0 0}
 .set-gate>b{font-size:18px;font-weight:500;letter-spacing:.08em}

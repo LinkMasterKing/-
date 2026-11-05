@@ -10,10 +10,9 @@ const IS_IOS=/iPhone|iPad|iPod/.test(navigator.userAgent)||(navigator.platform==
      - 點分頁＝「按下 → 鏡片移過去（彈簧 1／1000）→ 接近目標或 400ms 後放開」
    設定鍵：按下放大 4px、白光跟著指標、被指標拖著微微偏移與拉伸（tanh 阻尼），放開彈回 */
 let setOpen=false;
-/* 2026-11-05：「每週概述」從頁首按鈕改成第四個分頁（week）；在每週概述那一頁時亮它 */
-const TABS=()=>[["live","即時回報","live"],["progress","進度","progress"],["done","完成紀錄","done"],["week","每週概述","calendar"]].filter(([k])=>k==="week"?CFG.sections.weekly!==false:secOn(k));
-/* 設定打開時，分頁都不亮；點任一個就關掉並回到那一區 */
-const tbActive=()=>setOpen?"":onWeek?"week":curSec;
+const TABS=()=>[["live","即時回報","live"],["progress","進度","progress"],["done","完成紀錄","done"]].filter(([k])=>secOn(k));
+/* 設定打開時，三個分頁都不亮；點任一個就關掉並回到那一區 */
+const tbActive=()=>setOpen?"":curSec;
 const RAIL_MQ=matchMedia("(min-width:900px)");
 const isRail=()=>RAIL_MQ.matches;
 /* 彈簧（跟 Compose 的 spring(dampingRatio, stiffness) 一樣，質量 1） */
@@ -98,18 +97,18 @@ function renderTabbar(){
   let tb=$("#tabbar");
   if(!tb){
     tb=document.createElement("nav");tb.id="tabbar";tb.className="tabbar";tb.setAttribute("aria-label","主要功能");
-    tb.innerHTML=`<div class="tb-main"><span class="tb-lens" aria-hidden="true"></span><div class="tb-tabs" role="tablist"></div></div><button type="button" class="tb-gear" id="setBtn" aria-label="設定" aria-expanded="false">${ico("sliders","solo")}</button>`;
+    tb.innerHTML=`<div class="tb-main"><span class="tb-lens" aria-hidden="true"></span><div class="tb-tabs" role="tablist"></div></div><button type="button" class="tb-gear" id="setBtn" aria-label="設定" aria-expanded="false">${ico("sliders","solo")}<span class="tb-due" aria-hidden="true"></span></button>`;weekDotSync();
     document.body.append(tb);setupTabbar(tb);
   }
   const tabs=TABS(),box=tb.querySelector(".tb-tabs"),sig=tabs.map(t=>t[0]).join();
-  if(box._sig!==sig){box._sig=sig;box.innerHTML=tabs.map(([k,t,ic])=>`<button type="button" class="tab" role="tab" data-tab="${k}" aria-label="${t}"><span class="tab-ind">${ico(ic,"solo")}</span><span class="tab-l">${t}</span>${k==="week"?'<span class="tb-due" aria-hidden="true"></span>':""}</button>`).join("");lens.shown=false;weekDotSync()}
+  if(box._sig!==sig){box._sig=sig;box.innerHTML=tabs.map(([k,t,ic])=>`<button type="button" class="tab" role="tab" data-tab="${k}" aria-label="${t}"><span class="tab-ind">${ico(ic,"solo")}</span><span class="tab-l">${t}</span></button>`).join("");lens.shown=false}
   const act=tbActive();
   box.querySelectorAll(".tab").forEach(b=>{const on=b.dataset.tab===act;b.classList.toggle("on",on);b.setAttribute("aria-selected",on)});
   const g=tb.querySelector("#setBtn");g.classList.toggle("on",setOpen);g.setAttribute("aria-expanded",setOpen);
   requestAnimationFrame(()=>lensTo(act));
   tbContrastSoon();
 }
-function tabGo(k){if(setOpen)closeSettings();if(notiOpen)closeNoti();if(k==="week"){goWeek();return}goMain();setSection(k)}
+function tabGo(k){if(setOpen)closeSettings();if(notiOpen)closeNoti();goMain();setSection(k)}
 function setupTabbar(tb){
   const main=tb.querySelector(".tb-main"),gear=tb.querySelector(".tb-gear"),lensEl=tb.querySelector(".tb-lens");
   /* 毛玻璃：分頁列、設定鍵各一塊（桌面也一樣，分頁列直立） */
@@ -176,12 +175,14 @@ const SR_CHEV='<span class="sr-chev" aria-hidden="true"><svg viewBox="0 0 8 14" 
 const setRow=(k,ic,t,sub,off)=>`<button type="button" class="set-row" data-set="${k}"${off?' aria-disabled="true"':""}${k===paneKey?' aria-current="true"':""}><span class="sr-ico">${ico(ic,"solo")}</span><span class="sr-t"><b>${t}</b>${sub?`<small>${sub}</small>`:""}</span>${off?"":SR_CHEV}</button>`;
 const setSec=(h,rows)=>`<section class="set-sec"><h3 class="set-h">${h}</h3><div class="set-list">${rows}</div></section>`;
 const GATE_LOCK='<svg viewBox="0 0 64 64" width="104" height="104" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path class="gate-shackle" d="M22 29v-8a10 10 0 0 1 20 0v8"/><g class="gate-body"><rect x="14" y="29" width="36" height="26" rx="7"/><circle cx="32" cy="39.5" r="2.6"/><path d="M32 42v5"/></g></svg>';
+/* 每週概述（2026-11-05 從頁首移到設定）：登入前也看得到這一列（週報本來就公開看） */
+const weekRow=()=>setSec("每週概述",setRow("week","doc","每週概述",state.weeks.length?`最新一份 ${fmt([...state.weeks].map(w=>w.date).sort().pop())} · 生成週報、歷史週報`:"生成週報、歷史週報"));
 function settingsInner(){
-  if(!loggedIn())return state.locked
+  if(!loggedIn())return weekRow()+(state.locked
     ?`<div class="set-gate"><b>這是唯讀版</b><p class="sub">定型版沒有設定可以調整。</p></div>`
-    :`<div class="set-gate"><button type="button" class="set-gate-ico" data-set-login aria-label="登入">${GATE_LOCK}</button><b>登入後才能使用設定</b><p class="sub">選擇身分、輸入個人密碼</p><button type="button" class="primary" data-set-login>登入</button></div>`;
+    :`<div class="set-gate"><button type="button" class="set-gate-ico" data-set-login aria-label="登入">${GATE_LOCK}</button><b>登入後才能使用設定</b><p class="sub">選擇身分、輸入個人密碼</p><button type="button" class="primary" data-set-login>登入</button></div>`);
   const c=cloudCfg(),rem=remRead(),remName=rem&&(state.members.find(m=>m.id===rem.id)||{}).name;
-  return setSec("紀錄",setRow("log","history","編輯紀錄","誰在什麼時候改了什麼"))+
+  return weekRow()+setSec("紀錄",setRow("log","history","編輯紀錄","誰在什麼時候改了什麼"))+
     (readOnly()?"":
     setSec("人員與權限",setRow("team","people","身分與專員","編輯身分、管理員（卡片上的專員就是這些身分）")+setRow("labels","tag","標籤",state.labels.length?`人事時地物 ${state.labels.length} 個`:"人事時地物，還沒有建立"))+
     setSec("看板資訊",setRow("title","edit","看板名稱",esc(state.title))+
@@ -205,7 +206,7 @@ function gateAnim(){
   sh.animate([{transform:"none",offset:0,easing:"cubic-bezier(.3,0,.2,1)"},{transform:"translateY(-8px)",offset:.24},{transform:"translateY(-8px)",offset:.56,easing:"cubic-bezier(.5,0,.8,.4)"},{transform:"translateY(1px)",offset:.68},{transform:"none",offset:.76},{transform:"none",offset:1}],o);
   bd.animate([{transform:"none",offset:0},{transform:"none",offset:.67},{transform:"translateY(1.5px)",offset:.71},{transform:"none",offset:.8},{transform:"none",offset:1}],o);
 }
-function renderSettings(){const el=$("#setOv .set-inner");if(el&&setOpen){const flip=Anim.capture();el.innerHTML=settingsInner();gateAnim();flowWatch();Anim.play(flip)}}   /* 列有增減（登入前後、標籤數）時照動畫規則 2 滑動／淡入 */
+function renderSettings(){const el=$("#setOv .set-inner");if(el&&setOpen){const flip=Anim.capture();el.innerHTML=settingsInner();weekDotSync();gateAnim();flowWatch();Anim.play(flip)}}   /* 列有增減（登入前後、標籤數）時照動畫規則 2 滑動／淡入 */
 async function openSettings(){
   let ov=$("#setOv");
   if(!ov){document.body.insertAdjacentHTML("beforeend",`<div class="set-ov" id="setOv" role="dialog" aria-modal="true" aria-label="設定" hidden>${settingsHTML().replace('<div class="set-inner">','<div class="set-inner" data-flip="set">')}</div>`);ov=$("#setOv");
@@ -323,6 +324,7 @@ document.addEventListener("click",async e=>{
   if(e.target.closest("#setOv [data-set-login]")){if(await ensureLogin())renderSettings();return}
   const r=e.target.closest("#setOv [data-set]");if(!r)return;
   const k=r.dataset.set;
+  if(k==="week"){weekFromSettings();return}   /* 不用登入 */
   if(r.getAttribute("aria-disabled")==="true"||!loggedIn())return;
   if(SET_FLOWS[k]){
     if(!PANE_MQ.matches){await subRun(SET_FLOWS[k]);return}   /* 手機：進到下一層全畫面子頁 */
