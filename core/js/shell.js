@@ -19,14 +19,23 @@ const SHELL_HTML=`<div class="pager" id="pager">
       <div class="hero-rule"><span class="hero-info"><span class="sub" id="saveInfo"></span></span><span class="actions"><span class="hero-btns" id="actions"></span><button type="button" class="noti-btn" id="notiBtn" aria-label="通知" title="今日／明日要處理的事、行事曆"><svg class="ico solo" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><g class="i-bell"><path d="M6.2 16.4V11a5.8 5.8 0 0 1 11.6 0v5.4l1.6 1.8H4.6z"/><path d="M10.2 20.4a2 2 0 0 0 3.6 0"/></g></svg><span class="noti-n num" hidden></span></button><button type="button" class="week-btn" id="weekBtn">每週概述 <span aria-hidden="true">→</span></button></span></div>
       <div class="banner"><span class="live-dot" aria-hidden="true"></span><b>編輯中</b><span class="sub">即時回報：點哪一欄就改哪一欄 · 其他區按標題列的「編輯這區」，一次改一區 · 全部改完按「儲存並同步」</span></div>
 
+      <section class="panel grant-panel" id="grantPanel" aria-labelledby="grH" hidden>
+        <div class="panel-head"><h2 id="grH">秘書處會議編輯<span class="en">GRANT</span></h2></div>
+        <div class="grant-row"><div class="grant-seg lseg" role="tablist" aria-label="秘書處會議編輯"><span class="lseg-lens" aria-hidden="true"></span><button type="button" role="tab" data-k="off" aria-selected="true">關閉</button><button type="button" role="tab" data-k="on" aria-selected="false">開放今天</button></div><p class="sub grant-st" id="grantSt"></p></div>
+      </section>
       <section class="panel follow-panel" id="followPanel" data-secbox="follow" aria-labelledby="fwH" hidden>
         <div class="panel-head"><h2 id="fwH">追蹤<span class="en">FOLLOW</span></h2><button type="button" class="icon sec-edit-btn" data-secedit="follow" aria-pressed="false">編輯這區</button></div>
         <div class="follows" id="follows" data-flip></div>
         <button class="ghost edit-only add-row" id="addFollow">+ 追蹤項目</button>
       </section>
       <section class="panel follow-panel meet-panel" id="meetPanel" data-secbox="meet" aria-labelledby="mtH" hidden>
-        <div class="panel-head"><h2 id="mtH">會議報告事項<span class="en">MEETING</span></h2><button type="button" class="icon" id="meetRefresh">重新整理</button><button type="button" class="icon sec-edit-btn" data-secedit="meet" aria-pressed="false">編輯這區</button></div>
+        <div class="panel-head"><h2 id="mtH">會議報告事項<span class="en">MEETING</span></h2><button type="button" class="icon" data-mtrefresh>重新整理</button></div>
         <div class="mt-depts" id="meetList" data-flip></div>
+      </section>
+      <section class="panel follow-panel meet-panel meet-edit" id="meetEdPanel" data-secbox="meetedit" aria-labelledby="meH" hidden>
+        <div class="panel-head"><h2 id="meH">會議編輯<span class="en">EDIT</span></h2><button type="button" class="icon" data-mtrefresh>重新整理</button><button type="button" class="icon sec-edit-btn" data-secedit="meetedit" aria-pressed="false" hidden>編輯這區</button></div>
+        <p class="sub grant-st" id="meetEdSt"></p>
+        <div class="mt-depts" id="meetEdList" data-flip></div>
       </section>
       <div class="layout">
         <div class="sgroup" data-sec="live" data-secbox="live">
@@ -91,17 +100,29 @@ const SU_LOGO={"box":[20,48,547,186],"emb":[25.08,53.16,152.57,175.44,[["#f0bc23
    boot.js 的 splashOut 會等這些動畫真的播完（最多 3.5 秒）才轉場進看板 */
 function splashPlay(){
   const sp=document.getElementById("splash");if(!sp||matchMedia("(prefers-reduced-motion: reduce)").matches)return;
-  const O="cubic-bezier(.2,.9,.25,1)",SPR="cubic-bezier(.3,1.35,.45,1)";
-  const y=sp.querySelector(".sp-y"),b=sp.querySelector(".sp-b");
-  y.animate([{opacity:0,transform:"translate(-30%,-14%) scale(.72) rotate(-8deg)"},{opacity:1,offset:.4},{opacity:1,transform:"none"}],{duration:820,easing:SPR,fill:"backwards"});
-  b.animate([{opacity:0,transform:"translate(30%,14%) scale(.72) rotate(8deg)"},{opacity:1,offset:.4},{opacity:1,transform:"none"}],{duration:820,delay:110,easing:SPR,fill:"backwards"});
-  sp.querySelectorAll(".sp-g.en").forEach((g,i)=>g.animate([{opacity:0,transform:"translateY(45%) scale(.6)"},{opacity:1,transform:"none"}],{duration:520,delay:380+i*55,easing:SPR,fill:"backwards"}));
-  sp.querySelectorAll(".sp-g.zh").forEach((g,i)=>g.animate([{opacity:0,transform:"translateY(60%)"},{opacity:1,transform:"none"}],{duration:560,delay:640+i*70,easing:O,fill:"backwards"}));
+  /* 分鏡（使用者 2026-11-05 提供）：
+     1. 黃、藍兩塊分在畫面左右兩側出現
+     2. 兩塊往中間合成標誌，標誌在畫面正中央
+     3. 標誌往左移到定位，文字從標誌後面往右滑出（被標誌擋住的部分看不到，.sp-clip 從標誌中線切開）
+     4. 定位成完整 logo
+     標誌的 path 在 svg 裡，位移用 viewBox 單位：EW＝標誌寬；整組 .sp-grp 先往右推 CENTER，讓標誌置中 */
+  const [VX,,VW]=SU_LOGO.box,[ex,,ew]=SU_LOGO.emb,EW=ew,CENTER=(50-((ex+ew/2-VX)/VW*100)).toFixed(2)+"%";
+  const SPR="cubic-bezier(.3,1.25,.45,1)",IO="cubic-bezier(.65,0,.25,1)";
+  const y=sp.querySelector(".sp-y"),b=sp.querySelector(".sp-b"),grp=sp.querySelector(".sp-grp"),txt=sp.querySelector(".sp-txt");
+  const T1=0,T2=420,T3=1080,D3=820;
+  /* 1→2：兩塊從左右兩側淡入，再往中間合起來（略帶回彈） */
+  const piece=(el,dx,delay)=>el.animate([{opacity:0,transform:`translateX(${dx}px)`},{opacity:1,transform:`translateX(${dx}px)`,offset:.3,easing:SPR},{opacity:1,transform:"none"}],{duration:T2+560,delay,fill:"backwards"});
+  /* 兩塊分開的距離依螢幕寬度算：電腦照分鏡（黃往左 2.1 個標誌寬、藍往右 3 個），手機縮短到兩塊都留在畫面裡（左右各留 16px） */
+  const embPx=sp.querySelector(".sp-logo").getBoundingClientRect().width*ew/VW||1,maxPx=Math.max(0,innerWidth/2-.6*embPx-16),u=ew/embPx;
+  piece(y,-Math.min(2.1*embPx,maxPx*.85)*u,T1);piece(b,Math.min(3*embPx,maxPx)*u,T1+60);
+  /* 2→3→4：整組從「標誌置中」滑到定位；文字同時從標誌後面往右滑出 */
+  grp.animate([{transform:`translateX(${CENTER})`},{transform:"none"}],{duration:D3,delay:T3,easing:IO,fill:"backwards"});
+  txt.animate([{transform:"translateX(-72%)",opacity:0},{opacity:1,offset:.2},{transform:"none",opacity:1}],{duration:D3+260,delay:T3+60,easing:"cubic-bezier(.45,0,.2,1)",fill:"backwards"});   /* 比標誌慢一點：分鏡第 3 格文字剛冒出一半 */
 }
 (function mountShell(){
   if(!document.getElementById("pager"))document.body.insertAdjacentHTML("afterbegin",SHELL_HTML);
   /* 開頁的學生會進場畫面：從網站外面進來（或重新整理）才放，站內切換部門／總覽有換頁動畫就不放。
-     白底（不跟深淺色），整個學生會 logo（標誌＋STUSTSA＋南臺科大學生會，見 SU_LOGO）照原檔排版，動畫見 splashPlay。
+     白底（不跟深淺色），整個學生會 logo（標誌＋STUSTSA＋南臺科大學生會，見 SU_LOGO）照原檔排版，動畫照使用者的四格分鏡（splashPlay）。
      蓋住讀資料、讀字型那一下卡頓；boot.js 等動畫播完、資料好了才收掉 */
   let inSite=false;try{inSite=!!document.referrer&&new URL(document.referrer).origin===location.origin&&performance.getEntriesByType("navigation")[0]?.type!=="reload"}catch(_){}
   if(!inSite&&!document.getElementById("splash")){
@@ -109,8 +130,9 @@ function splashPlay(){
     const piece=(x,y,w,h,inner,cls)=>`<svg class="${cls}" viewBox="${x} ${y} ${w} ${h}" style="left:${pc(x,VX,VW)};top:${pc(y,VY,VH)};width:${(w/VW*100).toFixed(3)}%;height:${(h/VH*100).toFixed(3)}%" aria-hidden="true">${inner}</svg>`;
     const [ex,ey,ew,eh,ep]=SU_LOGO.emb;
     document.body.insertAdjacentHTML("afterbegin",`<div class="splash" id="splash" aria-hidden="true"><div class="sp-logo" role="img" aria-label="南臺科大學生會 STUSTSA">
-      ${piece(ex,ey,ew,eh,ep.map(([c,d],i)=>`<path class="${i?"sp-b":"sp-y"}" fill="${c}" d="${d}"/>`).join(""),"sp-emb")}
-      ${SU_LOGO.g.map(([x,y,w,h,c,d],i)=>piece(x,y,w,h,`<path fill="${c}" d="${d}"/>`,"sp-g "+(i<7?"en":"zh"))).join("")}</div></div>`);
+      <div class="sp-grp"><div class="sp-clip" style="--cut:${pc(ex+ew/2,VX,VW)}"><div class="sp-txt">
+      ${SU_LOGO.g.map(([x,y,w,h,c,d],i)=>piece(x,y,w,h,`<path fill="${c}" d="${d}"/>`,"sp-g "+(i<7?"en":"zh"))).join("")}</div></div>
+      ${piece(ex,ey,ew,eh,ep.map(([c,d],i)=>`<path class="${i?"sp-b":"sp-y"}" fill="${c}" d="${d}"/>`).join(""),"sp-emb")}</div></div></div>`);   /* 標誌放在文字後面（DOM 順序），才蓋得住正從後面滑出的字 */
     splashPlay();
   }
   const box=document.querySelector(".logo-box"),tpl=document.getElementById("dept-logo");

@@ -444,6 +444,18 @@ html.ev-drag-on,html.ev-drag-on *{-webkit-user-select:none;user-select:none;curs
   .mt-ev{padding:12px 14px 14px}
 }
 
+/* ===== 秘書處會議編輯的授權（會長室的開關 #grantPanel、秘書處「會議編輯」的狀態列，meeting.js） =====
+   開關用液態分段切換（LiquidSeg）；狀態文字：開放中＝綠字、尚未開放＝紅字 */
+.grant-panel{margin-bottom:var(--gap,16px)}
+.grant-panel[hidden],.meet-edit[hidden]{display:none}
+.grant-row{display:flex;align-items:center;gap:10px 18px;flex-wrap:wrap}
+.grant-row .grant-st{margin:0;flex:1 1 260px;font-size:13px;line-height:1.6}
+.grant-seg>[data-k]{min-width:5.5em}
+.grant-st .grant-on{color:var(--ok);font-weight:500}
+.grant-st .grant-off{color:var(--red);font-weight:500}
+.meet-edit>.grant-st{margin:0 0 12px;font-size:13px}
+.meet-edit{margin-top:var(--gap,16px)}
+
 /* ===== 時間甘特圖 ===== */
 .range{display:none;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:10px;font-size:13px;color:var(--muted)}
 .sec-edit .range{display:flex}
@@ -836,8 +848,11 @@ a.link:active{transform:scale(.96)}
    動畫由 shell.js 的 splashPlay 用 Web Animations 做（只動 transform／opacity），這裡只負責版面 */
 .splash{position:fixed;inset:0;z-index:90;display:grid;place-items:center;background:#fff}
 .sp-logo{position:relative;width:min(560px,78vw);aspect-ratio:547/186}
-.sp-logo>svg{position:absolute;display:block;overflow:visible;will-change:transform,opacity}
-.sp-emb path{transform-box:fill-box;transform-origin:50% 50%}
+.sp-grp,.sp-clip,.sp-txt{position:absolute;inset:0}
+.sp-grp,.sp-txt{will-change:transform,opacity}
+.sp-clip{clip-path:inset(-20% -5% -20% var(--cut))}   /* 從標誌中線切開：文字滑到標誌左半邊時看不到，像從標誌後面出來 */
+.sp-grp svg{position:absolute;display:block;overflow:visible}
+.sp-emb path{will-change:transform,opacity}
 
 /* ===== 頁面切換（總覽 ↔ 看板） ===== */
 /* 跨頁的 View Transitions：往下一層新頁從右推進；返回時舊頁縮小、右移、淡出（跟邊緣滑動的預測返回同一個樣子）。類型由 back.js 標記 */
