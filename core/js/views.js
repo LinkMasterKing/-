@@ -65,11 +65,11 @@ function renderGantt(){
     const l=pos(s),w=Math.max(.8,pos(e)-l);
     const gL=latestMarkerId(it.markers.filter(m=>m.date));const mk=it.markers.filter(m=>m.date).map(m=>{const p=pos(m.date);return `<span class="g-mk ${p<6?"edgeL":p>94?"edgeR":""} ${m.id!==gL?"quiet":""}" style="left:${p}%;--mc:${esc(m.color||MARK_COLORS[0])}" title="${esc(fmt(m.date))} ${m.stage?"【"+esc(m.stage)+"】":""}${esc(m.text)}"><span class="stem"></span><span class="dot"></span><span class="lbl">${esc(m.text)}</span></span>`}).join("");
     const sp=schedPct(it);
-    return `<div class="g-row g-issue" data-jump="${it.id}" title="點一下看「${esc(it.title)}」的詳情"><div class="g-name"><a href="#" data-jump="${it.id}">${esc(it.title)}</a><span class="sub" style="font-size:11.5px">${fmt(s).slice(5)} – ${fmt(e).slice(5)}</span></div>
+    return `<div class="g-row g-issue" data-jump="${it.id}" data-fk="g${it.id}" title="點一下看「${esc(it.title)}」的詳情"><div class="g-name"><a href="#" data-jump="${it.id}">${esc(it.title)}</a><span class="sub" style="font-size:11.5px">${fmt(s).slice(5)} – ${fmt(e).slice(5)}</span></div>
       <div class="g-track">${grid}<div class="g-bar" style="left:${l}%;width:${w}%"><div class="fill" style="width:${sp}%"></div></div><span class="g-pct num" style="left:${l+w}%">${sp}%</span>${mk}</div></div>`;
   }).join("");
   /* 還沒填期間的議題也列出來（沒有條），才點得到詳情去補日期 */
-  h+=undated.map(it=>`<div class="g-row g-issue g-undated" data-jump="${it.id}" title="點一下看「${esc(it.title)}」的詳情"><div class="g-name"><a href="#" data-jump="${it.id}">${esc(it.title)}</a><span class="sub" style="font-size:11.5px">未排程</span></div><div class="g-track">${grid}</div></div>`).join("");
+  h+=undated.map(it=>`<div class="g-row g-issue g-undated" data-jump="${it.id}" data-fk="g${it.id}" title="點一下看「${esc(it.title)}」的詳情"><div class="g-name"><a href="#" data-jump="${it.id}">${esc(it.title)}</a><span class="sub" style="font-size:11.5px">未排程</span></div><div class="g-track">${grid}</div></div>`).join("");
   h+="</div>";
   if(!all.length)h+=`<p class="empty">${state.locked?"目前沒有進行中的議題。":"還沒有議題，按「編輯」→「+ 新增議題」開始。"}</p>`;
   $("#gantt").innerHTML=h;

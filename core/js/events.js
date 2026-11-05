@@ -64,7 +64,7 @@ document.addEventListener("click",async e=>{
     return}
   /* 完成這一段：把這段的內容複製一份到完成紀錄，卡片留著進入下一段 */
   /* 會議要報告：只是標記，不算「更新」（不改燈號） */
-  const evRep=t.closest("[data-evrep]");if(evRep){const ev=evOf(evRep);mdFlip(MD.live,()=>{ev.report=!ev.report;changed()});toast(ev.report?"已標記會議要報告":"已取消報告標記");return}
+  const evRep=t.closest("[data-evrep]");if(evRep){const ev=evOf(evRep);ev.report=!ev.report;changed();   /* 移到上／下區的動畫由動畫規則 2（data-flip）自動處理 */toast(ev.report?"已標記會議要報告":"已取消報告標記");return}
   const evRound=t.closest("[data-evround]");
   if(evRound){const ev=evOf(evRound);
     const v=await ask(`完成「${ev.name}」第 ${ev.round} 段`,[

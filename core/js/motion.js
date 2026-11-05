@@ -149,7 +149,7 @@ document.addEventListener("keydown",e=>{
    用 ResizeObserver 看高度（在畫面畫出來之前就收到），所以各處的程式不用自己呼叫。
    不做的情況：裡面的膠囊／清單正在跑自己的展開收合（motionBusy）、第一次出現、從隱藏變顯示（高度 0）、寬度也一起變（換區塊放大、視窗縮放，交給原本的 FLIP）、減少動態、動畫模式。
    動畫進行中自己造成的尺寸變化不理；動畫結束後如果內容又變了，ResizeObserver 會再收到一次，從目前高度接著滑 */
-const FLOW_SEL=".panel,#setOv .set-list,#setOv .set-pane";
+const FLOW_SEL=".panel,.md-pane,.ev[open],[data-flow],#setOv .set-list,#setOv .set-pane";   /* 動畫規則 1（anim.js）：新的容器加 data-flow 就有長度過渡 */
 const flowLast=new WeakMap();
 const flowRO=typeof ResizeObserver==="function"?new ResizeObserver(es=>{
   for(const e of es){

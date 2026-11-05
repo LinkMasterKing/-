@@ -33,11 +33,13 @@ const doneIssues=()=>state.issues.filter(i=>i.doneAt&&!(editing&&keepIds.has(i.i
 let rendering=false;
 function render(){
   if(rendering)return;rendering=true;
+  const flip=Anim.capture();   /* 動畫規則 2：data-flip 容器裡的項目，render 前後比對位置（anim.js） */
   try{
     document.body.classList.toggle("edit",editing);
     document.body.classList.toggle("locked",!!state.locked);
     renderHeader();renderTabbar();renderSections();renderSecEdit();renderWeeks();renderGantt();renderEvents();renderCards();renderDone();renderFollows();layoutAll();flowWatch();
   }finally{rendering=false}
+  Anim.play(flip);
 }
 
 /* ---------- 區塊切換：底部工具列的三個分頁 ----------

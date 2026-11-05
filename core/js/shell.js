@@ -21,14 +21,14 @@ const SHELL_HTML=`<div class="pager" id="pager">
 
       <section class="panel follow-panel" id="followPanel" data-secbox="follow" aria-labelledby="fwH" hidden>
         <div class="panel-head"><h2 id="fwH">追蹤<span class="en">FOLLOW</span></h2><button type="button" class="icon sec-edit-btn" data-secedit="follow" aria-pressed="false">編輯這區</button></div>
-        <div class="follows" id="follows"></div>
+        <div class="follows" id="follows" data-flip></div>
         <button class="ghost edit-only add-row" id="addFollow">+ 追蹤項目</button>
       </section>
       <div class="layout">
         <div class="sgroup" data-sec="live" data-secbox="live">
           <section class="panel" id="livePanel" aria-labelledby="evH">
             <div class="panel-head"><h2 id="evH">即時回報<span class="en">LIVE</span></h2></div>
-            <div class="md" id="liveMD"><div class="ev-zones" id="events"></div><div class="md-pane" id="evDetail" hidden></div></div>
+            <div class="md" id="liveMD"><div class="ev-zones" id="events" data-flip></div><div class="md-pane" id="evDetail" hidden></div></div>
           </section>
         </div>
 
@@ -39,7 +39,7 @@ const SHELL_HTML=`<div class="pager" id="pager">
             <div class="pv-page" id="pvGantt">
             <div class="legend" aria-label="圖例"><span><i class="lg-today" aria-hidden="true"></i>目前時間</span><span><i class="lg-line" style="--c:var(--prog-hi)" aria-hidden="true"></i>已過時程</span><span><i class="lg-rest" aria-hidden="true"></i>剩餘時程</span><span class="lg-hint">點議題列看詳情 · 左右滑動瀏覽月份</span></div>
             <div class="range">時間軸 <input type="month" id="rStart" aria-label="起始月份"> 到 <input type="month" id="rEnd" aria-label="結束月份"> <button class="icon" id="autoRange">依議題自動調整</button></div>
-            <div class="gantt" id="gantt"></div>
+            <div class="gantt" id="gantt" data-flip></div>
             <button class="ghost edit-only add-row" id="addIssue">+ 新增議題</button>
             </div>
             <div class="pv-page" id="pvDetail" hidden>
@@ -52,7 +52,7 @@ const SHELL_HTML=`<div class="pager" id="pager">
         <div class="sgroup" data-sec="done" data-secbox="done">
           <aside class="panel" id="donePanel" aria-labelledby="doneH">
             <div class="panel-head"><h2 id="doneH">完成紀錄<span class="en">DONE</span><span class="count" id="doneCount">0</span></h2><button type="button" class="icon sec-edit-btn" data-secedit="done" aria-pressed="false">編輯這區</button></div>
-            <div class="md" id="doneMD"><div class="events scroll" id="doneList"></div><div class="md-pane" id="doneDetail" hidden></div></div>
+            <div class="md" id="doneMD"><div class="events scroll" id="doneList" data-flip></div><div class="md-pane" id="doneDetail" hidden></div></div>
           </aside>
         </div>
       </div>
@@ -68,7 +68,7 @@ const SHELL_HTML=`<div class="pager" id="pager">
         <button class="gen-btn" id="genWeek"><svg class="spark" viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M10 3l1.9 5.1L17 10l-5.1 1.9L10 17l-1.9-5.1L3 10l5.1-1.9z"/><path fill="currentColor" d="M18.5 2l.8 2.2 2.2.8-2.2.8-.8 2.2-.8-2.2-2.2-.8 2.2-.8z"/><path fill="currentColor" d="M18 14.5l.9 2.1 2.1.9-2.1.9-.9 2.1-.9-2.1-2.1-.9 2.1-.9z"/></svg>生成週報</button>
         <button class="ghost edit-only" id="addWeek">+ 新增週報</button>
       </div>
-      <div id="weekList"></div>
+      <div id="weekList" data-flip></div>
     </div>
   </aside>
 </div>
