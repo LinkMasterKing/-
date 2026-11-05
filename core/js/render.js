@@ -45,7 +45,7 @@ function render(){
 /* ---------- 區塊切換：底部工具列的三個分頁 ----------
    手機：一次只顯示一區（預設即時回報）；桌面：全部顯示，選到的區塊放大移到最上面，其他區塊排在下面 */
 const SECS=["live","progress","done"].filter(secOn);
-let curSec=SECS[0]||"live",secTok=0;
+let curSec=(SECS.includes(appStartSec)&&appStartSec)||SECS[0]||"live",secTok=0;   /* appStartSec：App 重開時回到上次的區塊（app.js） */
 const isPhone=()=>matchMedia("(max-width:640px)").matches;
 function renderSections(){document.querySelectorAll(".layout>.sgroup").forEach(g=>g.classList.toggle("cur",g.dataset.sec===curSec));
   /* 切換區塊時，個別進度／完成紀錄要不要改成左右兩欄跟著變 */

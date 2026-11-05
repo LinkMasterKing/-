@@ -114,9 +114,6 @@ button.ghost{border-color:var(--muted)}
 /* ===== 頁首 ===== */
 a.logo-box{color:inherit;text-decoration:none}   /* 頁首 logo＝回各部門總覽 */
 a.logo-box:focus-visible{outline:2px solid var(--ink);outline-offset:4px}
-.logo-text{display:grid;gap:2px;line-height:1.15}
-.logo-text b{font-size:clamp(20px,2.2vw,26px);font-weight:700;letter-spacing:.12em}
-.logo-text small{font-size:10.5px;letter-spacing:.14em;color:var(--muted)}
 .actions{display:flex;gap:8px;flex-wrap:wrap}
 .arrow-line{content:"";flex:1;min-width:44px;height:26px;background:var(--ink);-webkit-mask:linear-gradient(#000,#000) left center/calc(100% - 3px) 1.2px no-repeat,url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='127.49 16.61 16.13 31.41'%3E%3Cpath d='M129.07,17.38v-.77h-1.58l.06,1.53a16.13,16.13,0,0,0,11.16,14.55,16.14,16.14,0,0,0-11.160,14.55l-.06,1.54h1.58V48a14.57,14.57,0,0,1,14.55-14.55V31.93A14.57,14.57,0,0,1,129.07,17.38Z'/%3E%3C/svg%3E") right center/12.4px 24.2px no-repeat;mask:linear-gradient(#000,#000) left center/calc(100% - 3px) 1.2px no-repeat,url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='127.49 16.61 16.13 31.41'%3E%3Cpath d='M129.07,17.38v-.77h-1.58l.06,1.53a16.13,16.13,0,0,0,11.16,14.55,16.14,16.14,0,0,0-11.160,14.55l-.06,1.54h1.58V48a14.57,14.57,0,0,1,14.55-14.55V31.93A14.57,14.57,0,0,1,129.07,17.38Z'/%3E%3C/svg%3E") right center/12.4px 24.2px no-repeat}
 .zh-sm{font-family:"Noto Sans TC",sans-serif;font-size:12px;letter-spacing:.3em;margin-left:10px;color:var(--muted)}
@@ -134,6 +131,7 @@ a.logo-box:focus-visible{outline:2px solid var(--ink);outline-offset:4px}
 .hero-l .eyebrow{margin-bottom:0;line-height:1}
 .hero-title h1{line-height:1.1}
 .logo{display:block;height:46px;width:auto;color:var(--ink)}
+.logo .logo-gap{fill:none;stroke:var(--bg);stroke-width:7;stroke-linejoin:round}   /* 單色學生會 logo：黃藍兩塊之間的分隔縫（shell.js 的 suLogoMono） */
 /* 大日期＝上次編輯（儲存）的日期；左邊直排小字「上次編輯」，不佔版面 */
 .bd-k{position:absolute;right:100%;top:50%;transform:translate(-10px,-50%);writing-mode:vertical-rl;font-family:"Noto Sans TC",sans-serif;font-weight:500;font-size:11px;line-height:1;letter-spacing:.3em;color:var(--muted);white-space:nowrap}
 .bigdate{position:relative;font-family:"Jost",sans-serif;font-weight:200;font-size:clamp(52px,7vw,92px);line-height:.85;letter-spacing:.01em;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
@@ -849,8 +847,8 @@ a.link:active{transform:scale(.96)}
 .splash{position:fixed;inset:0;z-index:90;display:grid;place-items:center;background:#fff}
 .sp-logo{position:relative;width:min(560px,78vw);aspect-ratio:547/186}
 .sp-grp,.sp-clip,.sp-txt{position:absolute;inset:0}
-.sp-grp,.sp-txt{will-change:transform,opacity}
-.sp-clip{clip-path:inset(-20% -5% -20% var(--cut))}   /* 從標誌中線切開：文字滑到標誌左半邊時看不到，像從標誌後面出來 */
+.sp-grp,.sp-g{will-change:transform}
+.sp-clip{clip-path:inset(-20% -5% -20% var(--cut))}   /* 從標誌右緣切開：還在標誌範圍裡的字看不到（不會從眼睛的洞、黃藍之間的縫透出來），像從標誌後面出來 */
 .sp-grp svg{position:absolute;display:block;overflow:visible}
 .sp-emb path{will-change:transform,opacity}
 
@@ -1136,20 +1134,26 @@ dialog#dlg:has(.csel.open){overflow:visible}
 .cal-top{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .cal-top b{font-size:18px;font-weight:400;letter-spacing:.06em;min-width:8.5em;text-align:center}
 .cal-top button:last-child{margin-left:auto}
+.cal-top [data-nmon]{width:36px;height:36px;min-height:0;padding:0;border-radius:50%;display:inline-flex;align-items:center;justify-content:center}   /* 上一月、下一月：正圓 */
 .cal-head,.cal-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr))}
 .cal-head span{padding:0 8px 6px;font-size:12px;color:var(--muted)}
-.cal-grid{border-top:1px solid var(--line);border-left:1px solid var(--hair)}
-.cal-d{display:flex;flex-direction:column;align-items:stretch;justify-content:flex-start;gap:6px;min-height:clamp(64px,10vw,96px);padding:6px 7px;border:0;border-right:1px solid var(--hair);border-bottom:1px solid var(--hair);border-radius:0;background:transparent;transition:background-color .28s var(--ease)}
-.cal-d:hover{transform:none;background:color-mix(in srgb,var(--ink) 5%,transparent)}
+/* 月曆外框是圓角框（--cal-r），格子之間細線；hover、選到、閃兩下的底色是格子裡內縮的圓角小塊（.cal-d::before），不是整格方塊 */
+.cal-grid{--cal-r:18px;border:1px solid var(--hair);border-radius:var(--cal-r);overflow:hidden}
+.cal-d{position:relative;isolation:isolate;display:flex;flex-direction:column;align-items:stretch;justify-content:flex-start;gap:6px;min-height:clamp(64px,10vw,96px);padding:6px 7px;border:0;border-right:1px solid var(--hair);border-bottom:1px solid var(--hair);border-radius:0;background:transparent}
+.cal-d:nth-child(7n){border-right:0}
+.cal-d:nth-last-child(-n+7){border-bottom:0}
+.cal-d::before{content:"";position:absolute;inset:3px;z-index:-1;border-radius:12px;background:var(--ink);opacity:0;transition:opacity .28s var(--ease)}
+.cal-d:hover{transform:none;box-shadow:none;border-color:var(--hair)}
+.cal-d:hover::before{opacity:.05}
 .cal-d.out{color:var(--muted);opacity:.5}
 .cal-n{align-self:flex-start;display:inline-flex;align-items:center;justify-content:center;min-width:24px;height:24px;border-radius:999px;font-size:13px}
 .cal-d.is-today .cal-n{background:var(--red);color:#fff}
-.cal-d.sel{background:color-mix(in srgb,var(--ink) 12%,transparent)}
+.cal-d.sel::before{opacity:.12}
 .cal-bars{display:grid;gap:3px}
 .cal-bars i{display:block;height:5px;border-radius:3px;background:var(--c)}
 .cal-bars em{font-style:normal;font-size:10.5px;color:var(--muted)}
-.cal-d.flash{animation:calFlash .7s ease-in-out 2}
-@keyframes calFlash{50%{background:color-mix(in srgb,var(--ink) 22%,transparent)}}
+.cal-d.flash::before{animation:calFlash .7s ease-in-out 2}
+@keyframes calFlash{50%{opacity:.22}}
 .cal-legend{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:12px;color:var(--muted)}
 .cal-legend span{display:inline-flex;align-items:center;gap:6px}
 .cal-legend i{width:14px;height:5px;border-radius:3px;background:var(--c)}
@@ -1157,7 +1161,9 @@ dialog#dlg:has(.csel.open){overflow:visible}
   .noti-days{grid-template-columns:minmax(0,1fr)}
   .ni{grid-template-columns:4px 4.4em minmax(0,1fr)}
   .ni-k,.ni-dept{display:none}
+  .cal-grid{--cal-r:14px}
   .cal-d{min-height:52px;padding:4px}
+  .cal-d::before{inset:2px;border-radius:9px}
   .cal-bars i{height:4px}
 }
 

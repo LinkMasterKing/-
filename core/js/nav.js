@@ -190,7 +190,7 @@ function settingsInner(){
     setSec("匯出與備份",setRow("exportEdit","download","匯出備份","JSON 檔，之後可以再匯入")+
       setRow("import","upload","匯入備份","用備份檔取代目前的看板內容")+setRow("report","doc","匯出工作報告","選期間、補寫內容，再存成 PDF"))+
     setSec("這台裝置",setRow("forget","device","忘記這台裝置",remName?`目前記住：${esc(remName)}（登入時勾選「在這個裝置上記住密碼」）`:"這台裝置沒有記住任何身分",!remName)))+
-    `<section class="set-sec"><h3 class="set-h">安裝成 App</h3><p class="set-p">iPhone：用 Safari 打開 → 分享 → 加入主畫面。<br>Android／電腦：瀏覽器選單裡的「安裝」。</p></section>`;
+    `<section class="set-sec"><h3 class="set-h">安裝成 App</h3><p class="set-p">在哪個部門的看板安裝，App 就開那個部門（各部門可以各裝一個）；之後打開會回到上次停的部門與區塊。<br>iPhone：用 Safari 打開 → 分享 → 加入主畫面。<br>Android／電腦：瀏覽器選單裡的「安裝」。</p></section>`;
 }
 function settingsHTML(){
   return `<div class="anim-top"><div class="anim-title"><span class="anim-k">SETTINGS</span><b>設定</b></div><div class="anim-ctl"><button type="button" id="setClose" aria-label="關閉設定">${ico("close")}關閉</button></div></div>
