@@ -49,9 +49,9 @@ async function editMarker(it,mk){
   if(v==="delete")it.markers=it.markers.filter(x=>x!==mk);else if(v)applyMarker(mk,v,it);if(v)changed();
 }
 
-/* 即時回報的時間標記：只填日期＝一個日子；加時刻＝具體時間；填了結束＝一段期間。回傳資料、"delete" 或 null */
+/* 即時回報的時間標記：只填日期＝一個日子；加時刻＝具體時間；填了結束＝一段期間 */
 const parseHM=s=>{s=String(s||"").trim().replace(/[：.．]/g,":");if(!s)return "";const m=s.match(/^(\d{1,2})(?::?(\d{2}))?$/);if(!m||+m[1]>23||+(m[2]||0)>59)return null;return pad(+m[1])+":"+pad(+(m[2]||0))};
-/* 時間標記的欄位（名稱、日期、時刻、結束日期、結束時刻）→ start／end；有錯回傳 msg（對話框與右側面板共用） */
+/* 時間標記的欄位（名稱、日期、時刻、結束日期、結束時刻）→ start／end；有錯回傳 msg（即時回報的逐欄編輯用） */
 function evTimeParts({label,sd,st,ed,et}){
   const hs=parseHM(st),he=parseHM(et);
   if(!label)return {msg:"請填這個時間是什麼"};
@@ -62,24 +62,6 @@ function evTimeParts({label,sd,st,ed,et}){
   if(end&&(end.slice(0,10)<start.slice(0,10)||(hs&&he&&end<start)))return {msg:"結束要晚於開始"};
   return {start,end:!end||end===start||(e2===sd&&!he)?"":end};
 }
-async function askEvTime(ev,tm){
-  const par=parentOf(ev),sp=x=>[(x||"").slice(0,10),(x||"").slice(11,16)];
-  let [sd,st]=tm?sp(tm.start):[today(),""],[ed,et]=tm?sp(tm.end):["",""],label=tm?tm.label:"",toIssue=!!(tm&&tm.toIssue);
-  for(;;){
-    const v=await ask(tm?"編輯時間標記":"新增時間標記",[
-      {name:"label",label:"這個時間是什麼",value:label,ph:"例如：與總務處開會、公告期間、完成維修"},
-      {name:"sd",label:"日期",type:"date",value:sd},
-      {name:"st",label:"時刻（選填，例如 14:00）",type:"time",value:st,ph:"不填就只記日期"},
-      {name:"ed",label:"結束日期（選填，填了就是一段期間）",type:"date",value:ed},
-      {name:"et",label:"結束時刻（選填）",type:"time",value:et},
-      ...(par?[{name:"toIssue",label:`也寫進母議題「${par.title}」的處理紀錄`,type:"check",value:toIssue}]:[])],tm?{danger:"刪除"}:{});
-    if(!v||v==="delete")return v;
-    ({label,sd,ed}=v);toIssue=v.toIssue==="on";st=v.st;et=v.et;
-    const r=evTimeParts({label,sd,st,ed,et});if(r.msg){toast(r.msg);continue}
-    return {label,start:r.start,end:r.end,toIssue};
-  }
-}
-
 
 /* ---------- 自製下拉選單：外觀在每個瀏覽器都一樣 ---------- */
 function cselClose(c,focus){

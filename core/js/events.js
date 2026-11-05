@@ -41,7 +41,7 @@ document.addEventListener("click",async e=>{
 
   /* small events（即時回報） */
   /* 左右兩欄時直接新增一筆空白的，選到它、在右側填寫 */
-  if(t.closest("#addEvent")&&mdOn("live")){const ev={id:uid("e"),name:"新的即時回報",desc:"",createdAt:today(),staff:[],links:[],times:[],round:1,touched:[]};evTouch(ev);state.events.push(ev);selEv=ev.id;changed();mdPaneIn($("#evDetail"));const n=$('#evDetail [data-evf="name"]');n?.focus();n?.select();return}
+  if(t.closest("#addEvent")&&mdOn("live")){const ev={id:uid("e"),name:"新的即時回報",desc:"",createdAt:today(),staff:[],links:[],times:[],round:1,touched:[]};evTouch(ev);state.events.push(ev);selEv=ev.id;evFld={ev:ev.id,k:"name"};changed();mdPaneIn($("#evDetail"));const n=$('#evDetail .evf.open [data-e="name"]');n?.focus();n?.select();return}
   if(t.closest("#addEvent")){const v=await ask("新增即時回報",[{name:"name",label:"名稱",ph:"例如：飲水機故障通報"},{name:"desc",label:"說明",type:"textarea",ph:"簡短說明"},...staffField([])]);
     if(v&&v.name){const ev={id:uid("e"),name:v.name,desc:v.desc||"",createdAt:today(),staff:v.staff||[],links:[],times:[],round:1,touched:[]};evTouch(ev);state.events.push(ev);changed()}return}
   const evAct=t.closest("[data-evdone],[data-evundo],[data-evdel]");
@@ -50,17 +50,15 @@ document.addEventListener("click",async e=>{
     else if(evAct.dataset.evundo!==undefined){ev.doneAt=null;evTouch(ev);syncLink(ev);changed()}
     else{const v=await ask(`刪除「${ev.name}」？`,[],{danger:"刪除"});if(v==="delete"){unlinkEv(ev);state.events=state.events.filter(x=>x!==ev);changed()}}
     return}
-  /* 右側詳情（編輯中）的按鈕 */
+  /* 逐欄編輯：鉛筆打開一欄、取消／完成／刪除（只在編輯中出現） */
+  const pen=t.closest("[data-evpen]");if(pen){evFld={ev:evOf(pen).id,k:pen.dataset.evpen};render();evFldFocus();return}
+  const fx=t.closest("[data-evfx]");if(fx){evFldAct(fx);return}
+  /* 右側詳情（編輯中）：完成這一段的展開框 */
   const evd=t.closest("#evDetail [data-evd]");
   if(evd){const ev=evOf(evd),k=evd.dataset.evd,box=$("#evDetail .evd-round");
     if(k==="round"){box.hidden=false;box.animate([{opacity:0,transform:"translateY(-6px)"},{opacity:1,transform:"none"}],{duration:240,easing:"cubic-bezier(.2,.9,.25,1)"});box.querySelector("textarea").focus();return}
     if(k==="roundcancel"){box.hidden=true;return}
     if(k==="roundok"){evRoundDone(ev,box.querySelector('[data-rf="done"]').value.trim(),box.querySelector('[data-rf="next"]').value.trim());return}
-    if(k==="addtime"){const tm={id:uid("t"),label:"",start:today(),end:"",toIssue:false};ev.times.push(tm);evTouch(ev);changed();$(`#evDetail [data-tm="${tm.id}"] [data-tmf="label"]`)?.focus();return}
-    if(k==="deltime"){const id=evd.closest("[data-tm]").dataset.tm;ev.times=ev.times.filter(x=>x.id!==id);evTouch(ev);syncLink(ev);changed();return}
-    if(k==="addlink"){const l={id:uid("l"),name:"",url:"",color:COLORS[ev.links.length%COLORS.length]};ev.links.push(l);evTouch(ev);changed();$(`#evDetail [data-lk="${l.id}"] [data-lkf="name"]`)?.focus();return}
-    if(k==="dellink"){const id=evd.closest("[data-lk]").dataset.lk;ev.links=ev.links.filter(x=>x.id!==id);evTouch(ev);changed();return}
-    if(k==="linkcolor"){const l=ev.links.find(x=>x.id===evd.closest("[data-lk]").dataset.lk);l.color=COLORS[(COLORS.indexOf(l.color)+1)%COLORS.length];changed();return}
     return}
   /* 完成這一段：把這段的內容複製一份到完成紀錄，卡片留著進入下一段 */
   /* 會議要報告：只是標記，不算「更新」（不改燈號） */
@@ -72,29 +70,13 @@ document.addEventListener("click",async e=>{
       {name:"next",label:"下一段要追蹤什麼（取代卡片上的說明；留空就沿用）",type:"textarea",rows:3,ph:"例如：等總務處回覆維修時程"}]);
     if(!v)return;
     evRoundDone(ev,v.done||"",v.next||"");return}
-  /* 時間標記：新增、編輯 */
-  const tmAdd=t.closest("[data-addevtime]"),tmEd=t.closest("[data-evtime]");
-  if(tmAdd||tmEd){const ev=evOf(tmAdd||tmEd),tm=tmEd?ev.times.find(x=>x.id===tmEd.dataset.evtime):null;
-    const v=await askEvTime(ev,tm);if(!v)return;
-    if(v==="delete")ev.times=ev.times.filter(x=>x!==tm);else if(tm)Object.assign(tm,v);else ev.times.push({id:uid("t"),...v});
-    evTouch(ev);syncLink(ev);openEv.add(ev.id);changed();return}
+
+  /* 完成紀錄裡的即時回報：更改母議題（即時回報區改成逐欄編輯，這裡照舊用對話框） */
   const evLinkIssue=t.closest("[data-evlinkissue]");
   if(evLinkIssue){const ev=evOf(evLinkIssue);
     const opts=[["","（不連結）"],...state.issues.map(i=>[i.id,i.title+(i.doneAt?"（已結案）":"")])];
     const v=await ask("與議題連結",[{name:"iid",label:"母議題（完成時會自動寫進該議題的時間戳記與處理紀錄）",type:"select",value:ev.issueId||"",options:opts}]);
     if(v){ev.issueId=v.iid||null;if(!ev.doneAt)evTouch(ev);syncLink(ev);openEv.add(ev.id);changed();toast(ev.issueId?`已連結到「${parentOf(ev).title}」`:"已取消連結")}return}
-  const evLinkAdd=t.closest("[data-addevlink]");
-  if(evLinkAdd){const ev=evOf(evLinkAdd);
-    const v=await ask("新增超連結按鈕",[{name:"name",label:"按鈕名稱",ph:"例如：公文連結"},{name:"url",label:"連結網址",type:"url",ph:"https://"},{name:"color",label:"按鈕顏色",type:"color",value:COLORS[0]}]);
-    if(v&&v.name){ev.links.push({id:uid("l"),name:v.name,url:v.url,color:v.color});evTouch(ev);openEv.add(ev.id);changed()}return}
-  const evLink=t.closest("[data-editevlink]");
-  if(evLink){e.preventDefault();const ev=evOf(evLink);const l=ev.links.find(x=>x.id===evLink.dataset.editevlink);
-    const v=await ask("編輯超連結按鈕",[{name:"name",label:"按鈕名稱",value:l.name},{name:"url",label:"連結網址",type:"url",value:l.url},{name:"color",label:"按鈕顏色",type:"color",value:l.color}],{danger:"刪除按鈕"});
-    if(v==="delete")ev.links=ev.links.filter(x=>x!==l);else if(v)Object.assign(l,{name:v.name||l.name,url:v.url,color:v.color});if(v){evTouch(ev);changed()}return}
-  const evEl=t.closest("[data-editev]");
-  if(evEl){const ev=evOf(evEl);
-    const v=await ask("編輯即時回報",[{name:"name",label:"名稱",value:ev.name},{name:"desc",label:"說明",type:"textarea",value:ev.desc},...staffField(ev.staff)],{danger:"刪除"});
-    if(v==="delete"){unlinkEv(ev);state.events=state.events.filter(x=>x!==ev)}else if(v){Object.assign(ev,{name:v.name||ev.name,desc:v.desc||""});if(v.staff)ev.staff=v.staff;evTouch(ev);syncLink(ev)}if(v)changed();return}
 
   /* issues */
   if(t.closest("#addIssue")){const it={id:uid("i"),title:"新議題",tags:[...CFG.stageTags],cur:0,start:"",end:"",doneAt:null,markers:[],links:[]};state.issues.push(it);keepIds.add(it.id);changed();
@@ -149,35 +131,41 @@ function evRoundDone(ev,done,next){
   state.events.push(rec);syncLink(ev);syncLink(rec);openEv.add(ev.id);changed();
   toast(`第 ${rec.round} 段已存進完成紀錄，接著追第 ${ev.round} 段`);
 }
-/* 右側詳情（編輯中）的欄位：名稱、說明邊打邊存；其他離開欄位或選完才存並重畫 */
-document.addEventListener("input",e=>{
-  const f=e.target.closest&&e.target.closest("#evDetail [data-evf]");if(!f||!secEd("live"))return;
-  const ev=evOf(f);ev[f.dataset.evf]=f.value;evTouch(ev);paneDirty();
-  if(f.dataset.evf==="name"){const c=document.querySelector(`#events [data-ev="${ev.id}"] summary b`);if(c)c.textContent=f.value;const h=$("#evDetail .evd-head b");if(h)h.textContent=f.value}
-});
-document.addEventListener("change",e=>{
-  const el=e.target;if(!secEd("live")||!el.closest||!el.closest("#evDetail"))return;
-  const ev=evOf(el);
-  if(el.name==="evIssue"){ev.issueId=el.value||null;evTouch(ev);syncLink(ev);changed();toast(ev.issueId?`已連結到「${parentOf(ev).title}」`:"已取消連結");return}
-  if(el.name==="staff"){ev.staff=[...document.querySelectorAll('#evDetail input[name="staff"]:checked')].map(x=>x.value);evTouch(ev);changed();return}
-  const row=el.closest("[data-tm]");
-  if(row){const tm=ev.times.find(x=>x.id===row.dataset.tm),g=k=>row.querySelector(`[data-tmf="${k}"]`);
-    if(el.dataset.tmf==="toIssue"){tm.toIssue=el.checked;evTouch(ev);syncLink(ev);changed();return}
-    const r=evTimeParts({label:g("label").value.trim(),sd:g("sd").value,st:g("st").value,ed:g("ed").value,et:g("et").value});
-    if(r.msg){if(!(el.dataset.tmf==="label"&&!g("label").value.trim()&&!tm.label))toast(r.msg);el.classList.add("bad");return}
-    Object.assign(tm,{label:g("label").value.trim(),start:r.start,end:r.end});el.classList.remove("bad");evTouch(ev);syncLink(ev);paneDirty();
-    const sp=row.querySelector(".evd-span");if(sp)sp.textContent=evTimeText(tm).span;return}
-  const lr=el.closest("[data-lk]");
-  if(lr){const l=ev.links.find(x=>x.id===lr.dataset.lk);l[el.dataset.lkf]=el.value.trim();evTouch(ev);paneDirty();return}
-});
-/* 在右側一欄一欄填的時候不重畫（會把游標弄丟）；焦點離開整個右側詳情時才重畫一次，讓甘特圖、議題卡片跟上 */
-let _paneDirty=false;
-function paneDirty(){_paneDirty=true;dirty=true}
-document.addEventListener("focusout",e=>{
-  if(!_paneDirty||!e.target.closest||!e.target.closest("#evDetail"))return;
-  if(e.relatedTarget&&e.relatedTarget.closest&&e.relatedTarget.closest("#evDetail"))return;
-  _paneDirty=false;setTimeout(render,0);
-});
+/* ---------- 即時回報的逐欄編輯（畫面在 views.js 的 evFieldsHTML） ----------
+   按「完成」才寫回 state；按「取消」或打開別欄就放棄這一欄的修改。Enter＝完成（說明欄要換行用 Shift+Enter 以外照常），Esc＝取消 */
+function evFldFocus(){
+  const box=$("#evDetail .evf.open")||document.querySelector("#events .evf.open");if(!box)return;
+  const f=box.querySelector("[data-e],.csel-btn,input[type=checkbox]");if(f){f.focus({preventScroll:true});if(f.select&&f.type!=="date")f.select()}
+  box.scrollIntoView({block:"nearest",behavior:reduceMotion()?"auto":"smooth"});
+}
+function evFldAct(fx){
+  const box=fx.closest(".evf"),ev=evOf(box),k=box.dataset.evfk,a=fx.dataset.evfx,g=n=>box.querySelector(`[data-e="${n}"]`);
+  if(a==="color"){const c=COLORS[(COLORS.indexOf(fx.dataset.c)+1)%COLORS.length];fx.dataset.c=c;fx.style.background=c;return}
+  if(a==="cancel"){evFld=null;render();return}
+  const tid=k.startsWith("t:")?k.slice(2):null,lid=k.startsWith("l:")?k.slice(2):null;
+  if(a==="del"){
+    if(tid)ev.times=ev.times.filter(x=>x.id!==tid);
+    if(lid)ev.links=ev.links.filter(x=>x.id!==lid);
+    evFld=null;evTouch(ev);syncLink(ev);changed();return}
+  /* 完成 */
+  if(k==="name"){const v=g("name").value.trim();if(!v){toast("請填名稱");g("name").classList.add("bad");return}ev.name=v}
+  else if(k==="desc")ev.desc=g("desc").value.trim();
+  else if(k==="issue"){const v=box.querySelector('input[name="evIssue"]').value||null;if(v!==(ev.issueId||null)){ev.issueId=v;toast(v?`已連結到「${parentOf(ev).title}」`:"已取消連結")}}
+  else if(k==="staff")ev.staff=[...box.querySelectorAll('input[name="staff"]:checked')].map(x=>x.value);
+  else if(tid){const r=evTimeParts({label:g("label").value.trim(),sd:g("sd").value,st:g("st").value,ed:g("ed").value,et:g("et").value});
+    if(r.msg){toast(r.msg);return}
+    const v={label:g("label").value.trim(),start:r.start,end:r.end,toIssue:!!(g("toIssue")&&g("toIssue").checked)};
+    if(tid==="+")ev.times.push({id:uid("t"),...v});else Object.assign(ev.times.find(x=>x.id===tid),v)}
+  else if(lid){const v={name:g("name").value.trim(),url:g("url").value.trim(),color:box.querySelector("[data-c]").dataset.c};
+    if(!v.name){toast("請填按鈕名稱");g("name").classList.add("bad");return}
+    if(lid==="+")ev.links.push({id:uid("l"),...v});else Object.assign(ev.links.find(x=>x.id===lid),v)}
+  evFld=null;evTouch(ev);syncLink(ev);openEv.add(ev.id);changed();
+}
+document.addEventListener("keydown",e=>{
+  const box=e.target.closest&&e.target.closest(".evf.open");if(!box||document.querySelector(".csel.open"))return;
+  if(e.key==="Escape"){e.preventDefault();e.stopPropagation();evFld=null;render();return}
+  if(e.key==="Enter"&&!e.isComposing&&e.target.matches("input[data-e]")){e.preventDefault();evFldAct(box.querySelector('[data-evfx="ok"]'))}
+},true);
 /* markers on cards: press-and-drag to place a new one, drag to move, click to edit */
 let drag=null;
 function makePending(tr,pct){

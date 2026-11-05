@@ -193,63 +193,96 @@ function progShow(id){
 
 /* ===== 即時回報 =====
    組成：共用小片段（狀態列、時間標記、連結、編輯工具）→ 膠囊 evCapHTML → 右側詳情 evDetailHTML → 整區 renderEvents。
-   這一區是否在編輯由 secEd("live") 決定（頁首「編輯」後，還要按這區的「編輯這區」）。 */
+   這一區是否在編輯由 secEd("live") 決定（頁首「編輯」後就是；這區沒有「編輯這區」，改成逐欄編輯）。 */
 /* 狀態列：狀態標籤、第幾段、最後更新（膠囊與右側詳情共用） */
 function evMetaHTML(ev,st){
   return `<p class="ev-meta"><span class="ev-st">${EV_ST[st]}</span>${ev.round>1?`<span>第 ${ev.round} 段</span>`:""}${ev.touchedAt?`<span>最後更新 <span class="num">${fmt(ev.touchedAt).slice(5)} ${ev.touchedAt.slice(11,16)}</span></span>`:""}</p>`;
 }
-/* 時間標記清單（即時回報區、完成紀錄共用）；edit＝顯示編輯鈕 */
-function evTimesHTML(ev,edit){
+/* 時間標記清單（即時回報區、完成紀錄共用） */
+function evTimesHTML(ev){
   const par=parentOf(ev),ts=evTimesSorted(ev);if(!ts.length)return "";
-  return `<ol class="ev-times">${ts.map(t=>{const x=evTimeText(t);return `<li><span class="num ev-t-when">${x.when}</span><span class="ev-t-label">${esc(t.label)}</span>${x.span?`<span class="sub num">${x.span}</span>`:""}${t.toIssue&&par?`<span class="sub" title="這筆也寫進母議題的處理紀錄">（母議題）</span>`:""}${edit?`<button type="button" class="icon" data-evtime="${t.id}" aria-label="編輯「${esc(t.label)}」">${ico("edit","solo")}</button>`:""}</li>`}).join("")}</ol>`;
+  return `<ol class="ev-times">${ts.map(t=>{const x=evTimeText(t);return `<li><span class="num ev-t-when">${x.when}</span><span class="ev-t-label">${esc(t.label)}</span>${x.span?`<span class="sub num">${x.span}</span>`:""}${t.toIssue&&par?`<span class="sub" title="這筆也寫進母議題的處理紀錄">（母議題）</span>`:""}</li>`}).join("")}</ol>`;
 }
-/* 連結按鈕列；edit＝點了開修改視窗（不開網址） */
-function evLinksHTML(ev,edit){
+/* 連結按鈕列 */
+function evLinksHTML(ev){
   if(!ev.links.length)return "";
-  return `<div class="links ev-links">${ev.links.map(l=>edit?`<a href="#" class="link" style="background:${esc(l.color)}" data-editevlink="${l.id}">${esc(l.name)}${ico("edit","sm")}</a>`:`<a class="link" style="background:${esc(l.color)}" href="${esc(safeUrl(l.url))}" target="_blank" rel="noopener">${esc(l.name)}</a>`).join("")}</div>`;
+  return `<div class="links ev-links">${ev.links.map(l=>`<a class="link" style="background:${esc(l.color)}" href="${esc(safeUrl(l.url))}" target="_blank" rel="noopener">${esc(l.name)}</a>`).join("")}</div>`;
 }
-/* 展開膠囊裡的編輯工具列（只在這區編輯中） */
-function evToolsHTML(ev,par){
-  return `<span class="ev-tools"><button type="button" class="icon" data-evrep aria-pressed="${ev.report}">${ev.report?"取消報告":"會議要報告"}</button><button type="button" class="icon" data-evlinkissue>${par?"更改母議題":"與議題連結"}</button><button type="button" class="icon" data-addevlink>+ 超連結</button><button type="button" class="icon" data-addevtime>${ico("calendar")}+ 時間</button><button type="button" class="icon" data-editev>${ico("edit")}編輯</button><button type="button" class="icon" data-evround>${ico("progress")}完成這一段</button><button type="button" class="icon" data-evdone>${ico("check")}結案</button></span>`;
+/* ---------- 逐欄編輯（頁首按「編輯」後，即時回報不用再按「編輯這區」） ----------
+   檢視時照常顯示內容；編輯中每一欄旁邊一顆小鉛筆，按了只有那一欄變成輸入框，「完成」存回、「取消」放棄。
+   一次只開一欄：evFld＝{ev:即時回報 id,k:欄位}；k＝name／desc／issue／staff／t:時間標記 id／l:連結 id（t:+、l:+ 是新增）。
+   膠囊（手機、總覽）與右側詳情共用同一套（evFieldsHTML）；存回在 events.js 的「逐欄編輯」段 */
+let evFld=null;
+const evFldOpen=(ev,k)=>!!evFld&&evFld.ev===ev.id&&evFld.k===k;
+/* 一欄：標題＋內容＋鉛筆；打開時換成輸入框＋取消／完成 */
+function evFieldHTML(ev,k,label,view,editor){
+  if(evFldOpen(ev,k))return `<div class="evf open" data-evfk="${k}">${label?`<span class="evf-l">${label}</span>`:""}<div class="evf-ed">${editor()}</div>
+        <div class="evf-btns">${/^[tl]:(?!\+)/.test(k)?`<button type="button" class="icon danger" data-evfx="del">刪除</button><span class="evd-gap"></span>`:""}<button type="button" class="ghost" data-evfx="cancel">取消</button><button type="button" class="primary" data-evfx="ok">完成</button></div></div>`;
+  return `<div class="evf" data-evfk="${k}">${label?`<span class="evf-l">${label}</span>`:""}<div class="evf-v">${view}</div><button type="button" class="icon evf-pen" data-evpen="${k}" aria-label="修改${label||"這一項"}">${ico("edit","solo")}</button></div>`;
 }
-/* 一顆膠囊。o：md＝左右兩欄中、sel＝被選到、next＝「下一個」記號、ed＝這區編輯中 */
+/* 時間標記的輸入框（名稱、日期、時刻、結束、寫進母議題） */
+function evTimeEditor(ev,tm){
+  const par=parentOf(ev),sp=x=>[(x||"").slice(0,10),(x||"").slice(11,16)],[sd,st]=tm?sp(tm.start):[today(),""],[ed,et]=tm?sp(tm.end):["",""];
+  const inp=(k,v,ph,type)=>`<input ${type?`type="${type}"`:""} data-e="${k}" value="${esc(v||"")}" ${ph?`placeholder="${esc(ph)}"`:""}>`;
+  return `${inp("label",tm&&tm.label,"這個時間是什麼（例如：與總務處開會）")}
+          <span class="evd-when">${inp("sd",sd,"","date")}${inp("st",st,"時刻")}<span class="sub">～</span>${inp("ed",ed,"","date")}${inp("et",et,"時刻")}</span>
+          <span class="sub evf-hint">只填日期＝一個日子；加時刻＝具體時間；填結束＝一段期間</span>
+          ${par?`<label class="fld-check"><input type="checkbox" data-e="toIssue" ${tm&&tm.toIssue?"checked":""}><span>也寫進母議題的處理紀錄</span></label>`:""}`;
+}
+/* 連結的輸入框（顏色、名稱、網址） */
+function evLinkEditor(ev,l){
+  const c=l?l.color:COLORS[ev.links.length%COLORS.length];
+  return `<span class="evd-row evd-link"><button type="button" class="evd-sw" style="background:${esc(c)}" data-evfx="color" data-c="${esc(c)}" aria-label="換顏色"></button><input data-e="name" value="${esc(l?l.name:"")}" placeholder="按鈕名稱"><input data-e="url" value="${esc(l?l.url:"")}" placeholder="https://" inputmode="url"></span>`;
+}
+/* 編輯中的內容：每一欄各自一顆鉛筆 */
+function evFieldsHTML(ev){
+  const par=parentOf(ev),ts=evTimesSorted(ev);
+  const opts=[["","（不連結）"],...state.issues.map(i=>[i.id,i.title+(i.doneAt?"（已結案）":"")])];
+  const staffNames=(ev.staff||[]).map(id=>state.staff.find(s=>s.id===id)).filter(Boolean).map(s=>`<span class="staff-chip">${esc(s.name)}</span>`).join("");
+  const timeView=t=>{const x=evTimeText(t);return `<span class="num ev-t-when">${x.when}</span><span class="ev-t-label">${esc(t.label)}</span>${x.span?`<span class="sub num">${x.span}</span>`:""}${t.toIssue&&par?`<span class="sub">（母議題）</span>`:""}`};
+  return `<div class="evfs">
+      ${evFieldHTML(ev,"name","名稱",`<b>${esc(ev.name)}</b>`,()=>`<input data-e="name" value="${esc(ev.name)}">`)}
+      ${evFieldHTML(ev,"desc","說明",ev.desc?`<span class="evf-desc">${esc(ev.desc)}</span>`:`<span class="sub">（沒有說明）</span>`,()=>`<textarea data-e="desc" rows="4" placeholder="簡短說明">${esc(ev.desc||"")}</textarea>`)}
+      ${evFieldHTML(ev,"issue","母議題",par?esc(par.title):`<span class="sub">（不連結）</span>`,()=>fieldHTML({name:"evIssue",label:"結案或完成一段時，會自動寫進這個議題的處理紀錄",type:"select",value:ev.issueId||"",options:opts}))}
+      ${state.staff.length?evFieldHTML(ev,"staff","專員",staffNames||`<span class="sub">（沒有標專員）</span>`,()=>fieldHTML({name:"staff",label:"可複選",type:"multi",value:ev.staff||[],options:staffOpts()})):""}
+      <div class="evf-group"><span class="evf-l">時間標記</span>
+        ${ts.map(t=>evFieldHTML(ev,"t:"+t.id,"",timeView(t),()=>evTimeEditor(ev,t))).join("")}
+        ${evFldOpen(ev,"t:+")?evFieldHTML(ev,"t:+","",'',()=>evTimeEditor(ev,null)):`<button type="button" class="ghost evd-add" data-evpen="t:+">${ico("calendar")}+ 時間</button>`}</div>
+      <div class="evf-group"><span class="evf-l">超連結</span>
+        ${ev.links.map(l=>evFieldHTML(ev,"l:"+l.id,"",`<span class="link" style="background:${esc(l.color)}">${esc(l.name)}</span><span class="sub evf-url">${esc(l.url)}</span>`,()=>evLinkEditor(ev,l))).join("")}
+        ${evFldOpen(ev,"l:+")?evFieldHTML(ev,"l:+","",'',()=>evLinkEditor(ev,null)):`<button type="button" class="ghost evd-add" data-evpen="l:+">+ 超連結</button>`}</div>
+    </div>`;
+}
+/* 展開膠囊裡的動作列（編輯中）：欄位改用鉛筆，這裡只剩整筆的動作 */
+function evToolsHTML(ev){
+  return `<span class="ev-tools"><button type="button" class="icon" data-evrep aria-pressed="${ev.report}">${ev.report?"取消報告":"會議要報告"}</button><button type="button" class="icon" data-evround>${ico("progress")}完成這一段</button><button type="button" class="icon" data-evdone>${ico("check")}結案</button></span>`;
+}
+/* 一顆膠囊。o：md＝左右兩欄中、sel＝被選到、next＝「下一個」記號、ed＝編輯中 */
 function evCapHTML(ev,o){
   const st=evStatus(ev),par=parentOf(ev),sel=o.md&&ev.id===o.sel;
+  /* 左右兩欄時被選到的那顆只是清單裡的空位，內容在右側詳情，不重複畫編輯欄位 */
+  const body=o.ed&&!sel?`${evMetaHTML(ev,st)}${evFieldsHTML(ev)}${evToolsHTML(ev)}`
+    :`${par?`<p class="ev-parent-full">母議題：${esc(par.title)}</p>`:""}${evMetaHTML(ev,st)}${ev.desc?`<p>${esc(ev.desc)}</p>`:`<p class="sub">（沒有說明）</p>`}
+        ${evTimesHTML(ev)}${staffHTML(ev.staff)}
+        ${evLinksHTML(ev)}`;
   return `<details class="ev ${sel?"sel":""} ${ev.id===o.next?"next":""}" data-ev="${ev.id}" data-st="${st}" ${!o.md&&openEv.has(ev.id)?"open":""}${sel?' aria-current="true"':""}>
       <summary><span class="live-dot" aria-hidden="true"></span><b>${esc(ev.name)}</b>${par?`<span class="ev-parent">→ ${esc(par.title)}</span>`:""}<button type="button" class="ev-del edit-only" data-evdel aria-label="刪除「${esc(ev.name)}」">${ico("close","solo")}</button><span class="ev-chev" aria-hidden="true">▾</span></summary>
-      <div class="ev-body">${par?`<p class="ev-parent-full">母議題：${esc(par.title)}</p>`:""}${evMetaHTML(ev,st)}${ev.desc?`<p>${esc(ev.desc)}</p>`:`<p class="sub">（沒有說明）</p>`}
-        ${evTimesHTML(ev,o.ed)}${staffHTML(ev.staff)}
-        ${evLinksHTML(ev,o.ed)}
-        ${o.ed?evToolsHTML(ev,par):""}</div>
+      <div class="ev-body">${body}</div>
     </details>`;
 }
-/* 右側詳情（桌面、即時回報被選到時）：檢視時只看內容；這區編輯中所有功能都直接在這裡改，不另外跳視窗 */
+/* 右側詳情（桌面、即時回報被選到時）：檢視時只看內容；編輯中每一欄旁邊有鉛筆，一次改一欄 */
 function evDetailHTML(ev){
-  const st=evStatus(ev),par=parentOf(ev),inp=(k,v,ph,type)=>`<input ${type?`type="${type}"`:""} data-tmf="${k}" value="${esc(v||"")}" ${ph?`placeholder="${esc(ph)}"`:""}>`;
+  const st=evStatus(ev),par=parentOf(ev);
   const head=`<div class="evd-head"><span class="live-dot" aria-hidden="true"></span><b>${esc(ev.name)}</b>${ev.report?'<span class="ev-rep">報告</span>':""}${mdStepHTML("live",liveOrder().map(e=>e.id),ev.id)}<button type="button" class="icon md-close" data-mdclose="live" aria-label="收起右側">${ico("close")}收起</button></div>
     ${evMetaHTML(ev,st)}`;
   if(!secEd("live"))return `<div class="evd" data-ev="${ev.id}" data-st="${st}">${head}
     ${par?`<p class="sub evd-par">母議題：${esc(par.title)}</p>`:""}
     ${ev.desc?`<p class="evd-desc">${esc(ev.desc)}</p>`:`<p class="sub">（沒有說明）</p>`}
-    ${evTimesHTML(ev,false)}${staffHTML(ev.staff)}
-    ${evLinksHTML(ev,false)}
-    <p class="sub evd-hint">${editing?"按這區標題列的「編輯這區」後，可以直接在這裡修改。":"按「編輯」、再按這區的「編輯這區」後，可以直接在這裡修改。"}</p></div>`;
-  const sp=x=>[(x||"").slice(0,10),(x||"").slice(11,16)];
-  const opts=[["","（不連結）"],...state.issues.map(i=>[i.id,i.title+(i.doneAt?"（已結案）":"")])];
+    ${evTimesHTML(ev)}${staffHTML(ev.staff)}
+    ${evLinksHTML(ev)}
+    <p class="sub evd-hint">按「編輯」後，每一欄旁邊會出現鉛筆，可以單獨修改。</p></div>`;
   return `<div class="evd editing" data-ev="${ev.id}" data-st="${st}">${head}
-    <label class="evd-f">名稱<input data-evf="name" value="${esc(ev.name)}"></label>
-    <label class="evd-f">說明<textarea data-evf="desc" rows="4" placeholder="簡短說明">${esc(ev.desc||"")}</textarea></label>
-    ${fieldHTML({name:"evIssue",label:"母議題（完成時會自動寫進該議題的處理紀錄）",type:"select",value:ev.issueId||"",options:opts})}
-    ${staffField(ev.staff).map(fieldHTML).join("")}
-    <section class="evd-sec"><div class="att-h">時間標記<span class="sub">（只填日期＝一個日子；加時刻＝具體時間；填結束＝一段期間）</span></div>
-      ${evTimesSorted(ev).map(t=>{const [sd,st2]=sp(t.start),[ed,et]=sp(t.end),x=evTimeText(t);return `<div class="evd-row" data-tm="${t.id}">
-        ${inp("label",t.label,"這個時間是什麼")}<span class="evd-when">${inp("sd",sd,"","date")}${inp("st",st2,"時刻")}<span class="sub">～</span>${inp("ed",ed,"","date")}${inp("et",et,"時刻")}</span>
-        <span class="sub num evd-span">${x.span}</span>${par?`<label class="fld-check"><input type="checkbox" data-tmf="toIssue" ${t.toIssue?"checked":""}><span>寫進母議題</span></label>`:""}
-        <button type="button" class="icon danger" data-evd="deltime" aria-label="刪除「${esc(t.label)}」">刪除</button></div>`}).join("")}
-      <button type="button" class="ghost evd-add" data-evd="addtime">${ico("calendar")}+ 時間</button></section>
-    <section class="evd-sec"><div class="att-h">超連結</div>
-      ${ev.links.map(l=>`<div class="evd-row evd-link" data-lk="${l.id}"><button type="button" class="evd-sw" style="background:${esc(l.color)}" data-evd="linkcolor" aria-label="換顏色"></button><input data-lkf="name" value="${esc(l.name)}" placeholder="按鈕名稱"><input data-lkf="url" value="${esc(l.url)}" placeholder="https://" inputmode="url"><button type="button" class="icon danger" data-evd="dellink" aria-label="刪除「${esc(l.name)}」">刪除</button></div>`).join("")}
-      <button type="button" class="ghost evd-add" data-evd="addlink">+ 超連結</button></section>
+    ${evFieldsHTML(ev)}
     <section class="evd-sec evd-acts">
       <div class="evd-round" hidden><label class="evd-f">這一段完成了什麼（存進完成紀錄）<textarea data-rf="done" rows="3">${esc(ev.desc||"")}</textarea></label>
         <label class="evd-f">下一段要追蹤什麼（取代說明；留空就沿用）<textarea data-rf="next" rows="2" placeholder="例如：等總務處回覆維修時程"></textarea></label>
@@ -268,10 +301,11 @@ function renderEvents(){
   /* 左右兩欄只在點選一筆之後才出現；沒選的時候照常排成膠囊格 */
   const md=mdOn("live")&&!!selEv,pane=$("#evDetail");mdLast.live=mdOn("live");
   $("#liveMD").classList.toggle("split",md);
+  if(!secEd("live"))evFld=null;
   const o={md,sel:selEv,ed:secEd("live"),next:md?(live[live.findIndex(e=>e.id===selEv)+1]||{}).id:null};   /* next：畫面順序裡的下一顆，加「下一個」記號 */
   const cap=ev=>evCapHTML(ev,o);
   const addBtn=`<button type="button" class="ghost edit-only add-row" id="addEvent">+ 新增即時回報</button>`;   /* 新增鈕排在格子最後一格，跟一顆膠囊一樣大（只在這區編輯中顯示） */
-  const empty=`<p class="empty">${state.locked?"目前沒有即時回報。":"需要即時回報的事項放這裡，只要名稱和說明。按「編輯」→「編輯這區」→「+ 新增即時回報」。"}</p>`;
+  const empty=`<p class="empty">${state.locked?"目前沒有即時回報。":"需要即時回報的事項放這裡，只要名稱和說明。按「編輯」→「+ 新增即時回報」。"}</p>`;
   const zone=(k,h,list,tail)=>`<div class="ev-zone" data-zone="${k}">${h?`<div class="ev-zone-h">${h}<span class="num">${list.length}</span></div>`:""}<div class="events">${list.length?list.map(cap).join(""):h?"":empty}${tail}</div></div>`;
   $("#events").innerHTML=rep.length?zone("rep","會議報告事項",rep,"")+"\n      "+zone("rest","其他回報",rest,addBtn):zone("rest","",live,addBtn);
   if(md){pane.innerHTML=evDetailHTML(live.find(e=>e.id===selEv));pane.hidden=false}else{pane.innerHTML="";pane.hidden=true}
@@ -295,7 +329,7 @@ function renderDone(){
         <span class="edit-only" style="gap:6px"><button type="button" class="icon" data-restore>取消結案</button></span>`}))
   .concat(de.map(ev=>({id:ev.id,d:ev.doneAt,attr:`data-ev="${ev.id}"`,title:esc(evName(ev)),sub:`${dateBtn(ev.doneAt)} · 即時回報${parentOf(ev)?` → ${esc(parentOf(ev).title)}`:""}`,del:`data-evdel aria-label="刪除「${esc(ev.name)}」"`,
     body:`${ev.desc?`<p style="margin:0;white-space:pre-wrap">${esc(ev.desc)}</p>`:""}${(ev.links||[]).length?`<div class="links">${ev.links.map(link).join("")}</div>`:""}
-        ${evTimesHTML(ev,false)}
+        ${evTimesHTML(ev)}
         <span class="edit-only" style="gap:6px"><button type="button" class="icon" data-evlinkissue>${parentOf(ev)?"更改母議題":"與議題連結"}</button>${ev.fromEv?"":`<button type="button" class="icon" data-evundo>移回即時回報</button>`}</span>`})))
   .sort((a,b)=>b.d.localeCompare(a.d));
   /* 跟即時回報同一套膠囊與左右兩欄（class ev＋done-ev、data-st="done"）：收合是空心綠框綠字，展開跟即時回報一樣；data-done＝這一筆的 id */

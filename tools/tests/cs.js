@@ -1,0 +1,10 @@
+const {chromium}=require('playwright');(async()=>{const b=await chromium.launch();const ctx=await b.newContext({viewport:{width:600,height:700},colorScheme:'dark',deviceScaleFactor:2});
+await ctx.route('https://fonts.googleapis.com/**',r=>r.fulfill({contentType:'text/css',body:''}));await ctx.route('https://api.github.com/**',r=>r.fulfill({status:404,body:'{}'}));
+const p=await ctx.newPage();const e=[];p.on('pageerror',x=>e.push(x.message));await p.goto('http://localhost:8104/');await p.waitForTimeout(1500);
+await p.evaluate(()=>{state.members=[{id:'m1',name:'白菜',role:'admin',kdf:'x:y'},{id:'m2',name:'小明',role:'member',kdf:'x:y'}]});
+await p.click('#editBtn');await p.waitForTimeout(500);await p.click('#dlgForm .csel-btn');await p.waitForTimeout(400);
+await p.screenshot({path:'cs.png',clip:{x:0,y:150,width:600,height:400}});
+await p.keyboard.press('ArrowDown');await p.keyboard.press('Enter');await p.waitForTimeout(300);
+console.log('value:',await p.$eval('#dlgForm input[name=who]',x=>x.value),'label:',await p.textContent('#dlgForm .csel-v'),'dialog still open:',await p.evaluate(()=>$("#dlg").open));
+await p.click('#dlgForm .csel-btn');await p.waitForTimeout(200);await p.keyboard.press('Escape');await p.waitForTimeout(300);console.log('esc closes list only:',await p.evaluate(()=>$("#dlg").open),await p.$eval('.csel',x=>x.classList.contains('open')));
+console.log('errs',e);await b.close()})();

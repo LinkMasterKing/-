@@ -45,7 +45,7 @@ async function shareSettings(){
   const j=await r.json();let html=b64dec(j.content);
   const base=location.protocol==="https:"?new URL("./",location.href).href:"";
   const pairs=[["description",d],["og:title",t],["og:description",d],["twitter:title",t],["twitter:description",d]];
-  if(base)pairs.push(["og:url",base],["og:image",base+"dept-cover.png"],["twitter:image",base+"dept-cover.png"]);
+  if(base)pairs.push(["og:url",base],["og:image",base+"dept/cover.png"],["twitter:image",base+"dept/cover.png"]);
   pairs.forEach(([k,val])=>{html=metaSet(html,k,val)});
   let w;try{w=await fetch(apiURL(pc),{method:"PUT",headers:{...h,"Content-Type":"application/json"},body:JSON.stringify({message:`更新分享預覽文字 ${nowStr()}`,content:b64enc(html),sha:j.sha,branch:c.branch})})}catch(_){toast("連不上 GitHub，沒有更新");return}
   if(!w.ok){toast(w.status===409||w.status===422?"網頁檔剛好被別人改過，請再試一次":w.status===401?"GitHub 權杖無效或過期":"更新失敗（"+w.status+"）");return}

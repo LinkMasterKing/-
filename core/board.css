@@ -2,8 +2,8 @@
    每個元件的樣式集中在自己的段落：基本樣式在前，手機版、深色模式等條件在同一段的後面。 */
 
 /* ===== 基礎：色彩變數、元素預設 ===== */
-:root{--bg:#fff;--surface:#fff;--ink:#111114;--muted:#5d5d66;--line:#111114;--hair:#e2e2e8;--grid:#f0f0f4;--accent-light:#e0342a;--accent-dark:#ff5a4e;--ok:#3ccf7f;--neon:#00ff6a;--ok-dot:#2bff88;--teal:#111114;--teal-soft:#fff;--lime:var(--accent-light);--warn:var(--accent-light);--onteal:#fff;--done:var(--ok);--red:var(--accent-light);--green:var(--ok);--rest:#c9c9d0;--prog-hi:var(--green);--prog-lo:var(--red);--prog-hi-ink:var(--prog-hi);--prog-lo-ink:var(--prog-lo);--today:var(--ink);--st-ok:var(--ok);--st-ok-ink:#0b1f12;--su-yellow:#f0bc23;--su-blue:#0a5baa;--st-go:var(--su-yellow);--st-go-ink:#111114;--st-stall:var(--red);--st-stall-ink:#fff;color-scheme:light;--glow:0 0 0 1.5px rgba(255,255,255,.95),0 0 18px 2px rgba(255,255,255,.55),0 8px 26px -6px rgba(0,0,0,.18);--glow-soft:0 0 0 1px rgba(255,255,255,.8),0 0 26px -4px rgba(255,255,255,.45),0 10px 30px -14px rgba(0,0,0,.18);--glow-bar:0 0 14px rgba(255,255,255,.85);--ease:cubic-bezier(.2,.8,.2,1);--flash:#111114;accent-color:var(--ink)}
-:root[data-theme="dark"]{--bg:#000;--surface:#000;--ink:#f1f1f4;--muted:#a3a3ae;--line:#ececf0;--hair:#2c2c34;--grid:#1a1a20;--teal:#f1f1f4;--teal-soft:#000;--lime:var(--accent-dark);--warn:var(--accent-dark);--onteal:#111114;--done:var(--ok);--red:var(--accent-dark);--green:var(--ok);--rest:#4a4a54;color-scheme:dark;--glow:0 0 0 1.5px #fff,0 0 22px 3px rgba(255,255,255,.55),0 0 50px -6px rgba(255,255,255,.35);--glow-soft:0 0 0 1px rgba(255,255,255,.7),0 0 34px -6px rgba(255,255,255,.4);--flash:#fff}
+:root{--bg:#fff;--surface:#fff;--ink:#111114;--pop:rgba(255,255,255,.97);--pop-sh:inset 0 0 0 .5px rgba(0,0,0,.1),0 14px 32px rgba(0,0,0,.16);--muted:#5d5d66;--line:#111114;--hair:#e2e2e8;--grid:#f0f0f4;--accent-light:#e0342a;--accent-dark:#ff5a4e;--ok:#3ccf7f;--neon:#00ff6a;--ok-dot:#2bff88;--teal:#111114;--teal-soft:#fff;--lime:var(--accent-light);--warn:var(--accent-light);--onteal:#fff;--done:var(--ok);--red:var(--accent-light);--green:var(--ok);--rest:#c9c9d0;--prog-hi:var(--green);--prog-lo:var(--red);--prog-hi-ink:var(--prog-hi);--prog-lo-ink:var(--prog-lo);--today:var(--ink);--st-ok:var(--ok);--st-ok-ink:#0b1f12;--su-yellow:#f0bc23;--su-blue:#0a5baa;--st-go:var(--su-yellow);--st-go-ink:#111114;--st-stall:var(--red);--st-stall-ink:#fff;color-scheme:light;--glow:0 0 0 1.5px rgba(255,255,255,.95),0 0 18px 2px rgba(255,255,255,.55),0 8px 26px -6px rgba(0,0,0,.18);--glow-soft:0 0 0 1px rgba(255,255,255,.8),0 0 26px -4px rgba(255,255,255,.45),0 10px 30px -14px rgba(0,0,0,.18);--glow-bar:0 0 14px rgba(255,255,255,.85);--ease:cubic-bezier(.2,.8,.2,1);--flash:#111114;accent-color:var(--ink)}
+:root[data-theme="dark"]{--bg:#000;--surface:#000;--ink:#f1f1f4;--pop:rgba(30,30,34,.96);--pop-sh:inset 0 0 0 .5px rgba(255,255,255,.22),inset 1.5px 1.5px 1px -1px rgba(255,255,255,.5),0 16px 36px rgba(0,0,0,.5);--muted:#a3a3ae;--line:#ececf0;--hair:#2c2c34;--grid:#1a1a20;--teal:#f1f1f4;--teal-soft:#000;--lime:var(--accent-dark);--warn:var(--accent-dark);--onteal:#111114;--done:var(--ok);--red:var(--accent-dark);--green:var(--ok);--rest:#4a4a54;color-scheme:dark;--glow:0 0 0 1.5px #fff,0 0 22px 3px rgba(255,255,255,.55),0 0 50px -6px rgba(255,255,255,.35);--glow-soft:0 0 0 1px rgba(255,255,255,.7),0 0 34px -6px rgba(255,255,255,.4);--flash:#fff}
 *,*::before,*::after{box-sizing:border-box}
 /* 工具列讓出的空間：手機在下方（--bar-in），桌面 900px 以上改成左側細欄（--rail-in）；細欄本身在「底部工具列」段 */
 :root{--bar-in:88px;--rail-in:0px}
@@ -42,7 +42,7 @@ summary{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
 .animating .ok-dot{box-shadow:none}
 body.log-open{overflow:hidden}
 @media (prefers-color-scheme:dark){
-  :root:not([data-theme="light"]){--bg:#000;--surface:#000;--ink:#f1f1f4;--muted:#a3a3ae;--line:#ececf0;--hair:#2c2c34;--grid:#1a1a20;--teal:#f1f1f4;--teal-soft:#000;--lime:var(--accent-dark);--warn:var(--accent-dark);--onteal:#111114;--done:var(--ok);--red:var(--accent-dark);--green:var(--ok);--rest:#4a4a54;color-scheme:dark;--glow:0 0 0 1.5px #fff,0 0 22px 3px rgba(255,255,255,.55),0 0 50px -6px rgba(255,255,255,.35);--glow-soft:0 0 0 1px rgba(255,255,255,.7),0 0 34px -6px rgba(255,255,255,.4);--flash:#fff}
+  :root:not([data-theme="light"]){--bg:#000;--surface:#000;--ink:#f1f1f4;--pop:rgba(30,30,34,.96);--pop-sh:inset 0 0 0 .5px rgba(255,255,255,.22),inset 1.5px 1.5px 1px -1px rgba(255,255,255,.5),0 16px 36px rgba(0,0,0,.5);--muted:#a3a3ae;--line:#ececf0;--hair:#2c2c34;--grid:#1a1a20;--teal:#f1f1f4;--teal-soft:#000;--lime:var(--accent-dark);--warn:var(--accent-dark);--onteal:#111114;--done:var(--ok);--red:var(--accent-dark);--green:var(--ok);--rest:#4a4a54;color-scheme:dark;--glow:0 0 0 1.5px #fff,0 0 22px 3px rgba(255,255,255,.55),0 0 50px -6px rgba(255,255,255,.35);--glow-soft:0 0 0 1px rgba(255,255,255,.7),0 0 34px -6px rgba(255,255,255,.4);--flash:#fff}
 }
 @media (prefers-reduced-motion:reduce){
   *{scroll-behavior:auto;animation:none!important;transition:none!important}
@@ -278,7 +278,7 @@ body.edit .sec-edit-btn{display:inline-flex;animation:fadeSlide .4s var(--ease) 
 .events .done-ev:not([open]) .ev-del{border-color:currentColor}
 .events .done-ev.new{animation:doneIn .9s var(--ease) both}
 /* 展開：深淺色模式都是淺灰底黑字（在這張卡片上重設色彩變數） */
-.ev[open]{--surface:#f6f6f8;--bg:#fff;--ink:#111114;--muted:#5d5d66;--line:#dcdce2;--teal:#111114;--onteal:#fff;--teal-soft:#e6e6ec;background:var(--surface);color:var(--ink);border-color:var(--surface)}
+.ev[open]{--surface:#f6f6f8;--bg:#fff;--ink:#111114;--pop:rgba(255,255,255,.97);--pop-sh:inset 0 0 0 .5px rgba(0,0,0,.1),0 14px 32px rgba(0,0,0,.16);--muted:#5d5d66;--line:#dcdce2;--teal:#111114;--onteal:#fff;--teal-soft:#e6e6ec;background:var(--surface);color:var(--ink);border-color:var(--surface)}
 .ev[open] .ev-del{color:var(--red);border-color:var(--red)}
 /* --- 展開後的內容 --- */
 .ev-body{flex:1;min-width:0;padding:0 14px 12px 33px}
@@ -321,7 +321,7 @@ html.ev-drag-on,html.ev-drag-on *{-webkit-user-select:none;user-select:none;curs
 /* 被選到的那一顆「飛到」右邊：原位留一個虛線空位（其他膠囊不動，位置好記），收起時縮回這個空位、膠囊再出現 */
 .events .ev.sel{border-style:dashed;border-color:color-mix(in srgb,var(--ink) 35%,transparent);background:transparent;box-shadow:none;pointer-events:none}
 .events .ev.sel>*{visibility:hidden}
-#evDetail,#doneDetail{--surface:#f6f6f8;--bg:#fff;--ink:#111114;--muted:#5d5d66;--line:#dcdce2;--hair:#e2e2e8;--teal:#111114;--onteal:#fff;--teal-soft:#e6e6ec;position:sticky;top:12px;max-height:calc(100dvh - 150px);overflow:auto;overscroll-behavior:contain;min-width:0;border:0;border-radius:24px;padding:18px 26px 24px 24px;background:var(--surface);color:var(--ink)}
+#evDetail,#doneDetail{--surface:#f6f6f8;--bg:#fff;--ink:#111114;--pop:rgba(255,255,255,.97);--pop-sh:inset 0 0 0 .5px rgba(0,0,0,.1),0 14px 32px rgba(0,0,0,.16);--muted:#5d5d66;--line:#dcdce2;--hair:#e2e2e8;--teal:#111114;--onteal:#fff;--teal-soft:#e6e6ec;position:sticky;top:12px;max-height:calc(100dvh - 150px);overflow:auto;overscroll-behavior:contain;min-width:0;border:0;border-radius:24px;padding:18px 26px 24px 24px;background:var(--surface);color:var(--ink)}
 .evd-head{display:flex;align-items:center;gap:10px;font-size:20px;line-height:1.4}
 .md-close{margin-left:auto;flex:none;font-size:12.5px;font-weight:400}   /* 即時回報、完成紀錄右側的「收起」 */
 /* 詳情卡標題列的「上一個／下一個」：放在收起前面；到頭或到尾時那一顆變淡不能按 */
@@ -346,14 +346,36 @@ html.ev-drag-on,html.ev-drag-on *{-webkit-user-select:none;user-select:none;curs
 .evd-when{display:inline-flex;flex-wrap:wrap;align-items:center;gap:6px}
 .evd-when input[type=date]{width:auto}
 .evd-when input:not([type]){width:72px}
-.evd-span{min-width:3em}
-.evd-row input.bad{border-color:var(--red)}
 .evd-sw{flex:none;width:24px;height:24px;min-height:0;padding:0;border:0;border-radius:50%;box-shadow:inset 0 0 0 1px rgba(255,255,255,.35)}
 .evd-add{justify-self:start}
 .evd-btns{display:flex;flex-wrap:wrap;align-items:center;justify-content:flex-end;gap:8px}
 .evd-gap{flex:1}
 .evd-round{display:grid;gap:4px;padding:4px 14px 14px;border:1px solid var(--hair);border-radius:14px;margin-bottom:6px}
 .evd-round[hidden]{display:none}
+/* 逐欄編輯（編輯中，膠囊與右側詳情共用；views.js 的 evFieldsHTML）：每一欄一列「標題｜內容｜鉛筆」，
+   打開的那一欄換成輸入框＋取消／完成（一次只開一欄）。時間標記、超連結是一組，每一筆各自一列 */
+.evfs{display:grid;margin-top:12px}
+.evf{display:grid;grid-template-columns:4.5em minmax(0,1fr) auto;align-items:center;gap:4px 10px;min-height:42px;padding:5px 0;border-bottom:1px solid var(--hair);font-size:14px}
+.evf-l{font-size:12px;color:var(--muted);letter-spacing:.04em}
+.evf-v{display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px;min-width:0;overflow-wrap:anywhere}
+.evf-desc{white-space:pre-wrap;line-height:1.7}
+.evf-url{max-width:100%;overflow:hidden;font-size:12px;text-overflow:ellipsis;white-space:nowrap}
+.evf-pen{flex:none;justify-content:center;width:32px;height:32px;min-height:0;padding:0;border-radius:50%}
+.evf.open{grid-template-columns:minmax(0,1fr);gap:8px;margin:6px 0;padding:10px 12px 12px;border:1px solid var(--line);border-radius:14px;background:var(--bg);animation:fadeSlide .28s var(--ease) both}
+.evf-ed{display:grid;gap:8px;min-width:0}
+.evf-ed input,.evf-ed textarea{width:100%}
+.evf-ed input.bad{border-color:var(--red)}
+.evf-ed .fld,.evf-ed fieldset.multi{margin:0}
+.evf-hint{font-size:11.5px}
+.evf-btns{display:flex;flex-wrap:wrap;align-items:center;justify-content:flex-end;gap:8px}
+.evf-group{display:grid;padding-top:10px;border-bottom:1px solid var(--hair)}
+.evf-group:last-child{border-bottom:0}   /* 最後一組下面接動作列（詳情卡的分隔線、膠囊的按鈕），不再多一條線 */
+.evf-group>.evf-l{padding-bottom:2px}
+.evf-group .evf{grid-template-columns:minmax(0,1fr) auto}
+.evf-group .evf.open{grid-template-columns:minmax(0,1fr)}
+.evf-group .evf:last-of-type:not(.open){border-bottom:0}
+.evf-group .evd-add{justify-self:start;margin:6px 0 10px}
+@media (prefers-reduced-motion:reduce){.evf.open{animation:none}}
 /* --- 議題卡片裡的小膠囊 --- */
 /* 議題卡片裡「進行中的即時回報」小膠囊：同樣白底、燈號帶狀態色 */
 .kid-evs{display:grid;gap:4px}
@@ -649,9 +671,9 @@ a.link:active{transform:scale(.96)}
 }
 :root[data-theme="dark"] #donePanel{--bg:#fff}
 @media (prefers-color-scheme:dark){
-  :root:not([data-theme="light"]) #donePanel{--ink:#111114}
+  :root:not([data-theme="light"]) #donePanel{--ink:#111114;--pop:rgba(255,255,255,.97);--pop-sh:inset 0 0 0 .5px rgba(0,0,0,.1),0 14px 32px rgba(0,0,0,.16);}
 }
-:root[data-theme="dark"] #donePanel{--ink:#111114}
+:root[data-theme="dark"] #donePanel{--ink:#111114;--pop:rgba(255,255,255,.97);--pop-sh:inset 0 0 0 .5px rgba(0,0,0,.1),0 14px 32px rgba(0,0,0,.16);}
 @media (prefers-color-scheme:dark){
   :root:not([data-theme="light"]) #donePanel{--muted:#5d5d66}
 }
@@ -849,10 +871,9 @@ label.fld-check{display:flex;align-items:center;gap:10px;font-size:13.5px;color:
 .csel-v{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .csel-chev{flex:none;opacity:.7;transition:transform .3s cubic-bezier(.2,.9,.25,1)}
 .csel.open .csel-chev{transform:rotate(180deg)}
-.csel-list{position:absolute;left:0;right:0;top:calc(100% + 6px);z-index:20;display:grid;gap:2px;padding:6px;max-height:min(280px,50vh);overflow:auto;border-radius:16px;transform-origin:top center;background:rgba(30,30,34,.96);-webkit-backdrop-filter:blur(20px) saturate(170%);backdrop-filter:blur(20px) saturate(170%);box-shadow:inset 0 0 0 .5px rgba(255,255,255,.22),inset 1.5px 1.5px 1px -1px rgba(255,255,255,.5),0 16px 36px rgba(0,0,0,.5)}
+.csel-list{position:absolute;left:0;right:0;top:calc(100% + 6px);z-index:20;display:grid;gap:2px;padding:6px;max-height:min(280px,50vh);overflow:auto;border-radius:16px;transform-origin:top center;background:var(--pop);-webkit-backdrop-filter:blur(20px) saturate(170%);backdrop-filter:blur(20px) saturate(170%);box-shadow:var(--pop-sh)}   /* 底色、光影用 --pop／--pop-sh：跟著所在位置（深色頁面裡的淺色卡片也會是淺色），文字才看得清楚 */
 .csel.up .csel-list{top:auto;bottom:calc(100% + 6px);transform-origin:bottom center}
 .csel-list[hidden]{display:none}
-:root:not([data-theme="dark"]) .csel-list{background:rgba(255,255,255,.97);box-shadow:inset 0 0 0 .5px rgba(0,0,0,.1),0 14px 32px rgba(0,0,0,.16)}
 .csel-opt{display:flex;justify-content:flex-start;width:100%;min-height:0;padding:9px 14px!important;border:0!important;border-radius:11px;background:transparent;color:var(--ink);text-align:left;font:inherit;box-shadow:none!important}
 .csel-opt:hover,.csel-opt:focus-visible{background:rgba(127,127,127,.18);transform:none!important;outline:none}
 .csel-opt[aria-selected="true"]{background:var(--ink);color:var(--surface)}
@@ -871,7 +892,6 @@ dialog#dlg:has(.csel.open){overflow:visible}
 @media (prefers-color-scheme:dark){
   :root:not([data-theme="light"]) dialog#dlg.glass{background:rgba(22,22,24,.64)}
   :root:not([data-theme="light"]) #dlg :is(input:not([type=checkbox]),textarea,select){background:rgba(0,0,0,.28);border-color:rgba(255,255,255,.32)}
-  :root:not([data-theme="light"]) .csel-list{background:rgba(30,30,34,.96);box-shadow:inset 0 0 0 .5px rgba(255,255,255,.22),inset 1.5px 1.5px 1px -1px rgba(255,255,255,.5),0 16px 36px rgba(0,0,0,.5)}
   :root:not([data-theme="light"]) #dlg .csel-btn{background:rgba(0,0,0,.28);border-color:rgba(255,255,255,.32)}
 }
 @keyframes fade{from{opacity:0}}

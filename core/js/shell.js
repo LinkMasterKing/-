@@ -17,7 +17,7 @@ const SHELL_HTML=`<div class="pager" id="pager">
         </div>
       </header>
       <div class="hero-rule"><span class="hero-info"><span class="sub" id="saveInfo"></span></span><span class="actions"><span class="hero-btns" id="actions"></span><button type="button" class="week-btn" id="weekBtn">每週概述 <span aria-hidden="true">→</span></button></span></div>
-      <div class="banner"><span class="live-dot" aria-hidden="true"></span><b>編輯中</b><span class="sub">按各區標題列的「編輯這區」開始修改那一區 · 一次改一區，換區時上一區自動收起 · 全部改完按「儲存並同步」</span></div>
+      <div class="banner"><span class="live-dot" aria-hidden="true"></span><b>編輯中</b><span class="sub">即時回報：按每一欄旁的鉛筆單獨修改 · 其他區按標題列的「編輯這區」，一次改一區 · 全部改完按「儲存並同步」</span></div>
 
       <section class="panel follow-panel" id="followPanel" data-secbox="follow" aria-labelledby="fwH" hidden>
         <div class="panel-head"><h2 id="fwH">追蹤<span class="en">FOLLOW</span></h2><button type="button" class="icon sec-edit-btn" data-secedit="follow" aria-pressed="false">編輯這區</button></div>
@@ -27,7 +27,7 @@ const SHELL_HTML=`<div class="pager" id="pager">
       <div class="layout">
         <div class="sgroup" data-sec="live" data-secbox="live">
           <section class="panel" id="livePanel" aria-labelledby="evH">
-            <div class="panel-head"><h2 id="evH">即時回報<span class="en">LIVE</span></h2><button type="button" class="icon sec-edit-btn" data-secedit="live" aria-pressed="false">編輯這區</button></div>
+            <div class="panel-head"><h2 id="evH">即時回報<span class="en">LIVE</span></h2></div>
             <div class="md" id="liveMD"><div class="ev-zones" id="events"></div><div class="md-pane" id="evDetail" hidden></div></div>
           </section>
         </div>
