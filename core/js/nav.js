@@ -240,7 +240,8 @@ function paneShow(k){
 function paneHide(){
   const e=setEls();paneKey="";paneMark();if(!e||!e.body.classList.contains("split"))return;
   const back=()=>{if(paneKey)return;const w0=e.sc.getBoundingClientRect().width;paneReset();const w1=e.sc.getBoundingClientRect().width;
-    if(!reduceMotion())e.sc.animate([{flexBasis:w0+"px"},{flexBasis:w1+"px"}],{duration:480,easing:"cubic-bezier(.2,.9,.25,1)"})};
+    /* 收回後的清單是 flex-grow:1（撐滿），只動 flex-basis 會一下子就撐滿、看不到動畫；動畫期間把 grow 壓成 0 */
+    if(!reduceMotion())e.sc.animate([{flexBasis:w0+"px",flexGrow:0},{flexBasis:w1+"px",flexGrow:0}],{duration:MO.slow+20,easing:MO.out})};
   if(reduceMotion())return back();
   e.pane.animate([{opacity:1},{opacity:0,transform:"translateX(24px)"}],{duration:180,easing:"ease-in"}).onfinish=back;
 }
