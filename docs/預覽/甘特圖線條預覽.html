@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>甘特圖線條預覽</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Jost:wght@200;300;400;500&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+/* 甘特圖線條的三種方向（預覽用，不是看板的程式）。資料照使用者截圖的四個議題，今天＝11/06，時間軸 9 月～12 月 */
+:root{--bg:#fff;--ink:#111114;--muted:#5d5d66;--hair:#e2e2e8;--soft:rgba(17,17,20,.07);--ok:#3ccf7f;--red:#e0342a;--card:#fff;--sh:0 6px 18px rgba(0,0,0,.12)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#000;--ink:#f1f1f4;--muted:#a3a3ae;--hair:#2c2c34;--soft:rgba(241,241,244,.08);--card:#1b1b1f;--sh:0 6px 18px rgba(0,0,0,.6)}}
+:root[data-theme="dark"]{--bg:#000;--ink:#f1f1f4;--muted:#a3a3ae;--hair:#2c2c34;--soft:rgba(241,241,244,.08);--card:#1b1b1f;--sh:0 6px 18px rgba(0,0,0,.6)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.6 "Noto Sans TC",system-ui,sans-serif}
+.wrap{max-width:460px;margin:0 auto;padding:20px 16px 60px}
+h1{font-size:20px;margin:0 0 4px;letter-spacing:.08em}
+.lead{color:var(--muted);font-size:13px;margin:0 0 14px}
+.theme{position:sticky;top:8px;z-index:5;display:flex;gap:6px;margin-bottom:18px}
+.theme button{font:inherit;font-size:13px;padding:5px 14px;border-radius:999px;border:1px solid var(--ink);background:var(--bg);color:var(--ink);cursor:pointer}
+.theme button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
+.opt{border:1px solid var(--hair);border-radius:24px;padding:18px 16px 14px;margin-bottom:22px}
+.opt h2{display:flex;align-items:baseline;gap:10px;margin:0 0 4px;font-size:17px;letter-spacing:.08em}
+.opt h2 span{font-family:Jost,sans-serif;font-size:12px;letter-spacing:.16em;color:var(--muted);font-weight:400}
+.opt p{margin:0 0 12px;color:var(--muted);font-size:12.5px}
+.chart{display:grid;grid-template-columns:104px minmax(0,1fr);row-gap:0}
+.ax{position:relative;height:50px;font-family:Jost,sans-serif;font-size:12px;color:var(--muted)}
+.ax span{position:absolute;bottom:8px;transform:translateX(-2px)}
+.nm{padding:10px 6px 10px 0;font-size:13.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:500;line-height:1.35}
+.nm small{display:block;font-family:Jost,sans-serif;font-weight:400;font-size:12px;color:var(--muted);letter-spacing:.02em}
+.tr{position:relative;height:66px}
+.today{position:absolute;top:0;bottom:0;width:0}
+/* 小膠囊標籤（最新一筆註記） */
+.tip{position:absolute;transform:translateX(-50%);white-space:nowrap;font-size:11.5px;line-height:1;padding:5px 9px 6px;border-radius:999px}
+/* ===== A 細刻度 ===== */
+.A .ticks{position:absolute;left:0;right:0;bottom:16px;height:22px;display:flex;align-items:flex-end;gap:2px}
+.A .ticks i{flex:1;min-width:1px;border-radius:1px;background:var(--hair);height:7px}
+.A .ticks i.on{background:var(--ink);opacity:.85;height:16px}
+.A .ticks i.in{background:var(--muted);opacity:.55;height:10px}
+.A .ticks i.now{background:var(--ok);height:22px;opacity:1;border-radius:2px}
+.A .tip{background:var(--ink);color:var(--bg);bottom:44px}
+.A .tip::after{content:"";position:absolute;left:50%;top:100%;width:1px;height:6px;background:var(--ink)}
+.A .today i{position:absolute;top:2px;bottom:2px;left:0;width:1px;background:linear-gradient(var(--ok),transparent)}
+.A .ax .tag{bottom:28px;transform:translateX(-50%);background:var(--ok);color:#06210f;border-radius:999px;padding:1px 8px;font-size:11px}
+/* ===== B 柔和膠囊 ===== */
+.B .grid{position:absolute;top:0;bottom:0;width:0;border-left:1px dashed var(--hair)}
+.B .rail{position:absolute;left:0;right:0;bottom:20px;height:8px;border-radius:999px;background:var(--soft)}
+.B .bar{position:absolute;bottom:20px;height:8px;border-radius:999px;background:var(--soft)}
+.B .fill{position:absolute;bottom:20px;height:8px;border-radius:999px;background:linear-gradient(90deg,color-mix(in srgb,var(--ok) 25%,transparent),var(--ok));box-shadow:0 0 12px color-mix(in srgb,var(--ok) 45%,transparent)}
+.B .knob{position:absolute;bottom:17px;width:14px;height:14px;margin-left:-7px;border-radius:50%;background:var(--bg);border:3px solid var(--ok);box-shadow:0 0 10px color-mix(in srgb,var(--ok) 60%,transparent)}
+.B .dot{position:absolute;bottom:22px;width:4px;height:4px;margin-left:-2px;border-radius:50%;background:var(--bg);opacity:.9}
+.B .tip{background:var(--card);color:var(--ink);box-shadow:var(--sh);bottom:38px;border-radius:10px;padding:6px 10px 7px}
+.B .today i{position:absolute;top:0;bottom:0;left:0;width:1px;background:linear-gradient(transparent,var(--ink) 20%,var(--ink) 80%,transparent);opacity:.35}
+.B .ax .tag{bottom:28px;transform:translateX(-50%);background:var(--ink);color:var(--bg);border-radius:999px;padding:1px 9px;font-size:11px}
+/* ===== C 分段進度 ===== */
+.C .segs{position:absolute;bottom:20px;height:7px;display:flex;gap:3px}
+.C .segs b{position:relative;flex:1;border-radius:999px;background:var(--soft);overflow:hidden}
+.C .segs b::after{content:"";position:absolute;inset:0;width:var(--p,0%);border-radius:999px;background:var(--ok)}
+.C .mk{position:absolute;bottom:31px;width:6px;height:6px;margin-left:-3px;border-radius:50%;background:var(--muted)}
+.C .mk.last{background:var(--ok);width:8px;height:8px;margin-left:-4px;bottom:30px}
+.C .tip{background:transparent;color:var(--ink);border:1px solid var(--hair);bottom:42px;font-size:11px}
+.C .today i{position:absolute;top:4px;bottom:4px;left:0;width:2px;margin-left:-1px;border-radius:2px;background:var(--red)}
+.C .ax .tag{bottom:28px;transform:translateX(-50%);color:var(--red);font-weight:500}
+.foot{color:var(--muted);font-size:12.5px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>甘特圖線條預覽</h1>
+  <p class="lead">同一份資料畫成三種線條風格，深色、淺色都可以切換看。選一種（或說哪裡想混搭），我再改進看板，議題詳情裡的時程條也會一起換。</p>
+  <div class="theme"><button type="button" data-t="dark">深色</button><button type="button" data-t="light">淺色</button></div>
+  <div id="out"></div>
+  <p class="foot">共同的改變：拿掉粗框格子與整條白色今天線，格線變淡；只有最新一筆註記顯示文字，其他註記只留小點，畫面比較乾淨。</p>
+</div>
+<script>
+const S=new Date(2026,8,1),E=new Date(2027,0,1),T=new Date(2026,10,6),span=E-S,pct=d=>Math.max(0,Math.min(100,(d-S)/span*100));
+const D=s=>{const [y,m,d]=s.split("-").map(Number);return new Date(y,m-1,d)};
+const issues=[
+ {t:"六宿停車場雜物",s:"2026-10-01",e:"2027-03-01",m:["2026-10-01","2026-10-08","2026-10-21","2026-10-27","2026-10-30","2026-11-04","2026-11-07"],last:"六宿女宿舍通道安…"},
+ {t:"選課五告方便",s:"2026-11-07",e:"2027-05-01",m:["2026-10-25"],last:"備妥初步建議方案"},
+ {t:"月經平權",s:"2026-09-14",e:"2027-06-30",m:["2026-11-01"],last:"衛生棉補給站點"},
+ {t:"何生場地費",s:"2026-09-07",e:"2027-03-30",m:["2026-09-25"],last:"等待下次副校約談"}];
+const md=s=>{const d=D(s);return `${String(d.getMonth()+1).padStart(2,"0")}/${String(d.getDate()).padStart(2,"0")}`};
+const months=[["2026/9月",S],["10月",new Date(2026,9,1)],["11月",new Date(2026,10,1)],["12月",new Date(2026,11,1)]];
+const axis=k=>`<div></div><div class="ax">${months.map(([l,d])=>`<span style="left:${pct(d)}%">${l}</span>`).join("")}<span class="tag" style="left:${pct(T)}%">今天 11/06</span></div>`;
+const name=it=>`<div class="nm">${it.t}<small>${md(it.s)} – ${md(it.e)}</small></div>`;
+const tip=it=>{const L=it.m[it.m.length-1];return `<span class="tip" style="left:${Math.min(80,Math.max(20,pct(D(L))))}%">${it.last}</span>`};
+const today=`<span class="today" style="left:${pct(T)}%"><i></i></span>`;
+/* A 細刻度：整條是一排細直線，期間內已過＝深長、期間內未到＝灰中、期間外＝淡短；今天那根綠色最高 */
+function A(it){const N=64,s=pct(D(it.s)),e=pct(D(it.e)),t=pct(T);let h="";
+  for(let i=0;i<N;i++){const p=(i+.5)/N*100,inR=p>=s&&p<=e;const now=Math.abs(p-t)<100/N/2;h+=`<i class="${now&&inR?"now":inR&&p<t?"on":inR?"in":""}"></i>`}
+  return `${name(it)}<div class="tr">${today}${tip(it)}<div class="ticks">${h}</div></div>`}
+/* B 柔和膠囊：淡色圓角軌道、已過是漸層加柔光、今天是一顆發光的圓鈕；註記是條上的小白點 */
+function B(it){const s=pct(D(it.s)),e=pct(D(it.e)),t=pct(T),f=Math.max(s,Math.min(t,e));
+  return `${name(it)}<div class="tr">${[25.6,50.4,75.2].map(l=>`<span class="grid" style="left:${l}%"></span>`).join("")}${today}${tip(it)}
+   <span class="bar" style="left:${s}%;width:${e-s}%"></span>${f>s?`<span class="fill" style="left:${s}%;width:${f-s}%"></span>`:""}
+   ${it.m.filter(m=>pct(D(m))>=s&&pct(D(m))<=f).map(m=>`<span class="dot" style="left:${pct(D(m))}%"></span>`).join("")}
+   ${t>=s&&t<=e?`<span class="knob" style="left:${t}%"></span>`:""}</div>`}
+/* C 分段進度：期間內每個月一段圓角小段，過完的填滿、這個月填到今天、之後灰色；註記是條上方的小點 */
+function C(it){const s=D(it.s),e=D(it.e);const segs=[];let c=new Date(s.getFullYear(),s.getMonth(),1);
+  while(c<e&&c<E){const n=new Date(c.getFullYear(),c.getMonth()+1,1),a=c<s?s:c,b=n>e?e:n;const p=T<=a?0:T>=b?100:(T-a)/(b-a)*100;segs.push([a,b,p]);c=n}
+  const L=pct(segs[0][0]),R=pct(segs[segs.length-1][1]);
+  return `${name(it)}<div class="tr">${today}${tip(it)}<div class="segs" style="left:${L}%;width:${R-L}%">${segs.map(([a,b,p])=>`<b style="flex:${b-a};--p:${p}%"></b>`).join("")}</div>
+   ${it.m.map((m,i)=>`<span class="mk ${i===it.m.length-1?"last":""}" style="left:${pct(D(m))}%"></span>`).join("")}</div>`}
+const OPT=[["A","細刻度","TICKS","像收入圖那排細直線：期間內已過的時間是深色長刻度、還沒到的是灰色、期間外是淡色短刻度；今天那根綠色最高，上方綠色小膠囊標今天。",A],
+ ["B","柔和膠囊","SOFT","淡色圓角軌道，已過的部分是漸層加柔光，今天是一顆發光的圓鈕；格線改成很淡的虛線，標籤是帶陰影的小卡。",B],
+ ["C","分段進度","SEGMENTS","像「2 of 5 gates」：期間裡每個月一段圓角小段，過完的填滿、這個月填到今天、之後是灰色；今天是一條細紅線。",C]];
+document.getElementById("out").innerHTML=OPT.map(([k,t,en,d,f])=>`<section class="opt ${k}"><h2>${k}　${t}<span>${en}</span></h2><p>${d}</p><div class="chart">${axis(k)}${issues.map(f).join("")}</div></section>`).join("");
+const btns=[...document.querySelectorAll(".theme button")],set=t=>{document.documentElement.dataset.theme=t;btns.forEach(b=>b.setAttribute("aria-pressed",b.dataset.t===t))};
+btns.forEach(b=>b.onclick=()=>set(b.dataset.t));set(matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light");
+</script>
+</body>
+</html>

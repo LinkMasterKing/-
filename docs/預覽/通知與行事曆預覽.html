@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>通知與行事曆預覽</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Jost:wght@200;300;400;500;600&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+/* 通知層＋行事曆重新設計的預覽（不是看板的程式）。資料是假的即時回報時間標記；今天＝11/06 */
+:root{--bg:#fff;--ink:#111114;--muted:#5d5d66;--hair:#e2e2e8;--soft:rgba(17,17,20,.06);--card:#f4f4f6;--ok:#3ccf7f;--red:#e0342a;--yel:#f0bc23;--sh:0 10px 28px rgba(0,0,0,.12)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#000;--ink:#f1f1f4;--muted:#a3a3ae;--hair:#2c2c34;--soft:rgba(241,241,244,.07);--card:#151518;--sh:0 10px 28px rgba(0,0,0,.6)}}
+:root[data-theme="dark"]{--bg:#000;--ink:#f1f1f4;--muted:#a3a3ae;--hair:#2c2c34;--soft:rgba(241,241,244,.07);--card:#151518;--sh:0 10px 28px rgba(0,0,0,.6)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.6 "Noto Sans TC",system-ui,sans-serif}
+.wrap{max-width:440px;margin:0 auto;padding:16px 16px 60px}
+.top{display:flex;align-items:center;justify-content:space-between;gap:10px;padding-bottom:18px;border-bottom:1.5px solid var(--ink)}
+.top b{font-size:22px;letter-spacing:.08em}.top small{font-family:Jost;letter-spacing:.2em;color:var(--muted);margin-right:10px}
+.theme{display:flex;gap:6px}.theme button{font:inherit;font-size:12px;padding:4px 12px;border-radius:999px;border:1px solid var(--ink);background:var(--bg);color:var(--ink);cursor:pointer}
+.theme button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
+.note{color:var(--muted);font-size:12.5px;margin:12px 0 0}
+/* 常駐搜尋欄：貼在通知層頂端 */
+.search{position:sticky;top:0;z-index:5;background:var(--bg);padding:16px 0 12px}
+.search label{display:flex;align-items:center;gap:10px;height:46px;padding:0 16px;border-radius:999px;background:var(--card);box-shadow:inset 0 0 0 1px var(--hair)}
+.search svg{flex:none;opacity:.6}
+.search input{flex:1;min-width:0;border:0;background:transparent;color:var(--ink);font:inherit;font-size:15px;outline:none}
+.results{display:grid;gap:6px;margin-top:8px}
+.results:empty{display:none}
+.res{display:flex;gap:10px;align-items:baseline;padding:10px 14px;border-radius:14px;background:var(--card);font-size:14px}
+.res .when{font-family:Jost;color:var(--muted);font-size:13px;min-width:5.5em}
+.h{display:flex;align-items:baseline;gap:10px;margin:22px 0 10px;font-size:13px;letter-spacing:.14em;color:var(--muted)}
+.h b{color:var(--ink);font-size:17px;letter-spacing:.08em}
+/* 今日／明日：左右兩張卡片 */
+.days{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.day{border-radius:22px;padding:14px 14px 12px;background:var(--card);min-height:150px;display:flex;flex-direction:column;gap:8px}
+.day.today{background:var(--ink);color:var(--bg)}
+.day .d{display:flex;align-items:baseline;justify-content:space-between}
+.day .d b{font-family:Jost;font-weight:300;font-size:40px;line-height:1}
+.day .d span{font-size:12px;letter-spacing:.12em;opacity:.7}
+.day ul{list-style:none;margin:0;padding:0;display:grid;gap:6px;font-size:13px;line-height:1.35}
+.day li{display:grid;grid-template-columns:auto 1fr;gap:6px;align-items:baseline}
+.day li i{font-style:normal;font-family:Jost;font-size:12px;opacity:.7}
+.day .none{font-size:12.5px;opacity:.6}
+/* 智慧堆疊：長條卡片疊在一起，最前面一張完整、後面兩張露出上緣；每 4 秒換下一張，也可以左右滑 */
+.stack{position:relative;height:118px;margin-top:4px;touch-action:pan-y;user-select:none}
+.sc{position:absolute;left:0;right:0;top:12px;height:96px;border-radius:22px;padding:14px 18px;background:var(--card);box-shadow:var(--sh);display:grid;grid-template-columns:auto 1fr;gap:4px 14px;align-items:center;
+  transition:transform .55s cubic-bezier(.2,.9,.25,1),opacity .55s,filter .55s;transform-origin:50% 0}
+.sc .dt{grid-row:1/3;text-align:center;font-family:Jost;line-height:1}
+.sc .dt b{display:block;font-size:30px;font-weight:300}.sc .dt small{font-size:11px;letter-spacing:.14em;color:var(--muted)}
+.sc .t{font-weight:700;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sc .m{font-size:12.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sc .st{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px;background:var(--c)}
+.dots{display:flex;justify-content:center;gap:6px;margin-top:8px}
+.dots i{width:6px;height:6px;border-radius:50%;background:var(--hair);transition:width .3s,background .3s}
+.dots i.on{width:16px;border-radius:3px;background:var(--ink)}
+/* 月份列 */
+.mon{display:flex;align-items:center;justify-content:space-between;margin:26px 0 6px}
+.nav{display:flex;gap:6px}
+.nav button{width:36px;height:36px;border-radius:50%;border:1px solid var(--hair);background:var(--bg);color:var(--ink);cursor:pointer;font-size:16px}
+.opt{border:1px solid var(--hair);border-radius:24px;padding:16px;margin-top:14px}
+.opt h3{margin:0 0 2px;font-size:15px;letter-spacing:.08em}.opt p{margin:0 0 12px;color:var(--muted);font-size:12.5px}
+/* A 圓點月曆（Rams 風）：大日期＋月份；每天一顆圓點，有事件＝實心、今天＝綠、沒事件＝空心細框；點下去下面列出那天的事件 */
+.A .big{display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:14px}
+.A .big b{font-family:Jost;font-weight:600;font-size:76px;line-height:.85;letter-spacing:-.02em}
+.A .big div{text-align:right;font-family:Jost;letter-spacing:.14em}.A .big div small{display:block;color:var(--muted)}
+.A .wk,.A .grid{display:grid;grid-template-columns:repeat(7,1fr);gap:8px;justify-items:center}
+.A .wk span{font-family:Jost;font-size:12px;color:var(--muted);letter-spacing:.1em}
+.A .grid button{position:relative;width:100%;max-width:42px;aspect-ratio:1;border-radius:50%;border:1.5px solid var(--hair);background:transparent;color:var(--muted);font-family:Jost;font-size:12px;cursor:pointer;padding:0;transition:transform .2s}
+.A .grid button.ev{background:var(--ink);border-color:var(--ink);color:var(--bg)}
+.A .grid button.today{background:var(--ok);border-color:var(--ok);color:#06210f}
+.A .grid button.sel{transform:scale(1.12);box-shadow:0 0 0 3px var(--bg),0 0 0 4.5px var(--ink)}
+.A .grid button i{position:absolute;right:-1px;top:-1px;min-width:15px;height:15px;border-radius:8px;background:var(--red);color:#fff;font-style:normal;font-size:10px;line-height:15px}
+.A .grid .pad{visibility:hidden}
+.list{display:grid;gap:6px;margin-top:14px}
+.list .res{background:var(--soft)}
+.A .motto{text-align:center;font-family:Jost;letter-spacing:.3em;font-size:11px;color:var(--muted);margin-top:14px}
+/* B 海報月曆：超大月份＋年份兩行；日期是數字，事件用細線橫跨期間（兩端小點），下面寫名稱 */
+.B .big{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px}
+.B .big b{font-family:Jost;font-weight:600;font-size:64px;line-height:.9;letter-spacing:-.01em}
+.B .big span{font-family:Jost;font-weight:600;font-size:26px;line-height:1;text-align:right}
+.B .wk{display:grid;grid-template-columns:repeat(7,1fr);font-family:Jost;font-weight:500;font-size:12px;letter-spacing:.06em;text-align:center;color:var(--muted);margin-bottom:4px}
+.B .week{position:relative;display:grid;grid-template-columns:repeat(7,1fr);text-align:center;min-height:58px;align-content:start}
+.B .week .n{font-family:Jost;font-size:17px;line-height:1.6}
+.B .week .n.out{opacity:.25}.B .week .n.today{color:var(--ok);font-weight:600}
+.B .line{position:absolute;height:1px;background:var(--ink);top:31px}
+.B .line::before,.B .line::after{content:"";position:absolute;top:-2px;width:5px;height:5px;border-radius:50%;background:var(--ink)}
+.B .line::before{left:-2px}.B .line::after{right:-2px}
+.B .lbl{position:absolute;top:36px;transform:translateX(-50%);font-size:10.5px;line-height:1.25;text-align:center;white-space:nowrap;max-width:46%;overflow:hidden;text-overflow:ellipsis}
+.B .foot{border-top:1px solid var(--hair);margin-top:10px;padding-top:12px;font-family:Jost;letter-spacing:.2em;font-size:12px;color:var(--muted)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top"><div><small>NOTICE</small><b>通知與行事曆</b></div><div class="theme"><button data-t="dark">深色</button><button data-t="light">淺色</button></div></div>
+  <p class="note">預覽：搜尋欄、今日／明日卡片、近期事件的智慧堆疊是共同的；行事曆有 A、B 兩種，往下滑看。事件只列即時回報裡記錄的時間標記。</p>
+  <div class="search"><label><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input id="q" placeholder="搜尋事件或活動（名稱、地點、即時回報）"></label><div class="results" id="res"></div></div>
+  <div class="h"><b>今日</b>11/06 五 ・ <b>明日</b>11/07 六</div>
+  <div class="days" id="days"></div>
+  <div class="h"><b>近期</b>即時回報的時間・自動輪播，可左右滑</div>
+  <div class="stack" id="stack"></div><div class="dots" id="dots"></div>
+  <section class="opt A"><h3>A　圓點月曆</h3><p>參考 Dieter Rams 風格：大日期；每天一顆圓點，有事件＝實心（紅色數字＝件數）、今天＝綠、沒事件＝空心。點一天，下面列出那天的事件。</p><div id="calA"></div></section>
+  <section class="opt B"><h3>B　海報月曆</h3><p>參考 052 STUDIO：超大月份字；事件用細線橫跨期間（兩端小點），名稱寫在線下面，單日事件就寫在日期下。</p><div id="calB"></div></section>
+</div>
+<script>
+/* 假資料：即時回報的時間標記（名稱、所屬即時回報、地點、開始、結束、狀態色） */
+const EV=[
+ {t:"與總務處開會",ev:"六宿停車場雜物",p:"行政大樓 3F",s:"2026-11-06T14:00",c:"var(--yel)"},
+ {t:"張貼公告",ev:"停車場公告",p:"六宿",s:"2026-11-06",c:"var(--ok)"},
+ {t:"校務會議會前會",ev:"校務會議",p:"會議室 B",s:"2026-11-07T10:00",c:"var(--yel)"},
+ {t:"衛生棉補給",ev:"月經平權",p:"學生活動中心",s:"2026-11-10",e:"2026-11-12",c:"var(--ok)"},
+ {t:"副校長約談",ev:"何生場地費",p:"副校長室",s:"2026-11-13T15:30",c:"var(--red)"},
+ {t:"社群排程檢討",ev:"社群內容排程",p:"",s:"2026-11-18",c:"var(--ok)"},
+ {t:"提案單收件",ev:"常會資料",p:"學生會辦公室",s:"2026-11-23",e:"2026-11-27",c:"var(--yel)"},
+ {t:"期末成果發表",ev:"交流簡報討論",p:"演講廳",s:"2026-11-30",c:"var(--ok)"}];
+const D=s=>new Date(s.slice(0,10)+"T00:00"),TODAY="2026-11-06",TMR="2026-11-07",W="日一二三四五六";
+const on=(e,d)=>{const x=d,a=e.s.slice(0,10),b=(e.e||e.s).slice(0,10);return x>=a&&x<=b};
+const hm=e=>e.s.length>10?e.s.slice(11,16):"";
+const md=s=>`${+s.slice(5,7)}/${+s.slice(8,10)}`;
+/* 今日／明日 */
+const day=(d,cls,lab)=>{const xs=EV.filter(e=>on(e,d));return `<div class="day ${cls}"><div class="d"><b>${+d.slice(8)}</b><span>${lab}・週${W[D(d).getDay()]}</span></div>${xs.length?`<ul>${xs.map(e=>`<li><i>${hm(e)||"整天"}</i><span>${e.t}${e.p?`・${e.p}`:""}</span></li>`).join("")}</ul>`:`<span class="none">沒有事件</span>`}</div>`};
+document.getElementById("days").innerHTML=day(TODAY,"today","今日")+day(TMR,"","明日");
+/* 智慧堆疊：今天以後的事件，最前面一張完整、後面兩張縮小往上露出邊；自動 4 秒換，手指左右滑也能換 */
+const up=EV.filter(e=>(e.e||e.s).slice(0,10)>=TODAY);let k=0,timer;
+const st=document.getElementById("stack"),dots=document.getElementById("dots");
+st.innerHTML=up.map(e=>`<div class="sc" style="--c:${e.c}"><div class="dt"><b>${+e.s.slice(8,10)}</b><small>${+e.s.slice(5,7)}月</small></div><div class="t"><span class="st"></span>${e.t}</div><div class="m">${hm(e)?hm(e)+"・":""}${e.e?`到 ${md(e.e)}・`:""}${e.p?e.p+"・":""}${e.ev}</div></div>`).join("");
+dots.innerHTML=up.map(()=>"<i></i>").join("");
+function paint(){[...st.children].forEach((c,i)=>{const d=(i-k+up.length)%up.length;
+  c.style.zIndex=10-d;c.style.opacity=d>2?0:1;c.style.filter=d?`brightness(${d===1?.92:.84})`:"";
+  c.style.transform=d===0?"none":d>2?"translateY(-30px) scale(.8)":`translateY(${-d*9}px) scale(${1-d*.06})`});
+  [...dots.children].forEach((x,i)=>x.classList.toggle("on",i===k))}
+const go=n=>{k=(k+n+up.length)%up.length;paint();clearInterval(timer);timer=setInterval(()=>go(1),4000)};
+let sx=null;st.addEventListener("pointerdown",e=>{sx=e.clientX});addEventListener("pointerup",e=>{if(sx==null)return;const dx=e.clientX-sx;sx=null;if(Math.abs(dx)>30)go(dx<0?1:-1)});
+paint();timer=setInterval(()=>go(1),4000);
+/* 搜尋：名稱、即時回報、地點都比對 */
+const q=document.getElementById("q"),res=document.getElementById("res");
+q.oninput=()=>{const v=q.value.trim();res.innerHTML=!v?"":(EV.filter(e=>(e.t+e.ev+e.p).includes(v)).map(e=>`<div class="res"><span class="when">${md(e.s)}${hm(e)?" "+hm(e):""}</span><span>${e.t}<span style="color:var(--muted)">・${e.ev}</span></span></div>`).join("")||`<div class="res">找不到「${v}」</div>`)};
+/* 月曆（11 月，週一開頭） */
+const Y=2026,M=10,first=new Date(Y,M,1),off=(first.getDay()+6)%7,dim=new Date(Y,M+1,0).getDate();
+const ds=n=>`${Y}-${String(M+1).padStart(2,"0")}-${String(n).padStart(2,"0")}`;
+let selA=TODAY;
+function calA(){const cells=[];for(let i=0;i<off;i++)cells.push('<button class="pad"></button>');
+  for(let n=1;n<=dim;n++){const d=ds(n),c=EV.filter(e=>on(e,d)).length;cells.push(`<button class="${d===TODAY?"today":c?"ev":""} ${d===selA?"sel":""}" data-d="${d}">${n}${c>1?`<i>${c}</i>`:""}</button>`)}
+  const xs=EV.filter(e=>on(e,selA));
+  document.getElementById("calA").innerHTML=`<div class="big"><b>${+selA.slice(8)}</b><div>NOVEMBER<small>2026・週${W[D(selA).getDay()]}</small></div></div>
+   <div class="mon" style="margin:0 0 10px"><div class="nav"><button>‹</button><button>›</button></div></div>
+   <div class="wk">${"MTWTFSS".split("").map(x=>`<span>${x}</span>`).join("")}</div><div class="grid" style="margin-top:8px">${cells.join("")}</div>
+   <div class="list">${xs.length?xs.map(e=>`<div class="res"><span class="when">${hm(e)||"整天"}</span><span>${e.t}<span style="color:var(--muted)">・${e.ev}</span></span></div>`).join(""):`<div class="res">這天沒有事件</div>`}</div><div class="motto">LESS BUT BETTER</div>`;
+  document.querySelectorAll("#calA [data-d]").forEach(b=>b.onclick=()=>{selA=b.dataset.d;calA()})}
+calA();
+function calB(){const weeks=[];let n=1-off;while(n<=dim){const w=[];for(let i=0;i<7;i++,n++)w.push(n);weeks.push(w)}
+  const html=weeks.map(w=>{const nums=w.map(x=>{const inM=x>=1&&x<=dim,d=inM?ds(x):"";return `<span class="n ${inM?"":"out"} ${d===TODAY?"today":""}">${inM?x:""}</span>`}).join("");
+    const a=ds(Math.max(1,w[0])),b=ds(Math.min(dim,w[6]));
+    const lanes=[];   /* 同一週裡範圍會撞在一起的事件往下排一層（名稱才不會疊在一起） */
+    const evs=EV.filter(e=>e.s.slice(0,10)<=b&&(e.e||e.s).slice(0,10)>=a).map(e=>{const s=Math.max(w[0],+e.s.slice(8,10)*(e.s.slice(5,7)==="11"?1:0)||w[0]),en=Math.min(w[6],+(e.e||e.s).slice(8,10));
+      const i0=w.indexOf(s),i1=w.indexOf(en),L=(i0+.5)/7*100,R=(i1+.5)/7*100;
+      let ln=lanes.findIndex(x=>x<i0-1);if(ln<0){ln=lanes.length;lanes.push(0)}lanes[ln]=Math.max(i1,i0+1);const dy=ln*30;
+      return (i1>i0?`<span class="line" style="left:${L}%;width:${R-L}%;top:${31+dy}px"></span>`:"")+`<span class="lbl" style="left:${(L+R)/2}%;top:${36+dy}px">${e.t}<br>(${md(e.s)}${e.e?"–"+md(e.e):""})</span>`}).join("");
+    return `<div class="week" style="min-height:${58+Math.max(0,lanes.length-1)*30}px">${nums}${evs}</div>`}).join("");
+  document.getElementById("calB").innerHTML=`<div class="big"><b>NOV</b><span>20<br>26</span></div><div class="wk">${["MON","TUE","WED","THU","FRI","SAT","SUN"].map(x=>`<span>${x}</span>`).join("")}</div>${html}<div class="foot">權益部・學生會</div>`}
+calB();
+const btns=[...document.querySelectorAll(".theme button")],set=t=>{document.documentElement.dataset.theme=t;btns.forEach(b=>b.setAttribute("aria-pressed",b.dataset.t===t))};
+btns.forEach(b=>b.onclick=()=>set(b.dataset.t));set(matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light");
+</script>
+</body>
+</html>
