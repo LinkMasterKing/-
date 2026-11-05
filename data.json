@@ -3,7 +3,7 @@
  "id": "board-main",
  "title": "權益部工作進度",
  "locked": false,
- "savedAt": "2026-11-06 00:25",
+ "savedAt": "2026-11-06 00:38",
  "range": {
   "start": "2026-09",
   "end": "2027-09"
@@ -677,7 +677,7 @@
    ],
    "round": 2,
    "touchedAt": "2026-11-05T16:55",
-   "report": false,
+   "report": true,
    "issueId": "imvpc3f0dcpi6",
    "roundAt": "2026-11-05T16:55",
    "labels": []
@@ -738,29 +738,6 @@
    "labels": []
   },
   {
-   "id": "emw0l32ggpdmw",
-   "name": "返鄉專車",
-   "desc": "",
-   "createdAt": "2026-11-03",
-   "staff": [],
-   "links": [
-    {
-     "id": "lmw0li76zbt3w",
-     "name": "青年民主協會",
-     "url": "https://www.instagram.com/p/De1b5FETn5D/",
-     "color": "#2f8f84"
-    }
-   ],
-   "times": [],
-   "round": 1,
-   "touched": [
-    "2026-11-03"
-   ],
-   "touchedAt": "2026-11-03T19:19",
-   "report": false,
-   "labels": []
-  },
-  {
    "id": "emw0lb1djdnco",
    "name": "數位會務改革",
    "desc": "各部門功能統整簡化\n\n擬計畫提未來AI使用預算\n引\"人工智慧基本法\"立法申請",
@@ -782,33 +759,26 @@
     "2026-11-03"
    ],
    "touchedAt": "2026-11-03T20:05",
-   "report": false,
+   "report": true,
    "labels": []
   },
   {
    "id": "emw0mszjya8iv",
    "name": "交流簡報討論",
-   "desc": "",
+   "desc": "交付照片文字",
    "createdAt": "2026-11-03",
    "staff": [],
    "links": [],
-   "times": [
-    {
-     "id": "tmw0mt7owue71",
-     "label": "討論時間",
-     "start": "2026-11-03",
-     "end": "",
-     "toIssue": false,
-     "place": ""
-    }
-   ],
-   "round": 1,
+   "times": [],
+   "round": 2,
    "touched": [
-    "2026-11-03"
+    "2026-11-03",
+    "2026-11-06"
    ],
-   "touchedAt": "2026-11-03T19:59",
-   "report": false,
-   "labels": []
+   "touchedAt": "2026-11-06T00:35",
+   "report": true,
+   "labels": [],
+   "roundAt": "2026-11-06T00:35"
   },
   {
    "id": "emw0lqzfmw4dl",
@@ -835,7 +805,7 @@
   {
    "id": "emw0myswnrccf",
    "name": "緊急公關聲明流程",
-   "desc": "修改SOP",
+   "desc": "流程修改\n\n第二步驟 決定幾人同意(預設2人)  /  需利益迴避\n\n\n第三步驟 補充非校方主理事宜無須與校方事前確認\n\n第四/六步驟 校方審核時機寫入第五步驟",
    "createdAt": "2026-11-03",
    "staff": [],
    "links": [],
@@ -843,28 +813,31 @@
    "round": 2,
    "touched": [
     "2026-11-03",
-    "2026-11-05"
+    "2026-11-05",
+    "2026-11-06"
    ],
-   "touchedAt": "2026-11-05T17:06",
-   "report": false,
+   "touchedAt": "2026-11-06T00:37",
+   "report": true,
    "roundAt": "2026-11-05T17:06",
    "labels": []
   },
   {
    "id": "emw0pwllmeivk",
    "name": "上傳NAS與常會資料以及提案單追蹤",
-   "desc": "",
+   "desc": "NAS上傳",
    "createdAt": "2026-11-03",
    "staff": [],
    "links": [],
    "times": [],
-   "round": 1,
+   "round": 2,
    "touched": [
-    "2026-11-03"
+    "2026-11-03",
+    "2026-11-06"
    ],
-   "touchedAt": "2026-11-03T21:22",
-   "report": false,
-   "labels": []
+   "touchedAt": "2026-11-06T00:35",
+   "report": true,
+   "labels": [],
+   "roundAt": "2026-11-06T00:35"
   },
   {
    "id": "emvpd4765r0ch",
@@ -898,7 +871,7 @@
    "round": 3,
    "touchedAt": "2026-11-05T17:12",
    "roundAt": "2026-11-05T17:12",
-   "report": false,
+   "report": true,
    "labels": []
   },
   {
@@ -1065,6 +1038,43 @@
    "touched": [],
    "report": false,
    "labels": []
+  },
+  {
+   "id": "emw3rnualkq35",
+   "name": "交流簡報討論",
+   "desc": "討論",
+   "createdAt": "2026-11-03",
+   "doneAt": "2026-11-06",
+   "issueId": null,
+   "links": [],
+   "staff": [],
+   "labels": [],
+   "times": [
+    {
+     "id": "tmw0mt7owue71",
+     "label": "討論時間",
+     "start": "2026-11-03",
+     "end": "",
+     "toIssue": false,
+     "place": ""
+    }
+   ],
+   "round": 1,
+   "fromEv": "emw0mszjya8iv"
+  },
+  {
+   "id": "emw3roxbj65xp",
+   "name": "上傳NAS與常會資料以及提案單追蹤",
+   "desc": "上傳提案單及撰寫",
+   "createdAt": "2026-11-03",
+   "doneAt": "2026-11-06",
+   "issueId": null,
+   "links": [],
+   "staff": [],
+   "labels": [],
+   "times": [],
+   "round": 1,
+   "fromEv": "emw0pwllmeivk"
   }
  ],
  "yearLabel": "115學年",
