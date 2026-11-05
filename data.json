@@ -3,7 +3,7 @@
  "id": "board-main",
  "title": "權益部工作進度",
  "locked": false,
- "savedAt": "2026-11-06 01:57",
+ "savedAt": "2026-11-06 01:58",
  "range": {
   "start": "2026-09",
   "end": "2027-09"
@@ -1126,12 +1126,12 @@
    "id": "mmvx2r1i3ffnm",
    "name": "戴銨霆",
    "role": "admin",
-   "kdf": "wx7Ta/mdNJL4xQ+yyxmdCg==:FV5u9XSuw1ZwXYzrFvVF76FlwmcwZVB1I7RshFJ+3rQ=",
+   "kdf": "Dv2iWmbagR5nvbqObzHDSA==:+22LBOrErm7cKwpYBKULTNMjRzP32Rs2Daq95c8LWkw=",
    "createdAt": "2026-11-01 08:11",
    "tok": {
-    "s": "oKIOPyNAPqKgxSzSC44d9Q==",
-    "i": "9Wg+ky+/+rjZg0xW",
-    "c": "KwCq01wTOZtG3ETQ2VId7PUt95tpriH/Kcpy5ClL55smqFZYSy1F0f9EhGoF9TzYgxTau0uGBOumlhXWZv3GyXStSYuwiJDy4bIETV1YjRc8A6uJxZcTJQE3wh0Rrjxb8DMheIYRKX/vca7heA=="
+    "s": "RX4xJ6RXesdX2hr5uC718g==",
+    "i": "N4thr2iHns+3W0T8",
+    "c": "Ay70qejViV0MPXBBqelTmbPvaxit5vJZQ6HzmtpKw5cnoA4Zbz4SQv0qjPpJ0AVdaZB9NH2/GScEQfKhMC/P+x22yyudxJLpjyoTJt3fPQlM8yOlrFc7c37+XA/O0FPr6jyJ8/05g1yqCODNkA=="
    }
   },
   {
