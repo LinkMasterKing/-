@@ -308,8 +308,9 @@ body.edit .sec-edit-btn{display:inline-flex;animation:fadeSlide .4s var(--ease) 
 /* --- 焦點與減少動態 --- */
 /* 手機焦點：有一張展開時，其他還收著的膠囊變暗（展開那一下的「拿起來」動畫在 motion.js 的 animateDetails） */
 @media (max-width:640px){
-  .events .ev{transition:background-color .3s,color .3s,transform .22s var(--ease),box-shadow .22s var(--ease),border-color .3s,opacity .3s var(--ease)}
-  .events:has(>.ev[open]:not(.closing))>.ev:not([open]){opacity:.45}
+  /* 亮度過渡跟展開收合（0.38–0.56 秒）同步，不要瞬間變暗變亮；被收起的那張在開始收合時就一起變暗，不會收完才再暗一下 */
+  .events .ev{transition:background-color .45s var(--mo-out),color .45s var(--mo-out),transform .22s var(--ease),box-shadow .22s var(--ease),border-color .45s var(--mo-out),opacity .55s cubic-bezier(.4,0,.2,1)}
+  .events:has(>.ev[open]:not(.closing))>.ev:is(:not([open]),.closing){opacity:.45}
 }
 @media (prefers-reduced-motion:reduce){
   .ev:hover{transform:none}
