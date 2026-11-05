@@ -7,7 +7,7 @@ const CFG=(()=>{
     dept:{name:"",org:""},
     stageTags:["進行中","完成"],
     colors:{},
-    sections:{live:true,timeline:true,cards:true,done:true,weekly:true,simple:true,animation:true},
+    sections:{live:true,timeline:true,cards:true,done:true,weekly:true,simple:true},
     term:{label:"",start:"",end:""},
     data:{owner:"",repo:"",branch:"main",path:"data.json",page:"index.html"},
     notify:{url:""},

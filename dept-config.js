@@ -12,7 +12,7 @@ const BOARD_BASE = {
   colors: { accentLight: "#e0342a", accentDark: "#ff5a4e", ok: "#3ccf7f", neon: "#00ff6a", okDot: "#2bff88" },
 
   // 啟用的區塊（false = 隱藏）
-  sections: { live: true, timeline: true, cards: true, done: true, weekly: true, simple: true, animation: true },
+  sections: { live: true, timeline: true, cards: true, done: true, weekly: true, simple: true },
 
   // 學年：label 顯示文字、start 開學日（用來算「開學第幾週」）、end 學年結束日（第三階段學期歸檔會用到）
   term: { label: "115學年", start: "2026-09-07", end: "2027-07-31" },

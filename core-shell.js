@@ -1,5 +1,5 @@
 /* 畫面骨架：核心程式的 HTML 結構。部門資訊（logo、名稱）由 dept/ 提供，這裡不寫死任何部門。 */
-const SHELL_IDS=["pager","importFile","dlg","animOv","toast","splash"];
+const SHELL_IDS=["pager","importFile","dlg","toast","splash"];
 const SHELL_HTML=`<div class="pager" id="pager">
   <!-- main page -->
   <div class="page page-main" id="pageMain">
@@ -27,24 +27,25 @@ const SHELL_HTML=`<div class="pager" id="pager">
       <div class="layout">
         <div class="sgroup" data-sec="live">
           <section class="panel" id="livePanel" aria-labelledby="evH">
-            <div class="panel-head"><h2 id="evH">即時回報<span class="en">LIVE</span></h2></div>
+            <div class="panel-head"><h2 id="evH">即時回報<span class="en">LIVE</span></h2><span class="ev-filter" id="evFilter" role="group" aria-label="篩選即時回報"></span></div>
             <div class="md" id="liveMD"><div class="events" id="events"></div><div class="md-pane" id="evDetail" hidden></div></div>
-            <button class="ghost edit-only add-row" id="addEvent">+ 新增即時回報</button>
           </section>
         </div>
 
         <div class="sgroup" data-sec="progress">
-          <section class="panel" aria-labelledby="ganttH">
+          <!-- 進度：甘特圖與個別議題合成一張卡片。預設看甘特圖；點議題列換成該議題的詳情，按返回回到甘特圖（views.js 的 progShow） -->
+          <section class="panel" id="progPanel" aria-labelledby="ganttH">
             <div class="panel-head"><h2 id="ganttH">時間甘特圖<span class="en">TIMELINE</span></h2></div>
-            <div class="legend" aria-label="圖例"><span><i class="lg-today" aria-hidden="true"></i>目前時間</span><span><i class="lg-line" style="--c:var(--prog-hi)" aria-hidden="true"></i>已過時程</span><span><i class="lg-rest" aria-hidden="true"></i>剩餘時程</span><span class="lg-hint">點議題列可跳到該議題 · 左右滑動瀏覽月份</span></div>
+            <div class="pv-page" id="pvGantt">
+            <div class="legend" aria-label="圖例"><span><i class="lg-today" aria-hidden="true"></i>目前時間</span><span><i class="lg-line" style="--c:var(--prog-hi)" aria-hidden="true"></i>已過時程</span><span><i class="lg-rest" aria-hidden="true"></i>剩餘時程</span><span class="lg-hint">點議題列看詳情 · 左右滑動瀏覽月份</span></div>
             <div class="range">時間軸 <input type="month" id="rStart" aria-label="起始月份"> 到 <input type="month" id="rEnd" aria-label="結束月份"> <button class="icon" id="autoRange">依議題自動調整</button></div>
             <div class="gantt" id="gantt"></div>
-          </section>
-
-          <section class="panel" id="cardsPanel" aria-labelledby="cardsH">
-            <div class="panel-head"><h2 id="cardsH">個別進度<span class="en">PROGRESS</span></h2></div>
-            <div class="md" id="cardsMD"><div class="cards" id="cards"></div><div class="md-pane" id="cardDetail" hidden></div></div>
             <button class="ghost edit-only add-row" id="addIssue">+ 新增議題</button>
+            </div>
+            <div class="pv-page" id="pvDetail" hidden>
+              <button type="button" class="pv-back" id="pvBack">返回甘特圖</button>
+              <div id="cardDetail"></div>
+            </div>
           </section>
         </div>
 
@@ -75,11 +76,6 @@ const SHELL_HTML=`<div class="pager" id="pager">
 
 <input type="file" id="importFile" accept=".html,.htm,.json" hidden>
 <dialog id="dlg"><form method="dialog" id="dlgForm"></form></dialog>
-<div class="anim-ov" id="animOv" role="dialog" aria-modal="true" aria-label="動畫模式" hidden>
-  <div class="anim-top"><div class="anim-title"><span class="anim-k">ANIMATION</span><b id="animTitle"></b><span class="sub" id="animDate"></span><span class="sub anim-tip">點畫面暫停 · Esc 關閉</span></div>
-    <div class="anim-ctl"><button type="button" id="animFs">全螢幕</button><button type="button" id="animClose" aria-label="關閉動畫模式"><svg class="ico " viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path class="i-x" d="M6.5 6.5l11 11M17.5 6.5l-11 11"/></svg>關閉</button></div></div>
-  <section class="story" id="story" aria-label="動態摘要"><div class="story-stage" id="storyStage"></div><div class="story-dots" id="storyDots"></div></section>
-  </div>
 <div class="toast" id="toast" role="status"></div>
 `;
 (function mountShell(){

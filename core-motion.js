@@ -61,36 +61,6 @@ document.addEventListener("click",e=>{
   if(!d.open&&d.matches(".done-item")&&mdOn("done")){mdSelect("done",d.dataset.issue||d.dataset.ev);return}
   animateDetails(d,!d.open);
 },true);
-let flipBusy=false;
-function flipCards(mutate){
-  if(flipBusy)return;
-  const snap=new Set(openIds);mutate();const next=new Set(openIds);openIds=snap;
-  const closing=[...snap].filter(id=>!next.has(id)).map(id=>document.getElementById("card-"+id)).filter(Boolean);
-  const finish=()=>{
-    const before=new Map([...document.querySelectorAll(".card")].map(c=>[c.id,c.offsetHeight]));
-    const wasOpen=new Set(openIds);
-    openIds=next;render();
-    document.querySelectorAll(".card.open").forEach(c=>{if(!wasOpen.has(c.dataset.issue)){c.classList.add("opening");setTimeout(()=>c.classList.remove("opening"),1600)}});
-    if(reduceMotion())return;
-    document.querySelectorAll(".card").forEach(c=>{
-      const h0=before.get(c.id),h1=c.offsetHeight;if(h0==null||Math.abs(h0-h1)<2)return;
-      c.style.overflow="hidden";
-      c.animate([{height:h0+"px"},{height:h1+"px"}],EXPAND).onfinish=()=>{c.style.overflow=""};
-    });
-  };
-  if(!closing.length||reduceMotion()){finish();return}
-  /* collapse animation: content fades up while the frame shrinks to its folded height, then re-render */
-  flipBusy=true;const DUR=360;
-  closing.forEach(c=>{
-    const cs=getComputedStyle(c),top=c.querySelector(".card-top");
-    const target=top.offsetHeight+8+16+parseFloat(cs.paddingTop)+parseFloat(cs.paddingBottom)+parseFloat(cs.borderTopWidth)+parseFloat(cs.borderBottomWidth);
-    c.style.overflow="hidden";
-    [...c.children].filter(k=>k!==top).forEach((k,n)=>k.animate([{opacity:1,transform:"none"},{opacity:0,transform:"translateY(-8px)"}],{duration:220,delay:Math.max(0,(c.children.length-2-n))*25,easing:"ease-in",fill:"forwards"}));
-    c.animate([{height:c.offsetHeight+"px"},{height:target+"px"}],{duration:DUR,easing:"cubic-bezier(.4,0,.2,1)",fill:"forwards"});
-    const chev=c.querySelector(".chev");chev&&chev.animate([{transform:"rotate(180deg)"},{transform:"rotate(0deg)"}],{duration:DUR,fill:"forwards"});
-  });
-  setTimeout(()=>{flipBusy=false;finish()},DUR);
-}
 
 /* open link buttons robustly: new tab first, fall back to same tab when a viewer blocks pop-ups */
 document.addEventListener("click",e=>{
@@ -168,7 +138,7 @@ document.addEventListener("click",e=>{const b=e.target.closest&&e.target.closest
 function mdStep(k,dir){const m=MD[k],ids=[...document.querySelectorAll(`${m.list} ${m.item}`)].map(m.key),to=ids[ids.indexOf(m.get())+dir];if(to)mdSelect(k,to)}
 document.addEventListener("click",e=>{const b=e.target.closest&&e.target.closest("[data-mdstep]");if(b&&!b.disabled){e.preventDefault();mdStep(b.dataset.mdstep,+b.dataset.dir)}});
 document.addEventListener("keydown",e=>{
-  if((e.key!=="ArrowLeft"&&e.key!=="ArrowRight")||e.altKey||e.ctrlKey||e.metaKey||setOpen||animOpen||$("#dlg").open)return;
+  if((e.key!=="ArrowLeft"&&e.key!=="ArrowRight")||e.altKey||e.ctrlKey||e.metaKey||setOpen||$("#dlg").open)return;
   const a=document.activeElement;if(a&&(a.isContentEditable||/^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName)))return;
   const k=selEv&&mdOn("live")?"live":selDone&&mdOn("done")?"done":null;if(!k)return;
   e.preventDefault();mdStep(k,e.key==="ArrowRight"?1:-1);

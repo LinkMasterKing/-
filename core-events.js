@@ -2,22 +2,14 @@
 /* ---------- events ---------- */
 document.addEventListener("click",async e=>{
   const t=e.target;
-  if(t.closest("#animBtn")){openAnim();return}
-  if(t.closest("#animClose")){closeAnim();return}
-  /* 全螢幕：整個頁面一起進去，底部工具列才會留著 */
-  if(t.closest("#animFs")){const de=document.documentElement;if(document.fullscreenElement)document.exitFullscreen().catch(()=>{});else (de.requestFullscreen?de.requestFullscreen():Promise.reject()).catch(()=>toast("這個環境不支援全螢幕"));return}
-  const sd=t.closest("[data-story]");if(sd){storyPlay(+sd.dataset.story);return}
-  if(t.closest("#storyStage")){storyPause(!story.paused);return}
   const jump=t.closest("[data-jump]");
   const tgl=t.closest("[data-toggle]");
-  if(tgl&&tgl.closest("#cardDetail"))return;   /* 右側詳情裡的標題列不收合 */
-  if(tgl&&mdOn("progress")){selIssue=tgl.closest("[data-issue]").dataset.issue;renderCards();layoutAll();mdPaneIn($("#cardDetail"));return}
-  if(tgl){const id=tgl.closest("[data-issue]").dataset.issue;flipCards(()=>{if(openIds.has(id))openIds.delete(id);else{if(!editing)openIds.clear();openIds.add(id)}});return}
-  if(jump&&!t.closest("[data-marker]")){e.preventDefault();if(curSec!=="progress")setSection("progress",{instant:true});
-    if(mdOn("progress")){   /* 左右兩欄：選到那個議題，右側詳情閃一下 */
-      selIssue=jump.dataset.jump;renderCards();layoutAll();$("#cardsMD").scrollIntoView({behavior:"smooth",block:"start"});mdPaneIn($("#cardDetail"));
-      const c=$("#cardDetail .card");if(c){c.classList.add("flash");setTimeout(()=>c.classList.remove("flash"),1900)}return}
-    flipCards(()=>{if(!editing)openIds.clear();openIds.add(jump.dataset.jump)});const c=document.getElementById("card-"+jump.dataset.jump);if(c){c.scrollIntoView({behavior:"smooth",block:"center"});c.classList.add("flash");setTimeout(()=>c.classList.remove("flash"),1900)}return}
+  if(tgl&&tgl.closest("#cardDetail"))return;   /* 詳情裡的標題列不收合 */
+  /* 進度卡片：點甘特圖的議題列換成該議題詳情，按返回回到甘特圖 */
+  if(t.closest("#pvBack")){progShow(null);return}
+  /* 即時回報篩選：全部／只看會議要報告（不用登入，不存檔） */
+  const ef=t.closest("[data-evfilter]");if(ef){const on=ef.dataset.evfilter==="rep";if(on!==evRepOnly){evRepOnly=on;renderEvents();layoutAll()}return}
+  if(jump&&!t.closest("[data-marker]")){e.preventDefault();if(curSec!=="progress")setSection("progress",{instant:true});progShow(jump.dataset.jump);return}
   if(t.closest("#editBtn")){if(!(await ensureLogin()))return;morph(()=>{editing=true;snapshot=JSON.stringify(state);keepIds=new Set(state.issues.filter(i=>!i.doneAt).map(i=>i.id));render()});return}
   if(t.closest("#cancelBtn")){morph(()=>{if(dirty)state=normalize(JSON.parse(snapshot));editing=false;dirty=false;render()});return}
   if(t.closest("#saveBtn")){await saveFlow();return}
@@ -29,7 +21,7 @@ document.addEventListener("click",async e=>{
   if(t.closest("#genWeek")&&!readOnly()){
     const r=buildWeekly();
     const v=await ask("生成週報",[{name:"date",label:"日期",type:"date",value:r.end},{name:"text",label:`統計期間 ${fmt(r.start)} 之後 – ${fmt(r.end)}：已依即時回報與議題更新自動歸納，可直接修改後按確定`,type:"textarea",value:r.text}],{wide:true});
-    if(v&&v.text){{const nw={id:uid("w"),date:v.date||r.end,text:v.text,auto:true};state.weeks.push(nw);newWeekId=nw.id;(openWeeks=openWeeks||new Set()).add(nw.id);setTimeout(()=>{newWeekId=null},1500)}snapshotBase(v.date||r.end);if(editing)changed();else save();toast("已產生並存成週報")}return}
+    if(v&&v.text){{const nw={id:uid("w"),date:v.date||r.end,text:v.text,auto:true};state.weeks.push(nw);state.events.forEach(e=>{e.report=false});newWeekId=nw.id;(openWeeks=openWeeks||new Set()).add(nw.id);setTimeout(()=>{newWeekId=null},1500)}snapshotBase(v.date||r.end);if(editing)changed();else save();toast("已產生並存成週報")}return}
   if(!editing)return;
 
   const dd=t.closest("[data-donedate]");
@@ -72,6 +64,8 @@ document.addEventListener("click",async e=>{
     if(k==="linkcolor"){const l=ev.links.find(x=>x.id===evd.closest("[data-lk]").dataset.lk);l.color=COLORS[(COLORS.indexOf(l.color)+1)%COLORS.length];changed();return}
     return}
   /* 完成這一段：把這段的內容複製一份到完成紀錄，卡片留著進入下一段 */
+  /* 會議要報告：只是標記，不算「更新」（不改燈號） */
+  const evRep=t.closest("[data-evrep]");if(evRep){const ev=evOf(evRep);ev.report=!ev.report;changed();toast(ev.report?"已標記會議要報告":"已取消報告標記");return}
   const evRound=t.closest("[data-evround]");
   if(evRound){const ev=evOf(evRound);
     const v=await ask(`完成「${ev.name}」第 ${ev.round} 段`,[
@@ -104,8 +98,8 @@ document.addEventListener("click",async e=>{
     if(v==="delete"){unlinkEv(ev);state.events=state.events.filter(x=>x!==ev)}else if(v){Object.assign(ev,{name:v.name||ev.name,desc:v.desc||""});if(v.staff)ev.staff=v.staff;evTouch(ev);syncLink(ev)}if(v)changed();return}
 
   /* issues */
-  if(t.closest("#addIssue")){const it={id:uid("i"),title:"新議題",tags:[...CFG.stageTags],cur:0,start:"",end:"",doneAt:null,markers:[],links:[]};state.issues.push(it);keepIds.add(it.id);openIds.add(it.id);selIssue=it.id;changed();document.getElementById("card-"+it.id)?.classList.add("opening");
-    const c=document.getElementById("card-"+it.id);c?.scrollIntoView({behavior:"smooth",block:"center"});(mdOn("progress")?$("#cardDetail"):c)?.querySelector('[data-f="title"]')?.select();return}
+  if(t.closest("#addIssue")){const it={id:uid("i"),title:"新議題",tags:[...CFG.stageTags],cur:0,start:"",end:"",doneAt:null,markers:[],links:[]};state.issues.push(it);keepIds.add(it.id);changed();
+    progShow(it.id);setTimeout(()=>$("#cardDetail")?.querySelector('[data-f="title"]')?.select(),reduceMotion()?0:180);return}
   if(t.closest("#autoRange")){const ds=state.issues.flatMap(i=>[i.start,i.end,...i.markers.map(m=>m.date)]).filter(Boolean).sort();if(!ds.length){toast("還沒有填日期的議題");return}state.range={start:ds[0].slice(0,7),end:ds[ds.length-1].slice(0,7)};changed();return}
   const addLink=t.closest("[data-addlink]");
   if(addLink){const it=state.issues.find(i=>i.id===addLink.dataset.addlink);
@@ -127,7 +121,6 @@ document.addEventListener("click",async e=>{
   if(t.closest("[data-editstaff]")){if(!state.staff.length){toast("還沒有專員名單：先到「身分與專員」新增");return}const v=await ask(`「${it.title}」的專員`,staffField(it.staff));if(v){it.staff=v.staff||[];changed()}return}
   if(t.closest("[data-addtag]")){const v=await ask("新增階段標籤",[{name:"t",label:"標籤名稱",ph:"例如：公告"}]);if(v&&v.t){it.tags.push(v.t);changed()}return}
   const tg=t.closest("[data-tag]");if(tg){it.cur=+tg.dataset.tag;changed();return}
-  const lm=t.closest("[data-logmk]");if(lm){const mk=it.markers.find(x=>x.id===lm.dataset.logmk);if(mk)editMarker(it,mk);return}
   if(t.closest("[data-addmarker]")){const tr=t.closest("[data-issue]").querySelector(".c-track");tr.scrollIntoView({behavior:"smooth",block:"center"});makePending(tr,schedPct(it)??50);toast("把虛線標記拖到想要的位置後放開");return}
 });
 document.addEventListener("toggle",e=>{const d=e.target;if(d.classList&&d.classList.contains("week")&&!d.classList.contains("closing")){openWeeks=openWeeks||new Set();d.open?openWeeks.add(d.dataset.week):openWeeks.delete(d.dataset.week)}if(d.classList&&d.classList.contains("done-item")){const id=d.dataset.issue||d.dataset.ev;d.open?openDone.add(id):openDone.delete(id)}if(d.classList&&d.classList.contains("ev")){d.open?openEv.add(d.dataset.ev):openEv.delete(d.dataset.ev)}},true);
@@ -231,7 +224,7 @@ $("#importFile").addEventListener("change",async e=>{
     const v=await ask(`匯入「${f.name}」？`,[],{});
     if(v===null)return;
     data.locked=false;data.id=state.id;state=data;state.savedAt=nowStr();
-    editing=false;dirty=false;openIds.clear();render();await persist(`已匯入並${HOSTED?'發布':'儲存'}`);
+    editing=false;dirty=false;progOpen=null;render();await persist(`已匯入並${HOSTED?'發布':'儲存'}`);
     toast(`已匯入：${state.issues.length} 個議題、${state.events.length} 則即時回報、${state.weeks.length} 份週報`);
   }catch(err){toast("這個檔案讀不到看板資料")}
 });
@@ -239,7 +232,7 @@ window.addEventListener("beforeunload",e=>{if(editing&&dirty){e.preventDefault()
 
 /* 桌面即時回報的右側：Esc 收起（有對話框或設定開著時不管） */
 /* Esc：收起即時回報／完成紀錄的右側 */
-document.addEventListener("keydown",e=>{if(e.key!=="Escape"||setOpen||animOpen||$("#dlg").open)return;
+document.addEventListener("keydown",e=>{if(e.key!=="Escape"||setOpen||$("#dlg").open)return;
   const k=selEv&&mdOn("live")?"live":selDone&&mdOn("done")?"done":null;if(!k)return;
   if(document.activeElement&&document.activeElement.closest&&document.activeElement.closest(MD[k].pane))document.activeElement.blur();mdSelect(k,MD[k].get())});
 

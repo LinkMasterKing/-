@@ -1,5 +1,5 @@
 /* 核心｜整體重繪＋區塊切換 */
-let openWeeks=null,newWeekId=null,prevDone=null,openDone=new Set(),openEv=new Set(),editing=false,dirty=false,snapshot="",keepIds=new Set(),openIds=new Set();
+let openWeeks=null,newWeekId=null,prevDone=null,openDone=new Set(),openEv=new Set(),editing=false,dirty=false,snapshot="",keepIds=new Set();
 
 /* ---------- timeline math ---------- */
 function rangeMs(){const s=pd(state.range.start+"-01");const e=pd(state.range.end+"-01");e.setMonth(e.getMonth()+1);return[s.getTime(),e.getTime()]}
@@ -16,7 +16,7 @@ function render(){
   try{
     document.body.classList.toggle("edit",editing);
     document.body.classList.toggle("locked",!!state.locked);
-    renderHeader();renderTabbar();renderSections();storySync();renderWeeks();renderGantt();renderEvents();renderCards();renderDone();renderFollows();layoutAll();
+    renderHeader();renderTabbar();renderSections();renderWeeks();renderGantt();renderEvents();renderCards();renderDone();renderFollows();layoutAll();
   }finally{rendering=false}
 }
 
@@ -27,11 +27,11 @@ let curSec=SECS[0]||"live",secTok=0;
 const isPhone=()=>matchMedia("(max-width:640px)").matches;
 function renderSections(){document.querySelectorAll(".layout>.sgroup").forEach(g=>g.classList.toggle("cur",g.dataset.sec===curSec));
   /* 切換區塊時，個別進度／完成紀錄要不要改成左右兩欄跟著變 */
-  if(mdOn("live")!==mdLast.live)renderEvents();if(mdOn("progress")!==mdLast.progress)renderCards();if(mdOn("done")!==mdLast.done)renderDone()}
-/* 桌面（1000px 以上）、區塊被選到放大成全寬時：清單在左、詳情在右（即時回報、個別進度、完成紀錄） */
+  if(mdOn("live")!==mdLast.live)renderEvents();if(mdOn("done")!==mdLast.done)renderDone()}
+/* 桌面（1000px 以上）、區塊被選到放大成全寬時：清單在左、詳情在右（即時回報、完成紀錄；進度改成甘特圖／詳情切換，見 views.js 的 progShow） */
 const MD_MQ=matchMedia("(min-width:1000px)");
 const mdOn=sec=>MD_MQ.matches&&curSec===sec;
-let selIssue=null,selDone=null,selEv=null;const mdLast={};
+let progOpen=null,selDone=null,selEv=null;const mdLast={};
 MD_MQ.addEventListener("change",()=>render());
 function setSection(k,{instant}={}){
   if(!SECS.includes(k)||k===curSec)return;

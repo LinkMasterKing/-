@@ -25,7 +25,7 @@ async function persist(msg){
 }
 function save(){
   state.savedAt=nowStr();if(meName())state.savedBy=meName();
-  editing=false;dirty=false;openIds.clear();render();
+  editing=false;dirty=false;render();
   persist();
 }
 /* 匯出單一 HTML：把拆開的 CSS / JS / 設定檔全部打包回同一個檔案 */

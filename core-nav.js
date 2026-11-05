@@ -11,8 +11,8 @@ const IS_IOS=/iPhone|iPad|iPod/.test(navigator.userAgent)||(navigator.platform==
    設定鍵：按下放大 4px、白光跟著指標、被指標拖著微微偏移與拉伸（tanh 阻尼），放開彈回 */
 let setOpen=false;
 const TABS=()=>[["live","即時回報","live"],["progress","進度","progress"],["done","完成紀錄","done"]].filter(([k])=>secOn(k));
-/* 動畫或設定打開時，三個分頁都不亮；點任一個就關掉並回到那一區 */
-const tbActive=()=>animOpen||setOpen?"":curSec;
+/* 設定打開時，三個分頁都不亮；點任一個就關掉並回到那一區 */
+const tbActive=()=>setOpen?"":curSec;
 const RAIL_MQ=matchMedia("(min-width:900px)");
 const isRail=()=>RAIL_MQ.matches;
 /* 彈簧（跟 Compose 的 spring(dampingRatio, stiffness) 一樣，質量 1） */
@@ -108,7 +108,7 @@ function renderTabbar(){
   requestAnimationFrame(()=>lensTo(act));
   tbContrastSoon();
 }
-function tabGo(k){if(animOpen)closeAnim();if(setOpen)closeSettings();goMain();setSection(k)}
+function tabGo(k){if(setOpen)closeSettings();goMain();setSection(k)}
 function setupTabbar(tb){
   const main=tb.querySelector(".tb-main"),gear=tb.querySelector(".tb-gear"),lensEl=tb.querySelector(".tb-lens");
   /* 毛玻璃：分頁列、設定鍵各一塊（桌面也一樣，分頁列直立） */
@@ -166,7 +166,7 @@ document.addEventListener("click",e=>{
   /* 用滑鼠／手指點的：先放掉焦點，關掉對話框後才不會在按鈕上留下焦點框 */
   const tbBtn=t.closest("#tabbar button");if(tbBtn&&e.detail>0)tbBtn.blur();
   const tab=t.closest("#tabbar .tab");if(tab){tabGo(tab.dataset.tab);return}
-  if(t.closest("#setBtn")){if(animOpen){closeAnim();setTimeout(openSettings,60);return}setOpen?closeSettings():openSettings();return}
+  if(t.closest("#setBtn")){setOpen?closeSettings():openSettings();return}
 },true);
 
 /* ---------- 設定頁 ---------- */

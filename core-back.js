@@ -1,5 +1,5 @@
 /* 核心｜返回：系統返回鍵／返回手勢、邊緣滑動的預測返回動畫
-   - 打開一層（每週概述、設定、總結、編輯紀錄、工作報告）時推一筆瀏覽紀錄：按返回／系統返回手勢先關掉最上面那層，不會直接離開網站
+   - 打開一層（每週概述、設定、編輯紀錄、工作報告）時推一筆瀏覽紀錄：按返回／系統返回手勢先關掉最上面那層，不會直接離開網站
    - 觸控從左邊緣往右拖：最上面那層跟著手指縮小、右移、圓角變大（預測返回），放開過門檻就關掉，不到就彈回
      沒有任何一層時，在看板上這樣拖＝回各部門總覽（home.html）
    - 瀏覽器自己做了返回動畫（iOS Safari 邊緣滑動等，popstate 的 hasUAVisualTransition），就直接關、不再播一次 */
@@ -33,7 +33,7 @@ const Back=(()=>{
     const top=stack[stack.length-1];
     if(top&&top.name==="week")return;                       /* 每週概述本來就能左右滑 */
     if(document.querySelector("dialog[open]"))return;
-    if(!top&&(editing||setOpen||animOpen))return;            /* 編輯中不要一滑就離開看板 */
+    if(!top&&(editing||setOpen))return;            /* 編輯中不要一滑就離開看板 */
     const el=top?top.el():$("#pageMain");if(!el)return;
     g={x:t.clientX,y:t.clientY,top,el,on:false,v:0,lx:t.clientX,lt:e.timeStamp};
   },{passive:true,capture:true});
@@ -66,7 +66,6 @@ const Back=(()=>{
 /* 各層打開時登記（el 回傳拖動時要縮放的那個畫面） */
 Back.layers={
   settings:()=>Back.opened("settings",i=>closeSettings(i),()=>$("#setOv")),
-  anim:()=>Back.opened("anim",()=>closeAnim(),()=>$("#animOv")),
   log:()=>Back.opened("log",()=>closeLog(),()=>$("#logOv")),
   report:()=>Back.opened("report",i=>closeReport(i),()=>$("#rptOv")),
   week:()=>Back.opened("week",i=>pager.scrollTo({left:0,behavior:i?"instant":"smooth"}),()=>$("#pageWeek")),
