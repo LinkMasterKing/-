@@ -466,42 +466,42 @@ html.ev-drag-on,html.ev-drag-on *{-webkit-user-select:none;user-select:none;curs
 .range{display:none;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:10px;font-size:13px;color:var(--muted)}
 .sec-edit .range{display:flex}
 .range input{width:auto}
-.gantt{overflow-x:auto;border-top:1px solid var(--line);-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;border-color:var(--hair)}
-.g-row{display:grid;grid-template-columns:170px 1fr;border-bottom:1px solid var(--line);transition:transform .22s var(--ease),box-shadow .22s var(--ease),border-color .22s var(--ease),background-color .2s,opacity .2s;border-color:var(--hair)}
-.g-name{position:sticky;left:0;padding:8px 10px 8px 0;font-size:13.5px;font-weight:500;line-height:1.35;display:flex;flex-direction:column;justify-content:center;border-right:1px solid var(--line);border-color:var(--hair);z-index:6;background:var(--surface)}
+.gantt{overflow-x:auto;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;border-color:var(--hair)}
+.g-row{display:grid;grid-template-columns:170px 1fr;transition:background-color .2s,opacity .2s}   /* 不畫格線（細刻度本身就分得出每一列） */
+.g-name{position:sticky;left:0;padding:8px 10px 8px 0;font-size:13.5px;font-weight:500;line-height:1.35;display:flex;flex-direction:column;justify-content:center;z-index:6;background:var(--surface)}
 .g-name a{color:var(--ink);text-decoration:none}
 .g-name a:hover{text-decoration:underline}
 .g-axis{position:relative;height:40px}
 .g-axis span{position:absolute;top:5px;font-size:12px;color:var(--muted);transform:translateX(5px);white-space:nowrap}
 .g-track{position:relative;height:58px}
-.vgrid{position:absolute;top:0;bottom:0;width:1px;background:var(--grid)}
-/* 已經過去的時間：淡淡打亮（深色模式是白色，淺色模式自動變淡灰），放在格線、長條底下 */
-.g-past{position:absolute;left:0;top:0;bottom:0;background:color-mix(in srgb,var(--ink) 12%,transparent);pointer-events:none}
-.g-axis .g-past{top:0;transform:none}
-.today{position:absolute;top:0;bottom:0;background:var(--today);opacity:.8;width:1.5px}
-.g-bar{position:absolute;top:27px;height:14px;transition:transform .18s var(--ease),box-shadow .18s,border-color .18s,padding .2s;background:none;overflow:visible!important;border-radius:0}
-.g-pct{position:absolute;top:24px;font-size:12.5px;padding-left:6px;white-space:nowrap}
+/* ---- 細刻度（views.js 的 ticksHTML；甘特圖每一列與議題詳情的時程條共用，2026-11-05 使用者選的 A 方案）----
+   一排細直線排滿整條：期間外＝淡色短、期間內已過＝深色長、期間內還沒到＝灰色中、今天那一根＝綠色最高 */
+.tk{display:flex;align-items:flex-end;justify-content:space-between;height:100%}   /* 每根固定 2px 粗、平均分散（畫面再寬也是細線，不會變成方塊） */
+.tk i{flex:0 0 2px;height:30%;border-radius:1px;background:var(--hair)}
+.tk i.on{height:72%;background:var(--ink);opacity:.85}
+.tk i.in{height:45%;background:var(--muted);opacity:.55}
+.tk i.now{flex-basis:3px;height:100%;border-radius:2px;background:var(--ok)}
+/* 今天：每一列一條往下淡掉的細綠線 */
+.g-track .today{position:absolute;top:2px;bottom:2px;width:1px;background:linear-gradient(var(--ok),transparent);pointer-events:none}
+.g-bar{position:absolute;left:0;right:0;top:27px;height:22px}   /* 整條時間軸的刻度；上下位置由 views.js 的 layoutTrack 依註記標籤的層數決定 */
 .g-mk{position:absolute;top:0;bottom:0;width:0;--mc:var(--acc)!important}
-.g-mk .dot{position:absolute;top:29px;border-radius:50%;background:var(--mc);z-index:2;transition:transform .18s var(--ease),box-shadow .18s,border-color .18s,padding .2s;width:8px;height:8px;left:-4px;box-shadow:0 0 0 2px var(--surface);cursor:pointer}
-.g-mk .lbl{position:absolute;top:4px;left:0;transform:translateX(-50%);font-size:11.5px;white-space:nowrap;max-width:130px;overflow:hidden;text-overflow:ellipsis;background:var(--surface);border:1px solid var(--line);line-height:17px;border-radius:999px;padding:0 8px;transition:transform .18s var(--ease),box-shadow .18s,border-color .18s,padding .2s;z-index:3}
-.g-mk .stem{position:absolute;left:-.5px;width:1px;background:var(--mc);z-index:1;opacity:.55}
+.g-mk .dot{position:absolute;border-radius:50%;background:var(--muted);z-index:2;width:6px;height:6px;left:-3px}   /* 註記：刻度上方的小點（最新一筆是文字色） */
+.g-mk:not(.quiet) .dot{background:var(--ink)}
+.g-mk .lbl{position:absolute;top:4px;left:0;transform:translateX(-50%);font-size:11.5px;white-space:nowrap;max-width:130px;overflow:hidden;text-overflow:ellipsis;background:var(--ink);color:var(--surface);line-height:1;padding:4px 9px 5px;border-radius:999px;z-index:3}   /* 最新一筆註記：實心小膠囊（文字色底） */
+.g-mk .stem{position:absolute;left:-.5px;width:1px;background:var(--ink);z-index:1;opacity:.5}
 .g-mk.edgeL .lbl{transform:translateX(-8px)}
 .g-mk.edgeR .lbl{transform:translateX(calc(-100% + 8px))}
-.g-bar::before{content:"";position:absolute;left:0;right:0;top:50%;height:2.5px;transform:translateY(-50%);border-radius:2px;background:var(--rest)}
-.g-bar .fill{position:absolute;left:0;top:50%;height:4px!important;transform:translateY(-50%);background:var(--acc,var(--ink));border-radius:2px;max-width:100%}
-.g-bar .fill::after{content:"";position:absolute;top:50%;transform:translateY(-50%);border-radius:2px;background:var(--acc,var(--ink));height:14px;width:3.5px;right:-1.75px;box-shadow:none}
-.g-row:hover .g-bar{box-shadow:none!important}
-.g-row:hover .fill{filter:drop-shadow(0 0 6px var(--acc))}
 .legend{display:flex;flex-wrap:wrap;align-items:center;gap:6px 16px;font-size:12px;color:var(--muted);margin:-2px 0 10px;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
 .legend span{display:inline-flex;align-items:center;gap:6px}
 .legend i{display:inline-block;flex:none}
-.lg-today{width:2px;height:14px;background:var(--today);border-radius:1px}
-.lg-line{width:22px;height:4px;border-radius:2px;background:var(--c)}
-.lg-rest{width:22px;height:2.5px;border-radius:2px;background:var(--rest)}
+/* 圖例：三小段細刻度（跟甘特圖同一種） */
+.lg-tk{width:14px;height:14px;background:repeating-linear-gradient(90deg,var(--c) 0 2px,transparent 2px 4px);-webkit-mask:linear-gradient(transparent calc(100% - var(--h)),#000 0);mask:linear-gradient(transparent calc(100% - var(--h)),#000 0)}
+.lg-tk.now{--c:var(--ok);--h:100%;width:3px;border-radius:1px}
+.lg-tk.on{--c:var(--ink);--h:72%}
+.lg-tk.in{--c:var(--muted);--h:45%;opacity:.7}
 .lg-hint{margin-left:auto;font-size:11.5px}
 /* 今天標籤：白色實心黑字（淺色模式加細框才看得出邊界），左上角一顆會閃的紅點（共用 .live-dot） */
-.g-axis .today-tag{top:21px;transform:translateX(-50%);color:#111114;background:#fff;box-shadow:inset 0 0 0 1px var(--ink);border-radius:999px;font-size:11px;z-index:3;font-weight:500;padding:1px 7px 2px;line-height:14px}  /* 上 1、下 2：視覺置中（依實機截圖量測，原本字偏上約 0.8px） */
-.g-axis .today-tag .live-dot{position:absolute;top:-3px;left:-3px;width:8px;height:8px;box-shadow:0 0 0 2px var(--surface)}
+.g-axis .today-tag{top:19px;transform:translateX(-50%);color:#06210f;background:var(--ok);border-radius:999px;font-size:11px;z-index:3;font-weight:500;padding:1px 8px 2px;line-height:14px}   /* 今天：綠色小膠囊 */
 .g-issue{cursor:pointer}
 .g-undated .g-name a{color:var(--muted)}   /* 未排程的議題：沒有條，名稱淡一點 */
 .g-undated .g-track{height:34px}
@@ -565,16 +565,15 @@ html.ev-drag-on,html.ev-drag-on *{-webkit-user-select:none;user-select:none;curs
 .tag{font-size:12px;border-radius:999px;border:1px solid var(--line);background:var(--surface);min-height:24px;border-color:var(--ink);color:var(--ink);transition:transform .22s var(--ease),box-shadow .22s var(--ease),border-color .22s var(--ease),background-color .2s,opacity .2s;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;padding:0 9px 2px!important;line-height:20px}
 .tag.cur{color:var(--onteal);font-weight:500;background:var(--ink);padding-top:.5px!important;padding-bottom:1.5px!important}
 .c-track{position:relative;height:84px;margin:0 8px;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
-.c-bar{position:absolute;left:0;right:0;top:34px;height:16px;transition:transform .18s var(--ease),box-shadow .18s,border-color .18s,padding .2s;background:none;overflow:visible!important;border-radius:0}
-.c-bar .fill{transition:width .2s;position:absolute}
+.c-bar{position:absolute;left:0;right:0;top:34px;height:16px}   /* 議題的時程條＝一排細刻度（ticksHTML，整條就是這個議題的期間） */
 .mini-bar .fill{position:absolute}
-.c-bar .fill,.mini-bar .fill{left:0}
-.c-bar .fill,.mini-bar .fill{top:50%}
-.c-bar .fill,.mini-bar .fill{height:4px!important}
-.c-bar .fill,.mini-bar .fill{transform:translateY(-50%)}
-.c-bar .fill,.mini-bar .fill{background:var(--acc,var(--ink))}
-.c-bar .fill,.mini-bar .fill{border-radius:2px}
-.c-bar .fill,.mini-bar .fill{max-width:100%}
+.mini-bar .fill{left:0}
+.mini-bar .fill{top:50%}
+.mini-bar .fill{height:4px!important}
+.mini-bar .fill{transform:translateY(-50%)}
+.mini-bar .fill{background:var(--acc,var(--ink))}
+.mini-bar .fill{border-radius:2px}
+.mini-bar .fill{max-width:100%}
 .tick{position:absolute;top:52px;font-size:10.5px;color:var(--muted);transform:translateX(-50%);-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
 /* 時程條兩端標開始、結束日：靠內對齊，不要超出列；沒有期間時改成一行說明 */
 .tick.tick-s{transform:none}
@@ -594,11 +593,8 @@ a.link:hover{filter:brightness(1.1)}
 .chev-btn{display:inline-flex;align-items:center;gap:4px;font-size:12px;color:var(--muted);border:1px solid var(--line);border-radius:999px;white-space:nowrap}
 .card-toggle:hover .chev-btn{color:var(--ink);border-color:var(--ink)}
 .mini-bar{cursor:pointer;background:none;overflow:visible!important;border-radius:0;position:relative;height:16px;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
-.c-bar::before,.mini-bar::before{content:"";position:absolute;left:0;right:0;top:50%;height:2.5px;transform:translateY(-50%);border-radius:2px;background:var(--rest)}
-.c-bar .fill::after{content:"";position:absolute;right:-2px;top:50%;width:4px;height:18px;transform:translateY(-50%);border-radius:2px;background:var(--acc,var(--ink));box-shadow:none}
+.mini-bar::before{content:"";position:absolute;left:0;right:0;top:50%;height:2.5px;transform:translateY(-50%);border-radius:2px;background:var(--rest)}
 .mini-bar .fill::after{content:"";position:absolute;right:-2px;top:50%;width:4px;transform:translateY(-50%);border-radius:2px;background:var(--acc,var(--ink));height:16px;box-shadow:none}
-.c-track:hover .c-bar{box-shadow:none!important}
-.c-track:hover .fill{filter:drop-shadow(0 0 6px var(--acc))}
 .card.flash{animation:flash2 .7s ease-in-out .35s 2 both}
 @media (hover:hover){
   .card:hover{background:color-mix(in srgb,var(--ink) 5%,transparent)}
@@ -1428,6 +1424,8 @@ body.edit-anim .page-week .edit-only{animation:fadeSlide .5s .15s var(--ease) bo
 
 /* ===== 開頁時的進場動畫 ===== */
 body.intro .fill{animation:grow 1s var(--ease) both}
+body.intro .tk i{transform-origin:50% 100%;animation:tkIn .8s var(--ease) both}   /* 細刻度從底部長出來 */
+@keyframes tkIn{from{transform:scaleY(0)}}
 body.intro .card,body.intro .ev,body.intro .g-row{animation:rise .5s var(--ease) both}
 @keyframes grow{from{width:0}}
 
