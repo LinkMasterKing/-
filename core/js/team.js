@@ -200,6 +200,7 @@ function diffState(a,b){
   const lblD=(o,x,cat,t)=>{const A=new Set(o||[]),B=new Set(x||[]);const add=[...B].filter(i=>!A.has(i)).map(lname),rm=[...A].filter(i=>!B.has(i)).map(lname);
     if(add.length||rm.length)L.push(`${cat}｜標籤${add.length?" +"+add.join("、"):""}${rm.length?" −"+rm.join("、"):""}｜${t}`)};
   const linkD=(o,x,cat,t)=>{const A=byId(o),B=byId(x);for(const [k,l] of B){if(!A.has(k))L.push(`${cat}｜新增連結「${l.name}」｜${t}`);else if(!same(A.get(k),l))L.push(`${cat}｜修改連結「${l.name}」｜${t}`)}for(const [k,l] of A)if(!B.has(k))L.push(`${cat}｜刪除連結「${l.name}」｜${t}`)};
+  {const S={up:"上學期",down:"下學期"};if((a.semester||"")!==(b.semester||""))L.push(`看板｜學期 ${S[a.semester]||"（不指定）"}→${S[b.semester]||"（不指定）"}`)}
   [["title","看板名稱"],["yearLabel","學年"],["termStart","開學日"]].forEach(([k,t])=>{if((a[k]||"")!==(b[k]||""))L.push(`看板｜${t} ${a[k]||"（空）"}→${b[k]||"（空）"}`)});
   if(!same(a.range,b.range))L.push("看板｜調整時間軸範圍");
   /* 議題 */

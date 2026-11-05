@@ -186,7 +186,7 @@ function settingsInner(){
     (readOnly()?"":
     setSec("人員與權限",setRow("team","people","身分與專員","編輯身分、管理員（卡片上的專員就是這些身分）")+setRow("labels","tag","標籤",state.labels.length?`人事時地物 ${state.labels.length} 個`:"人事時地物，還沒有建立"))+
     setSec("看板資訊",setRow("title","edit","看板名稱",esc(state.title))+
-      setRow("year","cap","學年",esc(state.yearLabel||"未設定"))+setRow("term","flag","開學日",state.termStart?fmt(state.termStart):"未設定"))+
+      setRow("year","cap","學年",esc((state.yearLabel||"未設定")+({up:"・上學期",down:"・下學期"}[state.semester]||"")))+setRow("term","flag","開學日",state.termStart?fmt(state.termStart):"未設定"))+
     setSec("雲端與分享",setRow("cloud","cloud","雲端同步",cloudOn()?`${esc(c.owner)}/${esc(c.repo)} · ${ghToken()?"這台裝置已連上":"這台裝置還沒有權杖"}`:"尚未設定")+
       setRow("share","share","分享預覽","貼連結到 LINE、IG、FB 時顯示的標題與說明")+
       (cloudOn()&&ghToken()?setRow("provision","people","開通部門（全會）","用一組初始密碼，讓各部門不用權杖也能連上雲端"):""))+
@@ -297,14 +297,16 @@ const BOARD_INFO={
   title:["看板名稱",()=>[{name:"v",label:"看板名稱",value:state.title}],v=>{if(!v){toast("看板名稱不能空白");return false}state.title=v}],
   /* 學年：用上下按鈕改數字（不用打字）；存成「115學年」。原本的文字裡沒有數字就從今天推算（8 月起算新學年） */
   year:["學年",()=>{const m=String(state.yearLabel||"").match(/\d+/),d=new Date(),roc=d.getFullYear()-1911-(d.getMonth()<7?1:0);
-    return [{name:"v",label:"學年（顯示在頁首）",type:"stepper",value:m?+m[0]:roc,min:100,max:200,suffix:"學年"}]},v=>{state.yearLabel=v?`${v}學年`:""}],
+    return [{name:"v",label:"學年",type:"stepper",value:m?+m[0]:roc,min:100,max:200,suffix:"學年"},
+      {name:"sem",label:"學期（甘特圖打開時預設看這個學期）",type:"select",value:state.semester||"",options:[["","不指定（看全部）"],["up","上學期（8 月～隔年 1 月）"],["down","下學期（2 月～7 月）"]]}]},v=>{state.yearLabel=v.v?`${v.v}學年`:"";state.semester=v.sem||""}],
   term:["開學日",()=>[{name:"v",label:"開學日（用來算開學第幾週）",type:"date",value:state.termStart||""}],v=>{state.termStart=v||""}],
 };
 async function editBoardInfo(k){
   const [t,fields,apply]=BOARD_INFO[k];
   const v=await ask(t,fields());if(!v)return;
   const key={title:"title",year:"yearLabel",term:"termStart"}[k];
-  if((k==="year"?`${v.v}學年`:(v.v||""))===(state[key]||""))return;
+  if(k==="year"){if(`${v.v}學年`===(state.yearLabel||"")&&(v.sem||"")===(state.semester||""))return;await settingSave(()=>apply(v),`已更新${t}`);return}
+  if((v.v||"")===(state[key]||""))return;
   await settingSave(()=>apply(v.v),`已更新${t}`);
 }
 function forgetDevice(){remClear();if(!editing){meId="";sessionPw="";sharedPwSession=""}renderSettings();toast("已忘記這台裝置，下次要重新輸入密碼")}

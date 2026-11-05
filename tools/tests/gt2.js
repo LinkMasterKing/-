@@ -1,4 +1,4 @@
-/* 甘特圖「全部／上學期／下學期」切換（render.js 的 ganttTerm／viewRange）：月份軸、今天線、議題位置跟著換；只影響畫面、不存。
+/* 甘特圖「全部／上學期／下學期」切換（render.js 的 ganttTerm／viewRange）：月份軸、今天線、議題位置跟著換；臨時切換只影響畫面、不存；預設跟著設定的學期（state.semester）。
    手機 412 深色、桌面 1300 淺色。固定 8300 埠；截圖 gt2_*.png */
 const c=require('./common');(async()=>{const {b,mk}=await c.setup();
 for(const [w,sc,tc] of [[412,'dark',true],[1300,'light',false]]){const p=await mk(w,860,sc,tc);
@@ -9,5 +9,8 @@ for(const [w,sc,tc] of [[412,'dark',true],[1300,'light',false]]){const p=await m
  for(const k of ['up','down','all']){await p.click(`#gTerm [data-k=${k}]`);await p.waitForTimeout(700);
    console.log(w,k,await p.evaluate(()=>[ganttTerm,JSON.stringify(viewRange()),!!document.querySelector('#gantt .today-tag')]),await axis());
    if(k!=='all')await p.screenshot({path:`gt2_${w}_${k}.png`})}
+ /* 設定的學期（state.semester，v10）：還沒臨時切過時甘特圖跟著它 */
+ await p.evaluate(()=>{ganttTerm=null;state.semester='down';render()});await p.waitForTimeout(500);
+ console.log(w,'semester=down',await p.evaluate(()=>[gTermNow(),$('#gTerm [aria-selected=true]').dataset.k,JSON.stringify(viewRange()),state.schemaVersion]));
  console.log(w,'saved range untouched',await p.evaluate(()=>JSON.stringify(state.range)),'errs',p.errs.filter(x=>!x.includes('404')));await p.context().close()}
 await b.close()})();

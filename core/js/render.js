@@ -3,13 +3,16 @@ let openWeeks=null,newWeekId=null,prevDone=null,openDone=new Set(),openEv=new Se
 
 /* ---------- timeline math ---------- */
 /* 甘特圖看的範圍（2026-11-05）：「全部」＝設定的時間軸（state.range）；「上學期」＝8 月～隔年 1 月；「下學期」＝2 月～7 月。
-   學年從開學日（state.termStart）的年份算，沒填就用今天（8 月起算新學年）。只影響畫面，不存。 */
-let ganttTerm="all";
+   學年從開學日（state.termStart）的年份算，沒填就用今天（8 月起算新學年）。
+   預設跟著設定頁「學年」選的學期（state.semester，v10）；在甘特圖上臨時切換（ganttTerm）只影響畫面、不存，重新整理回到預設。 */
+let ganttTerm=null;
+const gTermNow=()=>ganttTerm||state.semester||"all";
 function termYear(){const s=state.termStart||today(),y=+s.slice(0,4),m=+s.slice(5,7);return m>=8?y:y-1}
 function viewRange(){
   const y=termYear();
-  if(ganttTerm==="up")return {start:`${y}-08`,end:`${y+1}-01`};
-  if(ganttTerm==="down")return {start:`${y+1}-02`,end:`${y+1}-07`};
+  const g=gTermNow();
+  if(g==="up")return {start:`${y}-08`,end:`${y+1}-01`};
+  if(g==="down")return {start:`${y+1}-02`,end:`${y+1}-07`};
   return state.range;
 }
 function rangeMs(){const r=viewRange(),s=pd(r.start+"-01"),e=pd(r.end+"-01");e.setMonth(e.getMonth()+1);return[s.getTime(),e.getTime()]}
