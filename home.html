@@ -46,11 +46,11 @@ html,body{margin:0;background:var(--bg);color:var(--ink);font-family:"Noto Sans 
 .lead .dept{border-top:1px solid var(--line);border-bottom:1px solid var(--line);padding:22px 4px}
 .lead .dept b{font-size:24px}
 .foot{margin-top:36px;font-size:12px;color:var(--muted)}
-/* 換頁動畫（core/js/pagefx.js）：站內換頁過來時 body 先透明，等它從下方升上來 */
+/* 換頁動畫（core/js/pagefx.js）：站內換頁過來時 body 先透明，等它從後面浮上來 */
 .pfx-arrive body{opacity:0}
 @media (prefers-reduced-motion:no-preference){.dept{animation:in .5s var(--ease) both;animation-delay:calc(var(--i,0)*40ms)}@keyframes in{from{opacity:0;transform:translateY(8px)}}}
 </style>
-<script>/* 換頁動畫（core/js/pagefx.js）：從站內換頁過來的，body 先透明，等它從下方升上來（不會先閃一下完整的畫面） */try{var r=document.referrer,n=performance.getEntriesByType("navigation")[0];if(r&&new URL(r).origin===location.origin&&(!n||n.type!=="reload")&&!matchMedia("(prefers-reduced-motion: reduce)").matches)document.documentElement.classList.add("pfx-arrive")}catch(e){}</script>
+<script>/* 換頁動畫（core/js/pagefx.js）：從站內換頁過來的，body 先透明，等它從後面浮上來（不會先閃一下完整的畫面） */try{var r=document.referrer,n=performance.getEntriesByType("navigation")[0];if(r&&new URL(r).origin===location.origin&&(!n||n.type!=="reload")&&!matchMedia("(prefers-reduced-motion: reduce)").matches)document.documentElement.classList.add("pfx-arrive")}catch(e){}</script>
 </head>
 <body>
 <div class="wrap">

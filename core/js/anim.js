@@ -128,7 +128,9 @@ class LiquidSeg{
     /* 按下的放大改成固定像素（寬 +8、高 +6），鏡片一定留在玻璃框裡；這排常貼著內容邊緣，用工具列的比例會被捲動區切掉 */
     const lh=l.offsetHeight||1,P=(s.sx.x-1)/(78/56-1),Q=(s.sy.x-1)/(78/56-1);
     const ma=(w+8*P)/w/(1-c(v*.75,-.2,.2)),cr=(lh+6*Q)/lh*(1-c(v*.25,-.2,.2));
-    l.style.width=w.toFixed(1)+"px";l.style.transform=`translateX(${(pos-w/2).toFixed(2)}px) scale(${ma.toFixed(4)},${cr.toFixed(4)})`;
+    /* 放大、拉長之後的鏡片一定留在玻璃框裡（左右至少留 2px）：超出就整顆往內推（縮放是以鏡片中心為準） */
+    const bw=this.box.offsetWidth||1,W2=w*ma,x0=c(pos-W2/2,2,Math.max(2,bw-2-W2));
+    l.style.width=w.toFixed(1)+"px";l.style.transform=`translateX(${(x0+W2/2-w/2).toFixed(2)}px) scale(${ma.toFixed(4)},${cr.toFixed(4)})`;
     const lit=Math.round(c(s.val.x,0,n-1));this.btns().forEach((b,j)=>b.classList.toggle("lit",j===lit));
     const len=this.box.offsetWidth||1,fr=c(s.off.x/len,-1,1),ease=1-Math.pow(1-Math.abs(fr),2),po=4*Math.sign(fr)*ease,p=s.press.x;
     this.box.style.transform=po?`translateX(${po.toFixed(2)}px)`:"";this.box.style.scale=p>.0005?(1+12/len*p).toFixed(4):"";
