@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>報告區標題預覽</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Jost:wght@200;300;400;500&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+/* 預覽：即時回報上下兩區的區名（會議報告事項／其他回報）。顏色照看板變數 */
+:root{--bg:#000;--ink:#f1f1f4;--muted:#a3a3ae;--hair:#2c2c34;--red:#ff5a4e;--go:#f0bc23}
+@media (prefers-color-scheme:light){:root:not([data-theme="dark"]){--bg:#fff;--ink:#111114;--muted:#5d5d66;--hair:#e2e2e8;--red:#e0342a}}
+:root[data-theme="light"]{--bg:#fff;--ink:#111114;--muted:#5d5d66;--hair:#e2e2e8;--red:#e0342a}
+:root[data-theme="dark"]{--bg:#000;--ink:#f1f1f4;--muted:#a3a3ae;--hair:#2c2c34;--red:#ff5a4e}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Jost","Noto Sans TC",sans-serif;padding:24px 16px 60px}
+.wrap{max-width:460px;margin:0 auto;display:grid;gap:34px}
+.top{display:flex;align-items:center;gap:12px}.top h1{font-size:18px;margin:0;letter-spacing:.1em;flex:1}
+.top button{font:inherit;font-size:13px;color:var(--ink);background:transparent;border:1px solid var(--ink);border-radius:999px;padding:6px 14px;cursor:pointer}
+h2{margin:0 0 14px;font-size:15px;letter-spacing:.12em}h2 small{font-weight:400;color:var(--muted);letter-spacing:.04em;margin-left:8px}
+.cap{display:flex;align-items:center;gap:12px;height:48px;padding:0 18px;border-radius:999px;background:#fff;color:#111114;font-weight:700;font-size:15px;margin-bottom:8px;box-shadow:inset 0 0 0 1px rgba(0,0,0,.08)}
+.cap i{width:9px;height:9px;border-radius:50%;background:var(--go)}
+.zone{margin-bottom:18px}
+.num{font-family:"Jost",sans-serif}
+/* 現在 */
+.now .zh{display:flex;align-items:center;gap:8px;margin:0 0 10px 4px;font-size:12.5px;letter-spacing:.08em;color:var(--muted)}
+.now .zh .num{font-size:12px;padding:0 7px;border-radius:999px;border:1px solid currentColor;line-height:17px}
+.now .rep .zh{color:var(--red)}
+/* A 細線區隔：區名＋細線延伸＋細體數字（跟區塊標題列同一種語言） */
+.A .zh{display:flex;align-items:center;gap:10px;margin:0 4px 12px;font-size:13px;font-weight:500;letter-spacing:.14em;color:var(--muted)}
+.A .zh::after{content:"";flex:1;height:1px;background:var(--hair);order:2}
+.A .zh .num{order:3;font-size:20px;font-weight:200;letter-spacing:0;line-height:1;color:var(--muted)}
+.A .rep .zh{color:var(--ink)}
+.A .rep .zh::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--red);box-shadow:0 0 0 4px color-mix(in srgb,var(--red) 18%,transparent)}
+.A .rep .zh .num{color:var(--red)}
+/* B 實心小膠囊 */
+.B .zh{display:inline-flex;align-items:center;gap:8px;margin:0 0 12px 2px;height:28px;padding:0 6px 0 12px;border-radius:999px;font-size:12.5px;font-weight:500;letter-spacing:.1em;background:color-mix(in srgb,var(--ink) 8%,transparent);color:var(--muted)}
+.B .zh .num{min-width:20px;height:20px;display:grid;place-items:center;border-radius:999px;font-size:12px;letter-spacing:0;background:color-mix(in srgb,var(--ink) 12%,transparent);color:var(--ink)}
+.B .rep .zh{background:var(--red);color:#fff}.B .rep .zh .num{background:rgba(255,255,255,.25);color:#fff}
+/* C 大數字：細體大數字在前、區名小字在後 */
+.C .zh{display:flex;align-items:baseline;gap:10px;margin:0 4px 12px}
+.C .zh .num{order:-1;font-size:34px;font-weight:200;line-height:.9;letter-spacing:-.02em;color:var(--muted)}
+.C .zh b{font-size:13px;font-weight:500;letter-spacing:.14em;color:var(--muted)}
+.C .rep .zh .num{color:var(--red)}.C .rep .zh b{color:var(--ink)}
+</style></head><body>
+<div class="wrap">
+  <div class="top"><h1>報告區標題</h1><button type="button" id="th">切換深淺色</button></div>
+  <section class="now"><h2>現在<small>紅字＋外框數字</small></h2></section>
+  <section class="A"><h2>A 細線區隔<small>紅點＋區名＋細線延伸＋細體數字</small></h2></section>
+  <section class="B"><h2>B 小膠囊<small>報告區紅底白字、其他回報淡灰</small></h2></section>
+  <section class="C"><h2>C 大數字<small>細體大數字在前、區名在後</small></h2></section>
+</div>
+<script>
+const caps=(xs)=>xs.map(t=>`<div class="cap"><i></i>${t}</div>`).join("");
+document.querySelectorAll("section").forEach(s=>{
+  const z=(cls,name,n,xs)=>`<div class="zone ${cls}"><div class="zh"><b style="font-weight:inherit">${name}</b><span class="num">${n}</span></div>${caps(xs)}</div>`;
+  s.insertAdjacentHTML("beforeend",z("rep","會議報告事項",9,["社群內容排程","權益部網站線上化"])+z("rest","其他回報",4,["停車場冷氣機報廢後續"]));
+});
+document.getElementById("th").onclick=()=>{const r=document.documentElement,d=r.dataset.theme||(matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light");r.dataset.theme=d==="dark"?"light":"dark"};
+</script>
+</body></html>
