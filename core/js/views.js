@@ -49,12 +49,15 @@ function renderGantt(){
   if(ganttSeg&&!ganttTerm&&ganttSeg.cur!==["all","up","down"].indexOf(gTermNow()))ganttSeg.set(gTermNow(),true);   /* 還沒臨時切過：跟著設定的學期 */
   const ms=months(),tp=pos(today()),[s0,e0]=rangeMs(),inRange=Date.now()>s0&&Date.now()<e0;
   const all=activeIssues(),list=all.filter(hasDates),undated=all.filter(i=>!hasDates(i));
-  const narrow=innerWidth<640,nameW=narrow?104:170;const width=Math.max(narrow?360:640,ms.length*(narrow?84:130));
+  const narrow=innerWidth<640,nameW=narrow?104:170;
+  /* 手機看單一學期（6 個月）時，時間軸剛好塞進畫面寬，不用左右滑（2026-11-06）；看「全部」照舊依月份數加寬、可以左右滑 */
+  const fit=narrow&&gTermNow()!=="all",avail=Math.max(220,($("#gantt").clientWidth||360)-nameW-14);   /* 14：列的左右內距，不然會多出一點點要滑 */
+  const width=fit?avail:Math.max(narrow?360:640,ms.length*(narrow?84:130));
   /* 細刻度（2026-11-05 使用者選的 A 方案）：每一列整條時間軸是一排細直線（約每 6px 一根），格子與「已經過去」的打亮都拿掉；
      今天＝每列一條往下淡掉的細綠線，時間軸上方綠色小膠囊寫日期。tN＝今天在時間軸上的位置（範圍之前 -1、之後 101） */
   const tN=inRange?tp:Date.now()>=e0?101:-1,nT=Math.max(40,Math.round(width/6));
   const grid=inRange?`<span class="today" style="left:${tp}%" title="今天"></span>`:"";
-  let h=`<div style="min-width:${width+nameW}px"><div class="g-row"><div class="g-name sub" style="font-weight:400">議題</div><div class="g-axis">${inRange?`<span class="today-tag" style="left:${tp}%">今天 ${fmt(today()).slice(5)}</span>`:""}${ms.map((m,k)=>`<span style="left:${pos(ymd(m))}%">${k===0||m.getMonth()===0?m.getFullYear()+"/":""}${m.getMonth()+1}月</span>`).join("")}</div></div>`;
+  let h=`<div style="min-width:${width+nameW}px"><div class="g-row"><div class="g-name sub" style="font-weight:400">議題</div><div class="g-axis">${inRange?`<span class="today-tag" style="left:${tp}%">今天 ${fmt(today()).slice(5)}</span>`:""}${ms.map((m,k)=>`<span style="left:${pos(ymd(m))}%">${!fit&&(k===0||m.getMonth()===0)?m.getFullYear()+"/":""}${m.getMonth()+1}月</span>`).join("")}</div></div>`;
   h+=list.map(it=>{
     let s=it.start,e=it.end;if(e<s)[s,e]=[e,s];
     const l=pos(s),w=Math.max(.8,pos(e)-l);
