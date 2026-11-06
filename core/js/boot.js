@@ -18,16 +18,20 @@ const dataReady=SEEDED&&location.protocol!=="file:"?fetch(CFG.data.path,{cache:"
   netFail=false;
   if(d&&(d.savedAt||"")>=(state.savedAt||"")){const keep=state.sync;state=normalize(d);if(!state.sync&&keep)state.sync=keep;try{localStorage.setItem(KEY,JSON.stringify(state))}catch(_){}}
 }).catch(()=>{netFail=true}):Promise.resolve();
+/* 這台裝置記住了身分：開頁就直接登入，卡片上的「編輯」一進來就看得到（2026-11-06 使用者：要進設定再回來才出現）。
+   有雲端時等雲端資料讀完才比對（本機舊資料的密碼指紋可能過期，比對失敗會清掉記住的身分） */
+const remBoot=async()=>{if(!loggedIn()&&remRead()&&await remLogin())render()};
 dataReady.then(()=>{
 setBaseline();
 render();
+if(!cloudOn())remBoot();
 /* 學年、開學日、甘特圖預設學期跟著秘書處（state.js 的 termCfg）：讀到秘書處的資料檔就重畫 */
 if(!termOwn())fwLoad(TERM_OWNER).then(c=>{if(c&&c.data){termSrc={yearLabel:c.data.yearLabel,termStart:c.data.termStart,semester:c.data.semester};render()}});
 if(cloudOn())(async()=>{
   const r=await cloudPull({force:true});
   if(r!=="offline"&&navigator.onLine)netFail=false;
   if(r==="empty"||r==="error"||r==="offline"||r==="limited"){try{const l=JSON.parse(localStorage.getItem(KEY)||"null");if(l&&l.issues&&(l.savedAt||"")>(state.savedAt||"")){state=normalize(l)}}catch(_){}}
-  render();
+  render();remBoot();
   setInterval(async()=>{if(document.hidden||editing)return;const r=await cloudPull();if(r==="updated"){render();toast("看板已更新為最新內容")}else renderHeader()},60000);
   document.addEventListener("visibilitychange",async()=>{if(!document.hidden&&!editing){const r=await cloudPull();if(r==="updated"){render();toast("看板已更新為最新內容")}}});
 })();
