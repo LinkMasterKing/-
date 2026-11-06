@@ -9,7 +9,7 @@
 .sp-clip{clip-path:inset(-20% -5% -20% var(--cut))}   /* 從標誌右緣切開：還在標誌範圍裡的字看不到（不會從眼睛的洞、黃藍之間的縫透出來），像從標誌後面出來 */
 .sp-grp svg{position:absolute;display:block;overflow:visible}
 .sp-emb path{will-change:transform,opacity}
-.sp-gap{fill:none;stroke:#000;stroke-width:7;stroke-linejoin:round;display:none}
+.sp-gap{fill:none;stroke:#000;stroke-width:4;stroke-linejoin:round;display:none}
 @media (prefers-color-scheme:dark){
   :root:not([data-theme="light"]) .splash{background:#000}
   :root:not([data-theme="light"]) .splash path:not(.sp-gap){fill:#f1f1f4}

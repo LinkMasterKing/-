@@ -19,70 +19,118 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Jost:wght@200;300;400;500;600;700&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
 <style>
-/* 各部門總覽（2026-11-06 使用者第二版：「按住標誌拖到部門」那一套拿掉，每個部門都是一張卡片，點了進那個部門）。
-   App 打開：學生會開場動畫（core/js/splash.js）→ 這一頁。進部門的轉場跟看板裡切換大頁面一樣（core/js/pagefx.js：這一頁往後退、模糊，看板從後面浮上來）。
-   卡片只放固定的內容（英文小字、名稱、開啟 →），大小固定，不放會跟著資料變的數字（使用者：不喜歡載入前後大小變化）。自成一頁，不載入看板程式 */
-:root{--bg:#fff;--ink:#111114;--muted:#5d5d66;--hair:#e2e2e8;--card:#f4f4f6;--ease:cubic-bezier(.2,.9,.25,1);color-scheme:light}
-@media (prefers-color-scheme:dark){:root{--bg:#000;--ink:#f1f1f4;--muted:#a3a3ae;--hair:#2c2c34;--card:#141417;color-scheme:dark}}
+/* 各部門總覽（2026-11-06 第三版，使用者給的參考：淺色版面、上方導覽列、左邊大標題、右邊一排可以左右滑的白色圓角卡片、下面箭頭與進度條；
+   部門顏色參考霧面漸層（綠、沙漠、海那種柔和的多層漸層），每個部門一組）。App 打開：學生會開場動畫（core/js/splash.js）→ 這一頁。
+   卡片內容都是固定文字，大小固定。點卡片進部門＝跟看板裡切換大頁面一樣的轉場（core/js/pagefx.js）。自成一頁，不載入看板程式 */
+:root{--bg:#efefef;--panel:#f6f6f6;--card:#fff;--ink:#141416;--muted:#77777f;--hair:#dcdcdf;--pill:#e7e7e9;--ease:cubic-bezier(.2,.9,.25,1);color-scheme:light}
+@media (prefers-color-scheme:dark){:root{--bg:#050506;--panel:#0d0d0f;--card:#17171a;--ink:#f1f1f4;--muted:#8d8d96;--hair:#2a2a30;--pill:#1d1d21;color-scheme:dark}}
 *{box-sizing:border-box}
 html,body{margin:0;min-height:100%;-webkit-tap-highlight-color:transparent;background:var(--bg);color:var(--ink);font-family:"Jost","Noto Sans TC",system-ui,"PingFang TC","Microsoft JhengHei",sans-serif;-webkit-font-smoothing:antialiased}   /* 數字、英文用 Jost（跟看板一致），中文落到 Noto Sans TC */
 body{overflow-x:hidden}
-.wrap{min-height:100vh;min-height:100dvh;max-width:980px;margin:0 auto;display:flex;flex-direction:column;gap:14px;padding:calc(22px + env(safe-area-inset-top)) max(16px,env(safe-area-inset-right)) calc(28px + env(safe-area-inset-bottom)) max(16px,env(safe-area-inset-left))}
-/* --- 頁首：學生會標誌（小）＋ WORK BOARDS --- */
-.top{display:grid;justify-items:center;gap:10px;padding:6px 0 10px}
-.hm-svg{display:block;width:46px;height:auto}
+a{color:inherit}
+.page{position:relative;min-height:100vh;min-height:100dvh;max-width:1240px;margin:0 auto;display:flex;flex-direction:column;padding:calc(18px + env(safe-area-inset-top)) max(20px,env(safe-area-inset-right)) calc(24px + env(safe-area-inset-bottom)) max(20px,env(safe-area-inset-left));overflow:hidden}
+/* 右上角淡淡的點狀圓球（裝飾） */
+.dots{position:absolute;right:-60px;top:70px;width:420px;height:420px;border-radius:50%;background:radial-gradient(circle,currentColor 1.1px,transparent 1.6px) 0 0/9px 9px;color:var(--muted);opacity:.28;-webkit-mask:radial-gradient(circle,#000 0 38%,transparent 70%);mask:radial-gradient(circle,#000 0 38%,transparent 70%);pointer-events:none}
+/* --- 導覽列：左邊膠囊（目前在「部門」）、中間學生會標誌、右邊日期膠囊 --- */
+.bar{position:relative;z-index:1;display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:12px}
+.seg{justify-self:start;display:flex;gap:2px;padding:4px;border-radius:999px;background:var(--pill)}
+.seg a{padding:7px 14px;border-radius:999px;font-size:13px;color:var(--muted);text-decoration:none;white-space:nowrap;transition:color .2s,background-color .2s}
+.seg a[aria-current]{background:var(--card);color:var(--ink);font-weight:500;box-shadow:0 1px 3px rgba(0,0,0,.06)}
+@media (hover:hover){.seg a:not([aria-current]):hover{color:var(--ink)}}
+.brand{display:flex;align-items:center;gap:8px;font-weight:700;font-size:15px;letter-spacing:.08em;text-decoration:none}
+.hm-svg{display:block;width:26px;height:auto}
 .mk-under{fill:var(--bg)}
-.mk-gap{fill:none;stroke:var(--bg);stroke-width:7;stroke-linejoin:round;display:none}   /* 深色時兩塊同色：兩個小人重疊的地方描一條底色切割線（clip-path #hmCut，外圍不描框） */
+.mk-gap{fill:none;stroke:var(--bg);stroke-width:4;stroke-linejoin:round;display:none}   /* 深色時兩塊同色：兩個小人重疊的地方描一條細的底色切割線（clip-path #hmCut，外圍不描框） */
 @media (prefers-color-scheme:dark){.hm-svg .mk-y,.hm-svg .mk-b{fill:var(--ink)}.hm-svg .mk-gap{display:inline}}
-.eyebrow{margin:0;font-size:12px;letter-spacing:.24em;color:var(--muted)}
-/* --- 卡片：會長室、秘書處兩張大的在上面，其他部門一張一張排在下面；每個部門一個顏色（--c） --- */
-.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
-.card{--c:var(--card);--on:var(--ink);position:relative;overflow:hidden;display:grid;align-content:space-between;gap:14px;height:150px;padding:18px 18px 16px;border-radius:26px;background:var(--c);color:var(--on);text-decoration:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;transition:transform .25s var(--ease),box-shadow .25s var(--ease)}
-.card.lead{height:168px}
-.card .en{display:block;font-size:10.5px;letter-spacing:.26em;opacity:.7;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.card b{display:block;margin-top:4px;font-size:24px;font-weight:700;letter-spacing:.12em;line-height:1.15}
-.card.lead b{font-size:26px}
-.card .sub{display:block;margin-top:8px;font-size:12px;letter-spacing:.06em;opacity:.7;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.card .go{display:flex;justify-content:flex-end;align-items:center;padding-top:10px;border-top:1px solid color-mix(in srgb,currentColor 18%,transparent);font-size:11.5px;opacity:.8}
-.card .go span{transition:transform .25s var(--ease)}
-.card .deco{position:absolute;right:-34px;top:-34px;width:120px;height:120px;border-radius:50%;border:1px solid color-mix(in srgb,currentColor 18%,transparent);pointer-events:none}
+.date{justify-self:end;display:flex;align-items:center;padding:9px 16px;border-radius:999px;background:var(--pill);font-size:12.5px;letter-spacing:.06em;white-space:nowrap}
+/* --- 主區：左欄（大標題、兩顆外框膠囊、左下說明）＋右邊卡片列 --- */
+.main{position:relative;z-index:1;flex:1;display:grid;grid-template-columns:minmax(200px,250px) minmax(0,1fr);grid-template-rows:auto 1fr;gap:26px 24px;padding-top:clamp(36px,8vh,90px)}
+h1{grid-column:1/-1;margin:0;display:flex;align-items:center;gap:14px;font-size:clamp(34px,5.4vw,60px);font-weight:700;letter-spacing:.04em;line-height:1.05}
+h1 svg{width:.62em;height:.62em;flex:none}
+.side{display:flex;flex-direction:column;gap:10px;min-width:0}
+.ghost{display:flex;align-items:center;justify-content:space-between;gap:12px;width:max-content;min-width:150px;padding:9px 12px 9px 16px;border:1.5px solid var(--ink);border-radius:999px;font-size:13px;text-decoration:none;transition:background-color .2s,color .2s}
+.ghost svg{width:14px;height:14px;transition:transform .25s var(--ease)}
+@media (hover:hover){.ghost:hover{background:var(--ink);color:var(--bg)}.ghost:hover svg{transform:translate(2px,-2px)}}
+.note{margin:auto 0 0;padding-top:24px;font-size:13px;line-height:1.6;color:var(--muted);max-width:200px}
+/* 卡片列：橫向捲動、一張一張吸附；右邊超出畫面（看得到下一張的一小截）。滑鼠滾輪直的也能換（程式） */
+.rail{min-width:0;display:flex;flex-direction:column;gap:18px}
+.track{display:flex;gap:14px;overflow-x:auto;overscroll-behavior-x:contain;scroll-snap-type:x mandatory;scroll-padding-left:2px;padding:2px 2px 6px;margin-right:calc(-1*max(20px,env(safe-area-inset-right)));padding-right:max(20px,env(safe-area-inset-right));scrollbar-width:none}
+.track::-webkit-scrollbar{display:none}
+.card{--g1:#bcc7be;--g2:#9aa48c;--g3:#323d2e;flex:none;scroll-snap-align:start;width:clamp(232px,24vw,282px);height:360px;display:flex;flex-direction:column;padding:12px 12px 16px;border-radius:24px;background:var(--card);color:var(--ink);text-decoration:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;transition:transform .3s var(--ease),box-shadow .3s var(--ease);animation:cardIn .6s var(--ease) both;animation-delay:calc(var(--i,0) * 50ms + 80ms)}
+@keyframes cardIn{from{opacity:0;transform:translateX(26px)}}
+/* 漸層色塊：三個顏色疊成柔和的霧面漸層（亮的在上、暗的在下，兩團大光暈錯開） */
+.tile{position:relative;height:150px;border-radius:16px;overflow:hidden;padding:12px 14px;display:flex;flex-direction:column;justify-content:flex-end;gap:2px;color:#fff;
+  background:radial-gradient(120% 85% at 15% 0%,var(--g1) 0%,transparent 62%),radial-gradient(110% 90% at 85% 100%,var(--g3) 0%,transparent 70%),linear-gradient(170deg,var(--g1) 0%,var(--g2) 48%,var(--g3) 100%)}
+.tile .en{font-size:10px;letter-spacing:.24em;opacity:.85;text-shadow:0 1px 8px rgba(0,0,0,.25)}   /* 英文小字跟名稱一起放在下面（漸層下半部比較暗，白字看得清楚） */
+.tile b{font-size:24px;font-weight:700;letter-spacing:.1em;text-shadow:0 2px 14px rgba(0,0,0,.22)}
+.card .dash{width:22px;height:1.5px;margin:auto 4px 12px;background:var(--ink);opacity:.6}
+.card p{margin:0 4px;font-size:13px;line-height:1.6;color:var(--muted);min-height:4.8em}
+.card .go{margin:14px 4px 0;display:grid;place-items:center;width:34px;height:34px;border-radius:50%;background:var(--pill);transition:background-color .2s,color .2s,transform .3s var(--ease)}
+.card .go svg{width:14px;height:14px}
 .card:active{transform:scale(.97)}
 .card:focus-visible{outline:2px solid var(--ink);outline-offset:3px}
-@media (hover:hover){.card:hover{transform:translateY(-3px);box-shadow:0 14px 30px -14px color-mix(in srgb,var(--c) 70%,transparent)}.card:hover .go span{transform:translateX(4px)}}
-/* 顏色：會長室反白（文字色底）、秘書處淡灰；其他部門各一個沉穩的顏色、白字（深淺色模式都一樣） */
-.card.pres{--c:var(--ink);--on:var(--bg)}
-.card[data-c]{--on:#fff}
-.card[data-c="rights"]{--c:#c7402f}
-.card[data-c="marketing"]{--c:#d27a1f}
-.card[data-c="finance"]{--c:#23866a}
-.card[data-c="events"]{--c:#6a4fd0}
-.card[data-c="affairs"]{--c:#2a69b3}
-.card[data-c="pr"]{--c:#c13d78}
-.card[data-c="works"]{--c:#5f6d2a}
-.card[data-c="other"]{--c:#4a4a55}
-/* 進場：卡片由下往上依序浮現（只在開場畫面收掉後或站內換頁到達後；減少動態時不動） */
-.card{animation:cardIn .55s var(--ease) both;animation-delay:calc(var(--i,0) * 45ms + 80ms)}
-@keyframes cardIn{from{opacity:0;transform:translateY(14px)}}
-.foot{margin:auto 0 0;padding-top:18px;text-align:center;font-size:11px;letter-spacing:.14em;color:var(--muted)}
-@media (min-width:700px){
-  .grid{grid-template-columns:repeat(3,minmax(0,1fr))}
-  .grid.leads{grid-template-columns:repeat(2,minmax(0,1fr))}
-  .card{height:170px;padding:22px}
-  .card.lead{height:200px}
-  .card.lead b{font-size:30px}
+@media (hover:hover){.card:hover{transform:translateY(-4px);box-shadow:0 18px 40px -22px rgba(0,0,0,.35)}.card:hover .go{background:var(--ink);color:var(--card);transform:rotate(-45deg)}}
+/* 每個部門一組霧面漸層（亮 --g1、中 --g2、暗 --g3） */
+.card[data-g="president"]{--g1:#d9d9de;--g2:#6d6d78;--g3:#1d1d22}
+.card[data-g="secretariat"]{--g1:#e3e9f2;--g2:#8fa3c2;--g3:#1f2f4a}
+.card[data-g="rights"]{--g1:#f7f7f7;--g2:#edba8d;--g3:#59361e}
+.card[data-g="marketing"]{--g1:#f3e6e6;--g2:#d9a3a8;--g3:#5a2d3a}
+.card[data-g="finance"]{--g1:#bcc7be;--g2:#9aa48c;--g3:#323d2e}
+.card[data-g="events"]{--g1:#e9e6f2;--g2:#a9a2c9;--g3:#3b3557}
+.card[data-g="affairs"]{--g1:#d2ecf2;--g2:#09606d;--g3:#075057}
+.card[data-g="pr"]{--g1:#f6ece6;--g2:#e7a98f;--g3:#6b3a2e}
+.card[data-g="works"]{--g1:#e3e5e3;--g2:#a7adab;--g3:#3f4447}
+/* 卡片下面：左右箭頭、進度條（目前在第幾段，實線較長） */
+.ctl{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.arrows{display:flex;gap:6px}
+.arrows button{display:grid;place-items:center;width:34px;height:34px;padding:0;border:0;border-radius:50%;background:transparent;color:var(--ink);cursor:pointer;transition:opacity .2s,background-color .2s}
+.arrows button:disabled{opacity:.3;cursor:default}
+@media (hover:hover){.arrows button:not(:disabled):hover{background:var(--pill)}}
+.arrows svg{width:18px;height:18px}
+.prog{display:flex;gap:8px}
+.prog i{display:block;width:28px;height:1.5px;background:var(--hair);transition:width .35s var(--ease),background-color .35s}
+.prog i.on{width:48px;background:var(--ink)}
+.foot{position:relative;z-index:1;margin:22px 0 0;font-size:11px;letter-spacing:.14em;color:var(--muted)}
+/* 手機：導覽列只留標誌與日期、膠囊排到下面；大標題、左欄的兩顆膠囊在上，卡片列整排滑 */
+@media (max-width:760px){
+  .bar{grid-template-columns:auto 1fr}
+  .seg{grid-column:1/-1;grid-row:2;justify-self:stretch;justify-content:space-between}
+  .seg a{flex:1;text-align:center}
+  .brand{justify-self:start}
+  .main{grid-template-columns:minmax(0,1fr);grid-template-rows:auto;gap:18px;padding-top:26px}
+  .side{flex-direction:row;flex-wrap:wrap;align-items:flex-start}
+  .ghost{min-width:0}
+  .note{display:none}
+  .card{width:min(76vw,280px);height:340px}
+  .dots{width:300px;height:300px;right:-120px;top:110px}
 }
 .pfx-arrive body{opacity:0}
-@media (prefers-reduced-motion:reduce){.card{animation:none;transition:none}}
+@media (prefers-reduced-motion:reduce){.card{animation:none;transition:none}.prog i{transition:none}}
 </style>
 <script>/* 換頁動畫（core/js/pagefx.js）：從站內換頁過來的，body 先透明，等它從後面浮上來（不會先閃一下完整的畫面） */try{var r=document.referrer,n=performance.getEntriesByType("navigation")[0];if(r&&new URL(r).origin===location.origin&&(!n||n.type!=="reload")&&!matchMedia("(prefers-reduced-motion: reduce)").matches)document.documentElement.classList.add("pfx-arrive")}catch(e){}</script>
 </head>
 <body>
 <script src="core/js/splash.js"></script>
 <script>mountSplash()   /* App 打開（或從網站外面進來）先跑學生會開場動畫；從看板回來（站內）不放 */</script>
-<div class="wrap">
-  <header class="top"><svg class="hm-svg" role="img" aria-label="南臺科大學生會" viewBox="25.08 53.16 152.57 175.44" ><defs><clipPath id="hmCut"><path d="M75,141a51.19,51.19,0,0,1,15-36.23,51.19,51.19,0,0,1,35.62-15.11A51.37,51.37,0,0,0,25.08,104.79V141A51.37,51.37,0,0,0,76.45,192.4a6.27,6.27,0,0,0,.75,0,50.76,50.76,0,0,0,24.19-6.43,52.2,52.2,0,0,0,11.46-8.68,51.2,51.2,0,0,0,15-36.24Z"/></clipPath></defs><path class="mk-under" d="M75,141a51.19,51.19,0,0,1,15-36.23,51.19,51.19,0,0,1,35.62-15.11A51.37,51.37,0,0,0,25.08,104.79V141A51.37,51.37,0,0,0,76.45,192.4a6.27,6.27,0,0,0,.75,0,50.76,50.76,0,0,0,24.19-6.43,52.2,52.2,0,0,0,11.46-8.68,51.2,51.2,0,0,0,15-36.24Z"/><path class="mk-under" d="M126.32,89.65a6.78,6.78,0,0,0-.78,0A51.36,51.36,0,0,0,75,141H127.8a51.2,51.2,0,0,1-15,36.24,52.2,52.2,0,0,1-11.46,8.68,50.76,50.76,0,0,1-24.19,6.43,51.39,51.39,0,0,0,100.5-15.11V141A51.39,51.39,0,0,0,126.32,89.65Z"/><path class="mk-y" fill="#f0bc23" d="M75,141a51.19,51.19,0,0,1,15-36.23,51.19,51.19,0,0,1,35.62-15.11A51.37,51.37,0,0,0,25.08,104.79V141A51.37,51.37,0,0,0,76.45,192.4a6.27,6.27,0,0,0,.75,0,50.76,50.76,0,0,0,24.19-6.43,52.2,52.2,0,0,0,11.46-8.68,51.2,51.2,0,0,0,15-36.24ZM68.8,90.21a3.57,3.57,0,0,1,0-.56,6.18,6.18,0,1,1,12.36,0v.22a6.18,6.18,0,0,1-12.33.34Z"/><path class="mk-gap" clip-path="url(#hmCut)" d="M126.32,89.65a6.78,6.78,0,0,0-.78,0A51.36,51.36,0,0,0,75,141H127.8a51.2,51.2,0,0,1-15,36.24,52.2,52.2,0,0,1-11.46,8.68,50.76,50.76,0,0,1-24.19,6.43,51.39,51.39,0,0,0,100.5-15.11V141A51.39,51.39,0,0,0,126.32,89.65Z"/><path class="mk-b" fill="#0a5baa" d="M126.32,89.65a6.78,6.78,0,0,0-.78,0A51.36,51.36,0,0,0,75,141H127.8a51.2,51.2,0,0,1-15,36.24,52.2,52.2,0,0,1-11.46,8.68,50.76,50.76,0,0,1-24.19,6.43,51.39,51.39,0,0,0,100.5-15.11V141A51.39,51.39,0,0,0,126.32,89.65ZM134,126.44a6.18,6.18,0,0,1-6.15,5.62c-.28,0-.53,0-.81-.05a6.15,6.15,0,0,1-4.87-3.71,5.67,5.67,0,0,1-.5-2.19v-.23a6.1,6.1,0,0,1,2.2-4.7,6.62,6.62,0,0,1,1.64-1,5.86,5.86,0,0,1,2.34-.47,6.16,6.16,0,0,1,6.18,6.17A3.44,3.44,0,0,1,134,126.44Z"/></svg><p class="eyebrow">WORK&nbsp;&nbsp;BOARDS</p></header>
-  <nav class="grid leads" id="leads" aria-label="會長室與秘書處"></nav>
-  <nav class="grid" id="depts" aria-label="各部門"></nav>
+<div class="page">
+  <div class="dots" aria-hidden="true"></div>
+  <header class="bar">
+    <nav class="seg" aria-label="切換"><a href="home.html" aria-current="page">各部門</a><a href="index.html?d=president">會長室</a><a href="index.html?d=secretariat">秘書處</a></nav>
+    <a class="brand" href="home.html"><svg class="hm-svg" role="img" aria-label="南臺科大學生會" viewBox="25.08 53.16 152.57 175.44" ><defs><clipPath id="hmCut"><path d="M75,141a51.19,51.19,0,0,1,15-36.23,51.19,51.19,0,0,1,35.62-15.11A51.37,51.37,0,0,0,25.08,104.79V141A51.37,51.37,0,0,0,76.45,192.4a6.27,6.27,0,0,0,.75,0,50.76,50.76,0,0,0,24.19-6.43,52.2,52.2,0,0,0,11.46-8.68,51.2,51.2,0,0,0,15-36.24Z"/></clipPath></defs><path class="mk-under" d="M75,141a51.19,51.19,0,0,1,15-36.23,51.19,51.19,0,0,1,35.62-15.11A51.37,51.37,0,0,0,25.08,104.79V141A51.37,51.37,0,0,0,76.45,192.4a6.27,6.27,0,0,0,.75,0,50.76,50.76,0,0,0,24.19-6.43,52.2,52.2,0,0,0,11.46-8.68,51.2,51.2,0,0,0,15-36.24Z"/><path class="mk-under" d="M126.32,89.65a6.78,6.78,0,0,0-.78,0A51.36,51.36,0,0,0,75,141H127.8a51.2,51.2,0,0,1-15,36.24,52.2,52.2,0,0,1-11.46,8.68,50.76,50.76,0,0,1-24.19,6.43,51.39,51.39,0,0,0,100.5-15.11V141A51.39,51.39,0,0,0,126.32,89.65Z"/><path class="mk-y" fill="#f0bc23" d="M75,141a51.19,51.19,0,0,1,15-36.23,51.19,51.19,0,0,1,35.62-15.11A51.37,51.37,0,0,0,25.08,104.79V141A51.37,51.37,0,0,0,76.45,192.4a6.27,6.27,0,0,0,.75,0,50.76,50.76,0,0,0,24.19-6.43,52.2,52.2,0,0,0,11.46-8.68,51.2,51.2,0,0,0,15-36.24ZM68.8,90.21a3.57,3.57,0,0,1,0-.56,6.18,6.18,0,1,1,12.36,0v.22a6.18,6.18,0,0,1-12.33.34Z"/><path class="mk-gap" clip-path="url(#hmCut)" d="M126.32,89.65a6.78,6.78,0,0,0-.78,0A51.36,51.36,0,0,0,75,141H127.8a51.2,51.2,0,0,1-15,36.24,52.2,52.2,0,0,1-11.46,8.68,50.76,50.76,0,0,1-24.19,6.43,51.39,51.39,0,0,0,100.5-15.11V141A51.39,51.39,0,0,0,126.32,89.65Z"/><path class="mk-b" fill="#0a5baa" d="M126.32,89.65a6.78,6.78,0,0,0-.78,0A51.36,51.36,0,0,0,75,141H127.8a51.2,51.2,0,0,1-15,36.24,52.2,52.2,0,0,1-11.46,8.68,50.76,50.76,0,0,1-24.19,6.43,51.39,51.39,0,0,0,100.5-15.11V141A51.39,51.39,0,0,0,126.32,89.65ZM134,126.44a6.18,6.18,0,0,1-6.15,5.62c-.28,0-.53,0-.81-.05a6.15,6.15,0,0,1-4.87-3.71,5.67,5.67,0,0,1-.5-2.19v-.23a6.1,6.1,0,0,1,2.2-4.7,6.62,6.62,0,0,1,1.64-1,5.86,5.86,0,0,1,2.34-.47,6.16,6.16,0,0,1,6.18,6.17A3.44,3.44,0,0,1,134,126.44Z"/></svg><span>STUSTSA</span></a>
+    <span class="date num" id="todayTxt"></span>
+  </header>
+  <main class="main">
+    <h1>各部門工作看板<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 6v8h12M14 10l4 4-4 4"/></svg></h1>
+    <aside class="side">
+      <a class="ghost" href="index.html?d=president">會長室<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4.5 11.5 11.5 4.5M5.5 4.5h6v6"/></svg></a>
+      <a class="ghost" href="index.html?d=secretariat">秘書處<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4.5 11.5 11.5 4.5M5.5 4.5h6v6"/></svg></a>
+      <p class="note">南臺科技大學學生會<br>各部門的議題進度、即時回報與每週概述。</p>
+    </aside>
+    <section class="rail" aria-label="各部門">
+      <div class="track" id="track"></div>
+      <div class="ctl"><div class="arrows"><button type="button" id="prev" aria-label="上一組"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M11 6l-6 6 6 6"/></svg></button><button type="button" id="next" aria-label="下一組"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button></div><div class="prog" id="prog" aria-hidden="true"></div></div>
+    </section>
+  </main>
   <p class="foot">南臺科技大學學生會・各部門工作看板</p>
 </div>
 <script src="core/js/pagefx.js"></script>
@@ -92,16 +140,26 @@ body{overflow-x:hidden}
 (()=>{
   const D=window.BOARD_DEPTS||[],$=id=>document.getElementById(id),esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
   const href=d=>d.id==="rights"?"index.html":`index.html?d=${encodeURIComponent(d.id)}`;
-  /* 卡片上的英文小字、會長室與秘書處的一行說明（固定文字，不放會變的數字） */
+  /* 卡片上的固定文字：英文小字、一句說明（不放會跟著資料變的數字） */
   const EN={president:"PRESIDENT",secretariat:"SECRETARIAT",rights:"STUDENT RIGHTS",marketing:"MARKETING",finance:"FINANCE",events:"EVENTS",affairs:"CLUB AFFAIRS",pr:"PUBLIC RELATIONS",works:"FACILITIES"};
-  const SUB={president:"追蹤各部門・開放會議編輯",secretariat:"會議報告事項・各部門週報"};
-  const COLOR=new Set(["rights","marketing","finance","events","affairs","pr","works"]);
-  const leadIds=["president","secretariat"];
-  const card=(d,i)=>`<a class="card${leadIds.includes(d.id)?" lead":""}${d.id==="president"?" pres":""}"${leadIds.includes(d.id)?"":` data-c="${COLOR.has(d.id)?d.id:"other"}"`} href="${href(d)}" style="--i:${i}"><span class="deco" aria-hidden="true"></span><span><span class="en">${EN[d.id]||d.id.toUpperCase()}</span><b>${esc(d.name)}</b>${SUB[d.id]?`<span class="sub">${SUB[d.id]}</span>`:""}</span><span class="go"><span>開啟 →</span></span></a>`;
-  const leads=leadIds.map(id=>D.find(d=>d.id===id)).filter(Boolean),rest=D.filter(d=>!leadIds.includes(d.id));
-  $("leads").innerHTML=leads.map(card).join("");
-  $("depts").innerHTML=rest.map((d,i)=>card(d,i+leads.length)).join("");
-  /* 點卡片換頁：pagefx.js 會攔下站內連結，這一頁往後退（模糊）再換頁，看板從後面浮上來 */
+  const TXT={president:"追蹤各部門的議題，開放秘書處的會議編輯。",secretariat:"整理各部門的會議報告事項，調閱每週概述。",rights:"學生權益議題的處理進度與即時回報。",marketing:"宣傳、社群內容的排程與進度。",finance:"經費、帳務與核銷的處理進度。",events:"活動籌備、場地與時程的進度。",affairs:"社團事務與相關議題的處理進度。",pr:"對外聯繫、合作與公關事務的進度。",works:"設備、場地維護與工務事項的進度。"};
+  const ARROW=`<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4.5 11.5 11.5 4.5M5.5 4.5h6v6"/></svg>`;
+  const order=[...D.filter(d=>d.id==="president"||d.id==="secretariat"),...D.filter(d=>d.id!=="president"&&d.id!=="secretariat")];   /* 會長室、秘書處排最前面 */
+  $("track").innerHTML=order.map((d,i)=>`<a class="card" data-g="${esc(d.id)}" href="${href(d)}" style="--i:${i}"><span class="tile"><span class="en">${EN[d.id]||esc(d.id).toUpperCase()}</span><b>${esc(d.name)}</b></span><span class="dash"></span><p>${TXT[d.id]||`${esc(d.name)}的工作進度。`}</p><span class="go">${ARROW}</span></a>`).join("");
+  /* 日期膠囊（只有今天的日期，大小固定） */
+  {const t=new Date(),W="日一二三四五六";$("todayTxt").textContent=`${String(t.getMonth()+1).padStart(2,"0")}.${String(t.getDate()).padStart(2,"0")} 週${W[t.getDay()]}`}
+  /* 卡片列：左右箭頭一次捲一個畫面寬；進度條＝共幾段、目前在哪一段；電腦用直的滾輪也能左右換 */
+  const tr=$("track"),prog=$("prog");
+  const pages=()=>Math.max(1,Math.ceil((tr.scrollWidth-2)/tr.clientWidth));
+  function sync(){const n=pages(),max=tr.scrollWidth-tr.clientWidth,k=max<=1?0:Math.round(tr.scrollLeft/max*(n-1));
+    if(prog.children.length!==n)prog.innerHTML="<i></i>".repeat(n);[...prog.children].forEach((x,i)=>x.classList.toggle("on",i===k));
+    $("prev").disabled=tr.scrollLeft<=2;$("next").disabled=tr.scrollLeft>=max-2}
+  const step=dir=>{const c=tr.querySelector(".card"),gap=14,w=c?c.getBoundingClientRect().width+gap:300,per=Math.max(1,Math.floor((tr.clientWidth+gap)/w));tr.scrollBy({left:dir*per*w,behavior:matchMedia("(prefers-reduced-motion: reduce)").matches?"auto":"smooth"})};
+  $("prev").onclick=()=>step(-1);$("next").onclick=()=>step(1);
+  tr.addEventListener("scroll",()=>requestAnimationFrame(sync),{passive:true});addEventListener("resize",sync);
+  tr.addEventListener("wheel",e=>{if(Math.abs(e.deltaY)>Math.abs(e.deltaX)&&tr.scrollWidth>tr.clientWidth){const max=tr.scrollWidth-tr.clientWidth;if((e.deltaY<0&&tr.scrollLeft>0)||(e.deltaY>0&&tr.scrollLeft<max)){e.preventDefault();tr.scrollLeft+=e.deltaY}}},{passive:false});
+  sync();
+  /* 點卡片、膠囊換頁：pagefx.js 會攔下站內連結，這一頁往後退（模糊）再換頁，看板從後面浮上來 */
   splashOut();   /* 開場動畫播完（字型好了、至少 0.6 秒）才淡出（core/js/splash.js） */
 })();
 </script>
