@@ -11,7 +11,7 @@
 :root{--bar-in:88px;--rail-in:0px}
 @media (min-width:900px){:root{--bar-in:0px;--rail-in:78px}}
 html{height:100%;-webkit-tap-highlight-color:transparent}
-body{height:100%;margin:0;overflow:hidden;background:var(--bg);color:var(--ink);font:15px/1.6 "Noto Sans TC",system-ui,"PingFang TC","Microsoft JhengHei",sans-serif}
+body{height:100%;margin:0;overflow:hidden;background:var(--bg);color:var(--ink);font:15px/1.6 "Jost","Noto Sans TC",system-ui,"PingFang TC","Microsoft JhengHei",sans-serif}   /* 2026-11-06 使用者：數字字體統一。Jost 排第一：數字、英文都是 Jost，中文 Jost 沒有字就落到 Noto Sans TC */
 .sub{color:var(--muted);font-size:13px}
 h1{margin:0;font-size:clamp(26px,3.2vw,38px);font-weight:400;letter-spacing:.08em;line-height:1.2}
 h2{margin:0;border-left:0;padding:0;display:flex;align-items:center;gap:12px;font-weight:500;font-size:16px;letter-spacing:.1em;flex:1;min-width:180px;white-space:nowrap}
@@ -848,26 +848,7 @@ a.link:active{transform:scale(.96)}
   .sgroup:not(.cur){display:none}
 }
 
-/* ===== 開頁進場畫面（學生會） ===== */
-/* 跟著深淺色（2026-11-06 起；以前一律白底）：淺色＝白底彩色 logo、深色＝黑底單色 logo（標誌兩塊與字都是 #f1f1f4，藍色那塊外框描一圈黑當分隔縫 .sp-gap）。
-   顏色寫死（不用變數）：開場時看板的色彩變數可能還沒套好。整個學生會 logo（shell.js 的 SU_LOGO），每個字是自己的小 svg、用 % 定位在 .sp-logo 裡；
-   動畫由 shell.js 的 splashPlay 用 Web Animations 做（只動 transform／opacity），這裡只負責版面 */
-.splash{position:fixed;inset:0;z-index:90;display:grid;place-items:center;background:#fff}
-.sp-logo{position:relative;width:min(560px,78vw);aspect-ratio:547/186}
-.sp-grp,.sp-clip,.sp-txt{position:absolute;inset:0}
-.sp-grp,.sp-g{will-change:transform}
-.sp-clip{clip-path:inset(-20% -5% -20% var(--cut))}   /* 從標誌右緣切開：還在標誌範圍裡的字看不到（不會從眼睛的洞、黃藍之間的縫透出來），像從標誌後面出來 */
-.sp-grp svg{position:absolute;display:block;overflow:visible}
-.sp-emb path{will-change:transform,opacity}
-.sp-gap{fill:none;stroke:#000;stroke-width:7;stroke-linejoin:round;display:none}
-@media (prefers-color-scheme:dark){
-  :root:not([data-theme="light"]) .splash{background:#000}
-  :root:not([data-theme="light"]) .splash path:not(.sp-gap){fill:#f1f1f4}
-  :root:not([data-theme="light"]) .sp-gap{display:inline}
-}
-:root[data-theme="dark"] .splash{background:#000}
-:root[data-theme="dark"] .splash path:not(.sp-gap){fill:#f1f1f4}
-:root[data-theme="dark"] .sp-gap{display:inline}
+/* ===== 開頁進場畫面（學生會）：2026-11-06 起樣式在 core/splash.css（看板與總覽頁共用） ===== */
 
 /* ===== 換頁動畫（core/js/pagefx.js） ===== */
 /* 舊頁往後退（縮小、遠離）並模糊、新頁模糊著從後面浮上來；縮放、透明度、模糊都由 pagefx.js 每格設定，這裡只有「站內換頁過來時 body 先透明」 */
@@ -1434,9 +1415,25 @@ dialog#dlg:has(.csel.open){overflow:visible}
 .rpt-scroll{flex:1;overflow:auto;scrollbar-gutter:stable;padding:6px 0 calc(48px + env(safe-area-inset-bottom))}
 /* 紙張：不管深淺色模式都是白紙黑字，列印也一樣。2026-11-06 改版：封面、目錄、每一章各一張紙（A4 比例），
    版面參考使用者給的極簡白紙範例：大標題靠左、上下小字、細線分隔、細體大數字（Jost 200）當章節號、右上角章節索引 */
-.rpt-paper{--ink:#111114;--muted:#5d5d66;--line:#111114;--hair:#dcdce2;--rest:#c9c9d0;--prog-lo:var(--accent-light);--prog-lo-ink:var(--accent-light);--today:var(--ink);--pad:clamp(20px,6.3%,56px);width:min(100%,820px);margin:0 auto;display:grid;grid-template-columns:minmax(0,1fr);gap:28px;color:var(--ink);font-size:14px;line-height:1.75}
+.rpt-paper{--ink:#111114;--muted:#5d5d66;--line:#111114;--hair:#dcdce2;--rest:#c9c9d0;--prog-lo:var(--accent-light);--prog-lo-ink:var(--accent-light);--today:var(--ink);--pad:6.667%;width:min(100%,210mm);margin:0 auto;display:grid;grid-template-columns:minmax(0,1fr);gap:28px;color:var(--ink);font-size:14px;line-height:1.75}
 .rpt-page{position:relative;aspect-ratio:210/297;padding:var(--pad) var(--pad) calc(var(--pad) + 8px);border-radius:4px;background:#fff;box-shadow:0 10px 40px rgba(0,0,0,.25)}
 .rpt-paper .num{font-family:"Jost",sans-serif}
+/* 紙張就是 A4 寬（210mm），左右留白 6.667%＝14mm、內文 182mm，跟列印的 @page 一樣，桌面預覽的換行就是 PDF 的換行（2026-11-06） */
+/* --- 實際斷頁（report.js 的 rptPaginate）：紅色虛線＝下一頁從這裡開始，紙張右上角標它從第幾頁開始；列印與量測時不出現 --- */
+.rpt-pb{position:absolute;left:0;right:0;height:0;border-top:1.5px dashed var(--accent-light);pointer-events:none;z-index:1;animation:fadeIn .3s both}
+.rpt-pb>span{position:absolute;right:10px;top:4px;padding:1px 8px;border-radius:999px;background:var(--accent-light);color:#fff;font-size:11px;letter-spacing:.06em;white-space:nowrap}
+.rpt-pb-top{top:10px;left:auto;right:12px;height:auto;padding:1px 8px;border-radius:999px;border:1px solid var(--hair);background:#fff;color:var(--muted);font-size:11px;letter-spacing:.06em}
+.rpt-pages{margin-left:10px;font-size:12px;color:var(--muted);letter-spacing:.06em}
+/* 量測用（同一個 JS 工作裡加上又拿掉，畫面不會出現）：版面照列印 */
+.rpt-paper.rpt-measure{display:block;width:182mm;font-size:14px}
+.rpt-measure .rpt-page{aspect-ratio:auto;padding:0;box-shadow:none}
+.rpt-measure :is(.rpt-ct,.rpt-bt,.rpt-ins,.rpt-img-h,.rpt-card-x,.rpt-card-add,.rpt-blk.is-blank,.rpt-ch.is-blank,[data-ph]:empty,.rpt-pb){display:none}
+.rpt-measure .rpt-blocks{display:block}
+.rpt-measure .rpt-blocks>.rpt-blk+.rpt-blk{margin-top:18px}
+.rpt-measure .rpt-stats{grid-template-columns:repeat(4,minmax(0,1fr))}
+.rpt-measure .rpt-cards[data-cols="3"]{--cols:3}
+.rpt-measure .rpt-ch-h{grid-template-columns:auto minmax(0,1fr) auto}
+.rpt-measure .rpt-tabs{grid-column:auto;grid-row:auto;justify-self:auto}
 .rpt-paper [contenteditable="true"]{outline:none;border-radius:4px;transition:background-color .2s,box-shadow .2s}
 .rpt-paper [contenteditable="true"]:hover{background:rgba(0,0,0,.035)}
 .rpt-paper [contenteditable="true"]:focus{background:rgba(0,0,0,.05);box-shadow:0 0 0 2px rgba(0,0,0,.08)}
@@ -1589,7 +1586,7 @@ dialog#dlg:has(.csel.open){overflow:visible}
   body.rpt-open>:not(#rptOv){display:none}
   body.rpt-open #rptOv{position:static;display:block;padding:0;background:#fff}
   @page:first{@bottom-center{content:none}}   /* 封面不印頁碼 */
-  .rpt-bar,.rpt-pt,.rpt-ct,.rpt-bt,.rpt-ins,.rpt-img-h,.rpt-card-x,.rpt-card-add,.rpt-blk.is-blank,.rpt-ch.is-blank,.rpt-paper [data-ph]:empty{display:none}
+  .rpt-bar,.rpt-pt,.rpt-ct,.rpt-bt,.rpt-ins,.rpt-pb,.rpt-img-h,.rpt-card-x,.rpt-card-add,.rpt-blk.is-blank,.rpt-ch.is-blank,.rpt-paper [data-ph]:empty{display:none}
   .rpt-scroll{overflow:visible;padding:0}
   .rpt-paper{display:block;width:auto;margin:0;-webkit-print-color-adjust:exact;print-color-adjust:exact}
   .rpt-page{aspect-ratio:auto;padding:0;border-radius:0;box-shadow:none;break-before:page}

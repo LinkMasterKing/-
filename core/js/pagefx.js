@@ -13,7 +13,7 @@
      兩層同時半透明的時間很短，不會看起來像三層疊在一起（2026-11-05 使用者回報「圖層太多、太透」）；
      上一次換頁還沒播完的其他層，新的換頁一開始就直接藏起來，不跟著一起淡。
    - 減少動態（prefers-reduced-motion）時直接換，不播動畫。
-   - 跨頁（總覽 ↔ 看板）整個 body 只縮放＋透明度、不模糊，到達時等整頁載入完再播（2026-11-06，手機比較順）。
+   - 跨頁（總覽 ↔ 看板）：2026-11-06 第二版起跟看板裡切換大頁面一樣有模糊（使用者：進部門的轉場要跟切大頁面一樣，圖層模糊上下）；到達時等整頁載入完再播。
    這個檔不依賴看板的其他程式（home.html 也載入它）。 */
 const PageFx=(()=>{
   const RM=()=>matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -26,7 +26,7 @@ const PageFx=(()=>{
   function hold(el){save(el);el.style.opacity="0"}
   /* 一段動畫：dir＝"out"（往後退）或 "in"（從後面浮上來）；t＝0..1
      out：縮小量＝SCALE·t³（越來越快），速度 ∝ t²；in：SCALE·(1−t)³ 反過來（越來越慢），速度 ∝ (1−t)² */
-  function run(el,dir,my,fadeIn=FADE_IN,blurK=1){   /* blurK：模糊量倍數（跨頁的整個 body 用 0：整頁模糊在手機上很吃效能、會卡） */
+  function run(el,dir,my,fadeIn=FADE_IN,blurK=1){   /* blurK：模糊量倍數（0＝不模糊；整頁模糊在手機上比較吃效能） */
     return new Promise(res=>{
       if(!el){res();return}
       save(el);const dur=dir==="out"?OUT:IN,t0=performance.now(),r=el.getBoundingClientRect();
@@ -77,38 +77,19 @@ const PageFx=(()=>{
      瀏覽器的返回鍵沒辦法在離開前先播動畫，只有新頁浮上來那一半。 */
   function leave(href){
     if(RM()){location.href=href;return}
-    const my=++tok;owner.set(document.body,my);run(document.body,"out",my,FADE_IN,0).then(()=>{if(owner.get(document.body)===my)location.href=href});
+    const my=++tok;owner.set(document.body,my);run(document.body,"out",my,FADE_IN,1).then(()=>{if(owner.get(document.body)===my)location.href=href});
   }
   /* 到達：等整頁載入完、再等兩格（看板第一次畫完、字型就位）才開始浮上來，動畫期間主執行緒比較閒，不會一頓一頓；
-     整個 body 不做模糊（只縮放＋透明度），手機才順（2026-11-06 使用者：選好部門進去的動畫有點卡） */
+     整個 body 也模糊（2026-11-06 第二版，跟切大頁面一樣；之前為了手機順暢拿掉過，手機若又卡，把 run 的最後一個參數改回 0） */
   function arrive(){
     const h=document.documentElement;if(!h.classList.contains("pfx-arrive"))return;
-    if(RM()){h.classList.remove("pfx-arrive","pfx-burst");h.style.background="";return}
-    if(h.classList.contains("pfx-burst"))return burstIn();
+    if(RM()){h.classList.remove("pfx-arrive");return}
     const start=()=>requestAnimationFrame(()=>requestAnimationFrame(()=>{
       const my=++tok;owner.set(document.body,my);hold(document.body);h.classList.remove("pfx-arrive");
-      run(document.body,"in",my,FADE_IN,0).then(()=>{if(owner.get(document.body)===my){owner.delete(document.body);reset(document.body)}});
+      run(document.body,"in",my,FADE_IN,1).then(()=>{if(owner.get(document.body)===my){owner.delete(document.body);reset(document.body)}});
     }));
     let go=false;const once=()=>{if(!go){go=true;start()}};
     if(document.readyState==="complete")once();else{addEventListener("load",once,{once:true});setTimeout(once,900)}   /* 最多等 0.9 秒（字型、圖片很慢時不要一直空白） */
-  }
-  /* 第二次擴散（2026-11-06 使用者：總覽的部門圈放開時，放開的位置跑兩次全螢幕擴散）：
-     總覽那邊第一次擴散蓋滿一片光色後換頁（home.html 的 go），位置與顏色存在 sessionStorage；這裡整頁先是那片光色（index.html head 的小程式設 html 底色），
-     看板準備好（跟一般到達一樣等 load、最多 0.9 秒）後，body 用 clip-path 圓形從同一個位置擴散開來，露出看板 */
-  function burstIn(){
-    const h=document.documentElement;let b=null;try{b=JSON.parse(sessionStorage.getItem("pfx-burst")||"null");sessionStorage.removeItem("pfx-burst")}catch(_){}
-    const done=()=>{h.classList.remove("pfx-arrive","pfx-burst");h.style.background="";document.body.style.clipPath=""};
-    if(!b){done();return}
-    /* clip-path 的動畫在主執行緒上跑：看板第一次畫面還在忙的時候開始，會停在原地再一口氣跳完。所以等「畫面刷新好了」：
-       連續 4 格都在 24ms 內畫完（主執行緒閒下來）才開始，最多等 1.6 秒 */
-    const calm=f=>{let n=0,last=performance.now();const t0=last;const tick=now=>{n=now-last<24?n+1:0;last=now;if(n>=4||now-t0>1600)f();else requestAnimationFrame(tick)};requestAnimationFrame(tick)};
-    const go=()=>calm(()=>{
-      const x=Math.min(innerWidth,Math.max(0,b.x)),y=Math.min(innerHeight,Math.max(0,b.y)),R=Math.hypot(Math.max(x,innerWidth-x),Math.max(y,innerHeight-y))+2;
-      document.body.style.clipPath=`circle(0px at ${x}px ${y}px)`;h.classList.remove("pfx-arrive");
-      document.body.animate([{clipPath:`circle(0px at ${x}px ${y}px)`},{clipPath:`circle(${R}px at ${x}px ${y}px)`}],{duration:620,easing:"cubic-bezier(.2,.75,.25,1)"}).finished.then(done,done);
-    });
-    let once=false;const go1=()=>{if(!once){once=true;go()}};
-    if(document.readyState==="complete")go1();else{addEventListener("load",go1,{once:true});setTimeout(go1,900)}
   }
   const inSite=a=>{try{const u=new URL(a.href,location.href);return u.origin===location.origin&&(/\.html?$/.test(u.pathname)||u.pathname.endsWith("/"))&&!a.target&&!a.hasAttribute("download")}catch(_){return false}};
   document.addEventListener("click",e=>{

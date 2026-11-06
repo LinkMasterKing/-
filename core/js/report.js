@@ -83,15 +83,88 @@ const rptBlank=el=>{
   if(k==="cards")return ![...el.querySelectorAll(".rpt-card [contenteditable]")].some(c=>c.textContent.trim());
   return ![...el.querySelectorAll('[contenteditable="true"]')].some(c=>c.textContent.trim());   /* 只看能打字的地方，不算工具鈕上的字 */
 };
+/* 標出空白的圖塊與整章都空白的章（列印時不印；斷頁計算也要先標，打字之後才準） */
+function rptMarkBlank(ov){
+  const chs=[...ov.querySelectorAll(".rpt-ch")];
+  chs.forEach(c=>{c.querySelectorAll(".rpt-blk").forEach(b=>b.classList.toggle("is-blank",rptBlank(b)));c.classList.toggle("is-blank",![...c.querySelectorAll(".rpt-blk")].some(b=>!b.classList.contains("is-blank")))});
+  return chs;
+}
 /* 章節號、目錄、右上角的章節索引一起重算（加章、刪章、排順序、改章名、列印前） */
 function rptSync(print){
   const ov=$("#rptOv");if(!ov)return;
-  const chs=[...ov.querySelectorAll(".rpt-ch")];
-  chs.forEach(c=>{c.querySelectorAll(".rpt-blk").forEach(b=>b.classList.toggle("is-blank",rptBlank(b)));c.classList.toggle("is-blank",![...c.querySelectorAll(".rpt-blk")].some(b=>!b.classList.contains("is-blank")))});
+  const chs=rptMarkBlank(ov);
   const vis=chs.filter(c=>!print||!c.classList.contains("is-blank")),R=n=>["I","II","III","IV","V","VI","VII","VIII","IX","X","XI","XII"][n]||String(n+1);
   vis.forEach((c,i)=>{c.querySelector(".rpt-ch-n").textContent=String(i+1).padStart(2,"0");
     c.querySelector(".rpt-tabs").innerHTML=vis.map((_,j)=>`<i class="${j===i?"on":""}">${R(j)}</i>`).join("")});
   ov.querySelector(".toc-list").innerHTML=vis.map((c,i)=>`<li><span class="toc-n num">${String(i+1).padStart(2,"0")}</span><span class="toc-t"><b>${esc(c.querySelector("h2").textContent.trim()||"（未命名）")}</b><small class="num">${R(i)}</small></span></li>`).join("");
+  if(!print)rptPaginateSoon();
+}
+/* ---------- 實際斷頁（2026-11-06 使用者：工作報告要照實際斷頁的位置呈現，使用者才知道怎麼排版） ----------
+   預覽的紙張是一章一張、可以一直變長；存成 PDF 時瀏覽器會照 A4（內文 182×267mm，見 board.css 的 @page）切頁，
+   而且統計、甘特圖、議題、圖片、卡片、目錄項目不會被切開（break-inside:avoid）、章節標題不會單獨留在頁底。
+   這裡照同一套規則算出每一頁從哪裡開始：
+   1. 紙張加 .rpt-measure（board.css）：寬度、字級、要藏的東西（工具列、空白圖塊、提示字）都跟列印一樣，同一個 JS 工作裡量完就拿掉，畫面不會閃。
+   2. 每一章拆成「不能切開的塊」與「一行一行的文字」，從上往下排，放不下的那一塊（或那一行）換到下一頁；比整頁還高的塊從頁底硬切。
+   3. 拿掉 .rpt-measure 後，把每個斷點對回預覽上同一個元素（文字照第幾行對），畫一條紅色虛線＋「第 N 頁」；每張紙右上角標它從第幾頁開始，上方寫總頁數。
+   桌面上預覽的紙張就是 A4 寬（內文 182mm），換行跟 PDF 一樣；手機紙張比較窄，文字斷點照行數比例對過去（大約的位置）。 */
+const RPT_AVOID=".rpt-stats,.rpt-gantt,.rpt-issue,.rpt-img,.rpt-card,.toc-list li";
+let rptPageH=0,rptPgT=0;
+function rptPaginateSoon(){clearTimeout(rptPgT);rptPgT=setTimeout(rptPaginate,220)}
+addEventListener("resize",()=>{if(rptOpen)rptPaginateSoon()});
+/* 一個元素裡每一行的上下緣（同一行的片段合併） */
+function rptLines(el){
+  const r=document.createRange();r.selectNodeContents(el);
+  const rs=[...r.getClientRects()].filter(x=>x.height>0).sort((a,b)=>a.top-b.top),L=[];
+  rs.forEach(x=>{const l=L[L.length-1];if(l&&x.top<l.bottom-2){l.top=Math.min(l.top,x.top);l.bottom=Math.max(l.bottom,x.bottom)}else L.push({top:x.top,bottom:x.bottom})});
+  if(!L.length){const b=el.getBoundingClientRect();if(b.height)L.push({top:b.top,bottom:b.bottom})}
+  return L;
+}
+const rptShown=el=>getComputedStyle(el).display!=="none";
+const rptBlockish=el=>{const d=getComputedStyle(el).display;return d!=="none"&&d!=="contents"&&!d.startsWith("inline")};
+/* 一章拆成要排的單位：{el,line（-1＝整塊）,n（這個元素共幾行）,keep（章節標題：跟下一塊同頁）,top,bottom} */
+function rptAtoms(sec){
+  const out=[];
+  const walk=el=>{for(const c of el.children){
+    if(!rptShown(c)||c.classList.contains("rpt-pb"))continue;
+    const r=()=>c.getBoundingClientRect();
+    if(c.matches(RPT_AVOID)||c.matches(".rpt-ch-h,.toc-h")){const b=r();if(b.height)out.push({el:c,line:-1,keep:c.matches(".rpt-ch-h,.toc-h"),top:b.top,bottom:b.bottom});continue}
+    if([...c.children].some(rptBlockish)){walk(c);continue}
+    const ls=rptLines(c);ls.forEach((l,i)=>out.push({el:c,line:i,n:ls.length,top:l.top,bottom:l.bottom}));
+  }};
+  walk(sec);return out.sort((a,b)=>a.top-b.top);
+}
+function rptPaginate(){
+  const ov=$("#rptOv"),paper=ov&&ov.querySelector(".rpt-paper");if(!paper)return;
+  paper.querySelectorAll(".rpt-pb").forEach(x=>x.remove());rptMarkBlank(ov);
+  if(!rptPageH){const t=document.createElement("div");t.style.cssText="position:absolute;visibility:hidden;height:267mm";document.body.append(t);rptPageH=t.getBoundingClientRect().height;t.remove()}
+  const H=rptPageH,plan=[];let page=1;
+  paper.classList.add("rpt-measure");
+  for(const sec of paper.querySelectorAll(":scope>.rpt-page")){
+    if(!rptShown(sec))continue;
+    const start=page,brs=[];
+    if(!sec.classList.contains("rpt-cover")){
+      const t0=sec.getBoundingClientRect().top,A=rptAtoms(sec).map(a=>({...a,top:a.top-t0,bottom:a.bottom-t0,h:a.bottom-a.top}));
+      let ps=0,lim=H;
+      for(let i=0;i<A.length;i++){const a=A[i];if(a.bottom<=lim+1)continue;
+        let j=i;if(j>0&&A[j-1].keep&&A[j-1].top>ps+1)j--;   /* 章節標題不單獨留在頁底：跟著下一塊換頁 */
+        let y=A[j].top,off=0;
+        if(y<=ps+1){y=lim;off=lim-A[j].top}   /* 比一整頁還高：從頁底硬切 */
+        brs.push({a:A[j],off});ps=y;lim=y+H;i=j-1;
+      }
+    }
+    plan.push({sec,start,brs});page+=brs.length+1;
+  }
+  paper.classList.remove("rpt-measure");
+  /* 對回預覽 */
+  plan.forEach(({sec,start,brs})=>{
+    const t0=sec.getBoundingClientRect().top;
+    const tag=document.createElement("span");tag.className="rpt-pb rpt-pb-top num";tag.contentEditable="false";tag.textContent=`第 ${start} 頁`;sec.append(tag);
+    brs.forEach((b,k)=>{let y;
+      if(b.a.line<0){const r=b.a.el.getBoundingClientRect();y=r.top-t0+(b.off?b.off*(r.height/(b.a.h||1)):0)}
+      else{const L=rptLines(b.a.el),idx=Math.min(L.length-1,Math.round(b.a.line*L.length/(b.a.n||1)));y=(L[idx]||{top:t0}).top-t0}
+      const m=document.createElement("div");m.className="rpt-pb";m.contentEditable="false";m.style.top=y.toFixed(1)+"px";m.innerHTML=`<span class="num">第 ${start+k+1} 頁從這裡開始</span>`;sec.append(m)});
+  });
+  const n=$("#rptPages");if(n)n.textContent=`存成 PDF 約 ${page-1} 頁`;
 }
 /* ---------- 預覽視窗 ---------- */
 async function reportDialog(){
@@ -103,12 +176,15 @@ async function reportDialog(){
 function openReport(from,to){
   closeReport(true);rptRange={from,to};
   document.body.insertAdjacentHTML("beforeend",`<div class="rpt-ov" id="rptOv" role="dialog" aria-modal="true" aria-label="工作報告預覽">
-    <div class="anim-top rpt-bar"><div class="anim-title"><span class="anim-k">REPORT</span><b>工作報告預覽</b><span class="sub rpt-hint">文字都可以直接點開修改・空白的圖塊與章節不會印出來・不會存進看板</span></div>
+    <div class="anim-top rpt-bar"><div class="anim-title"><span class="anim-k">REPORT</span><b>工作報告預覽</b><span class="sub rpt-hint">文字都可以直接點開修改・紅色虛線是實際斷頁的位置・空白的圖塊與章節不會印出來・不會存進看板</span><span class="rpt-pages num" id="rptPages" aria-live="polite"></span></div>
       <div class="anim-ctl"><button type="button" id="rptAdd">＋ 章節</button><button type="button" class="primary" id="rptPrint">${ico("download")}存成 PDF</button><button type="button" id="rptClose" aria-label="關閉工作報告">${ico("close")}關閉</button></div></div>
     <div class="rpt-scroll"><article class="rpt-paper" spellcheck="false">${rptHTML(rptData(from,to))}</article></div></div>`);
   const ov=$("#rptOv");rptOpen=true;document.body.classList.add("rpt-open");
   $("#rptClose").onclick=()=>closeReport();Back.layers.report();$("#rptPrint").onclick=rptPrint;$("#rptAdd").onclick=rptAdd;
   rptBind(ov);rptSync();
+  /* 實際斷頁：打字、加減圖塊、圖片載入、視窗大小改變、字型載入後都重算（rptPaginate） */
+  ov.addEventListener("input",rptPaginateSoon);ov.addEventListener("load",rptPaginateSoon,true);
+  document.fonts&&document.fonts.ready.then(rptPaginateSoon);
   /* 貼上時只留純文字，不帶別處的格式 */
   ov.addEventListener("paste",e=>{const t=e.clipboardData&&e.clipboardData.getData("text/plain");if(t==null||!e.target.closest('[contenteditable="true"]'))return;e.preventDefault();document.execCommand("insertText",false,t)});
   rptParaTool(ov);
