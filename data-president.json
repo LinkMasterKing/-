@@ -13,7 +13,7 @@
    }
   }
  ],
- "schemaVersion": 9,
+ "schemaVersion": 13,
  "id": "board-president",
  "follows": [
   {
@@ -35,12 +35,15 @@
  },
  "title": "會長室工作進度",
  "pwKdf": "PeQbCwD/+SUhcfIPdXc2Yg==:kmxqm/Rt4YU6WUFdakICa3wEBOEgoPCmgka4X+Wi49c=",
- "savedAt": "2026-11-06 03:43",
+ "savedAt": "2026-11-07 05:57",
  "savedBy": "小芸",
  "labels": [],
  "meetGrant": {
-  "date": "2026-11-06",
+  "date": "2026-11-07",
   "by": "小芸",
-  "at": "2026-11-06 03:43"
- }
+  "at": "2026-11-07 05:57"
+ },
+ "semester": "",
+ "docs": [],
+ "minutes": []
 }
