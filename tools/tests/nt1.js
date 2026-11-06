@@ -35,9 +35,22 @@ for(const [w,h,sc,tc] of [[1300,900,'dark',false],[412,860,'light',true]]){const
  await p.screenshot({path:`nt1_${w}_scrolled.png`});
  /* 卡片：點明日＝打開那一天 */
  await p.evaluate(()=>$('#notiOv .set-scroll').scrollTop=0);await p.click('#notiOv .nd-card:not(.today)');await p.waitForTimeout(700);
- console.log(w,'open day',await p.evaluate(()=>[NOTI.day===addDays(today(),1),document.querySelectorAll('#notiOv .noti-list .ni').length,!!$('.pc-d.sel')]));
- await p.click('#notiOv [data-nday]');await p.waitForTimeout(300);
- await p.click('#notiOv .noti-list .ni');await p.waitForTimeout(400);console.log(w,'flash',await p.evaluate(()=>document.querySelectorAll('.pc-d.flash').length));
+ console.log(w,'open day',await p.evaluate(()=>[NOTI.day===addDays(today(),1),document.querySelectorAll('#notiDay .dv-tag').length,!!$('.pc-d.sel')]));
+ console.log(w,'day view',await p.evaluate(()=>[!!$('#notiDay'),document.querySelectorAll('#notiDay .dv-tag').length,document.querySelectorAll('#notiCal .pc-lbl').length]));
+ await p.click('#notiOv [data-nday]');await p.waitForTimeout(400);console.log(w,'day view closed',await p.evaluate(()=>[!$('#notiDay'),NOTI.day]));
+ /* 整理：左滑右滑（只存這台裝置） */
+ await p.evaluate(()=>{localStorage.removeItem(TRI_KEY());TRI=triLoad();renderNoti()});await p.waitForTimeout(300);
+ const n0=await p.evaluate(()=>document.querySelectorAll('#notiDeck .dk-card').length),k0=await p.evaluate(()=>$('#notiDeck .dk-card[data-i="0"]').dataset.dk);
+ await p.evaluate(()=>$('#notiDeck').scrollIntoView({block:'center'}));await p.waitForTimeout(300);
+ const db=await (await p.$('#notiDeck .dk-card[data-i="0"]')).boundingBox();
+ await p.mouse.move(db.x+db.width/2,db.y+db.height/2);await p.mouse.down();for(let i=1;i<=10;i++){await p.mouse.move(db.x+db.width/2+i*22,db.y+db.height/2+i);await p.waitForTimeout(16)}
+ console.log(w,'deck drag stamp',await p.evaluate(()=>getComputedStyle($('#notiDeck .dk-card[data-i="0"] .dk-yes')).opacity));
+ await p.screenshot({path:`nt1_${w}_deck.png`});
+ await p.mouse.up();await p.waitForTimeout(700);
+ console.log(w,'swiped right',await p.evaluate(k=>[TRI.yes.includes(k),document.querySelectorAll('#notiOv .nd-card.today .nd-pick .nd-row').length>=0,JSON.parse(localStorage.getItem(TRI_KEY())).yes.length],k0),'cards',n0);
+ await p.click('#notiDeck [data-dkgo=no]');await p.waitForTimeout(700);console.log(w,'button no',await p.evaluate(()=>[TRI.no.length,TRI.last.length]));
+ await p.click('#notiDeck [data-dkundo]');await p.waitForTimeout(400);console.log(w,'undo',await p.evaluate(()=>[TRI.no.length,TRI.yes.length]));
+ await p.evaluate(()=>{localStorage.removeItem(TRI_KEY());TRI=triLoad()});
  await p.click('#notiOv .noti-seg [data-k=all]');await p.waitForTimeout(1500);console.log(w,'all',await p.evaluate(()=>[!!NOTI.all,NOTI.loading,$('.pc-foot').textContent]));
  await p.click('#notiOv [data-nmon="1"]');await p.waitForTimeout(700);console.log(w,'month',await p.evaluate(()=>[NOTI.month,$('.pc-mon').textContent]));
  await p.click('#notiOv .pc-d:not(.pc-pad)');await p.waitForTimeout(300);console.log(w,'day',await p.evaluate(()=>NOTI.day));

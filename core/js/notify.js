@@ -47,10 +47,13 @@ function dayWhen(x,d){
 }
 function dayCardHTML(d,lab,cls,list){
   const xs=list.filter(x=>covers(x,d)),MAX=4;
+  /* 今日卡片：另外列出在「整理」裡右滑（今天處理）的事件（不跟上面重複） */
+  const pk=cls==="today"?triPicked(list).filter(x=>!covers(x,d)):[];
   return `<button type="button" class="nd-card${cls?" "+cls:""}" data-nopen="${d}" aria-label="${lab} ${fmt(d)}，${xs.length} 件事，打開這一天">
     <span class="nd-head"><span class="nd-num num">${+d.slice(8)}</span><span class="nd-lab"><b>${lab}<i>・</i>週${WD[pd(d).getDay()]}</b><small class="num">${xs.length?`${xs.length} 件`:nmd(d)}</small></span></span>
     ${xs.length?`<span class="nd-list">${xs.slice(0,MAX).map(x=>`<span class="nd-row" style="--c:${itemColor(x)}"><span class="nd-t num">${dayWhen(x,d)}</span><span class="nd-x"><b>${esc(x.title)}</b>${notiSub(x)?`<small>${esc(notiSub(x))}</small>`:""}</span></span>`).join("")}${xs.length>MAX?`<span class="nd-more">還有 ${xs.length-MAX} 件</span>`:""}</span>`
-      :`<span class="nd-empty"><i aria-hidden="true"></i>沒有安排</span>`}
+      :(pk.length?"":`<span class="nd-empty"><i aria-hidden="true"></i>沒有安排</span>`)}
+    ${pk.length?`<span class="nd-pick"><small>今天處理</small>${pk.slice(0,MAX).map(x=>`<span class="nd-row" style="--c:${itemColor(x)}"><span class="nd-t num">${nmd(x.date)}</span><span class="nd-x"><b>${esc(x.title)}</b>${notiSub(x)?`<small>${esc(notiSub(x))}</small>`:""}</span></span>`).join("")}${pk.length>MAX?`<span class="nd-more">還有 ${pk.length-MAX} 件</span>`:""}</span>`:""}
   </button>`;
 }
 
@@ -165,15 +168,9 @@ function nsBind(st){
 }
 
 /* ---------- 行事曆：事件清單＋海報月曆 ---------- */
-function notiRowHTML(x){
-  return `<button type="button" class="ni" data-fk="${esc(x.key)}" data-nd="${x.date}" data-ne="${x.end||""}" style="--c:${itemColor(x)}">
-    <span class="ni-bar" aria-hidden="true"></span>
-    <span class="ni-when num">${nmd(x.date)}${x.end?`–${nmd(x.end)}`:""}${x.time?`<small>${x.time}</small>`:""}</span>
-    <span class="ni-main"><b>${esc(x.title)}</b>${[x.place,x.ev].filter(Boolean).length?`<small>${esc([x.place,x.ev].filter(Boolean).join("・"))}</small>`:""}</span>
-    ${NOTI.scope==="all"?`<span class="tag sm ni-dept">${esc(deptName(x.dept))}</span>`:""}</button>`;
-}
 /* 海報月曆：超大月份縮寫＋右上兩行年份；週一開頭；日期是數字（沒有格線）；
-   時段＝細線橫跨期間（兩端小圓點）、名稱與日期寫在線下；單天的寫在日期下；同一週會撞在一起的往下排一層，那一週跟著變高 */
+   2026-11-05 使用者：月曆上不寫字，看幾條線就知道幾件事——時段＝細線橫跨期間（兩端小圓點）、單天＝日期下一顆小點；
+   同一週會撞在一起的往下排一層（每層 9px）。點日期才在月曆上方的「這一天」區塊顯示事件的文字 */
 const MON_EN=["JAN","FEB","MAR","APR","MAY","JUN","JUL","AUG","SEP","OCT","NOV","DEC"];
 function posterHTML(list){
   const m=NOTI.month,first=pd(m+"-01"),y=first.getFullYear(),mi=first.getMonth(),dim=new Date(y,mi+1,0).getDate(),off=(first.getDay()+6)%7;
@@ -187,34 +184,105 @@ function posterHTML(list){
     const evs=list.filter(x=>x.date<=b&&(x.end||x.date)>=a).map(x=>{
       const s=x.date<a?lo:+x.date.slice(8),e=(x.end||x.date)>b?hi:+(x.end||x.date).slice(8),i0=w.indexOf(s),i1=w.indexOf(e);
       let ln=lanes.findIndex(z=>z<i0);if(ln<0){ln=lanes.length;lanes.push(-1)}lanes[ln]=i1;
-      const span=i1>i0,lbl=`${esc(x.title)}<small class="num">${x.end?`${nmd(x.date)}–${nmd(x.end)}`:x.time||""}</small>`;
-      return `<button type="button" class="pc-e${span?" span":""}" data-nd="${x.date}" data-ne="${x.end||""}" style="--i0:${i0};--i1:${i1};--ln:${ln};--c:${all?deptColor(x.dept):"var(--ink)"}" aria-label="${esc(x.title)} ${nmd(x.date)}${x.end?`到 ${nmd(x.end)}`:""}">${span?`<span class="pc-line" aria-hidden="true"></span>`:""}<span class="pc-lbl">${lbl}</span></button>`}).join("");
+      return `<span class="pc-e${i1>i0?" span":""}" aria-hidden="true" style="--i0:${i0};--i1:${i1};--ln:${ln};--c:${all?deptColor(x.dept):"var(--ink)"}"></span>`}).join("");
     return `<div class="pc-week" style="--lanes:${lanes.length}">${nums}${evs}</div>`}).join("");
   return `<div class="pc-head" aria-hidden="true"><b class="pc-mon">${MON_EN[mi]}</b><span class="pc-yr num">${String(y).slice(0,2)}<br>${String(y).slice(2)}</span></div>
     <div class="pc-wk" aria-hidden="true">${["MON","TUE","WED","THU","FRI","SAT","SUN"].map(x=>`<span>${x}</span>`).join("")}</div>
     <div class="pc-body" role="group" aria-label="${y} 年 ${mi+1} 月">${body}</div>
     <p class="pc-foot">${all?"全會":esc(CFG.dept.name||"本部門")}・學生會</p>`;
 }
+/* 點了某一天：月曆上方「這一天」區塊，列出那天每件事（時刻、名稱、地點・即時回報）；平常不顯示 */
+function dayViewHTML(list){
+  const d=NOTI.day;if(!d)return "";
+  const xs=list.filter(x=>covers(x,d));
+  return `<div class="noti-dayview" id="notiDay"><div class="dv-top"><b class="num">${nmd(d)}</b><span>週${WD[pd(d).getDay()]}・${xs.length?`${xs.length} 件`:"沒有事件"}</span><button type="button" class="icon dv-x" data-nday="" aria-label="收起這一天">${ico("close","solo")}</button></div>
+    ${xs.length?`<div class="dv-tags">${xs.map(x=>`<span class="dv-tag" style="--c:${itemColor(x)}"><i aria-hidden="true"></i><span class="num">${x.end?`${nmd(x.date)}–${nmd(x.end)}`:x.time||"整天"}</span><b>${esc(x.title)}</b>${notiSub(x)?`<small>${esc(notiSub(x))}</small>`:""}</span>`).join("")}</div>`:""}</div>`;
+}
 function notiInner(){
-  const list=notiList(),t=today(),m=NOTI.month,all=NOTI.scope==="all";
-  const evs=NOTI.day?list.filter(x=>covers(x,NOTI.day)):list.filter(x=>x.date.slice(0,7)<=m&&(x.end||x.date).slice(0,7)>=m);
+  const list=notiList(),t=today(),all=NOTI.scope==="all";
   const legend=all
     ?(window.BOARD_DEPTS||[]).map(d=>`<span><i style="--c:${deptColor(d.id)}"></i>${esc(d.name)}</span>`).join("")
     :Object.entries(NOTI_ST).map(([k,c])=>`<span><i style="--c:${c}"></i>${EV_ST[k]}</span>`).join("");
   return `${all?`<p class="sub noti-note">${NOTI.loading?"讀取各部門資料中…":"全會：讀各部門的資料檔，只能看、不能改。"}</p>`:""}
     <div class="noti-days">${dayCardHTML(t,"今日","today",list)}${dayCardHTML(addDays(t,1),"明日","",list)}</div>
     <section class="noti-up"><h3 class="noti-h"><b>近期</b><span>今天之後的時間・上下滑換一張</span></h3>${stackHTML(list)}</section>
+    <section class="noti-tri"><h3 class="noti-h"><b>整理</b><span>右滑今天處理・左滑還不要</span></h3>${deckHTML(list)}</section>
     <section class="noti-cal">
-      <div class="cal-top"><h3 class="noti-h"><b>行事曆</b></h3><button type="button" class="icon" data-nmon="-1" aria-label="上個月">${ico("prev","solo")}</button><button type="button" class="icon" data-nmon="1" aria-label="下個月">${ico("next","solo")}</button>
-        ${NOTI.day?`<button type="button" class="icon" data-nday="">只看 ${nmd(NOTI.day)} · 取消</button>`:`<button type="button" class="icon" data-nmon="0">回到本月</button>`}</div>
-      <div class="noti-list" data-flip="list" data-flow>${evs.map(notiRowHTML).join("")||`<p class="sub noti-none">${NOTI.day?"這天沒有事件":"這個月沒有事件"}</p>`}</div>
+      <div class="cal-top"><h3 class="noti-h"><b>行事曆</b></h3><button type="button" class="icon" data-nmon="-1" aria-label="上個月">${ico("prev","solo")}</button><button type="button" class="icon" data-nmon="1" aria-label="下個月">${ico("next","solo")}</button><button type="button" class="icon" data-nmon="0">回到本月</button></div>
+      ${dayViewHTML(list)}
       <div class="pc" id="notiCal">${posterHTML(list)}</div>
       <div class="cal-legend">${legend}</div>
     </section>`;
 }
+/* ---------- 整理：交友軟體式左滑右滑（2026-11-05 使用者要求） ----------
+   卡片堆＝所有還沒處理的事件（今天起還沒結束、今天還沒滑過的時間標記），一次一張、後面露出兩張。
+   右滑＝今天處理（放進「今日」卡片的「今天處理」）；左滑＝還不要（今天不再出現）。也可以按下面的 ✕／✓，「復原」退回上一張。
+   結果只存在這台裝置的 localStorage（workboard:triage:部門代號），隔天自動清空；不上傳、別人看不到。
+   動畫只動 transform／opacity：跟手指走、依位移傾斜，放開超過 30% 寬或甩得夠快就飛出去，否則彈回。 */
+const TRI_KEY=()=>`workboard:triage:${CFG.deptId||"rights"}`;
+function triLoad(){try{const o=JSON.parse(localStorage.getItem(TRI_KEY())||"null");if(o&&o.date===today())return o}catch(_){}return {date:today(),yes:[],no:[],last:[]}}
+function triSave(o){try{localStorage.setItem(TRI_KEY(),JSON.stringify(o))}catch(_){}}
+let TRI=triLoad();
+const triFresh=()=>{if(TRI.date!==today())TRI=triLoad();return TRI};
+const triPicked=list=>{const y=new Set(triFresh().yes);return list.filter(x=>y.has(x.key))};
+const triDeck=list=>{const o=triFresh(),done=new Set([...o.yes,...o.no]),t=today();return list.filter(x=>(x.end||x.date)>=t&&!done.has(x.key))};
+function deckCardHTML(x,i){
+  return `<div class="dk-card" data-dk="${esc(x.key)}" data-i="${i}" style="--c:${itemColor(x)};--i:${i}"${i?' aria-hidden="true"':""}>
+    <span class="dk-yes" aria-hidden="true">今天處理</span><span class="dk-no" aria-hidden="true">還不要</span>
+    <span class="dk-date"><b class="num">${+x.date.slice(8)}</b><small>${+x.date.slice(5,7)} 月・週${WD[pd(x.date).getDay()]}${x.end?`<br>到 ${nmd(x.end)}`:""}</small></span>
+    <span class="dk-main"><b><i class="dk-dot" aria-hidden="true"></i>${esc(x.title)}</b><small>${esc([x.time,x.place].filter(Boolean).join("・"))}</small><small>${esc([NOTI.scope==="all"?deptName(x.dept):"",x.ev].filter(Boolean).join("・"))}</small></span>
+  </div>`;
+}
+function deckHTML(list){
+  const xs=triDeck(list),o=triFresh();
+  return `<div class="noti-deck" id="notiDeck">
+    <div class="dk-stack">${xs.length?xs.slice(0,3).map(deckCardHTML).reverse().join(""):`<div class="dk-empty"><b>都整理好了</b><span class="sub">今天處理 ${o.yes.length} 件・還不要 ${o.no.length} 件</span>${o.yes.length+o.no.length?`<button type="button" class="icon" data-dkreset>全部重來</button>`:""}</div>`}</div>
+    <div class="dk-ctl"><button type="button" class="dk-btn no" data-dkgo="no" aria-label="還不要"${xs.length?"":" disabled"}>${ico("close","solo")}</button><button type="button" class="icon dk-undo" data-dkundo${o.last.length?"":" disabled"}>復原</button><button type="button" class="dk-btn yes" data-dkgo="yes" aria-label="今天處理"${xs.length?"":" disabled"}>${ico("check","solo")}</button></div>
+    <p class="dk-count sub num">${xs.length?`還有 ${xs.length} 件`:""}</p></div>`;
+}
+function triCommit(key,dir){
+  const o=triFresh();o.yes=o.yes.filter(k=>k!==key);o.no=o.no.filter(k=>k!==key);o[dir].push(key);o.last.push(key);o.last=o.last.slice(-30);triSave(o);renderNoti();
+}
+function triUndo(){const o=triFresh(),k=o.last.pop();if(!k)return;o.yes=o.yes.filter(x=>x!==k);o.no=o.no.filter(x=>x!==k);triSave(o);renderNoti()}
+/* 讓最上面那張飛出去（dir：yes 往右、no 往左），播完才記下來重畫 */
+function dkFly(card,dir,from={x:0,y:0}){
+  if(!card||card._gone)return;card._gone=true;
+  const W=card.offsetWidth||320,sx=dir==="yes"?1:-1,key=card.dataset.dk;
+  card.classList.add(dir==="yes"?"go-yes":"go-no");
+  if(reduceMotion()){triCommit(key,dir);return}
+  const next=card.parentElement.querySelector(`.dk-card[data-i="1"]`);
+  if(next)next.animate([{transform:getComputedStyle(next).transform},{transform:"none"}],{duration:MO.base,easing:MO.out,fill:"forwards"});
+  card.animate([{transform:`translate(${from.x}px,${from.y}px) rotate(${from.x/18}deg)`,opacity:1},{transform:`translate(${sx*W*1.4}px,${from.y+40}px) rotate(${sx*28}deg)`,opacity:0}],{duration:360,easing:MO.in,fill:"forwards"}).finished.then(()=>triCommit(key,dir)).catch(()=>{});
+}
+function dkBind(){
+  const st=$("#notiDeck .dk-stack");if(!st||st._dk)return;st._dk=true;
+  ["touchstart","touchmove"].forEach(t=>st.addEventListener(t,e=>{if(e.target.closest(".dk-card"))e.stopPropagation()},{passive:true}));
+  let d=null;
+  st.addEventListener("pointerdown",e=>{
+    const c=e.target.closest(".dk-card");if(!c||e.button>0||c.dataset.i!=="0"||c._gone)return;
+    d={c,id:e.pointerId,x0:e.clientX,y0:e.clientY,x:0,y:0,axis:"",t:performance.now(),vx:0,lx:e.clientX,lt:performance.now()};
+    c.getAnimations().forEach(a=>a.cancel());try{st.setPointerCapture(e.pointerId)}catch(_){}
+  });
+  st.addEventListener("pointermove",e=>{
+    if(!d||e.pointerId!==d.id)return;const dx=e.clientX-d.x0,dy=e.clientY-d.y0;
+    if(!d.axis){if(Math.max(Math.abs(dx),Math.abs(dy))<6)return;d.axis=Math.abs(dx)>=Math.abs(dy)?"x":"y";if(d.axis==="y"){d=null;return}}
+    const now=performance.now();d.vx=(e.clientX-d.lx)/Math.max(8,now-d.lt);d.lx=e.clientX;d.lt=now;d.x=dx;d.y=dy*.35;
+    const W=d.c.offsetWidth||320,k=Math.min(1,Math.abs(dx)/(W*.3));
+    d.c.style.transform=`translate(${dx}px,${d.y}px) rotate(${dx/18}deg)`;d.c.style.setProperty("--yes",dx>0?k:0);d.c.style.setProperty("--no",dx<0?k:0);
+    const nx=st.querySelector('.dk-card[data-i="1"]');if(nx)nx.style.transform=`translateY(${(1-k)*10}px) scale(${.95+.05*k})`;
+  });
+  const end=e=>{
+    if(!d||(e&&e.pointerId!==d.id))return;const c=d.c,W=c.offsetWidth||320,x=d.x,y=d.y,v=d.vx;d=null;
+    if(Math.abs(x)>W*.3||Math.abs(v)>.6&&Math.abs(x)>24){dkFly(c,(x||v)>0?"yes":"no",{x,y});return}
+    const from=c.style.transform;c.style.transform="";c.style.setProperty("--yes",0);c.style.setProperty("--no",0);
+    const nx=st.querySelector('.dk-card[data-i="1"]');if(nx)nx.style.transform="";
+    if(from&&!reduceMotion())c.animate([{transform:from},{transform:"none"}],{duration:MO.slow,easing:MO.spring});
+  };
+  st.addEventListener("pointerup",end);st.addEventListener("pointercancel",end);
+}
 function renderNoti(){
   const el=$("#notiOv .noti-inner");if(!el||!notiOpen)return;
-  const snap=Anim.capture();el.innerHTML=notiInner();Anim.play(snap);flowWatch();nsMount();notiSearch();
+  const snap=Anim.capture();el.innerHTML=notiInner();Anim.play(snap);flowWatch();nsMount();dkBind();notiSearch();
 }
 
 /* ---------- 常駐搜尋欄（毛玻璃膠囊，貼在通知層最上面） ----------
@@ -294,7 +362,7 @@ function notiFocus(d,e){
 /* 打開某一天（今日／明日卡片）：月曆換到那個月、清單只留那天、捲到那天（跟點日期一樣） */
 function notiOpenDay(d){
   NOTI.day=d;NOTI.month=d.slice(0,7);renderNoti();
-  const c=document.querySelector(`#notiCal [data-cal="${d}"]`);if(c)c.scrollIntoView({block:"center",behavior:reduceMotion()?"auto":"smooth"});
+  const v=$("#notiDay");if(v){Anim.enter(v,"down");v.scrollIntoView({block:"start",behavior:reduceMotion()?"auto":"smooth"})}
 }
 /* 今日／明日卡片的按壓回饋：按下微縮到 .97、放開略帶回彈地彈回（只動 transform） */
 function ndPress(el,down){
@@ -316,9 +384,10 @@ document.addEventListener("click",e=>{
   const mo=t.closest("[data-nmon]");if(mo){const k=+mo.dataset.nmon,d=pd(NOTI.month+"-01");if(k)d.setMonth(d.getMonth()+k);const nm=k?ym(d):today().slice(0,7);if(nm===NOTI.month)return;
     NOTI.day=null;notiMonth(nm,k<0?-1:1);return}
   if(t.closest("[data-nday]")){NOTI.day=null;renderNoti();return}
-  const cd=t.closest("[data-cal]");if(cd){const d=cd.dataset.cal;NOTI.day=NOTI.day===d?null:d;renderNoti();return}
-  const pe=t.closest(".pc-e");if(pe){notiFocus(pe.dataset.nd,pe.dataset.ne);return}
-  const ni=t.closest(".ni");if(ni){notiFocus(ni.dataset.nd,ni.dataset.ne);return}
+  const cd=t.closest("[data-cal]");if(cd){const d=cd.dataset.cal,was=NOTI.day;NOTI.day=was===d?null:d;renderNoti();const v=$("#notiDay");if(v&&!was)Anim.enter(v,"down");return}   /* 點日期：上方出現「這一天」；再點一次收起 */
+  const g=t.closest("[data-dkgo]");if(g){const c=$('#notiDeck .dk-card[data-i="0"]');if(c)dkFly(c,g.dataset.dkgo);return}
+  if(t.closest("[data-dkundo]")){triUndo();return}
+  if(t.closest("[data-dkreset]")){const o=triFresh();o.yes=[];o.no=[];o.last=[];triSave(o);renderNoti();return}
 });
 document.addEventListener("keydown",e=>{if(e.key==="Escape"&&notiOpen&&!$("#dlg").open&&!setOpen){e.preventDefault();closeNoti()}});
 document.addEventListener("visibilitychange",()=>{if(!document.hidden&&notiOpen)nsAuto()});
