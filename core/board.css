@@ -11,7 +11,7 @@
 :root{--bar-in:88px;--rail-in:0px}
 @media (min-width:900px){:root{--bar-in:0px;--rail-in:78px}}
 html{height:100%;-webkit-tap-highlight-color:transparent}
-body{height:100%;margin:0;overflow:hidden;background:var(--bg);color:var(--ink);font:15px/1.6 "Noto Sans TC",system-ui,"PingFang TC","Microsoft JhengHei",sans-serif}
+body{height:100%;margin:0;overflow:hidden;background:var(--bg);color:var(--ink);font:15px/1.6 "Jost","Noto Sans TC",system-ui,"PingFang TC","Microsoft JhengHei",sans-serif}   /* 2026-11-06 使用者：數字字體統一。Jost 排第一：數字、英文都是 Jost，中文 Jost 沒有字就落到 Noto Sans TC */
 .sub{color:var(--muted);font-size:13px}
 h1{margin:0;font-size:clamp(26px,3.2vw,38px);font-weight:400;letter-spacing:.08em;line-height:1.2}
 h2{margin:0;border-left:0;padding:0;display:flex;align-items:center;gap:12px;font-weight:500;font-size:16px;letter-spacing:.1em;flex:1;min-width:180px;white-space:nowrap}
