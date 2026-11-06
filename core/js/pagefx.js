@@ -84,10 +84,14 @@ const PageFx=(()=>{
   function arrive(){
     const h=document.documentElement;if(!h.classList.contains("pfx-arrive"))return;
     if(RM()){h.classList.remove("pfx-arrive");return}
-    const start=()=>requestAnimationFrame(()=>requestAnimationFrame(()=>{
+    /* 2026-11-06 使用者：進部門後整個介面卡一下。看板剛載入時要畫第一次畫面、讀雲端、套秘書處的學年（又重畫一次），
+       浮上來的動畫（整頁縮放＋模糊）跟這些搶主執行緒就會頓。所以等「畫面穩定」：連續 5 格都在 22ms 內畫完才開始，最多等 1.6 秒；
+       等的這段時間整頁還是透明（底色），看不到半成品 */
+    const calm=f=>{let n=0,last=performance.now();const t0=last,tick=now=>{n=now-last<22?n+1:0;last=now;if(n>=5||now-t0>1600)f();else requestAnimationFrame(tick)};requestAnimationFrame(tick)};
+    const start=()=>calm(()=>{
       const my=++tok;owner.set(document.body,my);hold(document.body);h.classList.remove("pfx-arrive");
       run(document.body,"in",my,FADE_IN,1).then(()=>{if(owner.get(document.body)===my){owner.delete(document.body);reset(document.body)}});
-    }));
+    });
     let go=false;const once=()=>{if(!go){go=true;start()}};
     if(document.readyState==="complete")once();else{addEventListener("load",once,{once:true});setTimeout(once,900)}   /* 最多等 0.9 秒（字型、圖片很慢時不要一直空白） */
   }
