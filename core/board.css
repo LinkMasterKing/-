@@ -1426,27 +1426,90 @@ dialog#dlg:has(.csel.open){overflow:visible}
 .rpt-ov{position:fixed;inset:0;z-index:90;background:var(--bg);color:var(--ink);display:flex;flex-direction:column;gap:10px;padding:calc(14px + env(safe-area-inset-top)) max(clamp(14px,3vw,40px),env(safe-area-inset-right)) 0 max(clamp(14px,3vw,40px),env(safe-area-inset-left))}
 .rpt-hint{font-size:12px;letter-spacing:.06em}
 .rpt-scroll{flex:1;overflow:auto;scrollbar-gutter:stable;padding:6px 0 calc(48px + env(safe-area-inset-bottom))}
-/* 紙張：不管深淺色模式都是白紙黑字，列印也一樣 */
-.rpt-paper{--ink:#111114;--muted:#5d5d66;--line:#111114;--hair:#dcdce2;--rest:#c9c9d0;--prog-lo:var(--accent-light);--prog-lo-ink:var(--accent-light);--today:var(--ink);width:min(100%,820px);margin:0 auto;padding:44px 52px 56px;border-radius:6px;background:#fff;color:var(--ink);box-shadow:0 10px 40px rgba(0,0,0,.25);counter-reset:rsec;font-size:14px;line-height:1.75}
+/* 紙張：不管深淺色模式都是白紙黑字，列印也一樣。2026-11-06 改版：封面、目錄、每一章各一張紙（A4 比例），
+   版面參考使用者給的極簡白紙範例：大標題靠左、上下小字、細線分隔、細體大數字（Jost 200）當章節號、右上角章節索引 */
+.rpt-paper{--ink:#111114;--muted:#5d5d66;--line:#111114;--hair:#dcdce2;--rest:#c9c9d0;--prog-lo:var(--accent-light);--prog-lo-ink:var(--accent-light);--today:var(--ink);--pad:clamp(20px,6.3%,56px);width:min(100%,820px);margin:0 auto;display:grid;grid-template-columns:minmax(0,1fr);gap:28px;color:var(--ink);font-size:14px;line-height:1.75}
+.rpt-page{position:relative;aspect-ratio:210/297;padding:var(--pad) var(--pad) calc(var(--pad) + 8px);border-radius:4px;background:#fff;box-shadow:0 10px 40px rgba(0,0,0,.25)}
+.rpt-paper .num{font-family:"Jost",sans-serif}
 .rpt-paper [contenteditable="true"]{outline:none;border-radius:4px;transition:background-color .2s,box-shadow .2s}
 .rpt-paper [contenteditable="true"]:hover{background:rgba(0,0,0,.035)}
 .rpt-paper [contenteditable="true"]:focus{background:rgba(0,0,0,.05);box-shadow:0 0 0 2px rgba(0,0,0,.08)}
-.rpt-head{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:22px;margin-bottom:22px;padding-bottom:18px;border-bottom:2px solid var(--ink)}
-.rpt-logo svg{display:block;width:auto;height:44px;color:var(--ink)}
-.rpt-ttl h1{margin:0;font-size:26px;font-weight:600;letter-spacing:.12em;line-height:1.3}
-.rpt-sub{margin:4px 0 0;color:var(--muted);font-size:13px;letter-spacing:.06em}
-.rpt-live{display:inline-flex;align-items:center;gap:10px;margin-top:8px;padding:4px 12px 5px;border:1px solid #111114;border-radius:999px;color:#111114;font-size:12.5px;text-decoration:none}   /* 報告第一頁：回到線上看板的連結（列印成 PDF 仍可點；網址照印，紙本也能照打） */
-.rpt-live .rpt-url{font-family:"Jost",sans-serif;color:#5d5d66;font-size:11.5px}
-.rpt-meta{display:grid;gap:4px;margin:0;font-size:12.5px}
-.rpt-meta div{display:flex;justify-content:flex-end;gap:8px}
-.rpt-meta dt{color:var(--muted)}
-.rpt-meta dd{margin:0;min-width:4em}
-/* 區塊：標題自動編號（一、二、三…），移除後會自己重排 */
-.rpt-sec{position:relative;margin-top:26px}
-.rpt-sec>h2{display:block;min-width:0;margin:0 0 12px;padding-bottom:6px;border-bottom:1px solid var(--hair);font-size:18px;font-weight:600;letter-spacing:.08em;white-space:normal}
-.rpt-sec>h2::after{content:none}
-.rpt-sec>h2::before{counter-increment:rsec;content:counter(rsec,trad-chinese-informal) "、"}
-.rpt-x{position:absolute;top:-2px;right:0;z-index:1;min-height:0;padding:2px 10px;border-color:var(--hair);background:#fff;color:var(--muted);font-size:12px}
+.rpt-paper [data-ph]:empty::before{content:attr(data-ph);color:#9a9aa3}
+/* --- 封面：上（logo＋部門｜日期）、中（英文小字＋大標題＋期間）、下（製作人｜看板網址）三段撐滿一頁 --- */
+.rpt-cover{display:flex;flex-direction:column;justify-content:space-between;gap:40px}
+.cv-top{display:flex;justify-content:space-between;align-items:flex-start;gap:16px}
+.cv-org{display:flex;align-items:center;gap:14px}
+.cv-org b{font-size:15px;font-weight:700;letter-spacing:.14em}
+.cv-logo .logo{display:block;height:34px;width:auto}
+.rpt-cover .cv-logo .logo path:not(.logo-gap){fill:#111114}   /* 封面一律黑色單色 logo，黃藍之間描白色分隔縫 */
+.rpt-cover .cv-logo .logo .logo-gap{display:inline;stroke:#fff}
+.cv-date{font-size:12px;letter-spacing:.08em;color:var(--muted)}
+.cv-mid{margin-top:12%}
+.cv-k{margin:0 0 10px;font-size:12px;letter-spacing:.32em;color:var(--muted)}
+.cv-mid h1{margin:0;font-size:clamp(40px,8.6vw,72px);font-weight:700;line-height:1.1;letter-spacing:.06em}
+.cv-sub{margin:14px 0 0;font-size:clamp(14px,2.2vw,17px);font-weight:500;letter-spacing:.06em}
+.cv-foot{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:24px;font-size:11.5px;line-height:1.7;color:var(--muted)}
+.cv-col{display:grid;align-content:start}
+.cv-col>span:empty:not(:focus){min-height:1.7em}
+.rpt-live{color:#111114;text-decoration:none;word-break:break-all}   /* 回到線上看板的連結（PDF 裡仍可點；網址照印，紙本也能照打） */
+/* --- 目錄：英文小字＋「目錄」，下面每章一列：細體大數字、章名、羅馬數字，列與列之間細線（參考樓層導覽卡） --- */
+.toc-h{display:grid;gap:4px;margin-bottom:28px}
+.toc-h span{font-size:12px;letter-spacing:.32em;color:var(--muted)}
+.toc-h h2{margin:0;font-size:28px;font-weight:700;letter-spacing:.14em}
+.toc-list{list-style:none;margin:0;padding:0;border-top:1.5px solid var(--ink)}
+.toc-list li{display:grid;grid-template-columns:auto minmax(0,1fr);align-items:center;gap:22px;padding:14px 0;border-bottom:1px solid var(--hair)}
+.toc-n{font-size:clamp(40px,7vw,64px);font-weight:200;line-height:.9;letter-spacing:-.02em;min-width:1.25em}
+.toc-t{display:flex;align-items:baseline;justify-content:space-between;gap:12px}
+.toc-t b{font-size:17px;font-weight:700;letter-spacing:.08em}
+.toc-t small{font-size:12px;letter-spacing:.1em;color:var(--muted)}
+/* --- 章首：細體大數字＋章名，右上角章節索引（I II III…，這一章實心）；編輯工具（上移、下移、移除這章）滑過去才出現，不印 --- */
+.rpt-sec{position:relative}
+.rpt-ch-h{position:relative;display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:end;gap:6px 18px;margin-bottom:22px;padding-bottom:14px;border-bottom:1.5px solid var(--ink)}
+.rpt-ch-n{font-size:clamp(48px,9vw,80px);font-weight:200;line-height:.82;letter-spacing:-.03em}
+.rpt-paper h2::after{content:none}   /* 報告裡的標題不接全站標題列的細線箭頭 */
+.rpt-ch-h h2{min-width:0;margin:0;font-size:22px;font-weight:700;letter-spacing:.1em;line-height:1.3}
+.rpt-tabs{display:flex;gap:3px;align-self:start}
+.rpt-tabs i{display:grid;place-items:center;min-width:24px;height:20px;padding:0 4px;font:400 10px/1 "Jost",sans-serif;font-style:normal;letter-spacing:.04em;background:#ececf0;color:#9a9aa3}
+.rpt-tabs i.on{background:#2b2b30;color:#fff}
+.rpt-ct,.rpt-bt{display:flex;gap:4px;opacity:0;pointer-events:none;transition:opacity .2s}
+.rpt-ct{position:absolute;right:0;bottom:calc(100% + 6px)}
+.rpt-ch:hover .rpt-ct,.rpt-ch-h:focus-within .rpt-ct,.rpt-blk:hover>.rpt-bt,.rpt-blk:focus-within>.rpt-bt,.rpt-blk:focus>.rpt-bt{opacity:1;pointer-events:auto}
+.rpt-ct button,.rpt-bt button{min-height:0;height:26px;padding:0 9px;border:1px solid var(--hair);border-radius:999px;background:#fff;color:var(--muted);font-size:11.5px;transition:color .18s,border-color .18s,background-color .18s}
+.rpt-ct button:hover,.rpt-bt button:hover{color:var(--ink);border-color:var(--ink)}
+.rpt-ct .ico,.rpt-bt .ico{width:12px;height:12px}
+.rpt-bt button.on{background:var(--ink);border-color:var(--ink);color:#fff}
+.rpt-bt-sep{width:1px;margin:3px 2px;background:var(--hair)}
+/* --- 圖塊：一章裡一個個排下來；工具列浮在圖塊右上（滑過去、點進去才出現） --- */
+.rpt-blocks{display:grid;grid-template-columns:minmax(0,1fr);gap:18px}
+.rpt-blk{position:relative;border-radius:6px;outline:none}
+.rpt-blk:focus-within,.rpt-blk:focus{box-shadow:0 0 0 6px #fff,0 0 0 7px var(--hair)}
+.rpt-bt{position:absolute;right:0;bottom:calc(100% + 4px);z-index:2;flex-wrap:wrap;justify-content:flex-end;padding:3px;border-radius:999px;background:#fff;box-shadow:0 4px 14px rgba(0,0,0,.1)}
+.rpt-ins{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:22px;padding-top:14px;border-top:1px dashed var(--hair);font-size:12px;color:var(--muted)}
+.rpt-ins button{min-height:0;height:30px;padding:0 13px;border:1px solid var(--hair);border-radius:999px;background:#fff;color:var(--ink);font-size:12.5px}
+.rpt-ins button:hover{border-color:var(--ink)}
+/* 圖片：寬度＝內文寬的 --w（25～100％），靠左／置中／靠右；高度最多 150mm（一頁放得下），不變形；右下角拖曳調大小 */
+.rpt-img{margin:0;width:var(--w,66%);max-width:100%;min-width:25%;display:grid;grid-template-columns:minmax(0,1fr);gap:6px}
+.rpt-img[data-al="c"]{margin-inline:auto}
+.rpt-img[data-al="r"]{margin-left:auto}
+.rpt-img-box{position:relative}
+.rpt-img img{display:block;width:100%;height:auto;max-height:150mm;object-fit:contain;object-position:left top;border-radius:2px}
+.rpt-img[data-al="c"] img{object-position:center top}.rpt-img[data-al="r"] img{object-position:right top}
+.rpt-img figcaption{font-size:12px;color:var(--muted);letter-spacing:.04em}
+.rpt-img-h{position:absolute;right:-7px;bottom:-7px;width:16px;height:16px;border-radius:50%;background:var(--ink);box-shadow:0 0 0 3px #fff;cursor:nwse-resize;touch-action:none;opacity:0;transition:opacity .2s,transform .2s}
+.rpt-blk:hover .rpt-img-h,.rpt-blk:focus-within .rpt-img-h,.rpt-blk:focus .rpt-img-h,.rpt-img.sizing .rpt-img-h{opacity:1}
+.rpt-img.sizing .rpt-img-h{transform:scale(1.25)}
+.rpt-img.sizing{transition:none}
+.rpt-img:not(.sizing){transition:width .28s var(--mo-out)}
+/* 卡片圖塊（分項說明）：兩欄或三欄，淡灰底、上面一條粗線，項目名稱粗體、說明內文 */
+.rpt-cards{display:grid;grid-template-columns:repeat(var(--cols,2),minmax(0,1fr));gap:12px}
+.rpt-cards[data-cols="3"]{--cols:3}
+.rpt-card{position:relative;display:grid;align-content:start;gap:6px;padding:14px 16px 16px;border-top:2px solid var(--ink);background:#f4f4f6}
+.rpt-card b{display:block;font-size:15px;font-weight:700;letter-spacing:.04em;line-height:1.45}
+.rpt-card-t{font-size:13px;line-height:1.7;white-space:pre-wrap}
+.rpt-card-x{position:absolute;top:6px;right:6px;min-height:0;width:22px;height:22px;padding:0;display:grid;place-items:center;border:0;border-radius:50%;background:transparent;color:var(--muted);opacity:0;transition:opacity .2s}
+.rpt-card-x .ico{width:11px;height:11px}
+.rpt-blk:hover .rpt-card-x,.rpt-blk:focus-within .rpt-card-x{opacity:1}
+.rpt-card-add{margin-top:10px;min-height:0;height:28px;padding:0 12px;border:1px dashed var(--hair);border-radius:999px;background:transparent;color:var(--muted);font-size:12px}
 .rpt-stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:16px}
 .rpt-stats>div{display:grid;gap:2px;padding:10px 12px;border:1px solid var(--hair);border-radius:12px}
 .rpt-stats b{font-family:"Jost",sans-serif;font-size:28px;font-weight:400;line-height:1.1}
@@ -1489,7 +1552,7 @@ dialog#dlg:has(.csel.open){overflow:visible}
 .rpt-text>[data-in="ab"]{padding-left:calc(var(--rw1) + var(--rw2))}
 .rpt-text>.rpt-h1:first-child,.rpt-text>.rpt-h2:first-child{margin-top:0}
 /* 段落小工具：桌面放在紙張左邊界、對齊游標那一段；手機放在區塊下方。不印出來 */
-.rpt-pt{position:absolute;left:-46px;top:var(--y,0);z-index:1;display:grid;gap:4px;animation:rptPtIn .2s cubic-bezier(.2,.9,.25,1)}
+.rpt-pt{position:absolute;left:max(4px,calc(var(--pad) - 46px));top:var(--y,0);z-index:1;display:grid;gap:4px;animation:rptPtIn .2s cubic-bezier(.2,.9,.25,1)}
 .rpt-pt[hidden]{display:none}
 .rpt-pt button{min-height:0;width:38px;padding:3px 0;border:1px solid var(--hair);border-radius:8px;background:#fff;color:var(--muted);font-size:11px;letter-spacing:.04em;line-height:1.4;transition:background-color .18s,color .18s,border-color .18s}
 .rpt-pt button:hover{border-color:var(--ink);color:var(--ink)}
@@ -1501,11 +1564,16 @@ dialog#dlg:has(.csel.open){overflow:visible}
 }
 @media (prefers-reduced-motion:reduce){.rpt-pt{animation:none}}
 @media (max-width:640px){
-  .rpt-paper{padding:22px 18px 30px;font-size:13.5px}
-  .rpt-head{grid-template-columns:minmax(0,1fr);gap:10px}
-  .rpt-meta div{justify-content:flex-start}
+  .rpt-paper{font-size:13.5px;gap:18px}
   .rpt-stats{grid-template-columns:repeat(2,minmax(0,1fr))}
   .rpt-hint{display:none}
+  .rpt-cards[data-cols="3"]{--cols:2}
+  .rpt-ch-h{grid-template-columns:auto minmax(0,1fr)}
+  .rpt-tabs{grid-column:1/-1;grid-row:1;justify-self:end}
+  .rpt-ct,.rpt-bt{opacity:1;pointer-events:auto}   /* 觸控沒有滑過去：工具一直顯示（只在點進去的圖塊） */
+  .rpt-blk:not(:focus-within):not(:focus)>.rpt-bt{display:none}
+  .rpt-bt{position:fixed;left:12px;right:12px;bottom:calc(12px + env(safe-area-inset-bottom));z-index:3;justify-content:center;padding:6px;border-radius:22px;box-shadow:0 8px 28px rgba(0,0,0,.22);animation:ndRise .28s var(--mo-out)}   /* 手機：點進去的圖塊，工具列固定在畫面底部（不插進版面、不蓋住上一段） */
+  .rpt-ct{position:static;grid-column:1/-1;justify-content:flex-end}
 }
 /* 列印：只印報告，A4、頁尾頁碼；空白的自訂區塊不印 */
 @media print{
@@ -1514,13 +1582,17 @@ dialog#dlg:has(.csel.open){overflow:visible}
   html,body{height:auto;overflow:visible;background:#fff}
   body.rpt-open>:not(#rptOv){display:none}
   body.rpt-open #rptOv{position:static;display:block;padding:0;background:#fff}
-  .rpt-bar,.rpt-x,.rpt-pt{display:none}
+  @page:first{@bottom-center{content:none}}   /* 封面不印頁碼 */
+  .rpt-bar,.rpt-pt,.rpt-ct,.rpt-bt,.rpt-ins,.rpt-img-h,.rpt-card-x,.rpt-card-add,.rpt-blk.is-blank,.rpt-ch.is-blank,.rpt-paper [data-ph]:empty{display:none}
   .rpt-scroll{overflow:visible;padding:0}
-  .rpt-paper{width:auto;margin:0;padding:0;border-radius:0;box-shadow:none;-webkit-print-color-adjust:exact;print-color-adjust:exact}
-  .rpt-paper [contenteditable="true"],.rpt-paper [contenteditable="true"]:is(:hover,:focus){background:none;box-shadow:none}
-  .rpt-free:has(.rpt-text:empty){display:none}
-  .rpt-stats,.rpt-gantt,.rpt-issue{break-inside:avoid}
-  .rpt-sec>h2{break-after:avoid}
+  .rpt-paper{display:block;width:auto;margin:0;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  .rpt-page{aspect-ratio:auto;padding:0;border-radius:0;box-shadow:none;break-before:page}
+  .rpt-page:first-child{break-before:auto}
+  .rpt-cover{height:266mm}   /* A4 高 297mm 扣掉上下邊界：封面三段撐滿一頁 */
+  .rpt-blocks{display:block}.rpt-blocks>.rpt-blk+.rpt-blk{margin-top:18px}
+  .rpt-paper [contenteditable="true"],.rpt-paper [contenteditable="true"]:is(:hover,:focus),.rpt-blk:is(:focus,:focus-within){background:none;box-shadow:none}
+  .rpt-stats,.rpt-gantt,.rpt-issue,.rpt-img,.rpt-card,.toc-list li{break-inside:avoid}
+  .rpt-ch-h{break-after:avoid}
 }
 
 /* ===== 展開與收合的內容動畫（卡片、即時回報、完成紀錄、週報共用） ===== */
