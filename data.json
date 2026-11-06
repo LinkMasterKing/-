@@ -3,7 +3,7 @@
  "id": "board-main",
  "title": "權益部工作進度",
  "locked": false,
- "savedAt": "2026-11-07 04:37",
+ "savedAt": "2026-11-07 04:38",
  "range": {
   "start": "2026-09",
   "end": "2027-09"
@@ -1151,7 +1151,13 @@
  ],
  "savedBy": "戴銨霆",
  "follows": [],
- "labels": [],
+ "labels": [
+  {
+   "id": "gmw5fskerxl1p",
+   "kind": "時",
+   "name": "學務處"
+  }
+ ],
  "meetGrant": null,
  "semester": ""
 }
