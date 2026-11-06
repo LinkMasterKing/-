@@ -907,7 +907,8 @@ a.link:active{transform:scale(.96)}
 }
 
 /* ===== 開頁進場畫面（學生會） ===== */
-/* 一律白底（刻意不跟深淺色）：整個學生會 logo（shell.js 的 SU_LOGO），每個字是自己的小 svg、用 % 定位在 .sp-logo 裡；
+/* 跟著深淺色（2026-11-06 起；以前一律白底）：淺色＝白底彩色 logo、深色＝黑底單色 logo（標誌兩塊與字都是 #f1f1f4，藍色那塊外框描一圈黑當分隔縫 .sp-gap）。
+   顏色寫死（不用變數）：開場時看板的色彩變數可能還沒套好。整個學生會 logo（shell.js 的 SU_LOGO），每個字是自己的小 svg、用 % 定位在 .sp-logo 裡；
    動畫由 shell.js 的 splashPlay 用 Web Animations 做（只動 transform／opacity），這裡只負責版面 */
 .splash{position:fixed;inset:0;z-index:90;display:grid;place-items:center;background:#fff}
 .sp-logo{position:relative;width:min(560px,78vw);aspect-ratio:547/186}
@@ -916,6 +917,15 @@ a.link:active{transform:scale(.96)}
 .sp-clip{clip-path:inset(-20% -5% -20% var(--cut))}   /* 從標誌右緣切開：還在標誌範圍裡的字看不到（不會從眼睛的洞、黃藍之間的縫透出來），像從標誌後面出來 */
 .sp-grp svg{position:absolute;display:block;overflow:visible}
 .sp-emb path{will-change:transform,opacity}
+.sp-gap{fill:none;stroke:#000;stroke-width:7;stroke-linejoin:round;display:none}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]) .splash{background:#000}
+  :root:not([data-theme="light"]) .splash path:not(.sp-gap){fill:#f1f1f4}
+  :root:not([data-theme="light"]) .sp-gap{display:inline}
+}
+:root[data-theme="dark"] .splash{background:#000}
+:root[data-theme="dark"] .splash path:not(.sp-gap){fill:#f1f1f4}
+:root[data-theme="dark"] .sp-gap{display:inline}
 
 /* ===== 換頁動畫（core/js/pagefx.js） ===== */
 /* 舊頁往後退（縮小、遠離）並模糊、新頁模糊著從後面浮上來；縮放、透明度、模糊都由 pagefx.js 每格設定，這裡只有「站內換頁過來時 body 先透明」 */
