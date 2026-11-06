@@ -12,7 +12,10 @@
 /* 進場畫面：等 logo 的動畫真的播完（getAnimations 的 finished）、資料與字型也好了才收；最多等 3.5 秒。
    收場：logo 略放大淡出、白底淡出露出看板；收掉後才開始看板本身的進場動畫 */
 /* 開場畫面收掉（core/js/splash.js）：開始淡出時看板播進場動畫（body.intro），收掉後工具列重新判斷背後的顏色 */
-const boardSplashOut=()=>splashOut(()=>{document.body.classList.add("intro");setTimeout(()=>document.body.classList.remove("intro"),1400)},()=>tbContrastSoon());
+/* 進場動畫只給這一刻已經在畫面上的元素（標 data-intro，board.css「開頁時的進場動畫」段）；之後重畫出來的新元素不再播，不會閃第二下 */
+const INTRO_SEL=".fill,.tk i,.card,.ev,.g-row";
+const boardSplashOut=()=>splashOut(()=>{document.querySelectorAll(INTRO_SEL).forEach(e=>e.setAttribute("data-intro",""));document.body.classList.add("intro");
+  setTimeout(()=>{document.body.classList.remove("intro");document.querySelectorAll("[data-intro]").forEach(e=>e.removeAttribute("data-intro"))},1400)},()=>tbContrastSoon());
 /* 拆檔版：資料放在 data.json（與網頁同一個 repo），開頁時先讀它 */
 const dataReady=SEEDED&&location.protocol!=="file:"?fetch(CFG.data.path,{cache:"no-cache"}).then(r=>r.ok?r.json():null).then(d=>{
   netFail=false;

@@ -492,18 +492,15 @@ a.doc-pill:active{scale:.96}
 }
 
 /* ===== 會議報告事項（秘書處，meeting.js） =====
-   沿用追蹤面板的外框；依部門分組，每組標題列＝部門標籤＋數量＋開啟看板；卡片排成格，跟追蹤同一種細線清單 */
-.mt-depts{display:grid;gap:18px}
-.mt-dept h3{display:flex;align-items:center;gap:10px;margin:0 0 6px;font-size:14px;font-weight:500}
-.mt-dept h3 .num{color:var(--muted);font-size:13px}
-.mt-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,340px),1fr));margin:0 -18px}   /* auto-fit：只有一筆時佔滿整列 */
-.mt-ev{display:grid;gap:6px;align-content:start;padding:14px 18px 16px;border-top:1px solid var(--line);min-width:0}
-.mt-top{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
-.mt-top b{font-size:16px;line-height:1.4;overflow-wrap:anywhere}
-.mt-top .ev-st{margin-left:auto;font-size:12px;color:var(--muted)}
-.mt-ev[data-st] .live-dot{background:var(--st-c,var(--ink))}
-.mt-ev[data-st="ok"]{--st-c:var(--st-ok)}.mt-ev[data-st="go"]{--st-c:var(--st-go)}.mt-ev[data-st="stall"]{--st-c:var(--st-stall)}
+   2026-11-06 使用者：不要直接粗暴地條列。一次一個部門（上面部門膠囊＋右邊「開啟看板 →」），每一筆是跟即時回報同一種膠囊（.events .ev：收合白色膠囊、點了展開），
+   膠囊右邊是狀態小字（按時更新／持續進行…）取代「報告」字樣（這裡全部都是要報告的） */
+.mt-depts{display:grid;gap:12px}
+.mt-dirty{margin:0 0 8px;font-size:12.5px}
+.mt-st{flex:none;font-size:11.5px;color:var(--muted);letter-spacing:.04em}
+.events .ev.mt-ev:not([open]) .mt-st{color:#5d5d66}
 .mt-ev .evfs{margin-top:4px}
+.mt-pick{align-items:center}
+.mt-open{margin-left:auto}
 .meet-panel .panel-head #meetRefresh{margin-left:auto}
 /* 2026-11-06：一次看一個部門（上面一排部門膠囊 .mt-pick 沿用週報的 .wk-d），下面上一個／下一個部門、最下面匯出會議紀錄 */
 .mt-none{margin:4px 0 0;font-size:12.5px}
@@ -512,10 +509,7 @@ a.doc-pill:active{scale:.96}
 .mt-step button{gap:6px;font-size:13px}
 .mt-foot{display:flex;align-items:center;flex-wrap:wrap;gap:8px 14px;margin-top:14px;padding-top:12px;border-top:1px solid var(--hair)}
 .mt-foot .sub{margin:0;font-size:12.5px}
-@media (max-width:640px){
-  .mt-list{margin:0 -14px}
-  .mt-ev{padding:12px 14px 14px}
-}
+
 
 /* ===== 各部門週報（秘書處調閱，meeting.js 的 renderWeekRead） =====
    上面一排部門膠囊（選到的實心；後面是份數；這週有新的亮綠點），下面週次小膠囊＋全文（等寬換行）＋複製 */
@@ -536,6 +530,14 @@ a.doc-pill:active{scale:.96}
 .wk-top .icon{margin-left:auto}
 .wk-fresh{color:var(--ok);font-weight:500;letter-spacing:.08em}
 .wk-text{margin:10px 0 0;font:inherit;font-size:13.5px;line-height:1.75;white-space:pre-wrap;word-break:break-word}
+/* 全部最新：每個部門一顆膠囊（跟即時回報同一種 .events .ev），點了展開全文（2026-11-06 使用者：秘書處太臃腫） */
+.wk-cap summary{gap:10px}
+.wk-cap summary b{flex:0 1 auto}
+.wk-date{flex:1;font-size:12.5px;color:var(--muted)}
+.events .wk-cap:not([open]) .wk-date{color:#5d5d66}
+.wk-cap .wk-fresh{flex:none;font-size:12px}
+.wk-cap .wk-top{justify-content:flex-end}
+.wk-cap .wk-text{margin-top:6px}
 .wk-open{display:inline-block;margin-top:6px;font-size:12.5px;color:var(--muted);text-decoration:none}
 .wk-open:hover{color:var(--ink)}
 .wk-miss{margin:8px 0 0}
@@ -1751,11 +1753,13 @@ body.view-anim #actions button:nth-child(3){animation-delay:0.15s}
 @keyframes fadeSlide{from{opacity:0;transform:translateY(-6px)}}
 @keyframes fadeIn{from{opacity:0}}
 
-/* ===== 開頁時的進場動畫 ===== */
-body.intro .fill{animation:grow 1s var(--ease) both}
-body.intro .tk i{transform-origin:50% 100%;animation:tkIn .8s var(--ease) both}   /* 細刻度從底部長出來 */
+/* ===== 開頁時的進場動畫 =====
+   只播「進場開始那一刻已經在畫面上的元素」（boot.js 先標 data-intro）。2026-11-06 使用者：進部門時全部閃兩下——
+   以前是 body.intro 底下所有符合的元素都播，雲端資料回來重畫時新長出來的元素又從透明淡入一次 */
+body.intro .fill[data-intro]{animation:grow 1s var(--ease) both}
+body.intro .tk i[data-intro]{transform-origin:50% 100%;animation:tkIn .8s var(--ease) both}   /* 細刻度從底部長出來 */
 @keyframes tkIn{from{transform:scaleY(0)}}
-body.intro .card,body.intro .ev,body.intro .g-row{animation:rise .5s var(--ease) both}
+body.intro :is(.card,.ev,.g-row)[data-intro]{animation:rise .5s var(--ease) both}
 @keyframes grow{from{width:0}}
 
 /* ===== 設定檔：關閉的區塊 ===== */
