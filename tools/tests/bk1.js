@@ -7,7 +7,7 @@ await p.click('.dept[href="index.html"]');await p.waitForTimeout(2000);console.l
 const st=()=>p.evaluate(()=>({len:history.length,state:history.state,set:setOpen,week:document.querySelector('#pager').scrollLeft>40}));
 await p.click('#setBtn');await p.waitForTimeout(700);console.log('settings open',await st());
 await p.goBack();await p.waitForTimeout(700);console.log('after back',await st(),p.url());
-await p.click('#weekBtn');await p.waitForTimeout(1200);console.log('week',await st());
+await p.click('#setBtn');await p.waitForTimeout(800);await p.click('#setOv [data-set=week]');await p.waitForTimeout(1300);   /* 2026-11-05：每週概述從設定頁進去（頁首按鈕已拿掉） */console.log('week',await st());
 await p.goBack();await p.waitForTimeout(1200);console.log('after back week',await st());
 // 拖曳返回手勢已停用（back.js 的 GESTURE=false）：拖了設定頁要還開著、沒有形變
 await p.click('#setBtn');await p.waitForTimeout(700);
