@@ -13,8 +13,8 @@
 <link href="https://fonts.googleapis.com/css2?family=Jost:wght@200;300;400;500&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
 <style>
 /* 各部門總覽（2026-11-06 使用者指定）：上方會長室、秘書處兩張大卡片；中間一顆漂浮的學生會標誌（無文字）。
-   長按標誌 1 秒＝輕微振動 → 畫面從標誌往外拉暗 → 其他部門的名字在標誌周圍一圈亮起來；手指移到哪個方向就選到哪個部門，放開＝打開那個部門的看板。
-   電腦：按住滑鼠 1 秒後可以用滾輪換部門，放開打開。鍵盤：標誌上按 Enter 打開選單，方向鍵換、Enter 開、Esc 關。
+   按下標誌的瞬間＝輕微振動 → 畫面從標誌往外拉暗 → 其他部門的名字在標誌周圍一圈亮起來；手指移到哪個方向就選到哪個部門（手指周圍發亮），放開＝打開那個部門的看板。
+   （2026-11-06 起不用長按一秒；也拿掉了指向線。）電腦：按住滑鼠後可以用滾輪換部門，放開打開。鍵盤：標誌上按 Enter 打開選單，方向鍵換、Enter 開、Esc 關。
    沿用看板的視覺語言（純黑／白底、Jost＋Noto Sans TC、細框、紅色重點）；動畫只動 transform／opacity。自成一頁，不載入看板程式 */
 :root{--bg:#fff;--ink:#111114;--muted:#5d5d66;--hair:#e2e2e8;--card:#f4f4f6;--red:#e0342a;--ok:#3ccf7f;--ease:cubic-bezier(.2,.9,.25,1);--spring:cubic-bezier(.3,1.3,.5,1);color-scheme:light}
 @media (prefers-color-scheme:dark){:root{--bg:#000;--ink:#f1f1f4;--muted:#a3a3ae;--hair:#2c2c34;--card:#141417;--red:#ff5a4e;color-scheme:dark}}
@@ -49,12 +49,8 @@ body{overflow-x:hidden}
 .mk-gap{fill:none;stroke:var(--bg);stroke-width:7;stroke-linejoin:round;display:none}
 @media (prefers-color-scheme:dark){.hm-svg .mk-y,.hm-svg .mk-b{fill:var(--ink)}.hm-svg .mk-gap{display:inline}}
 .hm-svg{width:100%;height:auto;filter:drop-shadow(0 14px 22px rgba(0,0,0,.18));transition:transform .5s var(--ease)}
-.hm.press .hm-svg{transform:scale(.9);transition:transform 1s cubic-bezier(.3,.1,.3,1)}   /* 按住的這一秒慢慢縮小（蓄力） */
 .hm.open .hm-svg{transform:scale(.82);transition:transform .4s var(--spring)}
 @keyframes hmFloat{0%,100%{transform:translateY(0) rotate(-1.5deg)}50%{transform:translateY(-10px) rotate(1.5deg)}}
-/* 蓄力圈：按住時一圈細線從標誌往外擴到滿（scale），滿了就打開 */
-.hm-charge{position:absolute;inset:-14px;border-radius:50%;border:1.5px solid var(--ink);opacity:0;transform:scale(.7);pointer-events:none}
-.hm.press .hm-charge{opacity:.5;transform:scale(1);transition:transform 1s linear,opacity .2s}
 .hint{margin:0;font-size:12px;letter-spacing:.2em;color:var(--muted);transition:opacity .3s}
 .hint.bump{animation:hintBump .5s var(--ease)}
 @keyframes hintBump{30%{transform:translateY(-3px);color:var(--ink)}}
@@ -68,12 +64,13 @@ body{overflow-x:hidden}
 .rl b{font-size:19px;font-weight:700;letter-spacing:.14em;white-space:nowrap}
 .rl small{font-size:11px;letter-spacing:.06em;color:rgba(255,255,255,.65);white-space:nowrap}
 .rl small .red{color:#ff5a4e}
-.ring.on .rl.on{opacity:1;transform:translate(var(--x),var(--y)) scale(1.25);transition-delay:0s;transition-duration:.25s}
+.ring.on .rl.on{opacity:1;transform:translate(var(--x),var(--y)) scale(1.25);transition-delay:0s;transition-duration:.25s;text-shadow:0 0 18px rgba(255,255,255,.55)}
+/* 手指（滑鼠）碰到的地方周圍發亮：一團柔和的白光跟著指標走（2026-11-06 使用者：不要指向線，要觸碰的區域周圍發亮） */
+.ring-glow{position:absolute;left:0;top:0;width:220px;height:220px;margin:-110px 0 0 -110px;border-radius:50%;background:radial-gradient(closest-side,rgba(255,255,255,.26),rgba(255,255,255,.08) 55%,rgba(255,255,255,0));transform:translate(var(--gx,-999px),var(--gy,-999px)) scale(.6);opacity:0;transition:opacity .25s,transform .12s linear;pointer-events:none}
+.ring.on.touch .ring-glow{opacity:1;transform:translate(var(--gx),var(--gy)) scale(1)}
+.ring.on.touch.has .ring-glow{background:radial-gradient(closest-side,rgba(255,255,255,.34),rgba(255,255,255,.1) 55%,rgba(255,255,255,0))}
 .ring.on .rl.none{opacity:.3}
 .ring.on .rl.none.on{opacity:.75}
-/* 指向線：從標誌中心到選到的部門 */
-.ring-ptr{position:absolute;left:var(--cx);top:var(--cy);width:var(--len,0px);height:1px;background:linear-gradient(90deg,rgba(255,255,255,0),rgba(255,255,255,.55));transform-origin:0 50%;transform:rotate(var(--a,0deg)) scaleX(0);opacity:0;transition:transform .25s var(--ease),opacity .2s}
-.ring.on.has .ring-ptr{opacity:1;transform:rotate(var(--a,0deg)) scaleX(1)}
 .ring-tip{position:absolute;left:0;right:0;bottom:calc(36px + env(safe-area-inset-bottom));text-align:center;color:rgba(255,255,255,.7);font-size:12px;letter-spacing:.18em;opacity:0;transition:opacity .4s .3s}
 .ring.on .ring-tip{opacity:1}
 body.ring-open .hm-float{animation-play-state:paused}
@@ -82,7 +79,7 @@ body.going .ring .rl.on{transform:translate(var(--x),var(--y)) scale(1.6);opacit
 .pfx-arrive body{opacity:0}
 @media (prefers-reduced-motion:reduce){
   .hm-float{animation:none}
-  .ring-dim,.rl,.ring-ptr,.hm-svg,.hm-charge{transition:none}
+  .ring-dim,.rl,.ring-glow,.hm-svg{transition:none}
 }
 </style>
 <script>/* 換頁動畫（core/js/pagefx.js）：從站內換頁過來的，body 先透明，等它從後面浮上來（不會先閃一下完整的畫面） */try{var r=document.referrer,n=performance.getEntriesByType("navigation")[0];if(r&&new URL(r).origin===location.origin&&(!n||n.type!=="reload")&&!matchMedia("(prefers-reduced-motion: reduce)").matches)document.documentElement.classList.add("pfx-arrive")}catch(e){}</script>
@@ -92,13 +89,13 @@ body.going .ring .rl.on{transform:translate(var(--x),var(--y)) scale(1.6);opacit
   <p class="eyebrow">WORK&nbsp;&nbsp;BOARDS</p>
   <div class="leads" id="leads"></div>
   <div class="stage">
-    <button type="button" class="hm" id="hm" aria-label="選擇部門：長按一秒，手指移到部門放開；鍵盤按 Enter" aria-haspopup="true"><span class="hm-charge" aria-hidden="true"></span><span class="hm-float"><svg class="hm-svg" viewBox="25.08 53.16 152.57 175.44" aria-hidden="true"><path class="mk-y" fill="#f0bc23" d="M75,141a51.19,51.19,0,0,1,15-36.23,51.19,51.19,0,0,1,35.62-15.11A51.37,51.37,0,0,0,25.08,104.79V141A51.37,51.37,0,0,0,76.45,192.4a6.27,6.27,0,0,0,.75,0,50.76,50.76,0,0,0,24.19-6.43,52.2,52.2,0,0,0,11.46-8.68,51.2,51.2,0,0,0,15-36.24ZM68.8,90.21a3.57,3.57,0,0,1,0-.56,6.18,6.18,0,1,1,12.36,0v.22a6.18,6.18,0,0,1-12.33.34Z"/><path class="mk-gap" d="M126.32,89.65a6.78,6.78,0,0,0-.78,0A51.36,51.36,0,0,0,75,141H127.8a51.2,51.2,0,0,1-15,36.24,52.2,52.2,0,0,1-11.46,8.68,50.76,50.76,0,0,1-24.19,6.43,51.39,51.39,0,0,0,100.5-15.11V141A51.39,51.39,0,0,0,126.32,89.65Z"/><path class="mk-b" fill="#0a5baa" d="M126.32,89.65a6.78,6.78,0,0,0-.78,0A51.36,51.36,0,0,0,75,141H127.8a51.2,51.2,0,0,1-15,36.24,52.2,52.2,0,0,1-11.46,8.68,50.76,50.76,0,0,1-24.19,6.43,51.39,51.39,0,0,0,100.5-15.11V141A51.39,51.39,0,0,0,126.32,89.65ZM134,126.44a6.18,6.18,0,0,1-6.15,5.62c-.28,0-.53,0-.81-.05a6.15,6.15,0,0,1-4.87-3.71,5.67,5.67,0,0,1-.5-2.19v-.23a6.1,6.1,0,0,1,2.2-4.7,6.62,6.62,0,0,1,1.64-1,5.86,5.86,0,0,1,2.34-.47,6.16,6.16,0,0,1,6.18,6.17A3.44,3.44,0,0,1,134,126.44Z"/></svg></span></button>
-    <p class="hint" id="hint">長按標誌，選擇部門</p>
+    <button type="button" class="hm" id="hm" aria-label="選擇部門：按住標誌，手指移到部門放開；鍵盤按 Enter" aria-haspopup="true"><span class="hm-float"><svg class="hm-svg" viewBox="25.08 53.16 152.57 175.44" aria-hidden="true"><path class="mk-y" fill="#f0bc23" d="M75,141a51.19,51.19,0,0,1,15-36.23,51.19,51.19,0,0,1,35.62-15.11A51.37,51.37,0,0,0,25.08,104.79V141A51.37,51.37,0,0,0,76.45,192.4a6.27,6.27,0,0,0,.75,0,50.76,50.76,0,0,0,24.19-6.43,52.2,52.2,0,0,0,11.46-8.68,51.2,51.2,0,0,0,15-36.24ZM68.8,90.21a3.57,3.57,0,0,1,0-.56,6.18,6.18,0,1,1,12.36,0v.22a6.18,6.18,0,0,1-12.33.34Z"/><path class="mk-gap" d="M126.32,89.65a6.78,6.78,0,0,0-.78,0A51.36,51.36,0,0,0,75,141H127.8a51.2,51.2,0,0,1-15,36.24,52.2,52.2,0,0,1-11.46,8.68,50.76,50.76,0,0,1-24.19,6.43,51.39,51.39,0,0,0,100.5-15.11V141A51.39,51.39,0,0,0,126.32,89.65Z"/><path class="mk-b" fill="#0a5baa" d="M126.32,89.65a6.78,6.78,0,0,0-.78,0A51.36,51.36,0,0,0,75,141H127.8a51.2,51.2,0,0,1-15,36.24,52.2,52.2,0,0,1-11.46,8.68,50.76,50.76,0,0,1-24.19,6.43,51.39,51.39,0,0,0,100.5-15.11V141A51.39,51.39,0,0,0,126.32,89.65ZM134,126.44a6.18,6.18,0,0,1-6.15,5.62c-.28,0-.53,0-.81-.05a6.15,6.15,0,0,1-4.87-3.71,5.67,5.67,0,0,1-.5-2.19v-.23a6.1,6.1,0,0,1,2.2-4.7,6.62,6.62,0,0,1,1.64-1,5.86,5.86,0,0,1,2.34-.47,6.16,6.16,0,0,1,6.18,6.17A3.44,3.44,0,0,1,134,126.44Z"/></svg></span></button>
+    <p class="hint" id="hint">按住標誌，滑到部門放開</p>
   </div>
   <p class="foot">南臺科技大學學生會・各部門工作看板</p>
   <nav class="sr-only" aria-label="所有部門" id="srList"></nav>
 </div>
-<div class="ring" id="ring" hidden aria-hidden="true"><div class="ring-dim"></div><div class="ring-ptr"></div><div id="ringLabels"></div><p class="ring-tip" id="ringTip">移到部門上放開</p></div>
+<div class="ring" id="ring" hidden aria-hidden="true"><div class="ring-dim"></div><div class="ring-glow"></div><div id="ringLabels"></div><p class="ring-tip" id="ringTip">移到部門上放開</p></div>
 <script src="core/js/pagefx.js"></script>
 <script src="dept/config.js"></script>
 <script>
@@ -144,39 +141,39 @@ body.going .ring .rl.on{transform:translate(var(--x),var(--y)) scale(1.6);opacit
   function setSel(k){
     ring.sel=k;ringEl.querySelectorAll(".rl").forEach(l=>l.classList.toggle("on",+l.dataset.k===k));
     ringEl.classList.toggle("has",k>=0);
-    if(k>=0){const a=-90+k*360/rest.length;ringEl.style.setProperty("--a",a+"deg");ringEl.style.setProperty("--len",(ring.R-40)+"px");$("ringTip").textContent=`放開打開「${rest[k].name}」`}
+    if(k>=0)$("ringTip").textContent=`放開打開「${rest[k].name}」`;
     else $("ringTip").textContent=ring.kbd?"方向鍵選擇・Enter 打開・Esc 關閉":"移到部門上放開";
   }
   function openRing(kbd){
-    ring.kbd=!!kbd;ring.sel=-1;placeLabels();ringEl.hidden=false;void ringEl.offsetWidth;ring.on=true;ringEl.classList.add("on");hm.classList.remove("press");hm.classList.add("open");document.body.classList.add("ring-open");
+    ring.kbd=!!kbd;ring.sel=-1;placeLabels();ringEl.hidden=false;void ringEl.offsetWidth;ring.on=true;ringEl.classList.add("on");hm.classList.add("open");ringEl.classList.toggle("touch",!kbd);document.body.classList.add("ring-open");
     hm.setAttribute("aria-expanded","true");
     try{navigator.vibrate&&navigator.vibrate(18)}catch(_){}   /* 簡單振動（iPhone 的 Safari 不支援振動，只有畫面效果） */
     if(kbd)setSel(0);
   }
   function closeRing(){
-    if(!ring.on)return;ring.on=false;ringEl.classList.remove("on","has");hm.classList.remove("open");document.body.classList.remove("ring-open");hm.setAttribute("aria-expanded","false");
+    if(!ring.on)return;ring.on=false;ringEl.classList.remove("on","has","touch");hm.classList.remove("open");document.body.classList.remove("ring-open");hm.setAttribute("aria-expanded","false");
     setTimeout(()=>{if(!ring.on)ringEl.hidden=true},RM()?0:500);
   }
-  /* 指標位置 → 選哪個部門：離標誌中心 48px 以內不選（放開＝取消），以外看方向 */
-  function pick(x,y){const dx=x-ring.cx,dy=y-ring.cy;if(Math.hypot(dx,dy)<48){setSel(-1);return}
+  /* 指標位置 → 選哪個部門：離標誌中心 48px 以內不選（放開＝取消），以外看方向；手指周圍的白光跟著走 */
+  function glowAt(x,y){ringEl.style.setProperty("--gx",x+"px");ringEl.style.setProperty("--gy",y+"px")}
+  function pick(x,y){glowAt(x,y);const dx=x-ring.cx,dy=y-ring.cy;if(Math.hypot(dx,dy)<48){setSel(-1);return}
     const n=rest.length;let a=Math.atan2(dy,dx)+Math.PI/2;if(a<0)a+=2*Math.PI;setSel(Math.round(a/(2*Math.PI/n))%n)}
   hm.addEventListener("contextmenu",e=>e.preventDefault());
   hm.addEventListener("pointerdown",e=>{
     if(e.button>0||ring.on)return;ring.ptr=e.pointerId;ring.x0=e.clientX;ring.y0=e.clientY;
     try{hm.setPointerCapture(e.pointerId)}catch(_){}
-    hm.classList.add("press");clearTimeout(ring.timer);ring.timer=setTimeout(()=>openRing(false),1000);
+    glowAt(e.clientX,e.clientY);openRing(false);   /* 2026-11-06：按下的瞬間就打開、可以選（不用再等一秒） */
   });
   hm.addEventListener("pointermove",e=>{
     if(e.pointerId!==ring.ptr)return;
-    if(!ring.on){if(Math.hypot(e.clientX-ring.x0,e.clientY-ring.y0)>14){clearTimeout(ring.timer);hm.classList.remove("press")}return}   /* 還沒滿一秒就移動：取消 */
-    pick(e.clientX,e.clientY);
+    if(ring.on)pick(e.clientX,e.clientY);
   });
   const up=e=>{
-    if(e.pointerId!==ring.ptr)return;ring.ptr=null;clearTimeout(ring.timer);
-    if(!ring.on){if(hm.classList.contains("press")){hm.classList.remove("press");hint.classList.remove("bump");void hint.offsetWidth;hint.classList.add("bump")}return}   /* 沒按滿一秒：提示要長按 */
-    if(ring.sel>=0)go(href(rest[ring.sel]));else closeRing();
+    if(e.pointerId!==ring.ptr)return;ring.ptr=null;
+    if(ring.sel>=0){go(href(rest[ring.sel]));return}
+    closeRing();if(Math.hypot(e.clientX-ring.x0,e.clientY-ring.y0)<14){hint.classList.remove("bump");void hint.offsetWidth;hint.classList.add("bump")}   /* 只是點一下：提示要按住滑過去 */
   };
-  hm.addEventListener("pointerup",up);hm.addEventListener("pointercancel",e=>{if(e.pointerId===ring.ptr){ring.ptr=null;clearTimeout(ring.timer);hm.classList.remove("press");closeRing()}});
+  hm.addEventListener("pointerup",up);hm.addEventListener("pointercancel",e=>{if(e.pointerId===ring.ptr){ring.ptr=null;closeRing()}});
   /* 電腦：按住打開後用滾輪換部門 */
   addEventListener("wheel",e=>{if(!ring.on||ring.ptr==null)return;e.preventDefault();const n=rest.length;setSel(((ring.sel<0?(e.deltaY>0?-1:0):ring.sel)+(e.deltaY>0?1:-1)+n)%n)},{passive:false});
   /* 鍵盤 */
