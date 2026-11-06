@@ -84,7 +84,7 @@ function posterHTML(list){
 /* 點了某一天：月曆上方「這一天」區塊，列出那天每件事（時刻、名稱、地點・即時回報）；平常不顯示 */
 function dayViewHTML(list){
   const d=NOTI.day;if(!d)return "";
-  const xs=list.filter(x=>covers(x,d)),tag=x=>`<span class="dv-tag" style="--c:${itemColor(x)}"><i aria-hidden="true"></i><span class="num">${x.end?`${nmd(x.date)}–${nmd(x.end)}`:x.time||"整天"}</span><b>${esc(x.title)}</b>${notiSub(x)?`<small>${esc(notiSub(x))}</small>`:""}</span>`;
+  const xs=list.filter(x=>covers(x,d)),tag=x=>`<span class="dv-tag" style="--c:${itemColor(x)}"><i aria-hidden="true"></i><span class="dv-tx"><b>${esc(x.title)}</b><small><span class="num">${x.end?`${nmd(x.date)}–${nmd(x.end)}`:x.time||"整天"}</span>${notiSub(x)?`・${esc(notiSub(x))}`:""}</small></span></span>`;   /* 2026-11-06：膠囊改成清單列（標題一行、時間與所屬放第二行），長標題不會把時間擠成兩行 */
   return `<div class="noti-dayview" id="notiDay"><div class="dv-top"><b class="num">${nmd(d)}</b><span>週${WD[pd(d).getDay()]}・${xs.length?`${xs.length} 件`:"沒有事件"}</span><button type="button" class="icon dv-x" data-nday="" aria-label="收起這一天">${ico("close","solo")}</button></div>
     ${xs.length?`<div class="dv-tags">${xs.map(tag).join("")}</div>`:""}</div>`;
 }
