@@ -1,7 +1,6 @@
 /* 核心｜各區塊畫面：頁首、週報、甘特圖、議題卡片、即時回報、完成紀錄 */
 function renderHeader(){
   document.title=state.title;renderHero();
-  {const q=$("#boardQ"),ph=`搜尋${CFG.dept.name||state.title||"看板"}`;if(q&&q.placeholder!==ph)q.placeholder=ph}
   $("#saveInfo").textContent=readOnly()?`更新於 ${fmt(state.savedAt)||"—"}`
     :(state.savedAt?`上次儲存 ${state.savedAt}${state.savedBy?`（${state.savedBy}）`:""}`:"尚未儲存")+(cloudOn()?` · ${({ok:"雲端已同步",empty:"雲端尚無資料，儲存後建立",offline:"離線中",limited:"GitHub 讀取次數暫時用完",error:"雲端讀取失敗"})[cloud.status]||"連線雲端中…"}${cloudOn()&&!ghToken()&&loggedIn()?" · 這台裝置沒有連上雲端，儲存只會留在這台裝置":""}`:"")+(localOK?"":" · 這個瀏覽器無法本機保存，請用「匯出備份」");
   offlinePill();notiBadge();if(notiOpen)renderNoti();
@@ -16,10 +15,10 @@ function renderHeader(){
 function isoWeek(d){const t=new Date(Date.UTC(d.getFullYear(),d.getMonth(),d.getDate()));const day=t.getUTCDay()||7;t.setUTCDate(t.getUTCDate()+4-day);const y=new Date(Date.UTC(t.getUTCFullYear(),0,1));return Math.ceil(((t-y)/864e5+1)/7)}
 function termWeek(d){if(!state.termStart)return 0;const diff=Math.floor((pd(ymd(d))-pd(state.termStart))/864e5);return diff<0?0:Math.floor(diff/7)+1}
 function renderHero(){
-  /* 頁首只留 logo、搜尋欄、開學第幾週（2026-11-05 使用者要求精簡；看板名稱、學年、大日期、上次儲存不再顯示在頁首） */
+  /* 頁首只留 logo、搜尋欄（提示字含開學第幾週）、通知鈕（2026-11-05 使用者要求精簡；看板名稱、學年、大日期、上次儲存不再顯示在頁首） */
   const tw=termWeek(new Date());
-  $("#weekPill").textContent=tw>0?"W"+pad(tw):"PRE";$("#weekZh").textContent=tw>0?`開學第${tw}週`:"開學前";
-  $("#weekPillBox").title=state.yearLabel?`${state.yearLabel}・${tw>0?`開學第${tw}週`:"開學前"}`:"";
+  /* 2026-11-06：週次不再是獨立的膠囊（那個位置換成通知鈕），寫進搜尋欄的提示字：「搜尋 權益部 第9週」 */
+  {const q=$("#boardQ"),ph=`搜尋 ${CFG.dept.name||state.title||"看板"} ${tw>0?`第${tw}週`:"開學前"}`;if(q&&q.placeholder!==ph)q.placeholder=ph}
   weekDotSync();
 }
 
