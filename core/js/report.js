@@ -58,7 +58,7 @@ function rptHTML(d){
   const dot=s=>fmt(s).replaceAll("/",".");
   const cover=`<section class="rpt-page rpt-cover">
     <div class="cv-top"><div class="cv-org"><span class="cv-logo">${suLogoMono("南臺科大學生會")}</span><b contenteditable="true">${esc(dept)}</b></div><span class="cv-date num" contenteditable="true">${dot(today())}</span></div>
-    <div class="cv-mid"><p class="cv-k num">WORK REPORT</p><h1 contenteditable="true">工作報告</h1><p class="cv-sub" contenteditable="true">${state.yearLabel?esc(state.yearLabel)+"・":""}${dot(d.from)} – ${dot(d.to)}</p></div>
+    <div class="cv-mid"><p class="cv-k num">WORK REPORT</p><h1 contenteditable="true">工作報告</h1><p class="cv-sub" contenteditable="true">${termCfg().yearLabel?esc(termCfg().yearLabel)+"・":""}${dot(d.from)} – ${dot(d.to)}</p></div>
     <div class="cv-foot"><div class="cv-col"><span contenteditable="true">${esc(meName())}</span><span contenteditable="true" data-ph="職稱（可留白）"></span><span contenteditable="true">南臺科技大學學生會　${esc(dept)}</span></div>
       <div class="cv-col"><span>看板即時動態</span><a class="rpt-live num" href="${esc(boardURL())}" target="_blank" rel="noopener">${esc(boardURL().replace(/^https?:\/\//,""))}</a><span class="num">製表 ${dot(today())}</span></div></div></section>`;
   const toc=`<section class="rpt-page rpt-toc"><header class="toc-h"><span class="num">CONTENTS</span><h2>目錄</h2></header><ol class="toc-list"></ol></section>`;
@@ -95,7 +95,7 @@ function rptSync(print){
 }
 /* ---------- 預覽視窗 ---------- */
 async function reportDialog(){
-  const t=today(),pick=[state.termStart,CFG.term.start].find(x=>x&&x<=t)||addDays(t,-90);
+  const t=today(),pick=[termCfg().termStart,CFG.term.start].find(x=>x&&x<=t)||addDays(t,-90);
   const v=await ask("匯出工作報告",[{name:"from",label:"期間開始（預設是本學期開學日）",type:"date",value:pick},{name:"to",label:"期間結束",type:"date",value:t}]);
   if(!v)return;let a=v.from||pick,b=v.to||t;if(a>b)[a,b]=[b,a];
   openReport(a,b);

@@ -172,31 +172,32 @@ document.addEventListener("click",e=>{
 /* ---------- 設定頁 ---------- */
 /* 登入前整頁只顯示鎖頭；桌面（900px 以上）點了有下一層的項目，清單往左滑、右側面板顯示內容；手機照舊跳出對話框 */
 const SR_CHEV='<span class="sr-chev" aria-hidden="true"><svg viewBox="0 0 8 14" width="7" height="12"><path d="M1.5 1.5 6.5 7l-5 5.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></span>';
-const setRow=(k,ic,t,sub,off)=>`<button type="button" class="set-row" data-set="${k}"${off?' aria-disabled="true"':""}${k===paneKey?' aria-current="true"':""}><span class="sr-ico">${ico(ic,"solo")}</span><span class="sr-t"><b>${t}</b>${sub?`<small>${sub}</small>`:""}</span>${off?"":SR_CHEV}</button>`;
-const setSec=(h,rows)=>`<section class="set-sec"><h3 class="set-h">${h}</h3><div class="set-list">${rows}</div></section>`;
+/* 一列：k＝項目代號；attr＝"set"（設定清單）或 "hub"（合併頁裡的一列） */
+const setRow=(k,ic,t,sub,off,attr="set")=>`<button type="button" class="set-row" data-${attr}="${k}"${off?' aria-disabled="true"':""}${attr==="set"&&k===paneKey?' aria-current="true"':""}><span class="sr-ico">${ico(ic,"solo")}</span><span class="sr-t"><b>${t}</b>${sub?`<small>${sub}</small>`:""}</span>${off?"":SR_CHEV}</button>`;
+const setSec=rows=>`<section class="set-sec"><div class="set-list">${rows}</div></section>`;
 const GATE_LOCK='<svg viewBox="0 0 64 64" width="104" height="104" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path class="gate-shackle" d="M22 29v-8a10 10 0 0 1 20 0v8"/><g class="gate-body"><rect x="14" y="29" width="36" height="26" rx="7"/><circle cx="32" cy="39.5" r="2.6"/><path d="M32 42v5"/></g></svg>';
-/* 每週概述（2026-11-05 從頁首移到設定）：登入前也看得到這一列（週報本來就公開看） */
-const weekRow=()=>setSec("每週概述",setRow("week","doc","每週概述",state.weeks.length?`最新一份 ${fmt([...state.weeks].map(w=>w.date).sort().pop())} · 生成週報、歷史週報`:"生成週報、歷史週報"));
+const weekSub=()=>state.weeks.length?`最新一份 ${fmt([...state.weeks].map(w=>w.date).sort().pop())}`:"還沒有週報";
+/* 設定清單（2026-11-06 整理）：不寫小標題，用間距分成幾塊；同類的功能合成一列（點了進合併頁，見下面 SET_HUBS），部長用不到的不列。
+   登入前只有「每週概述」（週報本來就公開看）＋鎖頭 */
 function settingsInner(){
-  if(!loggedIn())return weekRow()+(state.locked
+  if(!loggedIn())return setSec(setRow("week","doc","每週概述",weekSub()+" · 生成週報、歷史週報"))+(state.locked
     ?`<div class="set-gate"><b>這是唯讀版</b><p class="sub">定型版沒有設定可以調整。</p></div>`
     :`<div class="set-gate"><button type="button" class="set-gate-ico" data-set-login aria-label="登入">${GATE_LOCK}</button><b>登入後才能使用設定</b><p class="sub">選擇身分、輸入個人密碼</p><button type="button" class="primary" data-set-login>登入</button></div>`);
-  const c=cloudCfg(),rem=remRead(),remName=rem&&(state.members.find(m=>m.id===rem.id)||{}).name;
-  return weekRow()+setSec("紀錄",setRow("log","history","編輯紀錄","誰在什麼時候改了什麼"))+
-    (readOnly()?"":
-    setSec("人員與權限",setRow("team","people","身分與專員","編輯身分、管理員（卡片上的專員就是這些身分）")+setRow("labels","tag","標籤",state.labels.length?`人事時地物 ${state.labels.length} 個`:"人事時地物，還沒有建立"))+
-    setSec("看板資訊",setRow("title","edit","看板名稱",esc(state.title))+
-      setRow("year","cap","學年",esc((state.yearLabel||"未設定")+({up:"・上學期",down:"・下學期"}[state.semester]||"")))+setRow("term","flag","開學日",state.termStart?fmt(state.termStart):"未設定"))+
-    setSec("雲端與分享",setRow("cloud","cloud","雲端同步",cloudOn()?`${esc(c.owner)}/${esc(c.repo)} · ${ghToken()?"這台裝置已連上":"這台裝置還沒有權杖"}`:"尚未設定")+
-      setRow("share","share","分享預覽","貼連結到 LINE、IG、FB 時顯示的標題與說明")+
-      (cloudOn()&&ghToken()?setRow("provision","people","開通部門（全會）","用一組初始密碼，讓各部門不用權杖也能連上雲端"):""))+
-    setSec("匯出與備份",setRow("exportEdit","download","匯出備份","JSON 檔，之後可以再匯入")+
-      setRow("import","upload","匯入備份","用備份檔取代目前的看板內容")+setRow("report","doc","匯出工作報告","選期間、補寫內容，再存成 PDF"))+
-    setSec("這台裝置",setRow("forget","device","忘記這台裝置",remName?`目前記住：${esc(remName)}（登入時勾選「在這個裝置上記住密碼」）`:"這台裝置沒有記住任何身分",!remName)))+
-    `<section class="set-sec"><h3 class="set-h">安裝成 App</h3><p class="set-p">在哪個部門的看板安裝，App 就開那個部門（各部門可以各裝一個）；之後打開會回到上次停的部門與區塊。<br>iPhone：用 Safari 打開 → 分享 → 加入主畫面。<br>Android／電腦：瀏覽器選單裡的「安裝」。</p></section>`;
+  if(readOnly())return setSec(setRow("week","doc","每週概述",weekSub()+" · 生成週報、歷史週報")+setRow("log","history","編輯紀錄","誰在什麼時候改了什麼"));
+  const rem=remRead(),remName=rem&&(state.members.find(m=>m.id===rem.id)||{}).name,t=termCfg();
+  return setSec(setRow("report","doc","報告",`每週概述（${weekSub()}）、工作報告`)+setRow("log","history","編輯紀錄","誰在什麼時候改了什麼"))+
+    setSec(setRow("title","edit","看板名稱",esc(state.title))+
+      setRow("team","people","人員",`${state.members.length} 個身分 · 編輯身分、管理員`)+
+      setRow("labels","tag","標籤",state.labels.length?`人事時地物 ${state.labels.length} 個`:"人事時地物，還沒有建立")+
+      (termOwn()?setRow("term","calendar","學年與開學日",`${esc(t.yearLabel||"學年未設定")}${({up:"・上學期",down:"・下學期"}[t.semester]||"")} · ${t.termStart?fmt(t.termStart)+" 開學":"開學日未設定"} · 全會共用`):""))+
+    setSec(setRow("backup","download","備份","匯出、匯入看板內容（JSON 檔）")+
+      setRow("device","device","這台裝置",remName?`記住：${esc(remName)} · 安裝成 App`:"沒有記住身分 · 安裝成 App"))+
+    (siteAdmin()?setSec(setRow("site","cloud","網站管理","雲端同步、分享預覽、開通部門（只有後台管理員看得到）")):"");
 }
+/* 設定頁（與手機子頁）的標題列：左邊學生會 logo（頁首同一個，深淺色規則見 board.css「頁首」段），右邊關閉／返回。只是圖，點了沒有作用（2026-11-06 使用者） */
+const SET_LOGO=()=>`<span class="set-logo">${suLogoMono("南臺科大學生會")}</span>`;
 function settingsHTML(){
-  return `<div class="anim-top"><div class="anim-title"><span class="anim-k">SETTINGS</span><b>設定</b></div><div class="anim-ctl"><button type="button" id="setClose" aria-label="關閉設定">${ico("close")}關閉</button></div></div>
+  return `<div class="anim-top set-top">${SET_LOGO()}<div class="anim-ctl"><button type="button" id="setClose" aria-label="關閉設定">${ico("close")}關閉</button></div></div>
   <div class="set-body"><div class="set-scroll"><div class="set-inner"></div></div><div class="set-pane" hidden></div></div>`;
 }
 /* 鎖頭：鎖扣反覆打開、落下，落下時鎖身輕輕一震 */
@@ -219,12 +220,14 @@ async function openSettings(){
 }
 function closeSettings(instant){
   const ov=$("#setOv");if(!ov||!setOpen)return;
-  if(paneKey){paneSeq++;paneDismiss();paneReset()}
-  subCloseNow();
+  if(paneKey){paneSeq++;paneDismiss(true);paneReset()}
+  const sub=subOpen&&!instant?$("#setSub"):null,under=pageUnder(ov);
+  subCloseNow(!!sub);
   setOpen=false;renderTabbar();Back.closed("settings");
   const done=()=>{if(!setOpen){ov.hidden=true;document.body.classList.remove("set-open")}};
   if(instant){PageFx.settle(ov);return done()}
-  PageFx.swap(ov,pageUnder(ov),{done});   /* 換頁動畫：設定往後退、底下那頁從後面浮上來 */
+  if(sub){PageFx.settle(ov);ov.hidden=true;PageFx.swap(sub,under,{done:()=>{if(!subOpen)sub.hidden=true;done()}});return}   /* 從子頁直接關：子頁往後退，設定清單在它底下先藏起來（不閃出來） */
+  PageFx.swap(ov,under,{done});   /* 換頁動畫：設定往後退、底下那頁從後面浮上來 */
 }
 
 /* ---------- 設定頁：桌面版右側面板 ----------
@@ -240,7 +243,7 @@ function setPaneHost(){if(subOpen)return $("#setSub .set-sub-body");const e=setE
 let subOpen=false;
 function subEl(){
   let s=$("#setSub");if(s)return s;
-  document.body.insertAdjacentHTML("beforeend",`<div class="set-ov set-sub" id="setSub" role="dialog" aria-modal="true" aria-label="設定" hidden><div class="anim-top"><div class="anim-title"><span class="anim-k">SETTINGS</span><b>設定</b></div><div class="anim-ctl"><button type="button" id="subBack" aria-label="返回設定清單">${ico("prev")}返回</button></div></div><div class="set-sub-body"></div></div>`);
+  document.body.insertAdjacentHTML("beforeend",`<div class="set-ov set-sub" id="setSub" role="dialog" aria-modal="true" aria-label="設定" hidden><div class="anim-top set-top">${SET_LOGO()}<div class="anim-ctl"><button type="button" id="subBack" aria-label="返回設定清單">${ico("prev")}返回</button></div></div><div class="set-sub-body"></div></div>`);
   $("#subBack").onclick=()=>paneDismiss();return $("#setSub");
 }
 async function subRun(fn){
@@ -252,8 +255,8 @@ async function subRun(fn){
   subOpen=false;Back.closed("sub");renderSettings();
   PageFx.swap(s,ov,{done:()=>{if(!subOpen)s.hidden=true}});
 }
-/* 關掉整個設定時，子頁一起收掉（不播動畫） */
-function subCloseNow(){const s=$("#setSub");if(!subOpen||!s)return;subOpen=false;Back.closed("sub");paneDismiss();PageFx.settle(s);s.hidden=true}
+/* 關掉整個設定時，子頁一起收掉；keep＝子頁先留著（closeSettings 要拿它播往後退的動畫） */
+function subCloseNow(keep){const s=$("#setSub");if(!subOpen||!s)return;subOpen=false;Back.closed("sub");paneDismiss(true);if(keep)return;PageFx.settle(s);s.hidden=true}
 function paneMark(){document.querySelectorAll("#setOv .set-row").forEach(r=>r.dataset.set===paneKey?r.setAttribute("aria-current","true"):r.removeAttribute("aria-current"))}
 function paneShow(k){
   const e=setEls();paneKey=k;paneMark();if(e.body.classList.contains("split"))return;
@@ -271,16 +274,19 @@ function paneHide(){
   e.pane.animate([{opacity:1},{opacity:0,transform:"translateX(24px)"}],{duration:180,easing:"ease-in"}).onfinish=back;
 }
 function paneReset(){const e=setEls();paneKey="";if(!e)return;e.body.classList.remove("split");e.pane.hidden=true;paneMark()}
-/* 把右側正在進行的流程當成取消：編輯紀錄就關掉，對話框就送出 cancel（身分與專員會照「完成」處理） */
-function paneDismiss(){
-  const d=$("#dlg"),lg=$("#logOv");
+/* 把右側正在進行的流程當成取消：編輯紀錄就關掉，對話框就送出 cancel（身分與專員會照「完成」處理）。
+   合併頁（hubRun）：all＝整個收掉（換項目、關設定）；否則一次退一層（合併頁裡開著的功能先取消、回到合併頁，再退才離開） */
+function paneDismiss(all){
+  const d=$("#dlg"),lg=$("#logOv"),hubOn=hubNow&&!hubNow.inFlow;
+  if(hubNow&&(all||hubOn))hubNow.end();
+  if(hubOn)return paneJob||Promise.resolve();
   if(lg&&!lg.hidden&&lg.classList.contains("in-pane"))closeLog();
   else if(d.open&&d.classList.contains("in-pane")){const ev=new Event("cancel",{cancelable:true});d.dispatchEvent(ev);if(!ev.defaultPrevented)d.close()}
   return paneJob||Promise.resolve();
 }
 async function paneRun(k,fn){
   const my=++paneSeq;
-  if(paneJob)await paneDismiss();
+  if(paneJob)await paneDismiss(true);
   if(my!==paneSeq)return;
   paneShow(k);
   const job=paneJob=Promise.resolve().then(fn).catch(err=>console.error(err));
@@ -289,17 +295,17 @@ async function paneRun(k,fn){
   renderSettings();
   if(my===paneSeq)paneHide();
 }
-async function paneClose(){paneSeq++;await paneDismiss();paneHide()}
-PANE_MQ.addEventListener("change",()=>{if(!PANE_MQ.matches&&paneKey){paneSeq++;paneDismiss();paneReset()}});
+async function paneClose(){paneSeq++;await paneDismiss(true);paneHide()}
+PANE_MQ.addEventListener("change",()=>{if(!PANE_MQ.matches&&paneKey){paneSeq++;paneDismiss(true);paneReset()}});
 
-/* 看板資訊：每一項單獨修改（原本在編輯模式的頁首） */
+/* 學年與開學日（2026-11-06 起只有秘書處能改，全會共用，見 state.js 的 termCfg）：學年、甘特圖預設學期、開學日各自修改 */
 const BOARD_INFO={
   title:["看板名稱",()=>[{name:"v",label:"看板名稱",value:state.title}],v=>{if(!v){toast("看板名稱不能空白");return false}state.title=v}],
   /* 學年：用上下按鈕改數字（不用打字）；存成「115學年」。原本的文字裡沒有數字就從今天推算（8 月起算新學年） */
   year:["學年",()=>{const m=String(state.yearLabel||"").match(/\d+/),d=new Date(),roc=d.getFullYear()-1911-(d.getMonth()<7?1:0);
     return [{name:"v",label:"學年",type:"stepper",value:m?+m[0]:roc,min:100,max:200,suffix:"學年"},
-      {name:"sem",label:"學期（甘特圖打開時預設看這個學期）",type:"select",value:state.semester||"",options:[["","不指定（看全部）"],["up","上學期（8 月～隔年 1 月）"],["down","下學期（2 月～7 月）"]]}]},v=>{state.yearLabel=v.v?`${v.v}學年`:"";state.semester=v.sem||""}],
-  term:["開學日",()=>[{name:"v",label:"開學日（用來算開學第幾週）",type:"date",value:state.termStart||""}],v=>{state.termStart=v||""}],
+      {name:"sem",label:"學期（各部門的甘特圖打開時預設看這個學期）",type:"select",value:state.semester||"",options:[["","不指定（看全部）"],["up","上學期（8 月～隔年 1 月）"],["down","下學期（2 月～7 月）"]]}]},v=>{state.yearLabel=v.v?`${v.v}學年`:"";state.semester=v.sem||""}],
+  term:["開學日",()=>[{name:"v",label:"開學日（各部門用來算開學第幾週）",type:"date",value:state.termStart||""}],v=>{state.termStart=v||""}],
 };
 async function editBoardInfo(k){
   const [t,fields,apply]=BOARD_INFO[k];
@@ -310,38 +316,81 @@ async function editBoardInfo(k){
   await settingSave(()=>apply(v.v),`已更新${t}`);
 }
 function forgetDevice(){remClear();if(!editing){meId="";sessionPw="";sharedPwSession=""}renderSettings();toast("已忘記這台裝置，下次要重新輸入密碼")}
-/* 有下一層的項目（桌面版放右側面板）；其他是直接執行的動作 */
+
+/* ---------- 設定頁：合併頁（2026-11-06 使用者：同類的功能合成一頁，但功能彼此分開、不互相干涉） ----------
+   畫在右側面板（桌面）或子頁（手機）裡，一列一個功能：
+   - flow（有自己表單的，例如雲端同步）：合併頁先藏起來，表單畫在同一個位置；做完或取消就回到合併頁。
+   - act（直接執行的，例如匯出備份、忘記這台裝置）：合併頁留著，執行完更新文字。
+   返回（子頁的「返回」、系統返回、Esc）一次退一層：先退出功能回到合併頁，再退才離開（paneDismiss）。 */
+let hubNow=null;
+function hubRun(title,rows,foot=""){
+  return new Promise(res=>{
+    const host=setPaneHost();if(!host)return res();
+    const box=document.createElement("div");box.className="set-hub";host.prepend(box);
+    let list=[];
+    const draw=()=>{list=rows();box.innerHTML=`<b class="set-hub-t">${title}</b><div class="set-list">${list.map(r=>setRow(r.k,r.ic,r.t,r.sub,r.off,"hub")).join("")}</div>${foot?`<p class="set-p">${foot}</p>`:""}`;weekDotSync()};
+    const me=hubNow={inFlow:false,end(){if(hubNow===me)hubNow=null;box.remove();res()}};
+    draw();
+    box.addEventListener("click",async e=>{
+      const b=e.target.closest("[data-hub]");if(!b||me.inFlow||hubNow!==me||b.getAttribute("aria-disabled")==="true")return;
+      const r=list.find(x=>x.k===b.dataset.hub);if(!r)return;
+      if(r.act){await r.act();if(hubNow===me)draw();return}
+      me.inFlow=true;box.hidden=true;Back.opened("hubflow",()=>paneDismiss());
+      try{await r.flow()}catch(err){console.error(err)}
+      Back.closed("hubflow");me.inFlow=false;
+      if(hubNow!==me)return;   /* 等的時候整個合併頁已經被收掉（換項目、關設定） */
+      draw();box.hidden=false;renderSettings();
+    });
+  });
+}
+const SET_HUBS={
+  /* 報告：每週概述（離開設定、到每週概述頁；返回回到設定清單）與工作報告 */
+  report:()=>hubRun("報告",()=>[
+    {k:"week",ic:"doc",t:"每週概述",sub:weekSub()+" · 生成週報、歷史週報",act:()=>weekFromSettings()},
+    {k:"report",ic:"doc",t:"工作報告",sub:"選期間、補寫內容，再存成 PDF",flow:()=>reportDialog()}]),
+  backup:()=>hubRun("備份",()=>[
+    {k:"export",ic:"download",t:"匯出備份",sub:"把目前的看板內容存成 JSON 檔，之後可以再匯入",act:()=>exportBackup()},
+    {k:"import",ic:"upload",t:"匯入備份",sub:"用備份檔取代目前的看板內容（會先問一次）",act:()=>$("#importFile").click()}]),
+  device:()=>hubRun("這台裝置",()=>{const rem=remRead(),n=rem&&(state.members.find(m=>m.id===rem.id)||{}).name;
+    return [{k:"forget",ic:"device",t:"忘記這台裝置",sub:n?`目前記住：${esc(n)}（登入時勾選「在這個裝置上記住密碼」）`:"這台裝置沒有記住任何身分",off:!n,act:()=>forgetDevice()}]},
+    "<b>安裝成 App</b><br>在哪個部門的看板安裝，App 就開那個部門（各部門可以各裝一個）；之後打開會回到上次停的部門與區塊。<br>iPhone：用 Safari 打開 → 分享 → 加入主畫面。<br>Android／電腦：瀏覽器選單裡的「安裝」。"),
+  /* 學年與開學日：只有秘書處有這一列 */
+  term:()=>hubRun("學年與開學日",()=>[
+    {k:"year",ic:"cap",t:"學年",sub:esc((state.yearLabel||"未設定")+({up:"・上學期",down:"・下學期"}[state.semester]||"")),flow:()=>editBoardInfo("year")},
+    {k:"term",ic:"flag",t:"開學日",sub:state.termStart?fmt(state.termStart):"未設定",flow:()=>editBoardInfo("term")}],
+    "這裡改的是全會共用的值：各部門的學年、開學第幾週、甘特圖預設的學期都跟著秘書處。"),
+  /* 網站管理：只有後台管理員（cloud.js 的 siteAdmin）看得到這一列 */
+  site:()=>hubRun("網站管理",()=>{const c=cloudCfg();return [
+    {k:"cloud",ic:"cloud",t:"雲端同步",sub:cloudOn()?`${esc(c.owner)}/${esc(c.repo)} · ${ghToken()?"這台裝置已連上":"這台裝置還沒有權杖"}`:"尚未設定",
+      flow:async()=>{const before=JSON.stringify(state);const ok=await cloudSettings();if(ok&&!editing&&JSON.stringify(state)!==before)await settingSave(()=>{},"雲端設定已更新");else render()}},
+    {k:"share",ic:"share",t:"分享預覽",sub:"貼連結到 LINE、IG、FB 時顯示的標題與說明（所有部門共用）",flow:()=>shareSettings()},
+    ...(cloudOn()&&ghToken()?[{k:"provision",ic:"people",t:"開通部門（全會）",sub:"用一組初始密碼，讓各部門不用權杖也能連上雲端",flow:()=>provisionDepts()}]:[])]}),
+};
+/* 有下一層的項目（桌面版放右側面板、手機進子頁） */
 const SET_FLOWS={
   log:()=>openLog(setPaneHost()),
   team:()=>teamSettings(),
   labels:()=>labelSettings(),
-  title:()=>editBoardInfo("title"),year:()=>editBoardInfo("year"),term:()=>editBoardInfo("term"),
-  cloud:async()=>{const before=JSON.stringify(state);const ok=await cloudSettings();if(ok&&!editing&&JSON.stringify(state)!==before)await settingSave(()=>{},"雲端設定已更新");else render()},
-  share:()=>shareSettings(),
-  provision:()=>provisionDepts(),
-  report:()=>reportDialog(),
+  title:()=>editBoardInfo("title"),
+  ...SET_HUBS,
 };
 document.addEventListener("click",async e=>{
   if(!e.target.closest)return;
   if(e.target.closest("#setOv [data-set-login]")){if(await ensureLogin())renderSettings();return}
   const r=e.target.closest("#setOv [data-set]");if(!r)return;
   const k=r.dataset.set;
-  if(k==="week"){weekFromSettings();return}   /* 不用登入 */
-  if(r.getAttribute("aria-disabled")==="true"||!loggedIn())return;
-  if(SET_FLOWS[k]){
-    if(!PANE_MQ.matches){await subRun(SET_FLOWS[k]);return}   /* 手機：進到下一層全畫面子頁 */
-    if(k===paneKey){await paneClose();return}   /* 再點一次選到的項目＝收起 */
-    await paneRun(k,SET_FLOWS[k]);return;
-  }
-  if(k==="forget"){forgetDevice();return}
-  if(k==="exportEdit"){exportBackup();return}
-  if(k==="import"){$("#importFile").click();return}
+  if(k==="week"){weekFromSettings();return}   /* 登入前的「每週概述」：不用登入 */
+  if(r.getAttribute("aria-disabled")==="true"||!loggedIn()||!SET_FLOWS[k])return;
+  if(!PANE_MQ.matches){await subRun(SET_FLOWS[k]);return}   /* 手機：進到下一層全畫面子頁 */
+  if(k===paneKey){await paneClose();return}   /* 再點一次選到的項目＝收起 */
+  await paneRun(k,SET_FLOWS[k]);
 });
 document.addEventListener("keydown",e=>{
   if(e.key!=="Escape"||!setOpen)return;
   const d=$("#dlg"),lg=$("#logOv");
   if(d.open&&!d.classList.contains("in-pane"))return;   /* 跳出的對話框自己處理 */
   if(lg&&!lg.hidden)return;                              /* 編輯紀錄自己處理（team.js） */
+  if(hubNow&&hubNow.inFlow){paneDismiss();return}   /* 合併頁裡開著的功能：先回到合併頁 */
   if(paneKey){paneClose();return}
   if(subOpen){paneDismiss();return}
   closeSettings();

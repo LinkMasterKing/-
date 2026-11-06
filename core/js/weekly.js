@@ -94,8 +94,8 @@ function weekDue(t=today()){
 }
 function weekDotSync(){
   const due=weekDue()&&!readOnly();
-  document.querySelectorAll("#setBtn,#setOv [data-set=week]").forEach(el=>el.classList.toggle("due",due));
-  const g=$("#setBtn");if(g)g.title=due?"本週週報還沒產出（設定 → 每週概述）":"";
+  document.querySelectorAll("#setBtn,#setOv [data-set=week],#setOv [data-set=report],[data-hub=week]").forEach(el=>el.classList.toggle("due",due));
+  const g=$("#setBtn");if(g)g.title=due?"本週週報還沒產出（設定 → 報告 → 每週概述）":"";
 }
 /* 網頁一直開著跨過週五也要冒出來：每 10 分鐘、回到這個分頁時再檢查一次 */
 setInterval(weekDotSync,6e5);document.addEventListener("visibilitychange",()=>{if(!document.hidden)weekDotSync()});

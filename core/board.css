@@ -1100,6 +1100,11 @@ dialog#dlg:has(.csel.open){overflow:visible}
 .set-ov{position:fixed;inset:0;z-index:38;background:var(--bg);color:var(--ink);display:flex;flex-direction:column;gap:10px;padding:calc(14px + env(safe-area-inset-top)) max(clamp(14px,3vw,40px),env(safe-area-inset-right)) 0 calc(var(--rail-in) + max(clamp(14px,3vw,40px),env(safe-area-inset-left)))}
 .set-ov[hidden]{display:none}
 .set-ov .anim-top{padding-bottom:18px}
+/* 標題列（2026-11-06）：不寫「SETTINGS 設定」，左邊放學生會 logo（頁首同一個 .logo，深淺色規則在「頁首」段），右邊關閉／返回 */
+.set-top{flex-wrap:nowrap}
+.set-logo{display:flex;align-items:center;height:44px;min-width:0}
+.set-logo .logo{height:36px}
+.set-sub .set-logo .logo{height:32px}
 /* 清單（.set-scroll）與右側面板（.set-pane）：平常清單佔滿、內容置中；
    桌面版選了有下一層的項目時加 .split，清單縮成左欄（寬度變化由 nav.js 用 Web Animations 做），面板從右邊滑入 */
 .set-body{flex:1;min-height:0;display:flex;gap:clamp(20px,3vw,48px)}
@@ -1114,9 +1119,15 @@ dialog#dlg:has(.csel.open){overflow:visible}
 .set-sub-body{flex:1;min-height:0;overflow:auto;overscroll-behavior:contain;padding:10px 2px calc(32px + var(--bar-in) + env(safe-area-inset-bottom))}
 .set-row[aria-current="true"]{background:color-mix(in srgb,var(--ink) 10%,transparent)}
 .set-row[aria-current="true"] .sr-chev{color:var(--ink)}
-/* 設定頁「每週概述」那一列：本週週報還沒產出時，圖示右上角紅點 */
-.set-row[data-set="week"] .sr-ico{position:relative}
-.set-row[data-set="week"].due .sr-ico::after{content:"";position:absolute;top:-2px;right:-4px;width:9px;height:9px;border-radius:50%;background:var(--red);box-shadow:0 0 0 2px var(--bg)}
+/* 合併頁（nav.js 的 hubRun）：畫在右側面板／手機子頁裡，標題跟面板裡的表單同一種（20px＋細分隔線），下面一個圓角框一列一個功能；
+   從功能回來時整頁從右邊滑入淡入（跟面板表單同一個 paneFormIn） */
+.set-hub{display:grid;gap:16px;max-width:640px;animation:paneFormIn var(--mo-slow) var(--mo-out) both}
+.set-hub[hidden]{display:none}
+.set-hub-t{font-size:20px;font-weight:500;letter-spacing:.08em;padding-bottom:12px;border-bottom:1px solid var(--hair)}
+.set-hub .set-p b{color:var(--ink);font-weight:500}
+/* 「報告」那一列、合併頁裡「每週概述」那一列（登入前是清單上的「每週概述」）：本週週報還沒產出時，圖示右上角紅點 */
+.set-row:is([data-set="week"],[data-set="report"],[data-hub="week"]) .sr-ico{position:relative}
+.set-row:is([data-set="week"],[data-set="report"],[data-hub="week"]).due .sr-ico::after{content:"";position:absolute;top:-2px;right:-4px;width:9px;height:9px;border-radius:50%;background:var(--red);box-shadow:0 0 0 2px var(--bg)}
 /* 登入前：整頁只有鎖頭（鎖扣循環開合，nav.js 的 gateAnim） */
 .set-gate{display:grid;justify-items:center;gap:10px;text-align:center;padding:12vh 0 0}
 .set-gate>b{font-size:18px;font-weight:500;letter-spacing:.08em}
@@ -1125,8 +1136,7 @@ dialog#dlg:has(.csel.open){overflow:visible}
 .set-gate-ico{display:grid;place-items:center;width:168px;height:168px;padding:0;border-radius:50%;border:1px solid var(--line);background:transparent;color:var(--ink);margin-bottom:8px}
 .set-gate-ico svg{overflow:visible}
 .set-gate-ico:hover{transform:none;box-shadow:0 0 28px 2px color-mix(in srgb,var(--ink) 22%,transparent)}
-.set-inner{max-width:720px;margin:0 auto;grid-template-columns:minmax(0,1fr);padding:14px 0 calc(32px + var(--bar-in) + env(safe-area-inset-bottom));display:grid;gap:28px}
-.set-h{margin:0 0 10px;padding:0;border:0;font-size:12.5px;font-weight:500;color:var(--muted);letter-spacing:.16em}
+.set-inner{max-width:720px;margin:0 auto;grid-template-columns:minmax(0,1fr);padding:14px 0 calc(32px + var(--bar-in) + env(safe-area-inset-bottom));display:grid;gap:20px}   /* 沒有小標題，塊與塊之間只靠間距分開 */
 .set-row:hover{transform:none;box-shadow:none;background:color-mix(in srgb,var(--ink) 6%,transparent)}
 .set-row:active{transform:none;background:color-mix(in srgb,var(--ink) 11%,transparent)}
 .set-list{display:grid;border:1px solid var(--line);border-radius:24px;overflow:hidden}
