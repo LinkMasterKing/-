@@ -1310,9 +1310,10 @@ dialog#dlg:has(.csel.open){overflow:visible}
 /* 這一天的事件（2026-11-06 使用者：膠囊遇到長標題會折行、太醜 → 改成清單列）：左邊一條部門／狀態色的細直條，右邊標題（可以折行）、下一行次要色小字「時間・所屬」；列與列之間細線 */
 .dv-tags{display:grid}
 .dv-tag{animation:ndRise .45s var(--mo-out) both}.dv-tag:nth-child(2){animation-delay:.04s}.dv-tag:nth-child(3){animation-delay:.08s}.dv-tag:nth-child(4){animation-delay:.12s}.dv-tag:nth-child(n+5){animation-delay:.16s}
-.dv-tag{display:grid;grid-template-columns:3px minmax(0,1fr);gap:12px;padding:11px 2px;font-size:14px}
+.dv-tag{display:grid;grid-template-columns:7px minmax(0,1fr);gap:12px;padding:11px 2px;font-size:14px}
 .dv-tag+.dv-tag{border-top:1px solid var(--hair)}
-.dv-tag i{border-radius:2px;background:var(--c)}
+/* 狀態色用燈號（7px 圓點，對齊名稱第一行的中間），跟今日卡片、今日層同一種（2026-11-06 使用者：原本的直條跟現在的視覺語言不合） */
+.dv-tag i{width:7px;height:7px;margin-top:calc((1.45em - 7px) / 2);border-radius:50%;background:var(--c)}
 .dv-tx{display:grid;gap:3px;min-width:0}
 .dv-tx b{font-weight:500;line-height:1.45}
 .dv-tx small{font-size:12px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
