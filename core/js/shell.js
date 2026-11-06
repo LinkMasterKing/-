@@ -19,6 +19,12 @@ const SHELL_HTML=`<div class="pager" id="pager">
         <div class="panel-head"><h2 id="grH">秘書處會議編輯<span class="en">GRANT</span></h2></div>
         <div class="grant-row"><div class="grant-seg lseg" role="tablist" aria-label="秘書處會議編輯"><span class="lseg-lens" aria-hidden="true"></span><button type="button" role="tab" data-k="off" aria-selected="true">關閉</button><button type="button" role="tab" data-k="on" aria-selected="false">開放今天</button></div><p class="sub grant-st" id="grantSt"></p></div>
       </section>
+      <section class="panel act-panel" id="actPanel" aria-labelledby="acH" hidden>
+        <div class="panel-head"><h2 id="acH">各部門編輯量<span class="en">ACTIVITY</span></h2><button type="button" class="icon" id="actRefresh">重新整理</button></div>
+        <p class="sub ac-info" id="actInfo"></p>
+        <div class="ac-chart" id="actChart"></div>
+        <div class="ac-legend" id="actLegend"></div>
+      </section>
       <section class="panel follow-panel" id="followPanel" data-secbox="follow" aria-labelledby="fwH" hidden>
         <div class="panel-head"><h2 id="fwH">追蹤<span class="en">FOLLOW</span></h2><button type="button" class="icon sec-edit-btn" data-secedit="follow" aria-pressed="false">編輯這區</button></div>
         <div class="follows" id="follows" data-flip></div>
