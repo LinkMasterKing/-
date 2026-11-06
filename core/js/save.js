@@ -101,7 +101,7 @@ async function prepareSave(){
     const ready=!!(state.sync&&state.sync.tokenEnc);
     const v=await ask("這台裝置沒有連上雲端",[{name:"token",label:"學生會管理員：貼上 GitHub 權杖（一般成員不用填）",type:"password"}],
       {danger:"只存在這台裝置",alt:"進階設定",
-       note:(ready?"這個部門已經開通雲端，但這台裝置還沒拿到上傳權限。請按「取消」，重新整理後再按「編輯」登入一次，就會自動連上。"
+       note:(ready?"這個部門已經開通雲端，但這台裝置還沒拿到上傳權限。請按「取消」，重新整理後再到設定頁登入一次，就會自動連上。"
          :"這個部門還沒開通雲端。按「只存在這台裝置」的話，資料只留在這個瀏覽器，其他人、其他裝置都看不到。\n請學生會管理員在自己的電腦打開「設定 → 開通部門」開通，之後重新登入就會自動連上。")+`\n（雲端位置：${c.owner}/${c.repo}，公開的網站，所有人都看得到看板內容）`,
        validate:o=>(o.token||"").trim()?"":"沒有權杖的話，請按「只存在這台裝置」或「取消」"});
     if(v==="alt"){if(!(await cloudSettings()))return null;}
@@ -122,7 +122,7 @@ async function saveFlow(){
 }
 /* 設定頁的變更：編輯中就併入這次編輯（按儲存才上傳）；沒在編輯就直接儲存並同步 */
 async function settingSave(apply,msg){
-  if(editing){if(apply()===false)return false;dirty=true;render();toast(msg+"（按「儲存並同步」後才會上傳）");return true}
+  if(editing){if(apply()===false)return false;dirty=true;render();toast(msg+"（按編輯中那張卡片的「儲存」後才會上傳）");return true}
   const p=await prepareSave();if(!p)return false;
   if(apply()===false)return false;
   state.savedAt=nowStr();if(meName())state.savedBy=meName();

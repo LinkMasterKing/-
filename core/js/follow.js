@@ -55,7 +55,7 @@ function renderFollows(){
     return `<article class="fw${b.gone?" gone":""}" data-fw="${f.id}" data-dot="${b.dot||""}">
       <div class="fw-top"><span class="tag sm">${esc(dp?dp.name:f.dept)}</span><span class="fw-k">${FW_KIND[f.kind]||""}</span>${dp?`<a class="fw-open" href="?d=${encodeURIComponent(dp.id)}" target="_blank" rel="noopener">開啟看板 →</a>`:""}<button type="button" class="icon danger edit-only" data-fwdel aria-label="不再追蹤">移除</button></div>
       <h3 class="fw-t">${esc(b.title)}</h3>${b.html}</article>`}).join("")
-    ||`<p class="empty">還沒有追蹤任何項目。按「編輯」→「+ 追蹤項目」，選部門和要看的即時回報、進度、完成紀錄或週報。</p>`;
+    ||`<p class="empty">還沒有追蹤任何項目。登入後按這區的「編輯」→「+ 追蹤項目」，選部門和要看的即時回報、進度、完成紀錄或週報。</p>`;
   /* 需要的部門資料還沒讀過就去讀，讀完再畫一次 */
   const need=[...new Set(fs.map(f=>f.dept))].filter(id=>!fwCache.has(id));
   if(need.length)Promise.all(need.map(id=>fwLoad(id))).then(renderFollows);

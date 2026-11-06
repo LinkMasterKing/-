@@ -4,7 +4,7 @@
   "short_name": "工務部",
   "description": "南臺科技大學學生會工務部的議題進度、即時回報與每週概述。",
   "lang": "zh-Hant",
-  "start_url": "../../index.html?d=works",
+  "start_url": "../../home.html",
   "scope": "../../",
   "display": "fullscreen",
   "background_color": "#ffffff",

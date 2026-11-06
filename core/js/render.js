@@ -19,25 +19,33 @@ function rangeMs(){const r=viewRange(),s=pd(r.start+"-01"),e=pd(r.end+"-01");e.s
 function pos(date){const[s,e]=rangeMs();return clamp((pd(date).getTime()-s)/(e-s)*100)}
 function months(){const r=viewRange(),out=[],d=pd(r.start+"-01"),end=pd(r.end+"-01");while(d<=end){out.push(new Date(d));d.setMonth(d.getMonth()+1)}return out}
 
-/* 分區編輯：頁首「編輯」只負責登入、進入編輯狀態與最後的儲存／取消；
-   會長室的追蹤、秘書處的會議編輯：標題列各有一顆「編輯這區」，按了這區才出現編輯工具，一次只能開一區。
-   即時回報、進度、完成紀錄（INLINE_SECS）沒有「編輯這區」，頁首按「編輯」後就是逐欄編輯（點哪一欄改哪一欄，見 views.js 的 evFld／ifFld）。
-   secEdit＝目前在編輯的區塊（最多一個，不含 INLINE_SECS）；進入編輯時清空（events.js 的 #editBtn）。週報頁的編輯照舊跟著 editing */
-let secEdit=new Set();
-const INLINE_SECS=["live","progress","done"];
-const secEd=k=>editing&&(INLINE_SECS.includes(k)||secEdit.has(k));
-const SEC_EDIT_LBL={on:"收起編輯",off:"編輯這區"};
-function renderSecEdit(){
-  document.querySelectorAll("[data-secbox]").forEach(b=>b.classList.toggle("sec-edit",secEd(b.dataset.secbox)));
-  document.querySelectorAll("[data-secedit]").forEach(b=>{const on=secEd(b.dataset.secedit),t=on?SEC_EDIT_LBL.on:SEC_EDIT_LBL.off;
-    b.setAttribute("aria-pressed",on);if(b._t!==t){b._t=t;b.innerHTML=(on?"":ico("edit"))+t}});
+/* 單卡編輯（2026-11-06 使用者：頁首的大「編輯」拿掉，全部改成卡片自己的小「編輯」鈕；登入狀態才看得到，即時回報要展開才看得到）
+   cardEdit＝正在編輯的那一張，一次只能一張：
+     "e:id" 即時回報（含完成紀錄裡的）、"i:id" 議題（含結案的）、"s:區名" 整區（follow 會長室追蹤、meetedit 秘書處會議編輯、gantt 甘特圖時間軸）。
+   editing＝有一張在編輯。那張卡片（或那一區）加 .sec-edit，裡面的 .edit-only 工具才出現（board.css 開頭），最下面一條「取消｜儲存」（editBarHTML）。
+   「儲存」＝saveFlow（存整份資料、寫一筆編輯紀錄），「取消」＝還原到開始編輯前（snapshot）。
+   編輯鈕（.card-edit-btn）一律畫出來，登入（body.authed）而且沒有別張在編輯時才顯示（board.css「單卡編輯」段）。 */
+let cardEdit="";
+const cardEd=(t,id)=>editing&&cardEdit===`${t}:${id}`;
+const secEd=k=>editing&&cardEdit==="s:"+k;
+const canEdit=()=>loggedIn()&&!readOnly();
+const editBtnHTML=key=>state.locked?"":`<button type="button" class="icon card-edit-btn" data-edit="${key}">${ico("edit")}編輯</button>`;
+const editBarHTML=()=>`<div class="card-edbar"><button type="button" data-edcancel>取消</button><button type="button" class="primary" data-edsave>${cloudOn()?"儲存並同步":"儲存"}</button></div>`;
+/* 開始編輯 key 那一張：then＝開始後馬上要做的事（例如新增一筆空白的、打開名稱欄） */
+async function startEdit(key,then){
+  if(editing||!(await ensureLogin()))return false;
+  morph(()=>{editing=true;cardEdit=key;dirty=false;evFld=null;ifFld=null;snapshot=JSON.stringify(state);keepIds=new Set(state.issues.filter(i=>!i.doneAt).map(i=>i.id));if(then)then();render()});
+  const box=document.querySelector(`[data-edbox="${key}"]`);   /* 剛打開的那張，編輯工具淡入（board.css「編輯／檢視切換時的動畫」段的 .sec-anim） */
+  if(box&&!reduceMotion()){box.classList.remove("sec-anim");void box.offsetWidth;box.classList.add("sec-anim");clearTimeout(box._sa);box._sa=setTimeout(()=>box.classList.remove("sec-anim"),900)}
+  return true;
 }
-/* 按「編輯這區」：一次只能改一區——打開這區時，原本開著的那區自動收起；再按一次收起這區。
-   剛打開的那區，編輯工具淡入（board.css「編輯／檢視切換時的動畫」段的 .sec-anim） */
-function toggleSecEdit(k){
-  const on=!secEdit.has(k);secEdit=on?new Set([k]):new Set();render();
-  const box=document.querySelector(`[data-secbox="${k}"]`);if(!box||!on||reduceMotion())return;
-  box.classList.remove("sec-anim");void box.offsetWidth;box.classList.add("sec-anim");clearTimeout(box._sa);box._sa=setTimeout(()=>box.classList.remove("sec-anim"),900);
+function cancelEdit(){morph(()=>{if(CFG.meeting)mtDiscard();if(dirty)state=normalize(JSON.parse(snapshot));editing=false;cardEdit="";dirty=false;evFld=null;ifFld=null;render()})}
+/* 固定在頁面上的整區（追蹤、會議編輯、甘特圖時間軸）：編輯中加 .sec-edit、最下面補上「取消｜儲存」；卡片本身（即時回報、議題、完成紀錄）每次重畫時自己帶 */
+function renderSecEdit(){
+  document.body.classList.toggle("authed",canEdit());
+  document.querySelectorAll("[data-edit]:not(:has(.ico))").forEach(b=>b.insertAdjacentHTML("afterbegin",ico("edit")));   /* 骨架（shell.js）裡的編輯鈕載入時還沒有 icon 可用，第一次畫時補上 */
+  document.querySelectorAll("[data-edbox^='s:']").forEach(b=>{const on=editing&&cardEdit===b.dataset.edbox,bar=b.querySelector(":scope>.card-edbar");
+    b.classList.toggle("sec-edit",on);if(on&&!bar)b.insertAdjacentHTML("beforeend",editBarHTML());else if(!on&&bar)bar.remove()});
 }
 
 const activeIssues=()=>state.issues.filter(i=>!i.doneAt||(editing&&keepIds.has(i.id)));
@@ -59,7 +67,7 @@ function render(){
 /* ---------- 區塊切換：底部工具列的三個分頁 ----------
    手機：一次只顯示一區（預設即時回報）；桌面：全部顯示，選到的區塊放大移到最上面，其他區塊排在下面 */
 const SECS=["live","progress","done"].filter(secOn);
-let curSec=(SECS.includes(appStartSec)&&appStartSec)||SECS[0]||"live",secTok=0;   /* appStartSec：App 重開時回到上次的區塊（app.js） */
+let curSec=(SECS.includes(appStartSec)&&appStartSec)||SECS[0]||"live",secTok=0;   /* appStartSec：app.js 留下的初始區塊（現在都是空的，從第一個區塊開始） */
 const isPhone=()=>matchMedia("(max-width:640px)").matches;
 function renderSections(){document.querySelectorAll(".layout>.sgroup").forEach(g=>g.classList.toggle("cur",g.dataset.sec===curSec));
   /* 切換區塊時，個別進度／完成紀錄要不要改成左右兩欄跟著變 */

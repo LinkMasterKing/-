@@ -200,17 +200,20 @@ function springCurve(z,k,tol=.0015){
    底板（.td-bg，純色）用 clip-path 從卡片的位置與圓角「揭開」到全螢幕（圓角不會被拉歪），裡面的內容同時從卡片的位置彈到定位（transform）；
    兩個都照同一條彈簧曲線走（展開略帶回彈、收合不回彈、尾巴短）。
    2026-11-06 使用者回報返回卡頓：clip-path 只裁純色底板（每格重畫很便宜），內容只動 transform／opacity（合成器）；
-   收合時卡片一開始就回到底板下面，最後一段底板淡掉直接露出卡片，不會停在一塊空白卡上等動畫收尾 */
-function todayMorph(ov,card,open){
+   收合（2026-11-06 使用者：返回直接把進入動畫倒著播）：同一組關鍵影格、同一條彈簧，direction:"reverse"；卡片整段藏著，播完才換回卡片 */
+function todayMorph(ov,card,reverse){
   const r=card.getBoundingClientRect(),W=innerWidth,H=innerHeight,inner=ov.querySelector(".td-in");
   const ir=inner.getBoundingClientRect(),dx=r.left+14-ir.left,dy=r.top+12-ir.top;   /* 內容的左上（大日期）對齊卡片的大日期 */
-  const S=open?springCurve(.62,190):springCurve(1,340,.006),n=S.p.length;   /* 展開回彈多一點（約 8%）；收合臨界阻尼、快收尾 */
+  const S=springCurve(.62,190);   /* 回彈約 8%；倒放時先輕輕鼓一下再縮回卡片 */
+  if(reverse){   /* 彈簧最後一段幾乎不動（離終點 1.5% 以內），倒放時會變成一開始卡住不動：剪掉這段尾巴 */
+    let k=S.p.length-1;while(k>1&&Math.abs(1-S.p[k-1])<.015)k--;S.dur=Math.round(S.dur*k/(S.p.length-1));S.p=S.p.slice(0,k+1);S.p[k]=1}
+  const n=S.p.length,o={duration:S.dur,fill:"both",direction:reverse?"reverse":"normal"};
   const clip=p=>{const q=Math.max(0,p);return `inset(${(r.top*(1-q)).toFixed(1)}px ${((W-r.right)*(1-q)).toFixed(1)}px ${((H-r.bottom)*(1-q)).toFixed(1)}px ${(r.left*(1-q)).toFixed(1)}px round ${(26*(1-Math.min(1,q))).toFixed(1)}px)`};
   const kf=[],ki=[];
-  S.p.forEach((v,i)=>{const p=open?v:1-v,off=i/(n-1);kf.push(open?{offset:off,clipPath:clip(p)}:{offset:off,clipPath:clip(p),opacity:Math.min(1,p/.28)});ki.push({offset:off,transform:`translate(${(dx*(1-p)).toFixed(1)}px,${(dy*(1-p)).toFixed(1)}px) scale(${(.92+.08*p).toFixed(4)})`,opacity:open?Math.max(0,Math.min(1,p*1.5-.1)):Math.max(0,p*1.6-.2)})});
+  S.p.forEach((p,i)=>{const off=i/(n-1);kf.push({offset:off,clipPath:clip(p)});ki.push({offset:off,transform:`translate(${(dx*(1-p)).toFixed(1)}px,${(dy*(1-p)).toFixed(1)}px) scale(${(.92+.08*p).toFixed(4)})`,opacity:Math.max(0,Math.min(1,p*1.5-.1))})});
   inner.style.transformOrigin="0 0";
-  ov.querySelector(".td-bg").animate(kf,{duration:S.dur,fill:"both"});
-  return inner.animate(ki,{duration:S.dur,fill:"both"}).finished;
+  ov.querySelector(".td-bg").animate(kf,o);
+  return inner.animate(ki,o).finished;
 }
 function openToday(card){
   if(todayOpen)return;todayOpen=true;
@@ -219,15 +222,15 @@ function openToday(card){
   ov.querySelector(".td-scroll").innerHTML=todayHTML();ov.querySelector(".td-scroll").scrollTop=0;ov.hidden=false;ov.classList.remove("off");Back.opened("today",i=>closeToday(i));ov._card=card;
   if(reduceMotion()||!card){ov.classList.add("on");return}
   card.style.opacity="0";ov.classList.add("on");
-  todayMorph(ov,card,true).then(()=>ov.getAnimations({subtree:true}).forEach(a=>a.cancel())).catch(()=>{});
+  todayMorph(ov,card,false).then(()=>ov.getAnimations({subtree:true}).forEach(a=>a.cancel())).catch(()=>{});
 }
 function closeToday(instant){
   const ov=$("#todayOv");if(!ov||!todayOpen)return;todayOpen=false;Back.closed("today");
   const card=ov._card&&ov._card.isConnected?ov._card:$("#notiOv .nd-card.today"),done=()=>{ov.hidden=true;ov.classList.remove("on","off");ov.getAnimations({subtree:true}).forEach(a=>a.cancel());if(card)card.style.opacity=""};
   if(instant===true||reduceMotion()||!card){done();return}
   ov.getAnimations({subtree:true}).forEach(a=>a.cancel());ov.querySelector(".td-scroll").scrollTo({top:0});
-  card.style.opacity="";   /* 卡片先回到底板下面（底板最後淡掉時露出來） */
-  todayMorph(ov,card,false).then(done).catch(done);
+  card.style.opacity="0";   /* 倒放期間卡片藏著（底板縮回卡片的位置與圓角，播完換回卡片，看起來就是同一張） */
+  todayMorph(ov,card,true).then(done).catch(done);
 }
 function renderNoti(){
   const el=$("#notiOv .noti-inner");if(!el||!notiOpen)return;

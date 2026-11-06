@@ -8,9 +8,10 @@ document.addEventListener("click",async e=>{
   /* 進度卡片：點甘特圖的議題列換成該議題詳情，按返回回到甘特圖 */
   if(t.closest("#pvBack")){progShow(null);return}
   if(jump&&!t.closest("[data-marker]")){e.preventDefault();if(curSec!=="progress")setSection("progress",{instant:true});progShow(jump.dataset.jump);return}
-  if(t.closest("#editBtn")){if(!(await ensureLogin()))return;morph(()=>{editing=true;secEdit=new Set();snapshot=JSON.stringify(state);keepIds=new Set(state.issues.filter(i=>!i.doneAt).map(i=>i.id));render()});return}
-  if(t.closest("#cancelBtn")){morph(()=>{if(CFG.meeting)mtDiscard();if(dirty)state=normalize(JSON.parse(snapshot));editing=false;dirty=false;render()});return}
-  if(t.closest("#saveBtn")){await saveFlow();return}
+  /* 單卡編輯（render.js 的 startEdit／cancelEdit）：卡片上的「編輯」、編輯中那張的「取消｜儲存」 */
+  const edb=t.closest("[data-edit]");if(edb){e.preventDefault();e.stopPropagation();await startEdit(edb.dataset.edit);return}
+  if(t.closest("[data-edcancel]")){cancelEdit();return}
+  if(t.closest("[data-edsave]")){if(!fldCommitOpen())return;await saveFlow();return}   /* 還開著的那一欄先存回（填錯就停在原欄） */
   if(t.closest("[data-copyweek]")){const bt=t.closest("[data-copyweek]");const w=state.weeks.find(x=>x.id===t.closest("[data-week]").dataset.week);copyText(w.text);bt.classList.add("copied");bt.innerHTML="已複製"+ico("check","sm");clearTimeout(bt._t);bt._t=setTimeout(()=>{bt.classList.remove("copied");bt.textContent="複製文字"},1500);return}
   if(t.closest("#genWeek")&&readOnly()){
     const r=buildWeekly();
@@ -20,31 +21,38 @@ document.addEventListener("click",async e=>{
     const r=buildWeekly();
     const v=await ask("生成週報",[{name:"date",label:"日期",type:"date",value:r.end},{name:"text",label:`列出標了「會議要報告」的即時回報（沒有人標就列全部即時回報），與 ${fmt(r.start)} 之後到 ${fmt(r.end)} 完成的項目（只有標題），可直接修改後按確定`,type:"textarea",value:r.text}],{wide:true});
     if(v&&v.text){{const nw={id:uid("w"),date:v.date||r.end,text:v.text,auto:true};state.weeks.push(nw);state.events.forEach(e=>{e.report=false});newWeekId=nw.id;(openWeeks=openWeeks||new Set()).add(nw.id);setTimeout(()=>{newWeekId=null},1500)}snapshotBase(v.date||r.end);if(editing)changed();else save();toast("已產生並存成週報")}return}
-  if(!editing)return;
-  const se=t.closest("[data-secedit]");if(se){toggleSecEdit(se.dataset.secedit);return}
-
-  /* weekly */
+  /* 週報（週報頁）：登入就能新增、修改、刪除，按確定直接儲存（沒有編輯階段） */
+  if(t.closest("#addWeek,[data-editweek],[data-delweek]")&&!canEdit())return;
   if(t.closest("#addWeek")){
     const last=[...state.weeks].sort((a,b)=>b.date.localeCompare(a.date))[0];
     const v=await ask("新增週報",[{name:"date",label:"日期",type:"date",value:today()},{name:"text",label:last?"內容（已預帶上一週內容當底稿，可直接改或全部清掉）":"內容",type:"textarea",value:last?last.text:"",ph:"貼上本週概述文字"}],{wide:true});
-    if(v&&v.text){{const nw={id:uid("w"),date:v.date||today(),text:v.text};state.weeks.push(nw);newWeekId=nw.id;(openWeeks=openWeeks||new Set()).add(nw.id);setTimeout(()=>{newWeekId=null},1500)}snapshotBase(v.date||today());changed()}return}
+    if(v&&v.text)await settingSave(()=>{const nw={id:uid("w"),date:v.date||today(),text:v.text};state.weeks.push(nw);newWeekId=nw.id;(openWeeks=openWeeks||new Set()).add(nw.id);setTimeout(()=>{newWeekId=null},1500);snapshotBase(v.date||today())},"已新增週報");return}
 
   const wk=t.closest("[data-week]");
   if(wk&&t.closest("[data-editweek]")){const w=state.weeks.find(x=>x.id===wk.dataset.week);
     const v=await ask("編輯週報",[{name:"date",label:"日期",type:"date",value:w.date},{name:"text",label:"內容",type:"textarea",value:w.text}],{wide:true,danger:"刪除此週"});
-    if(v==="delete")state.weeks=state.weeks.filter(x=>x!==w);else if(v)Object.assign(w,{date:v.date||w.date,text:v.text});if(v)changed();return}
-  if(wk&&t.closest("[data-delweek]")){e.preventDefault();const w=state.weeks.find(x=>x.id===wk.dataset.week);const v=await ask(`刪除 ${fmt(w.date)} 的週報？`,[],{danger:"刪除"});if(v==="delete"){state.weeks=state.weeks.filter(x=>x!==w);changed()}return}
+    if(v)await settingSave(()=>{if(v==="delete")state.weeks=state.weeks.filter(x=>x!==w);else Object.assign(w,{date:v.date||w.date,text:v.text})},v==="delete"?"已刪除週報":"已更新週報");return}
+  if(wk&&t.closest("[data-delweek]")){e.preventDefault();const w=state.weeks.find(x=>x.id===wk.dataset.week);const v=await ask(`刪除 ${fmt(w.date)} 的週報？`,[],{danger:"刪除"});if(v==="delete")await settingSave(()=>{state.weeks=state.weeks.filter(x=>x!==w)},"已刪除週報");return}
 
   /* small events（即時回報） */
   /* 左右兩欄時直接新增一筆空白的，選到它、在右側填寫 */
-  if(t.closest("#addEvent")&&mdOn("live")){const ev={id:uid("e"),name:"新的即時回報",desc:"",createdAt:today(),staff:[],links:[],times:[],round:1,touched:[]};evTouch(ev);state.events.push(ev);selEv=ev.id;evFld={ev:ev.id,k:"name"};changed();mdPaneIn($("#evDetail"));const n=$('#evDetail .evf.open [data-e="name"]');n?.focus();n?.select();return}
-  if(t.closest("#addEvent")){const v=await ask("新增即時回報",[{name:"name",label:"名稱",ph:"例如：飲水機故障通報"},{name:"desc",label:"說明",type:"textarea",ph:"簡短說明"},...staffField([])]);
-    if(v&&v.name){const ev={id:uid("e"),name:v.name,desc:v.desc||"",createdAt:today(),staff:v.staff||[],links:[],times:[],round:1,touched:[]};evTouch(ev);state.events.push(ev);changed()}return}
+  /* 新增即時回報：左右兩欄時直接開始編輯一筆空白的（選到它、在右側填名稱，取消就不留）；其他時候填一個小表單，按確定直接儲存 */
+  if(t.closest("#addEvent")&&!editing&&mdOn("live")){const ev={id:uid("e"),name:"新的即時回報",desc:"",createdAt:today(),staff:[],links:[],times:[],round:1,touched:[]};
+    if(await startEdit("e:"+ev.id,()=>{evTouch(ev);state.events.push(ev);selEv=ev.id;evFld={ev:ev.id,k:"name"};dirty=true})){mdPaneIn($("#evDetail"));const n=$('#evDetail .evf.open [data-e="name"]');n?.focus();n?.select()}return}
+  if(t.closest("#addEvent")&&!editing){if(!(await ensureLogin()))return;const v=await ask("新增即時回報",[{name:"name",label:"名稱",ph:"例如：飲水機故障通報"},{name:"desc",label:"說明",type:"textarea",ph:"簡短說明"},...staffField([])]);
+    if(v&&v.name)await settingSave(()=>{const ev={id:uid("e"),name:v.name,desc:v.desc||"",createdAt:today(),staff:v.staff||[],links:[],times:[],round:1,touched:[]};evTouch(ev);state.events.push(ev)},"已新增即時回報");return}
+  /* 新增議題：開始編輯一個空白議題、換到它的詳情並打開名稱欄（取消就不留） */
+  if(t.closest("#addIssue")&&!editing){const it={id:uid("i"),title:"新議題",tags:[...CFG.stageTags],cur:0,start:"",end:"",doneAt:null,markers:[],links:[]};
+    if(await startEdit("i:"+it.id,()=>{state.issues.push(it);keepIds.add(it.id);ifFld={t:"i",id:it.id,k:"title"};dirty=true}))progShow(it.id,ifFldFocus);return}
+  /* 以下都是編輯中那張卡片裡的工具 */
+  if(!editing)return;
+
   const evAct=t.closest("[data-evdone],[data-evundo],[data-evdel]");
   if(evAct){e.preventDefault();const ev=evOf(evAct);
-    if(evAct.dataset.evdone!==undefined){ev.doneAt=today();evTouch(ev);syncLink(ev);changed();toast(parentOf(ev)?`已結案，並記錄到「${parentOf(ev).title}」`:"已結案，移到完成紀錄")}
-    else if(evAct.dataset.evundo!==undefined){ev.doneAt=null;evTouch(ev);syncLink(ev);changed()}
-    else{const v=await ask(`刪除「${ev.name}」？`,[],{danger:"刪除"});if(v==="delete"){unlinkEv(ev);state.events=state.events.filter(x=>x!==ev);changed()}}
+    /* 結案、移回、刪除都會讓這張卡片離開原本的位置（找不到它的「儲存」）：做完直接儲存，結束這次編輯 */
+    if(evAct.dataset.evdone!==undefined){if(!fldCommitOpen())return;ev.doneAt=today();evTouch(ev);syncLink(ev);dirty=true;await saveFlow();toast(parentOf(ev)?`已結案，並記錄到「${parentOf(ev).title}」`:"已結案，移到完成紀錄")}
+    else if(evAct.dataset.evundo!==undefined){if(!fldCommitOpen())return;ev.doneAt=null;evTouch(ev);syncLink(ev);dirty=true;await saveFlow()}
+    else{const v=await ask(`刪除「${ev.name}」？`,[],{danger:"刪除"});if(v==="delete"){unlinkEv(ev);state.events=state.events.filter(x=>x!==ev);evFld=null;dirty=true;await saveFlow()}}
     return}
   /* 逐欄編輯：鉛筆打開一欄、取消／完成／刪除（只在編輯中出現） */
   /* 點一欄：原本開著的那欄先存回（填錯就停在原欄），再打開這一欄 */
@@ -75,14 +83,12 @@ document.addEventListener("click",async e=>{
 
 
   /* issues */
-  if(t.closest("#addIssue")){const it={id:uid("i"),title:"新議題",tags:[...CFG.stageTags],cur:0,start:"",end:"",doneAt:null,markers:[],links:[]};state.issues.push(it);keepIds.add(it.id);changed();
-    evFld=null;ifFld={t:"i",id:it.id,k:"title"};progShow(it.id,ifFldFocus);return}   /* 新議題直接打開名稱欄 */
   if(t.closest("#autoRange")){const ds=state.issues.flatMap(i=>[i.start,i.end,...i.markers.map(m=>m.date)]).filter(Boolean).sort();if(!ds.length){toast("還沒有填日期的議題");return}state.range={start:ds[0].slice(0,7),end:ds[ds.length-1].slice(0,7)};changed();return}
   const it=findIssue(t);if(!it)return;
-  if(t.closest("[data-restore]")){it.doneAt=null;keepIds.add(it.id);changed();toast("已取消結案，移回進行中");return}
+  if(t.closest("[data-restore]")){if(!fldCommitOpen())return;it.doneAt=null;dirty=true;await saveFlow();toast("已取消結案，移回進行中");return}   /* 卡片會離開完成紀錄：直接儲存 */
   /* 結案／取消結案（編輯中，卡片工具列）：結案的議題儲存後移到完成紀錄 */
   if(t.closest("[data-closeissue]")){it.doneAt=it.doneAt?null:today();keepIds.add(it.id);changed();toast(it.doneAt?"已結案，儲存後移到完成紀錄":"已取消結案");return}
-  if(t.closest("[data-deldone]")||t.closest("[data-delissue]")){e.preventDefault();const v=await ask(`刪除「${it.title}」？`,[],{danger:"刪除議題"});if(v==="delete"){state.issues=state.issues.filter(x=>x!==it);changed()}return}
+  if(t.closest("[data-deldone]")||t.closest("[data-delissue]")){e.preventDefault();const v=await ask(`刪除「${it.title}」？`,[],{danger:"刪除議題"});if(v==="delete"){state.issues=state.issues.filter(x=>x!==it);ifFld=null;dirty=true;await saveFlow()}return}   /* 刪掉了就沒有「儲存」可按：直接儲存 */
   const mv=t.closest("[data-move]");
   if(mv){const list=activeIssues();const k=list.indexOf(it),o=list[k+(+mv.dataset.move)];if(o){const a=state.issues.indexOf(it),b=state.issues.indexOf(o);[state.issues[a],state.issues[b]]=[o,it];changed()}return}
   if(t.closest("[data-addmarker]")){const tr=t.closest("[data-issue]").querySelector(".c-track");tr.scrollIntoView({behavior:"smooth",block:"center"});makePending(tr,schedPct(it)??50);toast("把虛線標記拖到想要的位置後放開");return}
@@ -199,7 +205,7 @@ async function finishPending(it,at){
   if(v&&v.text){it.markers.push(applyMarker({id:uid("m"),at:Math.round(at)},v,it));changed()}else render();
 }
 document.addEventListener("pointerdown",e=>{
-  if(!secEd("progress")||e.button>0)return;
+  if(!editing||e.button>0)return;{const c=e.target.closest&&e.target.closest("[data-issue]");if(!c||!cardEd("i",c.dataset.issue))return}   /* 只有編輯中的那個議題可以加、拖註記 */
   const m=e.target.closest("[data-marker]");
   if(m){e.preventDefault();const tr=m.closest("[data-track]");drag={m,tr,it:findIssue(m),id:m.dataset.marker,x0:e.clientX,moved:false,pending:m.classList.contains("pending"),pct:parseFloat(m.style.left)};m.setPointerCapture(e.pointerId);return}
   const tr=e.target.closest(".c-track");if(!tr)return;
@@ -242,13 +248,13 @@ document.addEventListener("keydown",e=>{if(e.key!=="Escape"||setOpen||notiOpen||
   const k=selEv&&mdOn("live")?"live":selDone&&mdOn("done")?"done":null;if(!k)return;
   if(document.activeElement&&document.activeElement.closest&&document.activeElement.closest(MD[k].pane))document.activeElement.blur();mdSelect(k,MD[k].get())});
 
-/* ---------- 即時回報排序（編輯中拖曳） ----------
+/* ---------- 即時回報排序（登入後、沒有卡片在編輯時拖曳；放開直接儲存） ----------
    滑鼠：按住膠囊標題拖動超過 6px 開始；觸控：長按 0.38 秒開始（之前就移動＝照常捲動）。
    拖到另一顆上面就換位（其他膠囊 FLIP 讓位），放開後依畫面順序寫回 state.events（只換即時回報彼此的位置，完成紀錄的順序不動）。
-   排序不算「更新」（不改狀態燈），存檔時跟其他修改一起上傳 */
+   排序不算「更新」（不改狀態燈）；放開就直接儲存（settingSave） */
 (()=>{
   let d=null,suppress=false;
-  const handle=t=>secEd("live")&&t.closest&&!t.closest("button,a,input,textarea,select,.csel")&&t.closest("#events .events>.ev>summary");
+  const handle=t=>canEdit()&&!editing&&t.closest&&!t.closest("button,a,input,textarea,select,.csel")&&t.closest("#events .events>.ev>summary");
   const rects=()=>new Map([...document.querySelectorAll("#events .events>.ev")].map(el=>[el,el.getBoundingClientRect()]));
   function begin(el,x,y){
     const r=el.getBoundingClientRect();
@@ -282,7 +288,7 @@ document.addEventListener("keydown",e=>{if(e.key!=="Escape"||setOpen||notiOpen||
     const ids=[...document.querySelectorAll("#events .events>.ev")].map(el=>el.dataset.ev),live=state.events.filter(e=>!e.doneAt);
     if(ids.length!==live.length||ids.every((id,i)=>live[i].id===id))return;
     const by=new Map(live.map(e=>[e.id,e]));let k=0;
-    state.events=state.events.map(e=>e.doneAt?e:by.get(ids[k++]));changed();
+    settingSave(()=>{state.events=state.events.map(e=>e.doneAt?e:by.get(ids[k++]))},"已更新排序");
   }
   /* 拖完放開的那一下不要當成點擊（不然會展開／選取）：window 捕獲階段最先攔 */
   addEventListener("click",e=>{if(suppress){e.preventDefault();e.stopPropagation();suppress=false}},true);

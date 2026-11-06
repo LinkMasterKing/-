@@ -4,7 +4,7 @@
   "short_name": "公關部",
   "description": "南臺科技大學學生會公關部的議題進度、即時回報與每週概述。",
   "lang": "zh-Hant",
-  "start_url": "../../index.html?d=pr",
+  "start_url": "../../home.html",
   "scope": "../../",
   "display": "fullscreen",
   "background_color": "#ffffff",

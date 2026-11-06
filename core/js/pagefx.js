@@ -83,13 +83,32 @@ const PageFx=(()=>{
      整個 body 不做模糊（只縮放＋透明度），手機才順（2026-11-06 使用者：選好部門進去的動畫有點卡） */
   function arrive(){
     const h=document.documentElement;if(!h.classList.contains("pfx-arrive"))return;
-    if(RM()){h.classList.remove("pfx-arrive");return}
+    if(RM()){h.classList.remove("pfx-arrive","pfx-burst");h.style.background="";return}
+    if(h.classList.contains("pfx-burst"))return burstIn();
     const start=()=>requestAnimationFrame(()=>requestAnimationFrame(()=>{
       const my=++tok;owner.set(document.body,my);hold(document.body);h.classList.remove("pfx-arrive");
       run(document.body,"in",my,FADE_IN,0).then(()=>{if(owner.get(document.body)===my){owner.delete(document.body);reset(document.body)}});
     }));
     let go=false;const once=()=>{if(!go){go=true;start()}};
     if(document.readyState==="complete")once();else{addEventListener("load",once,{once:true});setTimeout(once,900)}   /* 最多等 0.9 秒（字型、圖片很慢時不要一直空白） */
+  }
+  /* 第二次擴散（2026-11-06 使用者：總覽的部門圈放開時，放開的位置跑兩次全螢幕擴散）：
+     總覽那邊第一次擴散蓋滿一片光色後換頁（home.html 的 go），位置與顏色存在 sessionStorage；這裡整頁先是那片光色（index.html head 的小程式設 html 底色），
+     看板準備好（跟一般到達一樣等 load、最多 0.9 秒）後，body 用 clip-path 圓形從同一個位置擴散開來，露出看板 */
+  function burstIn(){
+    const h=document.documentElement;let b=null;try{b=JSON.parse(sessionStorage.getItem("pfx-burst")||"null");sessionStorage.removeItem("pfx-burst")}catch(_){}
+    const done=()=>{h.classList.remove("pfx-arrive","pfx-burst");h.style.background="";document.body.style.clipPath=""};
+    if(!b){done();return}
+    /* clip-path 的動畫在主執行緒上跑：看板第一次畫面還在忙的時候開始，會停在原地再一口氣跳完。所以等「畫面刷新好了」：
+       連續 4 格都在 24ms 內畫完（主執行緒閒下來）才開始，最多等 1.6 秒 */
+    const calm=f=>{let n=0,last=performance.now();const t0=last;const tick=now=>{n=now-last<24?n+1:0;last=now;if(n>=4||now-t0>1600)f();else requestAnimationFrame(tick)};requestAnimationFrame(tick)};
+    const go=()=>calm(()=>{
+      const x=Math.min(innerWidth,Math.max(0,b.x)),y=Math.min(innerHeight,Math.max(0,b.y)),R=Math.hypot(Math.max(x,innerWidth-x),Math.max(y,innerHeight-y))+2;
+      document.body.style.clipPath=`circle(0px at ${x}px ${y}px)`;h.classList.remove("pfx-arrive");
+      document.body.animate([{clipPath:`circle(0px at ${x}px ${y}px)`},{clipPath:`circle(${R}px at ${x}px ${y}px)`}],{duration:620,easing:"cubic-bezier(.2,.75,.25,1)"}).finished.then(done,done);
+    });
+    let once=false;const go1=()=>{if(!once){once=true;go()}};
+    if(document.readyState==="complete")go1();else{addEventListener("load",go1,{once:true});setTimeout(go1,900)}
   }
   const inSite=a=>{try{const u=new URL(a.href,location.href);return u.origin===location.origin&&(/\.html?$/.test(u.pathname)||u.pathname.endsWith("/"))&&!a.target&&!a.hasAttribute("download")}catch(_){return false}};
   document.addEventListener("click",e=>{

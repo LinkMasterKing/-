@@ -1,6 +1,6 @@
 /* 核心｜秘書處的「會議報告事項」（只能看）與「會議編輯」（會長室開放才能改）面板（設定檔 meeting:true），以及會長室的授權開關（grant:true）
    - 列出各部門標了「會議要報告」（ev.report）的即時回報，依部門分組；會長室追蹤一樣的讀法，但會記住 sha 以便寫回。
-   - 「會議編輯」：會長室今天開放（會長室資料的 meetGrant.date＝今天）時，頁首「編輯」→ 這區按「編輯這區」後，卡片跟部門自己的即時回報同一套逐欄編輯（點哪欄改哪欄：名稱、說明、母議題、專員、標籤、時間標記與地點、連結）。
+   - 「會議編輯」：會長室今天開放（會長室資料的 meetGrant.date＝今天）時，登入後按這區的「編輯」，，卡片跟部門自己的即時回報同一套逐欄編輯（點哪欄改哪欄：名稱、說明、母議題、專員、標籤、時間標記與地點、連結）。
      做法：畫面與存回時把全域 state 暫時換成那個部門的資料（withState），所以 views.js／events.js 的逐欄編輯不用另寫一份。
    - 按「儲存並同步」：秘書處自己的資料照常存；改過的部門各自寫回 data-代號.json（同一個 repo、同一把權杖），
      commit 訊息照現行格式，作者是秘書處目前登入的身分（該部門的編輯紀錄會看到「〔秘書處 名字〕」）。按「取消」放棄。
@@ -37,7 +37,7 @@ function mtGroupsHTML(ed){
         return `<article class="mt-ev" data-ev="${e.id}" data-st="${st}"><div class="mt-top"><span class="live-dot" aria-hidden="true"></span><b>${esc(e.name)}</b><span class="ev-st">${EV_ST[st]}</span></div>
           ${ed?evFieldsHTML(e):`${parentOf(e)?`<p class="sub">母議題：${esc(parentOf(e).title)}</p>`:""}${e.desc?`<p class="fw-text">${esc(e.desc)}</p>`:""}${evTimesHTML(e)}${staffHTML(e.staff)}${labelChipsHTML(e.labels)}${evLinksHTML(e)}`}</article>`}).join(""))}</div></section>`}).join("");
 }
-/* 兩區：「會議報告事項」只能看；「會議編輯」要會長室今天開放、再按「編輯這區」才能改 */
+/* 兩區：「會議報告事項」只能看；「會議編輯」要會長室今天開放、再按這區的「編輯」才能改 */
 function renderMeet(){
   const view=$("#meetPanel"),edp=$("#meetEdPanel");if(!view||!edp)return;
   view.hidden=edp.hidden=!CFG.meeting;if(!CFG.meeting)return;
@@ -46,10 +46,9 @@ function renderMeet(){
   const none=MT.depts.size?`<p class="empty">目前沒有部門標「會議要報告」。各部門在自己的即時回報按「會議要報告」後會出現在這裡。</p>`:"";
   const loading=MT.loading&&!MT.depts.size?`<p class="sub">讀取各部門資料中…</p>`:"";
   $("#meetList").innerHTML=loading+(mtGroupsHTML(false)||none)+(errs.length?`<p class="sub">讀不到：${errs.map(esc).join("、")}</p>`:"");
-  const g=mtGrant(),btn=edp.querySelector("[data-secedit]");
-  if(!g&&secEdit.has("meetedit"))secEdit.delete("meetedit");   /* 授權過期或被關掉：自動收起 */
-  btn.hidden=!g||!editing;
-  $("#meetEdSt").innerHTML=g?`<span class="grant-on">會長室已開放</span>（${esc(g.by||"會長室")}，${esc((g.at||"").slice(11,16))}）· 今天 23:59 前有效${editing?" · 按「編輯這區」開始修改":" · 按頁首「編輯」後可以修改"}`
+  const g=mtGrant(),btn=edp.querySelector("[data-edit]");
+  btn.hidden=!g;   /* 會長室今天有開放才有「編輯」（登入才看得到，見 board.css「單卡編輯」段） */
+  $("#meetEdSt").innerHTML=g?`<span class="grant-on">會長室已開放</span>（${esc(g.by||"會長室")}，${esc((g.at||"").slice(11,16))}）· 今天 23:59 前有效${secEd("meetedit")?"":" · 登入後按這區的「編輯」開始修改"}`
     :`<span class="grant-off">${ico("close","sm")}尚未開放</span>：要會長室在他們的看板上把「秘書處會議編輯」切到「開放今天」，開放後當天有效。`;
   const ed=mtCanEdit();
   $("#meetEdList").innerHTML=!g?"":loading+(mtGroupsHTML(ed)||none)+(ed&&!ghToken()?`<p class="sub">這台裝置沒有權杖，改了也寫不回其他部門。</p>`:"");
