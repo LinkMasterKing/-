@@ -95,7 +95,7 @@ function logHTML(it){
 const LH=22;
 function layoutTrack(tr){
   const isG=tr.classList.contains("g-track"),W=tr.clientWidth;if(!W||!tr.querySelector(".g-bar,.c-bar"))return;   /* 未排程的甘特列沒有條 */
-  const barH=isG?22:16,dotH=isG?6:28;   /* 甘特圖：刻度最高 22px，註記的點放在刻度上方；議題詳情：註記是一根 28px 長條，跨過刻度上下各凸出 6px */
+  const barH=isG?22:16,dotH=isG?6:16,gap=isG?3:4;   /* 註記都放在刻度「上方」、不疊在刻度上：甘特圖是 6px 小點；議題詳情是 16px 細長條（2026-11-06 使用者：長條疊在刻度上又半透明很粗糙） */
   const lanes={up:[],down:[]},info=[];
   [...tr.querySelectorAll(isG?".g-mk":".marker")].sort((a,b)=>parseFloat(a.style.left)-parseFloat(b.style.left)).forEach(m=>{
     const side=!isG&&m.classList.contains("down")?"down":"up";
@@ -106,14 +106,14 @@ function layoutTrack(tr){
     info.push({m,lbl,side,k});
   });
   const nUp=lanes.up.length,nDown=lanes.down.length;
-  const barTop=(isG?6:8)+nUp*LH+(nUp?6:(isG?14:18));
+  const barTop=(isG?6:8)+nUp*LH+(nUp?6:(isG?14:18))+(isG?0:dotH+gap-10);   /* 議題詳情多留長條的高度 */
   const below=barTop+barH+(isG?6:20);
   tr.querySelector(isG?".g-bar":".c-bar").style.top=barTop+"px";
   tr.querySelectorAll(".tick").forEach(t=>t.style.top=(barTop+barH+3)+"px");
   info.forEach(({m,lbl,side,k})=>{
     const dot=m.querySelector(".dot"),stem=m.querySelector(".stem");
-    dot.style.top=(isG?barTop-dotH-3:barTop+barH/2-dotH/2)+"px";
-    if(side==="up"){const top=barTop-6-(k+1)*LH+2;lbl.style.top=top+"px";stem.style.top=(top+18)+"px";stem.style.height=Math.max(0,barTop-top-18)+"px"}
+    dot.style.top=(barTop-dotH-gap)+"px";
+    if(side==="up"){const base=isG?barTop:barTop-dotH-gap,top=base-6-(k+1)*LH+2;lbl.style.top=top+"px";stem.style.top=(top+18)+"px";stem.style.height=Math.max(0,base-top-18)+"px"}
     else{const top=below+k*LH;lbl.style.top=top+"px";stem.style.top=(barTop+barH)+"px";stem.style.height=Math.max(0,top-barTop-barH)+"px"}
   });
   tr.style.height=(nDown?below+nDown*LH+4:below+(isG?0:4))+"px";
