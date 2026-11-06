@@ -33,6 +33,8 @@ const dataReady=SEEDED&&location.protocol!=="file:"?fetch(CFG.data.path,{cache:"
 dataReady.then(()=>{
 setBaseline();
 render();
+/* 學年、開學日、甘特圖預設學期跟著秘書處（state.js 的 termCfg）：讀到秘書處的資料檔就重畫 */
+if(!termOwn())fwLoad(TERM_OWNER).then(c=>{if(c&&c.data){termSrc={yearLabel:c.data.yearLabel,termStart:c.data.termStart,semester:c.data.semester};render()}});
 if(cloudOn())(async()=>{
   const r=await cloudPull({force:true});
   if(r!=="offline"&&navigator.onLine)netFail=false;

@@ -42,6 +42,14 @@ function migrate(s){
   while(v<SCHEMA_VERSION){s=(MIGRATIONS[v]||(x=>x))(s);v++}
   s.schemaVersion=SCHEMA_VERSION;return s;
 }
+/* 學年、開學日、甘特圖預設學期（2026-11-06 使用者：給秘書處管理，全會共用）：
+   秘書處改自己資料裡的 yearLabel／termStart／semester（設定頁「學年與開學日」）；其他部門開頁時讀秘書處的資料檔（boot.js，follow.js 的 fwLoad，只讀），
+   讀到了放在 termSrc。讀不到（離線、秘書處還沒有資料檔）就用自己資料裡原本的值（沒有的話 normalize 補 dept/config.js 的 term）。
+   用到這三個值的地方一律經 termCfg()，不要直接讀 state.yearLabel 等。 */
+const TERM_OWNER="secretariat";
+const termOwn=()=>CFG.deptId===TERM_OWNER;
+let termSrc=null;
+function termCfg(){const s=(!termOwn()&&termSrc)||state;return {yearLabel:s.yearLabel||"",termStart:s.termStart||"",semester:["up","down"].includes(s.semester)?s.semester:""}}
 function normalize(s){
   s=migrate(s||{});if(!s.id)s.id=CFG.boardId;
   s.members=s.members||[];s.labels=s.labels||[];s.meetGrant=s.meetGrant||null;s.semester=["up","down"].includes(s.semester)?s.semester:"";s.follows=s.follows||[];(s.events||[]).forEach(e=>{e.staff=e.staff||[];e.labels=e.labels||[];e.links=e.links||[];e.times=e.times||[];e.times.forEach(t=>{t.place=t.place||""});e.round=+e.round||1;e.touched=e.touched||[];e.report=!!e.report});

@@ -40,7 +40,7 @@ function rptHTML(d){
   const dept=CFG.dept.name||state.title,logo=CFG.logo?document.getElementById("dept-logo"):null;   /* 沒有 logo 的部門不放 */
   const staffJoin=ids=>staffNames(ids).join("、");
   const head=`<header class="rpt-head"><div class="rpt-logo">${logo?logo.innerHTML:""}</div>
-    <div class="rpt-ttl"><h1 contenteditable="true">${esc(dept)} 工作報告</h1><p class="rpt-sub" contenteditable="true">${state.yearLabel?esc(state.yearLabel)+"　｜　":""}報告期間 ${fmt(d.from)} – ${fmt(d.to)}</p>
+    <div class="rpt-ttl"><h1 contenteditable="true">${esc(dept)} 工作報告</h1><p class="rpt-sub" contenteditable="true">${termCfg().yearLabel?esc(termCfg().yearLabel)+"　｜　":""}報告期間 ${fmt(d.from)} – ${fmt(d.to)}</p>
       <a class="rpt-live" href="${esc(boardURL())}" target="_blank" rel="noopener">查看看板即時動態<span class="rpt-url">${esc(boardURL().replace(/^https?:\/\//,""))}</span></a></div>
     <dl class="rpt-meta"><div><dt>報告人</dt><dd contenteditable="true">${esc(meName())}</dd></div><div><dt>製表日期</dt><dd contenteditable="true">${fmt(today())}</dd></div></dl></header>`;
   const stat=(n,t,s)=>`<div><b>${n}</b><span>${t}</span><small>${s}</small></div>`;
@@ -61,7 +61,7 @@ function rptHTML(d){
 
 /* ---------- 預覽視窗 ---------- */
 async function reportDialog(){
-  const t=today(),pick=[state.termStart,CFG.term.start].find(x=>x&&x<=t)||addDays(t,-90);
+  const t=today(),pick=[termCfg().termStart,CFG.term.start].find(x=>x&&x<=t)||addDays(t,-90);
   const v=await ask("匯出工作報告",[{name:"from",label:"期間開始（預設是本學期開學日）",type:"date",value:pick},{name:"to",label:"期間結束",type:"date",value:t}]);
   if(!v)return;let a=v.from||pick,b=v.to||t;if(a>b)[a,b]=[b,a];
   openReport(a,b);

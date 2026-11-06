@@ -13,7 +13,7 @@ function renderHeader(){
 }
 
 function isoWeek(d){const t=new Date(Date.UTC(d.getFullYear(),d.getMonth(),d.getDate()));const day=t.getUTCDay()||7;t.setUTCDate(t.getUTCDate()+4-day);const y=new Date(Date.UTC(t.getUTCFullYear(),0,1));return Math.ceil(((t-y)/864e5+1)/7)}
-function termWeek(d){if(!state.termStart)return 0;const diff=Math.floor((pd(ymd(d))-pd(state.termStart))/864e5);return diff<0?0:Math.floor(diff/7)+1}
+function termWeek(d){const ts=termCfg().termStart;if(!ts)return 0;const diff=Math.floor((pd(ymd(d))-pd(ts))/864e5);return diff<0?0:Math.floor(diff/7)+1}
 function renderHero(){
   /* 頁首只留 logo、搜尋欄（提示字含開學第幾週）、通知鈕（2026-11-05 使用者要求精簡；看板名稱、學年、大日期、上次儲存不再顯示在頁首） */
   const tw=termWeek(new Date());

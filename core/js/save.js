@@ -82,7 +82,7 @@ async function cloudSettings(){
       {name:"token",label:ghToken()?"換新權杖（留空＝不變更）":"權杖（只存在這台裝置，不會放進網頁）",type:"password",value:""}],{wide:true});
     if(!v)return false;
     state.sync={owner:v.owner,repo:v.repo,branch:v.branch||"main",path:v.path||"data.json"};dirty=true;
-    try{const nt=(v.token||"").trim();if(nt)localStorage.setItem(TOKEN_KEY,nt);else if(v.tokact==="clear")localStorage.removeItem(TOKEN_KEY)}catch(_){}
+    try{const nt=(v.token||"").trim();if(nt){localStorage.setItem(TOKEN_KEY,nt);siteAdminMark()}else if(v.tokact==="clear")localStorage.removeItem(TOKEN_KEY)}catch(_){}
     {const nt=(v.token||"").trim(),me=meMember();if(nt&&me&&(sessionPw||await needPw()))me.tok=await encToken(nt,sessionPw);if(nt&&sharedPwSession)await rememberToken(nt,sharedPwSession)}
     cloud={sha:null,etag:null,status:"",last:""};
     let res=await cloudPull({force:true});
@@ -105,7 +105,7 @@ async function prepareSave(){
          :"這個部門還沒開通雲端。按「只存在這台裝置」的話，資料只留在這個瀏覽器，其他人、其他裝置都看不到。\n請學生會管理員在自己的電腦打開「設定 → 開通部門」開通，之後重新登入就會自動連上。")+`\n（雲端位置：${c.owner}/${c.repo}，公開的網站，所有人都看得到看板內容）`,
        validate:o=>(o.token||"").trim()?"":"沒有權杖的話，請按「只存在這台裝置」或「取消」"});
     if(v==="alt"){if(!(await cloudSettings()))return null;}
-    else if(v&&v.token){try{localStorage.setItem(TOKEN_KEY,v.token.trim())}catch(_){}}
+    else if(v&&v.token){try{localStorage.setItem(TOKEN_KEY,v.token.trim())}catch(_){}siteAdminMark()}
     else if(v===null)return null;
   }
   let weak=false;

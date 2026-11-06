@@ -34,13 +34,20 @@ const login=async p=>{await p.click('#setOv .set-gate .primary');await p.waitFor
  await p.click('#setOv [data-set=labels]');await p.waitForTimeout(800);await p.fill('#dlg [data-newlbl="地"]','六宿');await p.click('#dlg [data-x=add][data-k="地"]');await p.waitForTimeout(300);
  await p.click('#dlg [data-x=done]');await p.waitForTimeout(2500);log('labels:',await p.evaluate(()=>state.labels.map(l=>l.kind+l.name)),'commit:',commits[0].commit.message.split('\n')[0]);
  await p.screenshot({path:'sp_back.png'});
- await p.click('#setOv [data-set=year]');await p.waitForTimeout(700);await p.evaluate(()=>{const st=document.querySelector('#dlg .stepper'),need=116-(+st.querySelector('input').value);for(let i=0;i<Math.abs(need);i++)st.querySelector(`[data-step="${need>0?1:-1}"]`).click()});await ok(p);   /* 學年改成上下按鈕（2026-11-05） */await p.waitForTimeout(2500);
- log('year saved:',await p.evaluate(()=>state.yearLabel),await st(p),'commit:',commits[0].commit.message.split('\n')[0]);
- await p.click('#setOv [data-set=cloud]');await p.waitForTimeout(700);log('cloud:',await st(p));await p.screenshot({path:'sp_cloud.png'});
- await p.keyboard.press('Escape');await p.waitForTimeout(800);log('esc1:',await st(p));
- await p.click('#setOv [data-set=report]');await p.waitForTimeout(700);log('report:',await st(p));
- await p.click('#setOv [data-set=report]');await p.waitForTimeout(800);log('reclick closes:',await st(p));
- await p.click('#setOv [data-set=share]');await p.waitForTimeout(700);
+ // 2026-11-06 設定頁整理：沒有小標題；學年與開學日只有秘書處有（tm1.js）；網站管理只給後台管理員
+ log('list:',await p.evaluate(()=>({rows:[...document.querySelectorAll('#setOv .set-inner .set-row')].map(r=>r.dataset.set),heads:document.querySelectorAll('#setOv .set-h').length,logo:!!document.querySelector('#setOv .set-top .logo'),k:!!document.querySelector('#setOv .anim-k')})));
+ await p.evaluate(()=>{localStorage.setItem('workboard:siteadmin','1');renderSettings()});await p.waitForTimeout(400);
+ log('site row after mark:',await p.evaluate(()=>!!document.querySelector('#setOv [data-set=site]')));
+ const hub=()=>p.evaluate(()=>{const h=document.querySelector('#setOv .set-pane .set-hub');return h&&{t:h.querySelector('.set-hub-t').textContent,hidden:h.hidden,rows:[...h.querySelectorAll('[data-hub]')].map(r=>r.dataset.hub)}});
+ await p.click('#setOv [data-set=site]');await p.waitForTimeout(800);log('site hub:',await hub(),await st(p));await p.screenshot({path:'sp_site.png'});
+ await p.click('#setOv [data-hub=cloud]');await p.waitForTimeout(800);log('cloud in hub:',await hub(),await st(p));
+ await p.keyboard.press('Escape');await p.waitForTimeout(800);log('esc1 -> hub:',await hub(),await st(p));
+ await p.keyboard.press('Escape');await p.waitForTimeout(800);log('esc2 -> list:',await hub(),await st(p));
+ await p.click('#setOv [data-set=report]');await p.waitForTimeout(700);log('report hub:',await hub());
+ await p.click('#setOv [data-hub=report]');await p.waitForTimeout(800);log('work report dlg:',await st(p));
+ await p.click('#setOv [data-set=backup]');await p.waitForTimeout(900);log('switch to backup:',await hub(),await st(p));
+ await p.click('#setOv [data-set=backup]');await p.waitForTimeout(800);log('reclick closes:',await st(p));
+ await p.click('#setOv [data-set=device]');await p.waitForTimeout(700);log('device hub:',await hub(),await p.evaluate(()=>!!document.querySelector('#setOv .set-hub .set-p')));
  await p.keyboard.press('Escape');await p.waitForTimeout(700);await p.keyboard.press('Escape');await p.waitForTimeout(700);
  log('settings closed:',await p.evaluate(()=>setOpen));
  // 主頁開對話框應該是跳出的
@@ -52,5 +59,15 @@ const login=async p=>{await p.click('#setOv .set-gate .primary');await p.waitFor
 remote=JSON.parse(fs.readFileSync('data_test.json','utf8'));   /* 手機重新從舊版看板開始 */
 {const {p}=await mk(390,844,'dark',true);
  await p.click('#setBtn');await p.waitForTimeout(800);await p.screenshot({path:'sp_m_gate.png'});
- await login(p);await p.click('#setOv [data-set=title]');await p.waitForTimeout(700);log('mobile title:',await st(p));await p.screenshot({path:'sp_m_title.png'});log('m errs',p.errs)}
+ await login(p);await p.click('#setOv [data-set=title]');await p.waitForTimeout(700);log('mobile title:',await st(p));await p.screenshot({path:'sp_m_title.png'});
+ await p.click('#dlg [data-act=cancel]');await p.waitForTimeout(900);
+ const sub=()=>p.evaluate(()=>({sub:subOpen,set:setOpen,subHidden:document.querySelector('#setSub').hidden,listHidden:document.querySelector('#setOv').hidden,hub:(()=>{const h=document.querySelector('#setSub .set-hub');return h&&{hidden:h.hidden,rows:[...h.querySelectorAll('[data-hub]')].map(r=>r.dataset.hub)}})(),dlg:document.querySelector('#dlg').open,logo:!!document.querySelector('#setSub .set-top .logo')}));
+ await p.click('#setOv [data-set=report]');await p.waitForTimeout(900);log('m report hub:',await sub());await p.screenshot({path:'sp_m_hub.png'});
+ await p.click('#setSub [data-hub=report]');await p.waitForTimeout(900);log('m work report:',await sub());
+ await p.goBack();await p.waitForTimeout(900);log('m system back -> hub:',await sub());
+ await p.click('#subBack');await p.waitForTimeout(900);log('m back -> list:',await sub());
+ await p.click('#setOv [data-set=report]');await p.waitForTimeout(900);
+ await p.click('#setSub [data-hub=week]');await p.waitForTimeout(1300);log('m week from hub:',await sub(),await p.evaluate(()=>onWeek));
+ await p.click('#backMain');await p.waitForTimeout(1300);log('m week back -> settings:',await sub(),await p.evaluate(()=>onWeek));
+ log('m errs',p.errs)}
 await b.close()})();
