@@ -201,7 +201,10 @@ a.logo-box:focus-visible{outline:2px solid var(--ink);outline-offset:4px}
 .panel{background:var(--surface);border-radius:18px;padding:16px 18px;transition:transform .22s var(--ease),box-shadow .22s var(--ease),border-color .22s var(--ease),background-color .2s,opacity .2s;background-color:var(--surface);border:1px solid var(--line)}
 .panel-head{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:nowrap;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
 .count{font-size:12px;border-radius:999px;padding:1px 8px;margin-left:6px;border:1px solid var(--ink);background:none;color:var(--ink);font-family:"Jost",sans-serif;letter-spacing:0;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
-.add-row{width:100%;justify-content:center;align-items:center;margin-top:12px;border-radius:14px;min-height:46px;letter-spacing:.02em;padding-right:19px!important}
+/* 新增鈕（+ 新增即時回報、+ 新增議題、+ 新增文件、+ 追蹤項目）：2026-11-06 使用者：平常檢視太明顯，不常用。
+   低調的小字：沒有框、灰字 13px、靠左，滑過／按下才變文字色 */
+button.add-row{justify-self:start;align-self:start;justify-content:flex-start;align-items:center;gap:4px;width:auto;min-height:32px;margin-top:10px;padding:0 10px 0 4px!important;border-color:transparent;border-radius:999px;background:none;color:var(--muted);font-size:13px;letter-spacing:.04em;box-shadow:none}
+button.add-row:hover{color:var(--ink);transform:none;box-shadow:none}
 /* 區塊內部的版面與繪製各自獨立：上方即時回報展開收合時，下面的區塊只要整塊往下移，不用重算、重畫內容。
    即時回報、完成紀錄除外：膠囊滑過時的光暈會超出區塊，paint 隔離會把它裁掉（2026-11-06 使用者回報完成紀錄膠囊上緣被切） */
 .panel:not(#livePanel):not(#donePanel){contain:layout paint}
@@ -244,7 +247,7 @@ a.logo-box:focus-visible{outline:2px solid var(--ink);outline-offset:4px}
 /* --- 膠囊格（手機一欄） --- */
 .events{display:grid;gap:10px;align-items:start;grid-template-columns:repeat(auto-fill,minmax(min(100%,270px),1fr))}
 .events .empty{grid-column:1/-1}
-.events>.add-row{width:auto;min-height:54px;margin-top:0}   /* 新增鈕佔格子裡的一格，大小跟收合的膠囊一樣（只在編輯中出現：膠囊上下內距 12×2＋刪除鈕 28＋框線 2＝54px） */
+.events>.add-row{grid-column:1/-1;margin-top:2px}   /* 即時回報的新增鈕：清單最後自己一行（不佔一顆膠囊的格子） */
 @media (max-width:640px){
   .events{grid-template-columns:minmax(0,1fr)}   /* 不能寫 1fr：最小寬度會跟著不換行的長標題撐開、超出畫面 */
 }
@@ -396,13 +399,35 @@ html.ev-drag-on,html.ev-drag-on *{-webkit-user-select:none;user-select:none;curs
 .kid-ev{display:inline-flex;align-items:center;gap:7px;background:#fff;color:#111114;border-radius:999px;padding:3px 12px 3px 10px;font-size:13px;box-shadow:inset 0 0 0 1px var(--line)}
 .kid-ev .live-dot{width:7px;height:7px}
 
+/* ===== 部門專用分頁（dept/config.js 的 ext：會長室「會長室」、秘書處「會議」；shell.js 把面板搬進 .sgroup-ext） =====
+   面板之間的間距交給 .sgroup 的 gap，面板自己不留下邊距 */
+.sgroup-ext>.panel{margin:0}
+
+/* ===== 文件（會長室，follow.js 的 renderDocs） =====
+   平常：一排膠囊按鈕（外框、文件 icon、名稱、右邊 ↗），點了新分頁打開；按下微縮、滑過 ↗ 往右上推。
+   編輯中：一個文件一列（膠囊＋小字網址＋修改／上下移／刪除），列與列之間細線 */
+.docs{display:flex;flex-wrap:wrap;gap:10px}
+.docs .empty{margin:0}
+.doc-pill{display:inline-flex;align-items:center;gap:8px;min-height:44px;padding:0 16px 0 14px;border:1px solid var(--line);border-radius:999px;color:var(--ink);text-decoration:none;font-size:14px;transition:background-color .2s,color .2s,scale .4s var(--mo-spring)}
+.doc-pill .ico{font-size:16px;flex:none}
+.doc-pill b{font-weight:500;overflow-wrap:anywhere}
+.doc-go{font-size:13px;color:var(--muted);transition:transform .35s var(--mo-spring),color .2s}
+a.doc-pill:active{scale:.96}
+@media (hover:hover){a.doc-pill:hover{background:var(--ink);color:var(--bg)}a.doc-pill:hover .doc-go{color:var(--bg);transform:translate(2px,-2px)}}
+.docs-panel.sec-edit .docs{display:grid;gap:0}
+.doc-ed{display:flex;align-items:center;flex-wrap:wrap;gap:6px 12px;padding:10px 0}
+.doc-ed+.doc-ed{border-top:1px solid var(--hair)}
+.doc-u{flex:1 1 180px;min-width:0;color:var(--muted);font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.doc-tools{display:flex;gap:6px;margin-left:auto}
+.docs-panel .add-row{margin-top:12px}
+.docs-panel[hidden]{display:none}
+
 /* ===== 追蹤（會長室） ===== */
-/* 跟個別進度同一種清單：整列滿版、列與列之間細線；寬的時候多欄 */
-.follow-panel{margin-bottom:var(--gap,16px)}
+/* 一筆一張：寬的時候兩欄、只有一筆時佔滿整列（auto-fit），每張上方細線；時程用甘特圖同一種細刻度（.tk） */
 .follow-panel[hidden]{display:none}
-.follows{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,320px),1fr));margin:0 -18px}
-.follows .empty{grid-column:1/-1;padding:0 18px}
-.fw{display:grid;gap:6px;align-content:start;padding:14px 18px 16px;border-top:1px solid var(--line);min-width:0}
+.follows{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,340px),1fr));gap:0 28px}
+.follows .empty{grid-column:1/-1}
+.fw{display:grid;gap:6px;align-content:start;padding:14px 0 16px;border-top:1px solid var(--hair);min-width:0}
 .fw.gone{opacity:.55}
 .fw-top{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:12px;color:var(--muted)}
 .fw-k{letter-spacing:.08em}
@@ -412,19 +437,16 @@ html.ev-drag-on,html.ev-drag-on *{-webkit-user-select:none;user-select:none;curs
 .fw-meta{margin:0;font-size:12.5px;color:var(--muted)}
 .fw-text{margin:0;font-size:13.5px;line-height:1.7;white-space:pre-wrap;word-break:break-word}
 .fw-mk{margin:0;font-size:12px}
-.fw-bar{position:relative;height:5px;border-radius:3px;background:var(--rest)}
-.fw-bar i{position:absolute;left:0;top:0;bottom:0;border-radius:3px;background:var(--prog-hi)}
+.fw-bar{height:16px;margin:2px 0}   /* 細刻度（views.js 的 ticksHTML） */
 .fw-week{margin:0;max-height:220px;overflow:auto;font:inherit;font-size:13px;line-height:1.7;white-space:pre-wrap;word-break:break-word}
 .follow-panel .add-row{margin-top:12px}
 @media (max-width:640px){
-  .follows{margin:0 -14px}
-  .fw{padding:12px 14px 14px}
+  .fw{padding:12px 0 14px}
 }
 
 /* ===== 各部門編輯量（會長室，activity.js） =====
    細線平滑曲線（每個部門一條，部門色）；沒有格子，只有兩條淡橫線與每天一條淡直線；今天的日期粗體；
    游標＝文字色細直線＋曲線上的小點＋文字色底的小標籤（跟甘特圖註記同一種實心膠囊） */
-.act-panel{margin-bottom:var(--gap,16px)}
 .act-panel[hidden]{display:none}
 .ac-info{margin:-4px 0 10px}
 .ac-info b{color:var(--ink);font-weight:500}
@@ -512,12 +534,20 @@ html.ev-drag-on,html.ev-drag-on *{-webkit-user-select:none;user-select:none;curs
 .wk-miss{margin:8px 0 0}
 
 /* ===== 秘書處會議編輯的授權（會長室的開關 #grantPanel、秘書處「會議編輯」的狀態列，meeting.js） =====
-   開關用液態分段切換（LiquidSeg）；狀態文字：開放中＝綠字、尚未開放＝紅字 */
-.grant-panel{margin-bottom:var(--gap,16px)}
+   2026-11-06 使用者：不用這麼大，小小一個開關。會長室分頁裡一張矮卡片：名稱＋小開關（.sw）＋一句狀態；狀態文字（秘書處那邊）：開放中＝綠字、尚未開放＝紅字 */
+.grant-panel{padding-top:14px;padding-bottom:14px}
 .grant-panel[hidden],.meet-edit[hidden]{display:none}
-.grant-row{display:flex;align-items:center;gap:10px 18px;flex-wrap:wrap}
-.grant-row .grant-st{margin:0;flex:1 1 260px;font-size:13px;line-height:1.6}
-.grant-seg>[data-k]{min-width:5.5em}
+.grant-row{display:flex;align-items:center;gap:8px 14px;flex-wrap:wrap}
+.grant-l{font-size:15px;font-weight:600;letter-spacing:.04em}
+.grant-row .grant-st{margin:0;flex:1 1 220px;font-size:12.5px;line-height:1.6}
+/* 小開關：44×26 膠囊，關＝外框、開＝綠底；圓鈕略帶回彈地滑過去，按下時圓鈕拉長一點 */
+.sw{position:relative;flex:none;width:44px;height:26px;min-height:0;padding:0;border:1.5px solid var(--line);border-radius:999px;background:transparent;transition:background-color .25s,border-color .25s}
+.sw i{position:absolute;top:2.5px;left:2.5px;width:18px;height:18px;border-radius:999px;background:var(--ink);transition:transform .42s var(--mo-spring),width .2s var(--mo-out),background-color .25s}
+.sw.on{background:var(--ok);border-color:var(--ok)}
+.sw.on i{transform:translateX(18px);background:#fff}
+.sw:active i{width:22px}
+.sw.on:active i{transform:translateX(14px)}
+.sw:hover{transform:none;box-shadow:none}
 .grant-st .grant-on{color:var(--ok);font-weight:500}
 .grant-st .grant-off{color:var(--red);font-weight:500}
 .meet-edit>.grant-st{margin:0 0 12px;font-size:13px}

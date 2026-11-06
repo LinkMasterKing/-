@@ -59,14 +59,14 @@ function render(){
   try{
     document.body.classList.toggle("edit",editing);
     document.body.classList.toggle("locked",!!state.locked);
-    renderHeader();renderTabbar();renderSections();renderSecEdit();renderWeeks();renderGantt();renderEvents();renderCards();renderDone();renderActivity();renderFollows();renderMeet();renderGrant();layoutAll();flowWatch();
+    renderHeader();renderTabbar();renderSections();renderSecEdit();renderWeeks();renderGantt();renderEvents();renderCards();renderDone();renderActivity();renderFollows();renderDocs();renderMeet();renderGrant();layoutAll();flowWatch();
   }finally{rendering=false}
   Anim.play(flip);Anim.syncPings();
 }
 
 /* ---------- 區塊切換：底部工具列的三個分頁 ----------
    手機：一次只顯示一區（預設即時回報）；桌面：全部顯示，選到的區塊放大移到最上面，其他區塊排在下面 */
-const SECS=["live","progress","done"].filter(secOn);
+const SECS=["live","progress","done","ext"].filter(secTab);
 let curSec=(SECS.includes(appStartSec)&&appStartSec)||SECS[0]||"live",secTok=0;   /* appStartSec：app.js 留下的初始區塊（現在都是空的，從第一個區塊開始） */
 const isPhone=()=>matchMedia("(max-width:640px)").matches;
 function renderSections(){document.querySelectorAll(".layout>.sgroup").forEach(g=>g.classList.toggle("cur",g.dataset.sec===curSec));

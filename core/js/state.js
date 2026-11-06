@@ -2,7 +2,7 @@
 
 function defaultRange(){const d=new Date();return{start:ym(new Date(d.getFullYear(),d.getMonth()-1,1)),end:ym(new Date(d.getFullYear(),d.getMonth()+4,1))}}
 /* ---------- 資料版本與自動遷移 ---------- */
-const SCHEMA_VERSION=11;
+const SCHEMA_VERSION=12;
 let MIGRATE_NOTE={staffDropped:0};   /* 這次讀進來時遷移掉的東西（只給畫面提示，不存進資料） */
 const MIGRATIONS={
   /* v2 → v3：結構不變，只是開始記錄 schemaVersion（拆檔版） */
@@ -38,6 +38,9 @@ const MIGRATIONS={
   /* v10 → v11（2026-11-06 全會密碼）：sync.tokenAll＝用全會密碼加密的上傳權限（權杖），由後台管理員的裝置自動補進每個部門（provision.js）；
      測試部門重置時另有 sync.resetAt（重置時間）。兩個都是選填，舊資料不用補 */
   10:s=>s,
+  /* v11 → v12（2026-11-06 會長室文件）：docs[]＝{id,name,url}，會長自己新增的文件連結（超連結按鈕）；舊資料補空陣列。
+     存在部門自己的資料檔（公開的 repo），網址任何人都看得到 */
+  11:s=>{s.docs=s.docs||[];return s},
 };
 function migrate(s){
   let v=+s.schemaVersion||+s.v||2;if(v<2)v=2;
@@ -55,7 +58,7 @@ let termSrc=null;
 function termCfg(){const s=(!termOwn()&&termSrc)||state;return {yearLabel:s.yearLabel||"",termStart:s.termStart||"",semester:["up","down"].includes(s.semester)?s.semester:""}}
 function normalize(s){
   s=migrate(s||{});if(!s.id)s.id=CFG.boardId;
-  s.members=s.members||[];s.labels=s.labels||[];s.meetGrant=s.meetGrant||null;s.semester=["up","down"].includes(s.semester)?s.semester:"";s.follows=s.follows||[];(s.events||[]).forEach(e=>{e.staff=e.staff||[];e.labels=e.labels||[];e.links=e.links||[];e.times=e.times||[];e.times.forEach(t=>{t.place=t.place||""});e.round=+e.round||1;e.touched=e.touched||[];e.report=!!e.report});
+  s.members=s.members||[];s.labels=s.labels||[];s.docs=s.docs||[];s.meetGrant=s.meetGrant||null;s.semester=["up","down"].includes(s.semester)?s.semester:"";s.follows=s.follows||[];(s.events||[]).forEach(e=>{e.staff=e.staff||[];e.labels=e.labels||[];e.links=e.links||[];e.times=e.times||[];e.times.forEach(t=>{t.place=t.place||""});e.round=+e.round||1;e.touched=e.touched||[];e.report=!!e.report});
   s.weeks=s.weeks||[];s.issues=s.issues||[];s.events=s.events||[];s.reportBase=s.reportBase||null;if(s.yearLabel===undefined)s.yearLabel=CFG.term.label;if(s.termStart===undefined)s.termStart=CFG.term.start;s.range=s.range||defaultRange();s.title=s.title||CFG.title;
   s.issues.forEach(i=>{i.tags=i.tags||[];i.staff=i.staff||[];i.labels=i.labels||[];i.markers=i.markers||[];i.links=i.links||[];i.cur=i.cur||0;i.doneAt=i.doneAt||null;i.start=i.start||"";i.end=i.end||"";
     i.markers.forEach(m=>{if(m.at==null){m.at=(hasDates(i)&&m.date)?Math.round(clamp((pd(m.date)-pd(i.start))/((pd(i.end)-pd(i.start))||1)*100)):50}m.date=m.date||""})});

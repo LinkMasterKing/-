@@ -10,7 +10,7 @@ const IS_IOS=/iPhone|iPad|iPod/.test(navigator.userAgent)||(navigator.platform==
      - 點分頁＝「按下 → 鏡片移過去（彈簧 1／1000）→ 接近目標或 400ms 後放開」
    設定鍵：按下放大 4px、白光跟著指標、被指標拖著微微偏移與拉伸（tanh 阻尼），放開彈回 */
 let setOpen=false;
-const TABS=()=>[["live","即時回報","live"],["progress","進度","progress"],["done","完成紀錄","done"]].filter(([k])=>secOn(k));
+const TABS=()=>[["live","即時回報","live"],["progress","進度","progress"],["done","完成紀錄","done"],["ext",CFG.ext,CFG.extIcon||"flag"]].filter(([k])=>secTab(k));
 /* 設定打開時，三個分頁都不亮；點任一個就關掉並回到那一區 */
 const tbActive=()=>setOpen?"":curSec;
 const RAIL_MQ=matchMedia("(min-width:900px)");

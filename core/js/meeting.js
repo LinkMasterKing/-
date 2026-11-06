@@ -57,19 +57,18 @@ function renderMeet(){
 /* ---------- 會長室：開放秘書處會議編輯的開關（設定檔 grant:true） ----------
    切到「開放今天」＝寫入 state.meetGrant＝{date:今天,by,at}，立刻儲存並同步（編輯中就併入這次編輯）；隔天自動失效。
    要登入才能切；取消登入或儲存失敗就切回原本的位置 */
-let grantSeg=null;
 const grantOn=()=>!!(state.meetGrant&&state.meetGrant.date===today());
+/* 會長室的開關（2026-11-06 使用者：不用這麼大，小小一個開關；在「會長室」分頁）：點一下切換，要登入；狀態只寫一句短的 */
 function renderGrant(){
   const p=$("#grantPanel");if(!p)return;p.hidden=!CFG.grant;if(!CFG.grant)return;
-  if(!grantSeg)grantSeg=new LiquidSeg(p.querySelector(".grant-seg"),{onPick:async k=>{
-    const want=k==="on";if(want===grantOn())return;
-    if(readOnly()||!(await ensureLogin())){grantSeg.set(grantOn()?"on":"off");return}
-    const ok=await settingSave(()=>{state.meetGrant=want?{date:today(),by:meName(),at:nowStr()}:null},want?"已開放秘書處今天的會議編輯":"已關閉秘書處的會議編輯");
-    if(ok===false)grantSeg.set(grantOn()?"on":"off");render()}});
-  else if(!grantSeg.drag&&!grantSeg.raf)grantSeg.set(grantOn()?"on":"off",true);
-  const g=state.meetGrant;
-  $("#grantSt").textContent=grantOn()?`開放中：${g.by||""} ${(g.at||"").slice(11,16)} 開放，今天 23:59 自動關閉。秘書處只能改各部門標「會議要報告」的即時回報。`
-    :"關閉中：秘書處只能看各部門的會議報告事項，不能修改。開會時切到「開放今天」，當天有效。";
+  const sw=$("#grantSw"),on=grantOn(),g=state.meetGrant;
+  sw.setAttribute("aria-checked",on);sw.classList.toggle("on",on);
+  $("#grantSt").textContent=on?`今天開放中（${g.by||""} ${(g.at||"").slice(11,16)} 開，23:59 自動關閉）`:"關閉：秘書處只能看各部門的報告事項";
+  if(!sw._wired){sw._wired=true;sw.addEventListener("click",async()=>{
+    const want=!grantOn();sw.classList.toggle("on",want);
+    if(readOnly()||!(await ensureLogin())){renderGrant();return}
+    await settingSave(()=>{state.meetGrant=want?{date:today(),by:meName(),at:nowStr()}:null},want?"已開放秘書處今天的會議編輯":"已關閉秘書處的會議編輯");
+    render()})}
 }
 /* 存回：秘書處自己的資料存完後，改過的部門各自寫回 */
 async function mtPushAll(){
