@@ -10,10 +10,11 @@
 const PageFx=(()=>{
   const RM=()=>matchMedia("(prefers-reduced-motion: reduce)").matches;
   /* 2026-11-06 第四版：Windows 10 Mobile 的換頁（使用者：旋轉門是 WP7/8 的做法，比較喜歡 WP10 的新動畫）。只動位移與透明度：
-     前進：舊頁整頁很快淡掉（0.15 秒）；新頁的區塊（pieces）由下往上滑入（最多 120px）並浮現，依上下位置錯開，越來越慢（0.46 秒）。
-     返回：目前這頁整頁往下滑 80px 並淡掉（0.2 秒，越來越快）；上一頁的區塊在原位淡入、從上方 24px 略微往下歸位（0.38 秒）。
+     前進：舊頁整頁很快淡掉（0.22 秒）；新頁的區塊（pieces）由下往上滑入（最多 120px）並浮現，依上下位置錯開 0.2 秒，越來越慢（0.68 秒）。
+     返回：目前這頁整頁往下滑 80px 並淡掉（0.3 秒，越來越快）；上一頁的區塊在原位淡入、從上方 24px 略微往下歸位（0.56 秒，錯開 0.11 秒）。
      元素本身（整頁或疊層）：前進離開＝整頁淡掉；返回離開＝整頁往下滑並淡掉；進來＝一開始淡入（fadeIn＝0：本來就看得到，不動） */
-  const OUT=150,BOUT=200,IN=460,BIN=380,SPREAD_IN=130,SPREAD_BIN=70,OVER=.7,BACK_OVER=.55,FADE_IN=.12,COVER_IN=.06;
+  /* 2026-11-06 使用者：整頁動畫慢一點，效果比較明顯——時間全部拉長約 1.5 倍（位移距離、曲線不變） */
+  const OUT=220,BOUT=300,IN=680,BIN=560,SPREAD_IN=200,SPREAD_BIN=110,OVER=.7,BACK_OVER=.55,FADE_IN=.12,COVER_IN=.06;
   const EASE_OUT="cubic-bezier(.4,0,1,1)",EASE_IN="cubic-bezier(.1,.9,.2,1)",MAXP=14;
   let tok=0;const owner=new WeakMap();const live=new Set();   /* live：目前還在換頁動畫裡的元素；owner：每個元素目前歸哪一次換頁管：被新的換頁接手，舊的那段就停下 */
   const keep=new WeakMap(),anims=new WeakMap();
