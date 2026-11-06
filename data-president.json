@@ -35,14 +35,10 @@
  },
  "title": "會長室工作進度",
  "pwKdf": "PeQbCwD/+SUhcfIPdXc2Yg==:kmxqm/Rt4YU6WUFdakICa3wEBOEgoPCmgka4X+Wi49c=",
- "savedAt": "2026-11-07 05:58",
+ "savedAt": "2026-11-07 06:09",
  "savedBy": "小芸",
  "labels": [],
- "meetGrant": {
-  "date": "2026-11-07",
-  "by": "小芸",
-  "at": "2026-11-07 05:58"
- },
+ "meetGrant": null,
  "semester": "",
  "docs": [],
  "minutes": []
