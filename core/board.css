@@ -1751,11 +1751,13 @@ body.view-anim #actions button:nth-child(3){animation-delay:0.15s}
 @keyframes fadeSlide{from{opacity:0;transform:translateY(-6px)}}
 @keyframes fadeIn{from{opacity:0}}
 
-/* ===== 開頁時的進場動畫 ===== */
-body.intro .fill{animation:grow 1s var(--ease) both}
-body.intro .tk i{transform-origin:50% 100%;animation:tkIn .8s var(--ease) both}   /* 細刻度從底部長出來 */
+/* ===== 開頁時的進場動畫 =====
+   只播「進場開始那一刻已經在畫面上的元素」（boot.js 先標 data-intro）。2026-11-06 使用者：進部門時全部閃兩下——
+   以前是 body.intro 底下所有符合的元素都播，雲端資料回來重畫時新長出來的元素又從透明淡入一次 */
+body.intro .fill[data-intro]{animation:grow 1s var(--ease) both}
+body.intro .tk i[data-intro]{transform-origin:50% 100%;animation:tkIn .8s var(--ease) both}   /* 細刻度從底部長出來 */
 @keyframes tkIn{from{transform:scaleY(0)}}
-body.intro .card,body.intro .ev,body.intro .g-row{animation:rise .5s var(--ease) both}
+body.intro :is(.card,.ev,.g-row)[data-intro]{animation:rise .5s var(--ease) both}
 @keyframes grow{from{width:0}}
 
 /* ===== 設定檔：關閉的區塊 ===== */
