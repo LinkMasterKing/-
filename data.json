@@ -3,7 +3,7 @@
  "id": "board-main",
  "title": "權益部工作進度",
  "locked": false,
- "savedAt": "2026-11-06 03:45",
+ "savedAt": "2026-11-07 04:37",
  "range": {
   "start": "2026-09",
   "end": "2027-09"
@@ -1122,7 +1122,7 @@
   }
  },
  "pwKdf": "rQfwjiQjTGPRWifOAuO0bw==:vsYYW5+doH1lk3vytEhM89Wm9AuZDXTvwdShkCssLXs=",
- "schemaVersion": 9,
+ "schemaVersion": 10,
  "members": [
   {
    "id": "mmvx2r1i3ffnm",
@@ -1152,5 +1152,6 @@
  "savedBy": "戴銨霆",
  "follows": [],
  "labels": [],
- "meetGrant": null
+ "meetGrant": null,
+ "semester": ""
 }
