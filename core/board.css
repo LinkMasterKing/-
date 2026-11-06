@@ -26,9 +26,17 @@ textarea{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var
 select{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);padding:6px 10px;width:100%;border-radius:10px;background-color:var(--surface)}
 .empty{color:var(--muted);font-size:13.5px;margin:6px 0}
 .hint{font-size:12px;color:var(--muted)}
-/* 編輯用的按鈕：看板上各區要那一區按了「編輯這區」（.sec-edit，render.js 的 renderSecEdit）才出現；週報頁照舊跟著頁首「編輯」 */
+/* ===== 單卡編輯（2026-11-06，render.js 的 cardEdit） =====
+   編輯中的那張卡片（或那一區：追蹤、會議編輯、甘特圖時間軸）加 .sec-edit，裡面的 .edit-only 工具才出現 */
 .edit-only{display:none!important}
-.sec-edit .edit-only,body.edit .page-week .edit-only{display:inline-flex!important}
+.sec-edit .edit-only{display:inline-flex!important}
+/* 登入才看得到的按鈕：卡片上的「編輯」（.card-edit-btn）與新增鈕（.auth-only）；有一張在編輯時全部先藏起來（一次只編一張） */
+body:not(.authed) :is(.card-edit-btn,.auth-only),body.edit :is(.card-edit-btn,.auth-only),.card-edit-btn[hidden]{display:none}
+.card-edit-btn{flex:none;gap:5px}
+.ev-edrow{display:flex;justify-content:flex-end;margin-top:10px}   /* 即時回報、完成紀錄展開後最下面那顆「編輯」 */
+body:not(.authed) .ev-edrow,body.edit .ev-edrow{display:none}
+/* 編輯中那張最下面的「取消｜儲存」 */
+.card-edbar{display:flex;justify-content:flex-end;gap:8px;margin-top:14px;padding-top:12px;border-top:1px solid var(--hair);width:100%;animation:fadeSlide .4s var(--ease) both}
 dialog form{display:grid;gap:10px}
 dialog label{font-size:12.5px;color:var(--muted);display:grid;gap:4px}
 .num{font-family:"Jost","Noto Sans TC",sans-serif;font-weight:400;letter-spacing:.02em}
@@ -67,7 +75,7 @@ button.ghost{border-color:var(--muted)}
 }
 
 /* ===== 共用：多個元件一起設定的效果 ===== */
-.actions button:not(#editBtn),.add-row,.dlg-actions button,.week-tools button,.ev-tools button{padding-top:5.5px;padding-bottom:6.5px}
+.actions button,.add-row,.dlg-actions button,.week-tools button,.ev-tools button{padding-top:5.5px;padding-bottom:6.5px}
 /* 進度色調（議題卡片、甘特圖）：--acc 給線條與色塊，--acc-ink 給文字 */
 [data-tone="hi"]{--acc:var(--prog-hi);--acc-ink:var(--prog-hi-ink)}
 [data-tone="lo"]{--acc:var(--prog-lo);--acc-ink:var(--prog-lo-ink)}
@@ -166,8 +174,6 @@ a.logo-box:focus-visible{outline:2px solid var(--ink);outline-offset:4px}
 .hero-info{display:contents}
 .hero-btns{display:contents}
 .actions{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
-#editBtn{padding:5px 17.5px 7px 14.5px}   /* 視覺置中：鉛筆圖示重心偏下偏右，內容往上 1px、往左 1.5px（依實機截圖量測） */
-#cancelBtn,#saveBtn{padding-left:16.5px;padding-right:15.5px}
 .offline-pill{display:inline-flex;align-items:center;gap:8px;height:26px;padding:0 12px 0 10px;border-radius:999px;border:1px solid var(--red);color:var(--red);font-size:12px;letter-spacing:.14em;line-height:1;animation:rise .4s var(--ease) both}
 .offline-pill[hidden]{display:none}
 .offline-pill .live-dot{width:7px;height:7px}
@@ -189,25 +195,11 @@ a.logo-box:focus-visible{outline:2px solid var(--ink);outline-offset:4px}
   .hero-rule .actions button{flex:1 1 0;min-width:0;min-height:44px;padding:6px 8px;font-size:14px;white-space:nowrap}
 }
 
-/* ===== 編輯中提示列 ===== */
-.banner{display:none;position:sticky;top:0;z-index:6;margin-bottom:14px;font-size:13.5px;background:var(--surface);color:var(--ink);border:1px solid var(--line);border-radius:999px;padding:9px 18px;align-items:center;gap:10px;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;background-color:var(--surface)}
-body.edit .banner{display:flex;animation:rise .3s var(--ease)}
-.banner b{font-weight:500;letter-spacing:.08em;flex:none}
-.banner .sub{font-size:12.5px}
-@media (max-width:640px){
-  .banner{position:static;border-radius:14px;font-size:12px;padding:8px 12px}
-  body.edit .banner{flex-wrap:wrap;row-gap:4px}
-  .banner .sub{flex-basis:100%}
-}
 
 /* ===== 版面與區塊外框 ===== */
 .layout{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;align-items:start}
 .panel{background:var(--surface);border-radius:18px;padding:16px 18px;transition:transform .22s var(--ease),box-shadow .22s var(--ease),border-color .22s var(--ease),background-color .2s,opacity .2s;background-color:var(--surface);border:1px solid var(--line)}
 .panel-head{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:nowrap;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
-/* 標題列的「編輯這區」：頁首按了「編輯」才出現；按下（這區編輯中）是實心 */
-.sec-edit-btn{display:none;flex:none;gap:5px}
-body.edit .sec-edit-btn{display:inline-flex;animation:fadeSlide .4s var(--ease) both}
-.sec-edit-btn[aria-pressed="true"]{background:var(--ink);color:var(--surface);border-color:var(--ink)}
 .count{font-size:12px;border-radius:999px;padding:1px 8px;margin-left:6px;border:1px solid var(--ink);background:none;color:var(--ink);font-family:"Jost",sans-serif;letter-spacing:0;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
 .add-row{width:100%;justify-content:center;align-items:center;margin-top:12px;border-radius:14px;min-height:46px;letter-spacing:.02em;padding-right:19px!important}
 /* 區塊內部的版面與繪製各自獨立：上方即時回報展開收合時，下面的區塊只要整塊往下移，不用重算、重畫內容。
@@ -313,7 +305,7 @@ body.edit .sec-edit-btn{display:inline-flex;animation:fadeSlide .4s var(--ease) 
 }
 /* --- 編輯中拖曳排序 --- */
 /* 編輯中拖曳排序（events.js 的「即時回報排序」）：標題可抓，拖著的那顆浮在最上面、跟著指標走 */
-.sec-edit #events .events>.ev>summary{cursor:grab;-webkit-touch-callout:none}
+body.authed:not(.edit) #events .events>.ev>summary{cursor:grab;-webkit-touch-callout:none}   /* 登入後可以拖曳排序（放開直接儲存，events.js） */
 .ev.ev-dragging{z-index:5;cursor:grabbing;box-shadow:0 14px 34px rgba(0,0,0,.35);transition:none}
 html.ev-drag-on,html.ev-drag-on *{-webkit-user-select:none;user-select:none;cursor:grabbing}
 /* --- 左右兩欄：清單＋右半邊詳情卡 --- */
@@ -1698,10 +1690,8 @@ body.edit-anim #actions button:nth-child(6){animation-delay:0.30s}
 body.view-anim #actions button:nth-child(1){animation-delay:0.05s}
 body.view-anim #actions button:nth-child(2){animation-delay:0.10s}
 body.view-anim #actions button:nth-child(3){animation-delay:0.15s}
-body.edit-anim .banner{animation:fadeSlide .5s .1s var(--ease) both}
-body.edit-anim .page-week .edit-only{animation:fadeSlide .5s .15s var(--ease) both}
-/* 單一區塊按了「編輯這區」：那一區的編輯工具淡入（render.js 的 toggleSecEdit 加 .sec-anim） */
-.sec-anim .range,.sec-anim .add-row,.sec-anim .card-tools,.sec-anim .ev-tools,.sec-anim .ev-del,.sec-anim .done-del,.sec-anim .done-body .edit-only,.sec-anim .evd.editing{animation:fadeSlide .5s .05s var(--ease) both}
+/* 按了卡片的「編輯」：那張卡片（或那一區）的編輯工具淡入（render.js 的 startEdit 加 .sec-anim） */
+.sec-anim .evfs,.sec-anim .range,.sec-anim .add-row,.sec-anim .card-tools,.sec-anim .ev-tools,.sec-anim .ev-del,.sec-anim .done-del,.sec-anim .done-body .edit-only,.sec-anim .evd.editing{animation:fadeSlide .5s .05s var(--ease) both}
 @keyframes fadeSlide{from{opacity:0;transform:translateY(-6px)}}
 @keyframes fadeIn{from{opacity:0}}
 
@@ -1727,8 +1717,8 @@ body.no-done .layout{grid-template-columns:minmax(0,1fr)}
   body{overflow:visible}
   .pager{display:block;height:auto;overflow:visible}
   .page{height:auto;overflow:visible;width:auto}
-  .actions,.banner{display:none!important}
-  .week-tools,.tabbar{display:none}
+  .actions{display:none!important}
+  .week-tools,.tabbar,.card-edit-btn,.auth-only,.ev-edrow,.card-edbar{display:none}
 }
 
 /* ===== 共用動畫關鍵影格 ===== */

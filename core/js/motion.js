@@ -75,7 +75,7 @@ document.addEventListener("click",e=>{
 },true);
 
 document.addEventListener("click",e=>{
-  if(secEd("progress"))return;const m=e.target.closest(".marker.quiet");if(!m)return;
+  if(e.target.closest(".sec-edit"))return;const m=e.target.closest(".marker.quiet");if(!m)return;   /* 編輯中的議題：點註記是修改，不是偷看 */
   const tr=m.closest(".c-track");m.classList.add("peek");tr&&tr.classList.add("peeking");clearTimeout(m._pk);m._pk=setTimeout(()=>{m.classList.remove("peek");tr&&tr.classList.remove("peeking")},2200);
 });
 document.addEventListener("mouseover",e=>{const m=e.target.closest(".marker.quiet,.g-mk.quiet");const tr=m&&m.closest(".c-track,.g-track");document.querySelectorAll(".peeking").forEach(x=>{if(x!==tr)x.classList.remove("peeking")});if(tr)tr.classList.add("peeking")});

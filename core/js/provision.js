@@ -4,7 +4,7 @@
      - 雲端還沒有資料檔：建立一份空白看板（data-代號.json），共用密碼＝初始密碼，上傳權限（權杖）用初始密碼加密存進去；
      - 已經有資料檔：只換共用密碼（pwKdf）與加密的權杖（sync.tokenEnc），看板內容、身分都不動，舊的共用密碼失效。
      兩種都標 sync.initial＝true（部門第一位管理員登入後，team.js 會請他換成部門自己的共用密碼）。
-   之後部門的人：按「編輯」→ 輸入初始密碼 → 建立身分（第一位是管理員）→ 自動連上雲端（auth.js 的 unlockShared 解開權杖）。
+   之後部門的人：在設定頁按「登入」→ 輸入初始密碼 → 建立身分（第一位是管理員）→ 自動連上雲端（auth.js 的 unlockShared 解開權杖）。
    資料存在哪、誰看得到：各部門資料檔在公開的 repo，任何人都下載得到，但權杖是加密的，沒有初始密碼（或部門共用密碼、個人密碼）解不開；
    知道密碼的人就能寫入整個 repo（所有部門），所以初始密碼只交給各部部長。
    權杖不會顯示在畫面或 console。 */
@@ -33,14 +33,14 @@ async function pvWrite(x,pw){
 }
 async function provisionDepts(){
   if(!cloudOn()||!ghToken()){await ask("這台裝置沒有權杖",[],{note:"開通部門要在已經連上雲端（貼過 GitHub 權杖）的裝置上做。請到「雲端同步」貼上權杖後再來。"});return}
-  if(editing){await ask("請先結束編輯",[],{note:"開通會直接寫入各部門的雲端資料。請先按「儲存並同步」或「取消」，再開通。"});return}
+  if(editing){await ask("請先結束編輯",[],{note:"開通會直接寫入各部門的雲端資料。請先把編輯中的那張卡片按「儲存」或「取消」，再開通。"});return}
   toast("讀取各部門的狀態…");
   const list=await Promise.all(BOARD_DEPTS.map(pvStatus));
   const first=BOARD_DEPTS[0].id;
   const fields=[...list.map(x=>({name:"d_"+x.d.id,type:"check",label:`${x.d.name}：${PV_ST[x.st]}${x.st==="err"&&x.code?`（${x.code}）`:""}`,value:x.st==="none"||x.st==="nokey"&&x.d.id!==first})),
     {name:"p1",label:`全會初始密碼（至少 ${MIN_PW} 碼）`,type:"password"},{name:"p2",label:"再輸入一次",type:"password"}];
   const v=await ask("開通部門（全會）",fields,{wide:true,
-    note:"勾選要開通的部門，設一組全會初始密碼，交給各部部長。部長按「編輯」、輸入初始密碼、建立身分（第一位是管理員），就會自動連上雲端。\n已有資料檔的部門：只換共用密碼與上傳權限，看板內容、身分都不動，舊的共用密碼失效。\n權杖用初始密碼加密後存在公開的資料檔裡；知道密碼的人就能寫入整個網站的資料，請只交給部長。",
+    note:"勾選要開通的部門，設一組全會初始密碼，交給各部部長。部長在設定頁按「登入」、輸入初始密碼、建立身分（第一位是管理員），就會自動連上雲端。\n已有資料檔的部門：只換共用密碼與上傳權限，看板內容、身分都不動，舊的共用密碼失效。\n權杖用初始密碼加密後存在公開的資料檔裡；知道密碼的人就能寫入整個網站的資料，請只交給部長。",
     validate:o=>{if(!list.some(x=>o["d_"+x.d.id]))return "請至少勾一個部門";if(list.some(x=>o["d_"+x.d.id]&&x.st==="err"))return "有勾選的部門讀取失敗，先取消勾選或稍後再試";return pwProblem(o.p1||"",o.p2||"","初始密碼")}});
   if(!v)return;
   const pick=list.filter(x=>v["d_"+x.d.id]),reset=pick.filter(x=>x.data);

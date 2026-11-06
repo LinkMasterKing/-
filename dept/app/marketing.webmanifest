@@ -4,7 +4,7 @@
   "short_name": "行銷部",
   "description": "南臺科技大學學生會行銷部的議題進度、即時回報與每週概述。",
   "lang": "zh-Hant",
-  "start_url": "../../index.html?d=marketing",
+  "start_url": "../../home.html",
   "scope": "../../",
   "display": "fullscreen",
   "background_color": "#ffffff",

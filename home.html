@@ -6,6 +6,12 @@
 <title>南臺科技大學學生會｜各部門工作進度</title>
 <meta name="description" content="南臺科技大學學生會各部門的工作看板入口。">
 <link rel="icon" href="dept/icons/favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="dept/icons/apple-touch-icon.png">
+<link rel="manifest" href="manifest.webmanifest">   <!-- 2026-11-06：全會共用一個 App，打開就是這一頁（core/js/app.js 的說明） -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="apple-mobile-web-app-title" content="學生會看板">
 <meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
 <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -70,7 +76,10 @@ body{overflow-x:hidden}
 .ring-dim{position:absolute;left:var(--cx);top:var(--cy);width:300vmax;height:300vmax;margin:-150vmax 0 0 -150vmax;border-radius:50%;background:radial-gradient(closest-side,var(--rg-dim1) 60%,var(--rg-dim2));transform:scale(0);opacity:0}
 .ring.on .ring-dim{transform:scale(1);opacity:1;transition:transform .7s cubic-bezier(.2,.8,.2,1),opacity .25s}
 .rl{position:absolute;left:var(--cx);top:var(--cy);display:grid;justify-items:center;gap:2px;width:112px;margin-left:-56px;margin-top:-22px;color:var(--rg-ink);text-align:center;opacity:0;transform:translate(0,0) scale(.6);transition:transform .5s var(--spring),opacity .35s}
-.ring.on .rl{opacity:.55;transform:translate(var(--x),var(--y)) scale(1);transition-delay:calc(var(--k) * 35ms + 120ms)}
+.ring.on .rl{opacity:calc(.55 + .45 * var(--lit,0));transform:translate(var(--x),var(--y)) scale(calc(1 + .08 * var(--lit,0)));transition-delay:calc(var(--k) * 35ms + 120ms)}
+/* 光經過的部門會發光（2026-11-06 使用者）：--lit＝光痕離這個名字多近（0～1，下面程式 trail 每格算），越近越亮、帶光暈、微微放大；光走了就慢慢暗回去 */
+.rl b{text-shadow:0 0 calc(var(--lit,0) * 22px) var(--rg-halo)}
+.ring.on .rl.lit-on{transition:transform .25s var(--ease),opacity .25s}
 .rl b{font-size:19px;font-weight:700;letter-spacing:.14em;white-space:nowrap}
 .rl small{font-size:11px;letter-spacing:.06em;color:var(--rg-sub);white-space:nowrap}
 .rl small .red{color:var(--red)}
@@ -79,7 +88,7 @@ body{overflow-x:hidden}
    同日改成有流體感的光：光頭帶一點慣性追著手指，走過的路留下慢慢淡掉的光痕（canvas，畫法在下面程式的 trail）；顏色用 --rg-g1／--rg-g2（選到部門時 -h 那組比較亮） */
 .ring-trail{position:absolute;inset:0;width:100%;height:100%;opacity:0;transition:opacity .3s;pointer-events:none;filter:blur(6px)}   /* 淡的光痕畫在 8 位元畫布上會有顆粒，輕微模糊抹平 */
 .ring.on.touch .ring-trail{opacity:1}
-.ring.on .rl.none{opacity:.3}
+.ring.on .rl.none{opacity:calc(.3 + .5 * var(--lit,0))}
 .ring.on .rl.none.on{opacity:.75}
 /* 手指移動時整個部門圈跟著小幅漂移（往手指的方向最多 14px，標誌反方向 6px，有景深感；2026-11-06 使用者） */
 #ringLabels{position:absolute;inset:0;transform:translate(var(--px,0px),var(--py,0px));transition:transform .35s var(--ease)}
@@ -88,8 +97,10 @@ body{overflow-x:hidden}
 .ring.on .ring-tip{opacity:1}
 body.ring-open .hm-float{animation-play-state:paused}
 .ring::after{content:"";position:absolute;inset:0;background:var(--bg);opacity:0;pointer-events:none}
-body.going .ring::after{opacity:1;transition:opacity .28s cubic-bezier(.4,0,1,1)}
 body.going .ring .rl.on{transform:translate(var(--x),var(--y)) scale(1.6);opacity:0;transition:transform .45s var(--ease),opacity .45s}
+/* 放開選好部門：從放開的位置擴散一片光色蓋滿全螢幕（第一次擴散，擋住載入時間），蓋滿就換頁；看板那邊從同一個位置再擴散開來露出看板（第二次，pagefx.js 的 arrive）。
+   顏色跟部門圈的字同色（深色白、淺色黑），兩頁用同一個顏色（存在 sessionStorage） */
+.burst{position:fixed;inset:0;z-index:20;pointer-events:none;background:var(--rg-ink);clip-path:circle(0 at var(--bx) var(--by))}
 .foot{margin:0;text-align:center;font-size:11px;letter-spacing:.14em;color:var(--muted)}
 .pfx-arrive body{opacity:0}
 @media (prefers-reduced-motion:reduce){
@@ -112,6 +123,7 @@ body.going .ring .rl.on{transform:translate(var(--x),var(--y)) scale(1.6);opacit
 </div>
 <div class="ring" id="ring" hidden aria-hidden="true"><div class="ring-dim"></div><canvas class="ring-trail" id="ringTrail"></canvas><div id="ringLabels"></div><p class="ring-tip" id="ringTip">移到部門上放開</p></div>
 <script src="core/js/pagefx.js"></script>
+<script>/* 安裝成 App：總覽頁也要註冊 Service Worker（跟看板同一個 sw.js），才能從這一頁安裝、離線打開 */if("serviceWorker" in navigator&&(location.protocol==="https:"||/^(localhost|127\.0\.0\.1)$/.test(location.hostname)))addEventListener("load",()=>navigator.serviceWorker.register("sw.js").catch(()=>{}));</script>
 <script src="dept/config.js"></script>
 <script>
 (()=>{
@@ -119,7 +131,15 @@ body.going .ring .rl.on{transform:translate(var(--x),var(--y)) scale(1.6);opacit
   const href=d=>d.id==="rights"?"index.html":`index.html?d=${encodeURIComponent(d.id)}`;
   /* 打開部門：選到的名字放大淡出，同時整個畫面蓋上底色（.ring::after），蓋滿就直接換頁（不再跑整頁往後退的動畫，比較順）；
      看板那邊從底色浮上來（pagefx.js 的 arrive） */
-  const go=u=>{document.body.classList.add("going");setTimeout(()=>{location.href=u},matchMedia("(prefers-reduced-motion: reduce)").matches?0:300)};
+  /* 2026-11-06 使用者：放開的位置跑兩次全螢幕擴散（第一次擋住載入、第二次在看板那邊轉進去）。x、y＝放開的位置（鍵盤打開時用標誌中心） */
+  const go=(u,x,y)=>{
+    if(matchMedia("(prefers-reduced-motion: reduce)").matches){location.href=u;return}
+    document.body.classList.add("going");
+    const b=document.createElement("div");b.className="burst";ringEl.append(b);
+    const R=Math.hypot(Math.max(x,innerWidth-x),Math.max(y,innerHeight-y))+2,col=getComputedStyle(b).backgroundColor;
+    try{sessionStorage.setItem("pfx-burst",JSON.stringify({x,y,c:col,t:Date.now()}))}catch(_){}
+    b.animate([{clipPath:`circle(0px at ${x}px ${y}px)`},{clipPath:`circle(${R}px at ${x}px ${y}px)`}],{duration:460,easing:"cubic-bezier(.55,0,.75,.2)",fill:"forwards"}).onfinish=()=>{location.href=u};
+  };
   const RM=()=>matchMedia("(prefers-reduced-motion: reduce)").matches;
   /* ---------- 數字（讀各部門網站上的資料檔，只讀）：跟看板同一套「沒有進度」判斷（回報期限前後都沒更新） ---------- */
   const ymd=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
@@ -191,9 +211,11 @@ body.going .ring .rl.on{transform:translate(var(--x),var(--y)) scale(1.6);opacit
       while(pts.length&&now-pts[0].t>LIFE)pts.shift();
       for(const q of pts){const k=1-(now-q.t)/LIFE;dot(q.x,q.y,40+60*k,.16*k*k)}
       dot(hx,hy,110,1);
+      lightLabels();
       cx.globalAlpha=1;raf=requestAnimationFrame(frame);
     }
     return {
+      head:()=>[hx,hy],pts:()=>pts,
       start(x,y){size();cx.clearRect(0,0,W,H);tx=hx=x;ty=hy=y;vx=vy=0;pts=[];live=true;if(!raf)raf=requestAnimationFrame(frame)},
       to(x,y){tx=x;ty=y;if(live&&!raf)raf=requestAnimationFrame(frame)},
       stop(){live=false;pts=[];if(raf){cancelAnimationFrame(raf);raf=0}},
@@ -201,6 +223,14 @@ body.going .ring .rl.on{transform:translate(var(--x),var(--y)) scale(1.6);opacit
     };
   })();
   function glowAt(x,y){trail.to(x,y)}
+  /* 光經過的部門會發光：每個名字取光頭與光痕裡最近的一點（光痕越舊算得越遠），離 140px 內開始亮、40px 內全亮；只寫 --lit，亮暗交給 CSS */
+  function lightLabels(){
+    const [hx,hy]=trail.head(),P=trail.pts(),now=performance.now();
+    ringEl.querySelectorAll(".rl").forEach(l=>{const r=l.getBoundingClientRect();if(!r.width)return;const cx=r.left+r.width/2,cy=r.top+r.height/2;
+      let best=Math.hypot(hx-cx,hy-cy);for(const q of P){const d=Math.hypot(q.x-cx,q.y-cy)+(now-q.t)*.25;if(d<best)best=d}
+      const v=Math.max(0,Math.min(1,1-(best-40)/100)),o=+l.style.getPropertyValue("--lit")||0;
+      if(Math.abs(v-o)>.02){l.style.setProperty("--lit",v.toFixed(2));l.classList.toggle("lit-on",v>0)}});
+  }
   function drift(x,y){const k=14/Math.max(1,ring.R),dx=Math.max(-1,Math.min(1,(x-ring.cx)*k/14)),dy=Math.max(-1,Math.min(1,(y-ring.cy)*k/14));
     for(const el of [ringEl,hm]){el.style.setProperty("--px",(dx*14).toFixed(1)+"px");el.style.setProperty("--py",(dy*14).toFixed(1)+"px")}}
   function pick(x,y){glowAt(x,y);if(!RM())drift(x,y);const dx=x-ring.cx,dy=y-ring.cy;if(Math.hypot(dx,dy)<48){setSel(-1);return}
@@ -217,7 +247,7 @@ body.going .ring .rl.on{transform:translate(var(--x),var(--y)) scale(1.6);opacit
   });
   const up=e=>{
     if(e.pointerId!==ring.ptr)return;ring.ptr=null;
-    if(ring.sel>=0){go(href(rest[ring.sel]));return}
+    if(ring.sel>=0){go(href(rest[ring.sel]),e.clientX,e.clientY);return}
     closeRing();if(Math.hypot(e.clientX-ring.x0,e.clientY-ring.y0)<14){hint.classList.remove("bump");void hint.offsetWidth;hint.classList.add("bump")}   /* 只是點一下：提示要按住滑過去 */
   };
   hm.addEventListener("pointerup",up);hm.addEventListener("pointercancel",e=>{if(e.pointerId===ring.ptr){ring.ptr=null;closeRing()}});
@@ -229,12 +259,12 @@ body.going .ring .rl.on{transform:translate(var(--x),var(--y)) scale(1.6);opacit
     const n=rest.length;
     if(["ArrowRight","ArrowDown"].includes(e.key)){e.preventDefault();setSel((ring.sel+1)%n)}
     else if(["ArrowLeft","ArrowUp"].includes(e.key)){e.preventDefault();setSel((ring.sel-1+n)%n)}
-    else if(e.key==="Enter"&&ring.sel>=0){e.preventDefault();go(href(rest[ring.sel]))}
+    else if(e.key==="Enter"&&ring.sel>=0){e.preventDefault();go(href(rest[ring.sel]),ring.cx,ring.cy)}
     else if(e.key==="Escape"){e.preventDefault();closeRing()}
   });
   hm.addEventListener("blur",()=>{if(ring.kbd)closeRing()});
   addEventListener("resize",()=>{if(ring.on)placeLabels();trail.resize()});
-  addEventListener("pageshow",e=>{if(e.persisted){document.body.classList.remove("going");closeRing()}});
+  addEventListener("pageshow",e=>{if(e.persisted){document.body.classList.remove("going");ringEl.querySelectorAll(".burst").forEach(b=>b.remove());closeRing()}});   /* 從看板按返回回到快取的這一頁：收掉蓋滿的光色 */
 })();
 </script>
 </body>

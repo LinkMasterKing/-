@@ -315,7 +315,7 @@ async function editBoardInfo(k){
   if((v.v||"")===(state[key]||""))return;
   await settingSave(()=>apply(v.v),`已更新${t}`);
 }
-function forgetDevice(){remClear();if(!editing){meId="";sessionPw="";sharedPwSession=""}renderSettings();toast("已忘記這台裝置，下次要重新輸入密碼")}
+function forgetDevice(){remClear();if(!editing){meId="";sessionPw="";sharedPwSession=""}renderSettings();render();toast("已忘記這台裝置，下次要重新輸入密碼")}
 
 /* ---------- 設定頁：合併頁（2026-11-06 使用者：同類的功能合成一頁，但功能彼此分開、不互相干涉） ----------
    畫在右側面板（桌面）或子頁（手機）裡，一列一個功能：
@@ -353,7 +353,7 @@ const SET_HUBS={
     {k:"import",ic:"upload",t:"匯入備份",sub:"用備份檔取代目前的看板內容（會先問一次）",act:()=>$("#importFile").click()}]),
   device:()=>hubRun("這台裝置",()=>{const rem=remRead(),n=rem&&(state.members.find(m=>m.id===rem.id)||{}).name;
     return [{k:"forget",ic:"device",t:"忘記這台裝置",sub:n?`目前記住：${esc(n)}（登入時勾選「在這個裝置上記住密碼」）`:"這台裝置沒有記住任何身分",off:!n,act:()=>forgetDevice()}]},
-    "<b>安裝成 App</b><br>在哪個部門的看板安裝，App 就開那個部門（各部門可以各裝一個）；之後打開會回到上次停的部門與區塊。<br>iPhone：用 Safari 打開 → 分享 → 加入主畫面。<br>Android／電腦：瀏覽器選單裡的「安裝」。"),
+    "<b>安裝成 App</b><br>全會共用一個 App「學生會看板」，打開就是各部門總覽，從那裡選部門。以前每個部門各裝一個的，建議刪掉重裝。<br>iPhone：用 Safari 打開 → 分享 → 加入主畫面。<br>Android／電腦：瀏覽器選單裡的「安裝」。"),
   /* 學年與開學日：只有秘書處有這一列 */
   term:()=>hubRun("學年與開學日",()=>[
     {k:"year",ic:"cap",t:"學年",sub:esc((state.yearLabel||"未設定")+({up:"・上學期",down:"・下學期"}[state.semester]||"")),flow:()=>editBoardInfo("year")},
@@ -376,7 +376,7 @@ const SET_FLOWS={
 };
 document.addEventListener("click",async e=>{
   if(!e.target.closest)return;
-  if(e.target.closest("#setOv [data-set-login]")){if(await ensureLogin())renderSettings();return}
+  if(e.target.closest("#setOv [data-set-login]")){if(await ensureLogin()){renderSettings();render()}return}   /* 登入後看板上的「編輯」鈕才出現（body.authed） */
   const r=e.target.closest("#setOv [data-set]");if(!r)return;
   const k=r.dataset.set;
   if(k==="week"){weekFromSettings();return}   /* 登入前的「每週概述」：不用登入 */

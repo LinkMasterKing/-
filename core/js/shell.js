@@ -13,7 +13,6 @@ const SHELL_HTML=`<div class="pager" id="pager">
         <button type="button" class="noti-btn" id="notiBtn" aria-label="通知" title="今日／明日要處理的事、行事曆"><svg class="ico solo" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><g class="i-bell"><path d="M6.2 16.4V11a5.8 5.8 0 0 1 11.6 0v5.4l1.6 1.8H4.6z"/><path d="M10.2 20.4a2 2 0 0 0 3.6 0"/></g></svg><span class="noti-n num" hidden></span></button>
       </header>
       <div class="hero-rule"><span class="hero-info"><span class="sub sr-only" id="saveInfo" role="status"></span></span><span class="actions"><span class="hero-btns" id="actions"></span></span></div>
-      <div class="banner"><span class="live-dot" aria-hidden="true"></span><b>編輯中</b><span class="sub">即時回報、進度、完成紀錄：點哪一欄就改哪一欄 · 其他區按標題列的「編輯這區」 · 全部改完按「儲存並同步」</span></div>
 
       <section class="panel grant-panel" id="grantPanel" aria-labelledby="grH" hidden>
         <div class="panel-head"><h2 id="grH">秘書處會議編輯<span class="en">GRANT</span></h2></div>
@@ -25,12 +24,12 @@ const SHELL_HTML=`<div class="pager" id="pager">
         <div class="ac-chart" id="actChart"></div>
         <div class="ac-legend" id="actLegend"></div>
       </section>
-      <section class="panel follow-panel" id="followPanel" data-secbox="follow" aria-labelledby="fwH" hidden>
-        <div class="panel-head"><h2 id="fwH">追蹤<span class="en">FOLLOW</span></h2><button type="button" class="icon sec-edit-btn" data-secedit="follow" aria-pressed="false">編輯這區</button></div>
+      <section class="panel follow-panel" id="followPanel" data-edbox="s:follow" aria-labelledby="fwH" hidden>
+        <div class="panel-head"><h2 id="fwH">追蹤<span class="en">FOLLOW</span></h2><button type="button" class="icon card-edit-btn" data-edit="s:follow">編輯</button></div>
         <div class="follows" id="follows" data-flip></div>
         <button class="ghost edit-only add-row" id="addFollow">+ 追蹤項目</button>
       </section>
-      <section class="panel follow-panel meet-panel" id="meetPanel" data-secbox="meet" aria-labelledby="mtH" hidden>
+      <section class="panel follow-panel meet-panel" id="meetPanel" aria-labelledby="mtH" hidden>
         <div class="panel-head"><h2 id="mtH">會議報告事項<span class="en">MEETING</span></h2><button type="button" class="icon" data-mtrefresh>重新整理</button></div>
         <div class="mt-depts" id="meetList" data-flip></div>
       </section>
@@ -39,29 +38,29 @@ const SHELL_HTML=`<div class="pager" id="pager">
         <div class="wk-depts" id="wkDepts" role="tablist" aria-label="部門"></div>
         <div class="wk-body" id="wkBody" data-flow></div>
       </section>
-      <section class="panel follow-panel meet-panel meet-edit" id="meetEdPanel" data-secbox="meetedit" aria-labelledby="meH" hidden>
-        <div class="panel-head"><h2 id="meH">會議編輯<span class="en">EDIT</span></h2><button type="button" class="icon" data-mtrefresh>重新整理</button><button type="button" class="icon sec-edit-btn" data-secedit="meetedit" aria-pressed="false" hidden>編輯這區</button></div>
+      <section class="panel follow-panel meet-panel meet-edit" id="meetEdPanel" data-edbox="s:meetedit" aria-labelledby="meH" hidden>
+        <div class="panel-head"><h2 id="meH">會議編輯<span class="en">EDIT</span></h2><button type="button" class="icon" data-mtrefresh>重新整理</button><button type="button" class="icon card-edit-btn" data-edit="s:meetedit" hidden>編輯</button></div>
         <p class="sub grant-st" id="meetEdSt"></p>
         <div class="mt-depts" id="meetEdList" data-flip></div>
       </section>
       <div class="layout">
-        <div class="sgroup" data-sec="live" data-secbox="live">
+        <div class="sgroup" data-sec="live">
           <section class="panel" id="livePanel" aria-labelledby="evH">
             <div class="panel-head"><h2 id="evH">即時回報<span class="en">LIVE</span></h2></div>
             <div class="md" id="liveMD"><div class="ev-zones" id="events" data-flip></div><div class="md-pane" id="evDetail" hidden></div></div>
           </section>
         </div>
 
-        <div class="sgroup" data-sec="progress" data-secbox="progress">
+        <div class="sgroup" data-sec="progress">
           <!-- 進度：甘特圖與個別議題合成一張卡片。預設看甘特圖；點議題列換成該議題的詳情，按返回回到甘特圖（views.js 的 progShow） -->
           <section class="panel" id="progPanel" aria-labelledby="ganttH">
-            <div class="panel-head"><h2 id="ganttH">時間甘特圖<span class="en">TIMELINE</span></h2></div>
-            <div class="pv-page" id="pvGantt">
+            <div class="panel-head"><h2 id="ganttH">時間甘特圖<span class="en">TIMELINE</span></h2><button type="button" class="icon card-edit-btn" id="ganttEdBtn" data-edit="s:gantt" aria-label="編輯甘特圖時間軸">編輯</button></div>
+            <div class="pv-page" id="pvGantt" data-edbox="s:gantt">
             <div class="g-term lseg" id="gTerm" role="tablist" aria-label="甘特圖範圍"><span class="lseg-lens" aria-hidden="true"></span><button type="button" role="tab" data-k="all" aria-selected="true">全部</button><button type="button" role="tab" data-k="up" aria-selected="false">上學期</button><button type="button" role="tab" data-k="down" aria-selected="false">下學期</button></div>
             <div class="legend" aria-label="圖例"><span><i class="lg-tk now" aria-hidden="true"></i>今天</span><span><i class="lg-tk on" aria-hidden="true"></i>已過時程</span><span><i class="lg-tk in" aria-hidden="true"></i>剩餘時程</span><span class="lg-hint">點議題列看詳情 · 左右滑動瀏覽月份</span></div>
             <div class="range">時間軸 <input type="month" id="rStart" aria-label="起始月份"> 到 <input type="month" id="rEnd" aria-label="結束月份"> <button class="icon" id="autoRange">依議題自動調整</button></div>
             <div class="gantt" id="gantt" data-flip></div>
-            <button class="ghost edit-only add-row" id="addIssue">+ 新增議題</button>
+            <button class="ghost auth-only add-row" id="addIssue">+ 新增議題</button>
             </div>
             <div class="pv-page" id="pvDetail" hidden>
               <button type="button" class="pv-back" id="pvBack">返回甘特圖</button>
@@ -70,7 +69,7 @@ const SHELL_HTML=`<div class="pager" id="pager">
           </section>
         </div>
 
-        <div class="sgroup" data-sec="done" data-secbox="done">
+        <div class="sgroup" data-sec="done">
           <aside class="panel" id="donePanel" aria-labelledby="doneH">
             <div class="panel-head"><h2 id="doneH">完成紀錄<span class="en">DONE</span><span class="count" id="doneCount">0</span></h2></div>
             <div class="md" id="doneMD"><div class="events scroll" id="doneList" data-flip></div><div class="md-pane" id="doneDetail" hidden></div></div>
@@ -88,7 +87,7 @@ const SHELL_HTML=`<div class="pager" id="pager">
         <h2 id="weekH">每週更新概述<span class="en">WEEKLY</span></h2>
         <a class="week-sec" id="weekSecLink" href="?d=secretariat" title="秘書處可以調閱各部門的週報">秘書處調閱 →</a>
         <button class="gen-btn" id="genWeek"><svg class="spark" viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M10 3l1.9 5.1L17 10l-5.1 1.9L10 17l-1.9-5.1L3 10l5.1-1.9z"/><path fill="currentColor" d="M18.5 2l.8 2.2 2.2.8-2.2.8-.8 2.2-.8-2.2-2.2-.8 2.2-.8z"/><path fill="currentColor" d="M18 14.5l.9 2.1 2.1.9-2.1.9-.9 2.1-.9-2.1-2.1-.9 2.1-.9z"/></svg>生成週報</button>
-        <button class="ghost edit-only" id="addWeek">+ 新增週報</button>
+        <button class="ghost auth-only" id="addWeek">+ 新增週報</button>
       </div>
       <div id="weekList" data-flip></div>
     </div>

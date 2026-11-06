@@ -38,7 +38,7 @@ function labelSetHTML(){
   return `<b>標籤（人事時地物）</b>
   <p class="sub tm-note">標在即時回報與議題上；挑選時常用的排前面。${adm?"":"新增、刪除標籤需要管理員。"}時間標記的地點可以直接點「地」標籤填入。</p>
   ${LABEL_KINDS.map(grp).join("")}
-  <p class="sub tm-note">${editing?"變更會在按「儲存並同步」後生效。":"按「完成」後會直接儲存並同步。"}</p>
+  <p class="sub tm-note">${editing?"變更會在按編輯中那張卡片的「儲存」後生效。":"按「完成」後會直接儲存並同步。"}</p>
   <div class="dlg-actions"><button type="button" class="primary" data-x="done">完成</button></div>`;
 }
 async function labelSettings(){
