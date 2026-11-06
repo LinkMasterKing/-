@@ -3,11 +3,11 @@ const ctx=await b.newContext({viewport:{width:390,height:844},hasTouch:true,isMo
 await ctx.route('https://fonts.googleapis.com/**',r=>r.fulfill({contentType:'text/css',body:''}));await ctx.route('https://api.github.com/**',r=>r.fulfill({status:404,body:'{}'}));
 const p=await ctx.newPage();const e=[];p.on('pageerror',x=>e.push(x.message));
 await p.goto('http://127.0.0.1:8300/home.html');await p.waitForTimeout(1200);
-await p.click('.dept[href="index.html"]');await p.waitForTimeout(2000);console.log('on board',p.url());
+await p.evaluate(()=>document.querySelector('#srList a[href="index.html"]').click());   /* 2026-11-06：總覽頁的部門改成長按標誌選（hm1.js 測），這裡直接點隱藏的部門連結 */await p.waitForTimeout(2000);console.log('on board',p.url());
 const st=()=>p.evaluate(()=>({len:history.length,state:history.state,set:setOpen,week:document.querySelector('#pager').scrollLeft>40}));
 await p.click('#setBtn');await p.waitForTimeout(700);console.log('settings open',await st());
 await p.goBack();await p.waitForTimeout(700);console.log('after back',await st(),p.url());
-await p.click('#weekBtn');await p.waitForTimeout(1200);console.log('week',await st());
+await p.click('#setBtn');await p.waitForTimeout(800);await p.click('#setOv [data-set=week]');await p.waitForTimeout(1300);   /* 2026-11-05：每週概述從設定頁進去（頁首按鈕已拿掉） */console.log('week',await st());
 await p.goBack();await p.waitForTimeout(1200);console.log('after back week',await st());
 // 拖曳返回手勢已停用（back.js 的 GESTURE=false）：拖了設定頁要還開著、沒有形變
 await p.click('#setBtn');await p.waitForTimeout(700);

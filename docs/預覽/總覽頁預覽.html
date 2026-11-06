@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>各部門總覽預覽</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Jost:wght@200;300;400;500;600&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+/* 各部門總覽（home.html）「簡單包裝一下」的三個方案預覽（交接說明四十二第 6 項）。不是看板的程式；資料是假的。可切深淺色 */
+:root{--bg:#fff;--ink:#111114;--muted:#5d5d66;--hair:#e2e2e8;--card:#f4f4f6;--red:#e0342a;--ok:#3ccf7f;--yel:#f0bc23;--sh:0 10px 28px rgba(0,0,0,.10)}
+:root[data-theme="dark"]{--bg:#000;--ink:#f1f1f4;--muted:#a3a3ae;--hair:#2c2c34;--card:#141417;--red:#ff5a4e;--sh:0 10px 28px rgba(0,0,0,.6)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.6 "Noto Sans TC",system-ui,sans-serif;-webkit-tap-highlight-color:transparent}
+.wrap{max-width:460px;margin:0 auto;padding:16px 16px 70px}
+.top{display:flex;align-items:center;justify-content:space-between;gap:10px;padding-bottom:14px;border-bottom:1.5px solid var(--ink)}
+.top b{font-size:18px;letter-spacing:.08em}.top small{font-family:Jost;letter-spacing:.2em;color:var(--muted);margin-right:8px}
+.theme{display:flex;gap:6px}.theme button{font:inherit;font-size:12px;padding:4px 12px;border-radius:999px;border:1px solid var(--ink);background:var(--bg);color:var(--ink);cursor:pointer}
+.theme button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
+.note{color:var(--muted);font-size:12.5px;margin:10px 0 0}
+.opt{border:1px solid var(--hair);border-radius:26px;padding:18px 16px 20px;margin-top:18px;overflow:hidden}
+.opt>h2{margin:0 0 2px;font-size:15px;letter-spacing:.08em}.opt>p{margin:0 0 16px;color:var(--muted);font-size:12.5px}
+.num{font-family:Jost,sans-serif}
+/* 共用頁首：logo 置中、玻璃搜尋欄（跟看板頁首同一套） */
+.hd{display:grid;justify-items:center;gap:14px;margin-bottom:18px}
+.logo{font-family:Jost;font-weight:600;letter-spacing:.2em;font-size:15px}.logo small{display:block;font-family:"Noto Sans TC";font-weight:500;font-size:10.5px;letter-spacing:.32em;text-align:center}
+.search{width:100%;height:42px;border-radius:999px;display:flex;align-items:center;gap:9px;padding:0 16px;color:var(--muted);font-size:13px;letter-spacing:.06em;background:color-mix(in srgb,var(--card) 70%,transparent);box-shadow:inset 0 0 0 .5px var(--hair),inset 1.5px 1.5px 1px -1px rgba(255,255,255,.6),0 10px 24px rgba(0,0,0,.1);backdrop-filter:blur(14px)}
+.search svg{opacity:.55}
+.press{transition:transform .18s cubic-bezier(.2,.9,.25,1)}.press:active{transform:scale(.97)}
+/* A 卡片格：每個部門一張圓角卡（今日卡片同一種語言），會長室反白放最上面一整排 */
+.A .grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.A .c{border-radius:22px;padding:14px 14px 12px;background:var(--card);display:grid;gap:10px;min-height:128px;text-decoration:none;color:inherit}
+.A .c.lead{grid-column:1/-1;background:var(--ink);color:var(--bg);min-height:0;grid-template-columns:1fr auto;align-items:end}
+.A .c b{font-size:17px;letter-spacing:.1em}
+.A .c .row{display:flex;gap:14px;align-items:end;font-size:10.5px;color:var(--muted);white-space:nowrap}
+.A .c .row>span{display:grid;line-height:1.3}
+.A .c.lead .row{color:color-mix(in srgb,var(--bg) 60%,var(--ink))}
+.A .c .row .num{font-size:26px;font-weight:300;line-height:1;color:var(--ink)}
+.A .c.lead .row .num{color:var(--bg)}
+.A .c .row .red .num{color:var(--red)}
+.A .c .foot{display:flex;justify-content:space-between;font-size:11px;color:var(--muted);border-top:1px solid color-mix(in srgb,var(--ink) 10%,transparent);padding-top:8px}
+.A .c.none{background:transparent;box-shadow:inset 0 0 0 1px var(--hair)}
+.A .c.none b{color:var(--muted)}
+/* B 海報清單：部門名大字＋右邊大數字（即時回報數，細體），下面一排細刻度＝近 7 天每天的編輯量 */
+.B .r{display:grid;grid-template-columns:1fr auto;align-items:end;gap:2px 12px;padding:14px 2px 12px;border-top:1px solid var(--hair);text-decoration:none;color:inherit}
+.B .r:first-of-type{border-top:1.5px solid var(--ink)}
+.B .r b{font-size:26px;font-weight:700;letter-spacing:.12em;line-height:1.1}
+.B .r .big{font-family:Jost;font-weight:200;font-size:46px;line-height:.8;text-align:right}
+.B .r .big small{display:block;font-family:"Noto Sans TC";font-weight:400;font-size:10.5px;color:var(--muted);letter-spacing:.1em;margin-top:6px}
+.B .r .sub{font-size:12px;color:var(--muted);display:flex;gap:10px;align-items:center}
+.B .r .sub .red{color:var(--red)}
+.B .tk{grid-column:1/-1;display:flex;align-items:flex-end;gap:3px;height:18px;margin-top:8px}
+.B .tk i{flex:1;max-width:3px;border-radius:1px;background:var(--hair)}.B .tk i.on{background:var(--ink)}
+.B .r.lead b{font-size:30px}
+.B .r.none{opacity:.45}
+/* C 橫向大卡片：左右滑一張一個部門（像 App Store 的大卡片），下面頁碼點；最前面是會長室 */
+.C .rail{display:flex;gap:12px;overflow-x:auto;scroll-snap-type:x mandatory;padding:4px 2px 14px;margin:0 -16px;padding-inline:16px;scrollbar-width:none}
+.C .rail::-webkit-scrollbar{display:none}
+.C .k{flex:0 0 78%;scroll-snap-align:center;border-radius:28px;padding:20px;min-height:250px;background:var(--card);box-shadow:var(--sh);display:grid;grid-template-rows:auto 1fr auto;gap:10px;text-decoration:none;color:inherit;position:relative;overflow:hidden}
+.C .k.lead{background:var(--ink);color:var(--bg)}
+.C .k .en{font-family:Jost;font-size:11px;letter-spacing:.24em;opacity:.6}
+.C .k b{font-size:30px;letter-spacing:.1em;line-height:1.15}
+.C .k .stats{display:flex;gap:16px}
+.C .k .stats div{display:grid}.C .k .stats .num{font-size:34px;font-weight:200;line-height:1}.C .k .stats small{font-size:11px;opacity:.65}
+.C .k .stats .red .num{color:var(--red)}
+.C .k .go{display:flex;justify-content:space-between;align-items:center;font-size:12px;opacity:.7;border-top:1px solid color-mix(in srgb,currentColor 18%,transparent);padding-top:10px}
+.C .k .ring{position:absolute;right:-30px;top:-30px;width:130px;height:130px;border-radius:50%;border:1px solid color-mix(in srgb,currentColor 14%,transparent)}
+.C .dots{display:flex;justify-content:center;gap:6px}.C .dots i{width:6px;height:6px;border-radius:3px;background:var(--hair);transition:width .3s,background .3s}.C .dots i.on{width:16px;background:var(--ink)}
+.C .mini{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:14px}
+.C .mini span{text-align:center;font-size:12px;padding:8px 0;border-radius:14px;background:var(--card)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top"><div><small>PREVIEW</small><b>各部門總覽</b></div><div class="theme"><button data-t="dark">深色</button><button data-t="light">淺色</button></div></div>
+  <p class="note">三個方案共用：頁首 logo 置中、玻璃搜尋欄「搜尋部門」（跟看板頁首一樣）、按下微縮回彈。資料是假的。往下滑看 A、B、C。</p>
+  <section class="opt A"><h2>A　卡片格</h2><p>跟通知層「今日／明日」同一種卡片：兩欄小卡，大數字是即時回報、進行中議題、沒有進度（紅）。會長室反白整排放最上面；還沒建立的部門是空心框。</p><div class="hd"><div class="logo">STUSTSA<small>南臺科大學生會</small></div><div class="search"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4 4"/></svg>搜尋部門</div></div><div class="grid" id="gA"></div></section>
+  <section class="opt B"><h2>B　海報清單</h2><p>跟海報月曆同一種語言：部門名大字、右邊細體大數字（即時回報數），下面一排細刻度＝近 7 天每天的編輯量（跟甘特圖的細刻度一樣）。還沒建立的部門變淡。</p><div class="hd"><div class="logo">STUSTSA<small>南臺科大學生會</small></div><div class="search"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4 4"/></svg>搜尋部門</div></div><div id="gB"></div></section>
+  <section class="opt C"><h2>C　橫向大卡片</h2><p>一個部門一張大卡片，左右滑（吸附在中間），下面頁碼點；會長室第一張反白。卡片下方一排小格可以直接跳到某個部門。</p><div class="hd"><div class="logo">STUSTSA<small>南臺科大學生會</small></div><div class="search"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4 4"/></svg>搜尋部門</div></div><div class="rail" id="gC"></div><div class="dots" id="dC"></div><div class="mini" id="mC"></div></section>
+</div>
+<script>
+const D=[{n:"會長室",en:"PRESIDENT",lead:1,f:1,saved:"11/02"},{n:"權益部",en:"RIGHTS",live:11,iss:4,st:1,saved:"11/06",wk:[3,0,5,9,2,7,4]},{n:"秘書處",en:"SECRETARIAT",live:0,iss:0,st:0,saved:"11/05",wk:[0,1,0,2,0,0,1]},{n:"行銷部",en:"MARKETING",none:1},{n:"財務部",en:"FINANCE",none:1},{n:"活動部",en:"EVENTS",live:0,iss:0,st:0,saved:"11/01",wk:[0,0,0,0,1,0,0]},{n:"社務部",en:"AFFAIRS",none:1},{n:"公關部",en:"PR",live:3,iss:1,st:2,saved:"11/04",wk:[1,2,0,0,3,1,0]},{n:"工務部",en:"WORKS",none:1}];
+const $=s=>document.getElementById(s);
+$("gA").innerHTML=D.map(d=>d.lead?`<a class="c lead press" href="#"><div><b>${d.n}</b><div class="row"><span><span class="num">${d.f}</span>追蹤項目</span></div></div><span class="num" style="font-size:12px;opacity:.7">開啟 →</span></a>`
+ :d.none?`<a class="c none press" href="#"><b>${d.n}</b><span style="font-size:11.5px;color:var(--muted)">尚未建立<br>第一次儲存後才有資料</span></a>`
+ :`<a class="c press" href="#"><b>${d.n}</b><div class="row"><span><span class="num">${d.live}</span>即時回報</span><span><span class="num">${d.iss}</span>議題</span>${d.st?`<span class="red"><span class="num">${d.st}</span>沒進度</span>`:""}</div><div class="foot"><span>最後儲存 ${d.saved}</span><span>→</span></div></a>`).join("");
+$("gB").innerHTML=D.map(d=>`<a class="r press${d.lead?" lead":""}${d.none?" none":""}" href="#"><div><b>${d.n}</b><div class="sub">${d.lead?`${d.f} 個追蹤項目・最後儲存 ${d.saved}`:d.none?"尚未建立":`${d.iss} 進行中議題${d.st?`<span class="red">● ${d.st} 沒有進度</span>`:""}・${d.saved}`}</div></div><div class="big">${d.lead?"→":d.none?"—":d.live}${d.lead||d.none?"":"<small>即時回報</small>"}</div>${d.wk?`<div class="tk">${d.wk.flatMap(v=>Array.from({length:6},(_,i)=>`<i class="${i<Math.min(6,v)?"on":""}" style="height:${30+Math.min(6,v)*11}%"></i>`)).join("")}</div>`:""}</a>`).join("");
+$("gC").innerHTML=D.map(d=>`<a class="k press${d.lead?" lead":""}" href="#"><span class="ring"></span><div><div class="en">${d.en}</div><b>${d.n}</b></div><div class="stats">${d.lead?`<div><span class="num">${d.f}</span><small>追蹤項目</small></div>`:d.none?`<div><span class="num">—</span><small>尚未建立</small></div>`:`<div><span class="num">${d.live}</span><small>即時回報</small></div><div><span class="num">${d.iss}</span><small>議題</small></div>${d.st?`<div class="red"><span class="num">${d.st}</span><small>沒有進度</small></div>`:""}`}</div><div class="go"><span>${d.saved?`最後儲存 ${d.saved}`:"第一次儲存後才有資料"}</span><span>開啟 →</span></div></a>`).join("");
+$("dC").innerHTML=D.map((_,i)=>`<i class="${i?"":"on"}"></i>`).join("");$("mC").innerHTML=D.map((d,i)=>`<span data-i="${i}">${d.n}</span>`).join("");
+const rail=$("gC");rail.addEventListener("scroll",()=>{const w=rail.firstElementChild.offsetWidth+12,k=Math.round(rail.scrollLeft/w);[...$("dC").children].forEach((x,i)=>x.classList.toggle("on",i===k))},{passive:true});
+$("mC").addEventListener("click",e=>{const s=e.target.closest("[data-i]");if(s)rail.children[+s.dataset.i].scrollIntoView({behavior:"smooth",inline:"center",block:"nearest"})});
+document.querySelectorAll("a").forEach(a=>a.addEventListener("click",e=>e.preventDefault()));
+const btns=[...document.querySelectorAll(".theme button")],set=t=>{document.documentElement.dataset.theme=t;btns.forEach(b=>b.setAttribute("aria-pressed",b.dataset.t===t))};
+btns.forEach(b=>b.onclick=()=>set(b.dataset.t));set(matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light");
+</script>
+</body>
+</html>
