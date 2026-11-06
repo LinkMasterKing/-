@@ -135,13 +135,13 @@ function splashPlay(){
   rows.forEach((row,r)=>row.forEach(([x,,w],i)=>{const k=row.length-1-i,el=glyphs[r*7+i],dx=(ex+ew-2-w-x)/w*100;
     el.animate([{transform:`translateX(${dx.toFixed(1)}%)`},{transform:"none"}],{duration:620,delay:T3+180+k*70,easing:OUT,fill:"backwards"})}));
 }
-/* 單色學生會 logo（頁首用）：同一份 SU_LOGO 路徑，全部填 currentColor（深淺色都跟著文字色）。
-   標誌黃藍兩塊同色會黏成一團，所以藍色那塊的外框先描一圈底色（--bg）當分隔縫，再疊上藍色本體；
+/* 頁首學生會 logo：同一份 SU_LOGO 路徑。淺色模式用原檔的彩色（2026-11-06 使用者）；深色模式全部填文字色（board.css「頁首」段蓋掉 fill）。
+   深色時標誌黃藍兩塊同色會黏成一團，所以藍色那塊的外框先描一圈底色（--bg）當分隔縫（.logo-gap，只在深色顯示），再疊上藍色本體；
    描邊只描外框那一段路徑（不含眼睛的洞），眼睛才不會被描大 */
 function suLogoMono(label){
-  const [VX,VY,VW,VH]=SU_LOGO.box,[,,,,[[,dy],[,db]]]=SU_LOGO.emb,outer=db.slice(0,db.indexOf("Z")+1);
-  return `<svg class="logo" xmlns="http://www.w3.org/2000/svg" viewBox="${VX} ${VY} ${VW} ${VH}" role="img" aria-label="${label}"><g fill="currentColor">
-    <path d="${dy}"/><path class="logo-gap" d="${outer}"/><path d="${db}"/>${SU_LOGO.g.map(g=>`<path d="${g[5]}"/>`).join("")}</g></svg>`;
+  const [VX,VY,VW,VH]=SU_LOGO.box,[,,,,[[cy,dy],[cb,db]]]=SU_LOGO.emb,outer=db.slice(0,db.indexOf("Z")+1);
+  return `<svg class="logo" xmlns="http://www.w3.org/2000/svg" viewBox="${VX} ${VY} ${VW} ${VH}" role="img" aria-label="${label}"><g>
+    <path fill="${cy}" d="${dy}"/><path class="logo-gap" d="${outer}"/><path fill="${cb}" d="${db}"/>${SU_LOGO.g.map(g=>`<path fill="${g[4]}" d="${g[5]}"/>`).join("")}</g></svg>`;
 }
 (function mountShell(){
   if(!document.getElementById("pager"))document.body.insertAdjacentHTML("afterbegin",SHELL_HTML);
@@ -159,7 +159,7 @@ function suLogoMono(label){
       ${piece(ex,ey,ew,eh,ep.map(([c,d],i)=>i?`<g class="sp-b"><path class="sp-gap" d="${d.slice(0,d.indexOf("Z")+1)}"/><path fill="${c}" d="${d}"/></g>`:`<path class="sp-y" fill="${c}" d="${d}"/>`).join(""),"sp-emb")}</div></div></div>`);   /* 標誌放在文字後面（DOM 順序），才蓋得住正從後面滑出的字 */
     splashPlay();
   }
-  /* 頁首 logo：所有部門都放學生會 logo（標誌＋STUSTSA＋南臺科大學生會，見 suLogoMono），單色、跟著文字色 */
+  /* 頁首 logo：所有部門都放學生會 logo（標誌＋STUSTSA＋南臺科大學生會，見 suLogoMono），淺色彩色、深色單色跟著文字色 */
   const box=document.querySelector(".logo-box");
   if(box&&!box.firstElementChild)box.innerHTML=suLogoMono(CFG.brand||"南臺科大學生會");
   /* 部門主色 → CSS 變數（只覆寫設定檔有給的值） */
