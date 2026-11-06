@@ -13,6 +13,7 @@
      兩層同時半透明的時間很短，不會看起來像三層疊在一起（2026-11-05 使用者回報「圖層太多、太透」）；
      上一次換頁還沒播完的其他層，新的換頁一開始就直接藏起來，不跟著一起淡。
    - 減少動態（prefers-reduced-motion）時直接換，不播動畫。
+   - 跨頁（總覽 ↔ 看板）整個 body 只縮放＋透明度、不模糊，到達時等整頁載入完再播（2026-11-06，手機比較順）。
    這個檔不依賴看板的其他程式（home.html 也載入它）。 */
 const PageFx=(()=>{
   const RM=()=>matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -25,7 +26,7 @@ const PageFx=(()=>{
   function hold(el){save(el);el.style.opacity="0"}
   /* 一段動畫：dir＝"out"（往後退）或 "in"（從後面浮上來）；t＝0..1
      out：縮小量＝SCALE·t³（越來越快），速度 ∝ t²；in：SCALE·(1−t)³ 反過來（越來越慢），速度 ∝ (1−t)² */
-  function run(el,dir,my,fadeIn=FADE_IN){
+  function run(el,dir,my,fadeIn=FADE_IN,blurK=1){   /* blurK：模糊量倍數（跨頁的整個 body 用 0：整頁模糊在手機上很吃效能、會卡） */
     return new Promise(res=>{
       if(!el){res();return}
       save(el);const dur=dir==="out"?OUT:IN,t0=performance.now(),r=el.getBoundingClientRect();
@@ -36,7 +37,7 @@ const PageFx=(()=>{
         const t=Math.min(1,(now-t0)/dur),out=dir==="out";
         const k=out?SCALE*t*t*t:SCALE*Math.pow(1-t,3),v=out?t*t:Math.pow(1-t,2);
         const o=out?(t<.35?1:Math.max(0,1-(t-.35)/.65)):Math.min(1,t/fadeIn);
-        el.style.transform=`scale(${(1-k).toFixed(4)})`;el.style.filter=`blur(${(BLUR*v).toFixed(2)}px)`;el.style.opacity=o.toFixed(3);
+        el.style.transform=`scale(${(1-k).toFixed(4)})`;el.style.filter=blurK?`blur(${(BLUR*blurK*v).toFixed(2)}px)`:"";el.style.opacity=o.toFixed(3);
         if(t<1)requestAnimationFrame(frame);else res();
       };
       requestAnimationFrame(frame);
@@ -76,12 +77,19 @@ const PageFx=(()=>{
      瀏覽器的返回鍵沒辦法在離開前先播動畫，只有新頁浮上來那一半。 */
   function leave(href){
     if(RM()){location.href=href;return}
-    const my=++tok;owner.set(document.body,my);run(document.body,"out",my).then(()=>{if(owner.get(document.body)===my)location.href=href});
+    const my=++tok;owner.set(document.body,my);run(document.body,"out",my,FADE_IN,0).then(()=>{if(owner.get(document.body)===my)location.href=href});
   }
+  /* 到達：等整頁載入完、再等兩格（看板第一次畫完、字型就位）才開始浮上來，動畫期間主執行緒比較閒，不會一頓一頓；
+     整個 body 不做模糊（只縮放＋透明度），手機才順（2026-11-06 使用者：選好部門進去的動畫有點卡） */
   function arrive(){
     const h=document.documentElement;if(!h.classList.contains("pfx-arrive"))return;
-    h.classList.remove("pfx-arrive");if(RM())return;
-    const my=++tok;owner.set(document.body,my);run(document.body,"in",my).then(()=>{if(owner.get(document.body)===my){owner.delete(document.body);reset(document.body)}});
+    if(RM()){h.classList.remove("pfx-arrive");return}
+    const start=()=>requestAnimationFrame(()=>requestAnimationFrame(()=>{
+      const my=++tok;owner.set(document.body,my);hold(document.body);h.classList.remove("pfx-arrive");
+      run(document.body,"in",my,FADE_IN,0).then(()=>{if(owner.get(document.body)===my){owner.delete(document.body);reset(document.body)}});
+    }));
+    let go=false;const once=()=>{if(!go){go=true;start()}};
+    if(document.readyState==="complete")once();else{addEventListener("load",once,{once:true});setTimeout(once,900)}   /* 最多等 0.9 秒（字型、圖片很慢時不要一直空白） */
   }
   const inSite=a=>{try{const u=new URL(a.href,location.href);return u.origin===location.origin&&(/\.html?$/.test(u.pathname)||u.pathname.endsWith("/"))&&!a.target&&!a.hasAttribute("download")}catch(_){return false}};
   document.addEventListener("click",e=>{

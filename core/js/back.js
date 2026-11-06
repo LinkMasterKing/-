@@ -14,6 +14,11 @@ const Back=(()=>{
     const i=stack.findIndex(x=>x.name===name);if(i<0)return;
     stack.splice(i,1);if(history.state&&history.state.bl){skip++;history.back()}   /* 最上面是我們推的紀錄就退一筆 */
   }
+  /* 把某一層的紀錄直接換成另一層（不用先退一筆再推一筆，避免兩個非同步的瀏覽紀錄操作打架）：每週概述 → 返回設定時用 */
+  function replace(name,next,close){
+    const i=stack.findIndex(x=>x.name===name);if(i<0)return;
+    stack[i]={name:next,close};if(history.state&&history.state.bl===name)history.replaceState({bl:next},"");
+  }
   addEventListener("popstate",e=>{
     if(skip){skip--;return}
     const top=stack.pop();if(!top)return;
@@ -24,7 +29,7 @@ const Back=(()=>{
     let fromHome=false;try{fromHome=!!document.referrer&&new URL(document.referrer).pathname.endsWith("/home.html")}catch(_){}
     if(fromHome&&history.length>1&&!stack.length)history.back();else PageFx.leave("home.html");
   }
-  return {opened,closed,home};
+  return {opened,closed,replace,home};
 })();
 /* 換頁動畫（pagefx.js）的「底下那一頁」：最上面還開著的全畫面層（skip 以外），沒有就是看板本身（#pager，含每週概述） */
 function pageUnder(skip){for(const s of ["#rptOv","#logOv:not(.in-pane)","#setOv","#notiOv"]){const el=document.querySelector(s);if(el&&el!==skip&&!el.hidden)return el}return $("#pager")}
@@ -34,5 +39,5 @@ Back.layers={
   noti:()=>Back.opened("noti",i=>closeNoti(i)),
   log:()=>Back.opened("log",i=>closeLog(i===true)),
   report:()=>Back.opened("report",i=>closeReport(i)),
-  week:()=>Back.opened("week",i=>goMain(i)),
+  week:()=>Back.opened("week",i=>weekBack(i)),   /* 從設定進來的回設定（weekly.js 的 weekBack） */
 };

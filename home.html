@@ -30,6 +30,10 @@ body{overflow-x:hidden}
 .lead{position:relative;overflow:hidden;display:grid;align-content:space-between;gap:18px;min-height:168px;padding:18px 18px 16px;border-radius:26px;background:var(--card);color:inherit;text-decoration:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;transition:transform .18s var(--ease)}
 .lead:active{transform:scale(.97)}
 .lead.pres{background:var(--ink);color:var(--bg)}
+/* 兩張大卡片也輕輕飄（2026-11-06 使用者）：上下 5px、6 秒一輪，兩張錯開半拍；用 translate 屬性做，不會跟按下微縮的 transform 打架 */
+.lead{animation:leadFloat 6s ease-in-out infinite}
+.lead+.lead{animation-delay:-3s}
+@keyframes leadFloat{0%,100%{translate:0 0}50%{translate:0 -5px}}
 .lead .en{font-family:"Jost",sans-serif;font-size:10.5px;letter-spacing:.26em;opacity:.6}
 .lead b{display:block;margin-top:4px;font-size:26px;font-weight:700;letter-spacing:.12em;line-height:1.15}
 .lead .st{display:flex;flex-wrap:wrap;gap:4px 16px;font-size:11.5px;opacity:.7}
@@ -81,11 +85,13 @@ body{overflow-x:hidden}
 .ring-tip{position:absolute;left:0;right:0;bottom:calc(36px + env(safe-area-inset-bottom));text-align:center;color:var(--rg-tip);font-size:12px;letter-spacing:.18em;opacity:0;transition:opacity .4s .3s}
 .ring.on .ring-tip{opacity:1}
 body.ring-open .hm-float{animation-play-state:paused}
+.ring::after{content:"";position:absolute;inset:0;background:var(--bg);opacity:0;pointer-events:none}
+body.going .ring::after{opacity:1;transition:opacity .28s cubic-bezier(.4,0,1,1)}
 body.going .ring .rl.on{transform:translate(var(--x),var(--y)) scale(1.6);opacity:0;transition:transform .45s var(--ease),opacity .45s}
 .foot{margin:0;text-align:center;font-size:11px;letter-spacing:.14em;color:var(--muted)}
 .pfx-arrive body{opacity:0}
 @media (prefers-reduced-motion:reduce){
-  .hm-float{animation:none}
+  .hm-float,.lead{animation:none}
   .ring-dim,.rl,.ring-glow,.hm-svg{transition:none}
 }
 </style>
@@ -109,7 +115,9 @@ body.going .ring .rl.on{transform:translate(var(--x),var(--y)) scale(1.6);opacit
 (()=>{
   const D=window.BOARD_DEPTS||[],$=id=>document.getElementById(id),esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
   const href=d=>d.id==="rights"?"index.html":`index.html?d=${encodeURIComponent(d.id)}`;
-  const go=u=>{document.body.classList.add("going");setTimeout(()=>{window.PageFx?PageFx.leave(u):location.href=u},matchMedia("(prefers-reduced-motion: reduce)").matches?0:260)};
+  /* 打開部門：選到的名字放大淡出，同時整個畫面蓋上底色（.ring::after），蓋滿就直接換頁（不再跑整頁往後退的動畫，比較順）；
+     看板那邊從底色浮上來（pagefx.js 的 arrive） */
+  const go=u=>{document.body.classList.add("going");setTimeout(()=>{location.href=u},matchMedia("(prefers-reduced-motion: reduce)").matches?0:300)};
   const RM=()=>matchMedia("(prefers-reduced-motion: reduce)").matches;
   /* ---------- 數字（讀各部門網站上的資料檔，只讀）：跟看板同一套「沒有進度」判斷（回報期限前後都沒更新） ---------- */
   const ymd=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
