@@ -39,5 +39,4 @@ Back.layers={
   noti:()=>Back.opened("noti",i=>closeNoti(i)),
   log:()=>Back.opened("log",i=>closeLog(i===true)),
   report:()=>Back.opened("report",i=>closeReport(i)),
-  week:()=>Back.opened("week",i=>weekBack(i)),   /* 從設定進來的回設定（weekly.js 的 weekBack） */
 };

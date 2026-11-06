@@ -103,7 +103,7 @@ button.ghost{border-color:var(--muted)}
   ::-webkit-scrollbar{display:none}
 }
 
-/* ===== 頁面：主頁｜每週概述左右切換 ===== */
+/* ===== 頁面：主頁（每週概述 2026-11-06 起改在設定裡，pager 只剩主頁一頁） ===== */
 .pager{display:flex;height:100vh;height:100dvh;overflow-x:hidden;overflow-y:hidden;scroll-snap-type:x mandatory;overscroll-behavior-x:contain;scrollbar-width:thin}
 .page{flex:none;height:100%;overflow-y:auto;scroll-snap-align:start;scrollbar-gutter:stable}
 .page-main{width:100vw}
@@ -771,9 +771,13 @@ a.link:active{transform:scale(.96)}
 @keyframes doneFlash{0%{opacity:0;transform:translateX(-14px)}40%{opacity:1;transform:none;background:color-mix(in srgb,var(--done) 22%,transparent)}100%{}}
 
 /* ===== 每週概述 ===== */
-.page-week{width:min(620px,94vw);background:var(--surface);border-left:1px solid var(--line);scroll-snap-align:end;box-shadow:-8px 0 24px rgba(0,0,0,.06);background-color:var(--surface)}
-.week-wrap{--wt:calc(20px + env(safe-area-inset-top));--wr:max(18px,env(safe-area-inset-right));--wl:max(18px,env(safe-area-inset-left));padding:var(--wt) var(--wr) calc(20px + var(--bar-in) + env(safe-area-inset-bottom)) var(--wl)}
-.week-top{display:flex;justify-content:space-between;align-items:center;gap:8px;position:sticky;top:0;background:var(--surface);z-index:5;margin:calc(-1*var(--wt)) calc(-1*var(--wr)) 14px calc(-1*var(--wl));padding:var(--wt) var(--wr) 18px var(--wl);border-bottom:1px solid var(--line);flex-wrap:wrap;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;border-color:var(--hair);transition:box-shadow .25s,background-color .25s;backdrop-filter:blur(8px)}
+/* 2026-11-06 起是設定裡的一頁（weekly.js 的 weekPane）：畫在設定的右側面板／手機子頁，平常藏著。
+   標題列跟合併頁同一種（20px 標題＋細分隔線），捲動時黏在面板上方；「返回」只在桌面出現（手機用子頁上方的「返回」） */
+.week-wrap{max-width:640px}
+.week-wrap[hidden]{display:none}
+.week-top{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;position:sticky;top:0;background:var(--bg);z-index:5;padding:0 0 12px;margin-bottom:16px;border-bottom:1px solid var(--hair)}
+.week-top h2{flex:1;min-width:0;font-size:20px;letter-spacing:.08em}
+.week-top h2::after{content:none}
 /* 「秘書處調閱 →」：秘書處的看板有「各部門週報」可以調閱每個部門的週報（秘書處自己不顯示） */
 .week-sec{flex:none;font-size:12.5px;color:var(--muted);text-decoration:none;letter-spacing:.06em;transition:color var(--mo-fast) var(--mo-out)}
 .week-sec:hover{color:var(--ink)}
@@ -796,19 +800,19 @@ a.link:active{transform:scale(.96)}
 .spark{flex:none;transition:transform .4s cubic-bezier(.3,1.6,.5,1)}
 .gen-btn:hover .spark{transform:rotate(-12deg) scale(1.15)}
 .week-text .wl{display:block}
-.page-week.enter .week,.page-week.enter .week-top>*{animation:slideIn .55s var(--ease) both}
-.page-week.enter .week:nth-child(1){animation-delay:0.080s}
-.page-week.enter .week:nth-child(2){animation-delay:0.130s}
-.page-week.enter .week:nth-child(3){animation-delay:0.180s}
-.page-week.enter .week:nth-child(4){animation-delay:0.230s}
-.page-week.enter .week:nth-child(5){animation-delay:0.280s}
-.page-week.enter .week:nth-child(6){animation-delay:0.330s}
-.page-week.enter .week:nth-child(7){animation-delay:0.380s}
-.page-week.enter .week:nth-child(8){animation-delay:0.430s}
-.page-week.enter .week:nth-child(9){animation-delay:0.480s}
-.page-week.enter .week:nth-child(10){animation-delay:0.530s}
+/* 打開時標題列與週報逐一滑入（weekPane 加 .enter） */
+.week-wrap.enter .week,.week-wrap.enter .week-top>*{animation:slideIn .55s var(--ease) both}
+.week-wrap.enter .week:nth-child(1){animation-delay:0.080s}
+.week-wrap.enter .week:nth-child(2){animation-delay:0.130s}
+.week-wrap.enter .week:nth-child(3){animation-delay:0.180s}
+.week-wrap.enter .week:nth-child(4){animation-delay:0.230s}
+.week-wrap.enter .week:nth-child(5){animation-delay:0.280s}
+.week-wrap.enter .week:nth-child(6){animation-delay:0.330s}
+.week-wrap.enter .week:nth-child(7){animation-delay:0.380s}
+.week-wrap.enter .week:nth-child(8){animation-delay:0.430s}
+.week-wrap.enter .week:nth-child(9){animation-delay:0.480s}
+.week-wrap.enter .week:nth-child(10){animation-delay:0.530s}
 .week.new{animation:weekNew 1.2s var(--ease) both}
-.week-top.scrolled{box-shadow:0 10px 24px -14px rgba(0,0,0,.6)}
 [data-copyweek]{transition:background-color .2s,color .2s,transform .2s}
 [data-copyweek].copied{background:var(--neon);border-color:var(--neon);color:#000;animation:pop .35s cubic-bezier(.3,1.6,.5,1)}
 .week:hover summary .num{letter-spacing:.04em}
@@ -816,19 +820,17 @@ a.link:active{transform:scale(.96)}
 #backMain span{transition:transform .2s var(--ease)}
 #backMain{transition:transform .2s var(--ease);gap:6px;padding:5px 14px 5px 13px}
 #backMain:hover{transform:translateX(-2px)}
+@media (max-width:899px){#backMain{display:none}}
 #genWeek{padding-left:12px;padding-right:20px}
 @media (prefers-reduced-motion:reduce){
   .week:hover{transform:none!important}
 }
 .week:hover{transform:none!important}
 @media (max-width:640px){
-  .page-week{width:100vw;border-left:0;box-shadow:none}   /* 手機滿版：左邊框與陰影是以前疊在主頁旁邊時用的，滿版時只會變成一條擋路的線（2026-11-06 使用者） */
-  .week-wrap{--wt:calc(16px + env(safe-area-inset-top));--wr:max(14px,env(safe-area-inset-right));--wl:max(14px,env(safe-area-inset-left))}
   .week-text{font-size:14px}
   .week-top{padding-bottom:10px;row-gap:10px}
-  /* 手機寬度放不下「返回＋標題＋生成週報」一列：按鈕留在第一列（返回靠左、其他靠右），標題連同箭頭線排到第二列整列 */
-  .week-top h2{order:1;flex:1 0 100%}
-  #genWeek{margin-left:auto}
+  .week-top h2{flex:1 0 100%}   /* 手機放不下「標題＋秘書處調閱＋兩顆按鈕」一列：標題自己一列，下面一列放其他的 */
+  #weekSecLink{margin-right:auto}
 }
 @keyframes slideIn{from{opacity:0;transform:translateX(26px)}}
 @keyframes weekNew{0%{opacity:0;transform:translateY(-12px) scale(.97)}35%{opacity:1;transform:none;box-shadow:0 0 0 2px var(--ink),0 0 24px 2px color-mix(in srgb,var(--ink) 35%,transparent)}100%{box-shadow:none}}
@@ -1672,11 +1674,11 @@ dialog#dlg:has(.csel.open){overflow:visible}
 .week.opening .wl:nth-child(22){animation-delay:0.645s}
 .week.opening .wl:nth-child(23){animation-delay:0.670s}
 .week.opening .wl:nth-child(24){animation-delay:0.695s}
-.page-week.enter .week-top>*:nth-child(1){animation-delay:0.000s}
-.page-week.enter .week-top>*:nth-child(2){animation-delay:0.040s}
-.page-week.enter .week-top>*:nth-child(3){animation-delay:0.080s}
-.page-week.enter .week-top>*:nth-child(4){animation-delay:0.120s}
-.page-week.enter .week-top>*:nth-child(5){animation-delay:0.160s}
+.week-wrap.enter .week-top>*:nth-child(1){animation-delay:0.000s}
+.week-wrap.enter .week-top>*:nth-child(2){animation-delay:0.040s}
+.week-wrap.enter .week-top>*:nth-child(3){animation-delay:0.080s}
+.week-wrap.enter .week-top>*:nth-child(4){animation-delay:0.120s}
+.week-wrap.enter .week-top>*:nth-child(5){animation-delay:0.160s}
 @keyframes dropIn{from{opacity:0;transform:translateY(-10px)}}
 
 /* ===== 編輯／檢視切換時的動畫 ===== */
@@ -1703,7 +1705,7 @@ body.intro .card,body.intro .ev,body.intro .g-row{animation:rise .5s var(--ease)
 @keyframes grow{from{width:0}}
 
 /* ===== 設定檔：關閉的區塊 ===== */
-body.no-live .sgroup[data-sec="live"],body.no-timeline.no-cards .sgroup[data-sec="progress"],body.no-done .sgroup[data-sec="done"],body.no-weekly #pageWeek,body.no-weekly #weekBtn{display:none!important}
+body.no-live .sgroup[data-sec="live"],body.no-timeline.no-cards .sgroup[data-sec="progress"],body.no-done .sgroup[data-sec="done"],body.no-weekly [data-hub=week],body.no-weekly #weekBtn{display:none!important}
 body.no-done .layout{grid-template-columns:minmax(0,1fr)}
 
 /* ===== 一般螢幕：圓角補半像素 ===== */

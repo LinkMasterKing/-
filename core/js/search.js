@@ -38,7 +38,7 @@ function hsMark(i){HS.on=i;document.querySelectorAll("#boardRes .hr-item").forEa
 /* 打開一筆：換區塊 → 捲到那一項 → 打開 */
 function hsGo(x){
   hsShow(false);$("#boardQ").blur();
-  if(notiOpen)closeNoti(true);if(setOpen)closeSettings(true);goMain(true);
+  if(notiOpen)closeNoti(true);if(setOpen)closeSettings(true);
   const sec=x.k==="issue"?"progress":x.k;if(typeof setSection==="function"&&secOn(sec))setSection(sec);
   setTimeout(()=>{
     const el=x.k==="issue"?document.querySelector(`#gantt [data-jump="${x.id}"]`):document.querySelector(x.k==="live"?`#events [data-ev="${x.id}"]`:`#donePanel [data-done="${x.id}"]`);
