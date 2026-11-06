@@ -210,8 +210,9 @@ body.edit .sec-edit-btn{display:inline-flex;animation:fadeSlide .4s var(--ease) 
 .sec-edit-btn[aria-pressed="true"]{background:var(--ink);color:var(--surface);border-color:var(--ink)}
 .count{font-size:12px;border-radius:999px;padding:1px 8px;margin-left:6px;border:1px solid var(--ink);background:none;color:var(--ink);font-family:"Jost",sans-serif;letter-spacing:0;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
 .add-row{width:100%;justify-content:center;align-items:center;margin-top:12px;border-radius:14px;min-height:46px;letter-spacing:.02em;padding-right:19px!important}
-/* 區塊內部的版面與繪製各自獨立：上方即時回報展開收合時，下面的區塊只要整塊往下移，不用重算、重畫內容 */
-.panel:not(#livePanel){contain:layout paint}
+/* 區塊內部的版面與繪製各自獨立：上方即時回報展開收合時，下面的區塊只要整塊往下移，不用重算、重畫內容。
+   即時回報、完成紀錄除外：膠囊滑過時的光暈會超出區塊，paint 隔離會把它裁掉（2026-11-06 使用者回報完成紀錄膠囊上緣被切） */
+.panel:not(#livePanel):not(#donePanel){contain:layout paint}
 /* 即時回報、完成紀錄：不要大外框，膠囊直接放在頁面上（標題列照舊；完成紀錄 2026-11-06 起比照即時回報） */
 #livePanel,#donePanel{border:0;background:none;padding:4px 0 8px;border-radius:0}
 @media (max-width:900px){
@@ -750,9 +751,10 @@ a.link:active{transform:scale(.96)}
 @keyframes pulse{50%{transform:scaleY(1.3);box-shadow:0 0 10px 2px color-mix(in srgb,var(--mc) 60%,transparent)}}
 
 /* ===== 完成紀錄 ===== */
-#donePanel{max-height:min(620px,72vh);display:flex;flex-direction:column;--done:var(--ok);overflow:hidden}   /* 2026-11-06 使用者：不要黑色反白的大外框，比照即時回報（外框、底色見「版面與區塊外框」段的 #livePanel,#donePanel），只有燈號是綠色 */
+#donePanel{max-height:min(620px,72vh);display:flex;flex-direction:column;--done:var(--ok)}   /* 2026-11-06 使用者：不要黑色反白的大外框，比照即時回報（外框、底色見「版面與區塊外框」段的 #livePanel,#donePanel），只有燈號是綠色 */
 /* 膠囊清單（跟即時回報同一套 .events .ev，見「即時回報」段的「完成紀錄膠囊」）；區塊太長時清單自己捲 */
-#donePanel .scroll{overflow-y:auto;flex:1;margin:0 -4px;padding:4px 4px 16px;scrollbar-gutter:stable}
+#donePanel .scroll{overflow-y:auto;flex:1;margin:-24px -28px 0;padding:28px 28px 16px;scrollbar-gutter:stable}   /* 捲動區四周多留光暈的空間（膠囊滑過的 --glow 約 25px），再用負邊距拉回原位，膠囊位置不變 */
+#donePanel .panel-head{position:relative;z-index:1}   /* 捲動區往上多留的那一段疊在標題列上：標題列放上面，按鈕才點得到 */
 .done-body{font-size:13px;display:grid;gap:6px}
 .done-body ul{margin:0;padding-left:18px}
 #donePanel h2{min-width:0}

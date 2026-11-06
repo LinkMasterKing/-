@@ -75,10 +75,10 @@ body{overflow-x:hidden}
 .rl small{font-size:11px;letter-spacing:.06em;color:var(--rg-sub);white-space:nowrap}
 .rl small .red{color:var(--red)}
 .ring.on .rl.on{opacity:1;transform:translate(var(--x),var(--y)) scale(1.25);transition-delay:0s;transition-duration:.25s;text-shadow:0 0 18px var(--rg-halo)}
-/* 手指（滑鼠）碰到的地方周圍發亮：一團柔和的白光跟著指標走（2026-11-06 使用者：不要指向線，要觸碰的區域周圍發亮） */
-.ring-glow{position:absolute;left:0;top:0;width:220px;height:220px;margin:-110px 0 0 -110px;border-radius:50%;background:radial-gradient(closest-side,var(--rg-g1),var(--rg-g2) 55%,transparent);transform:translate(var(--gx,-999px),var(--gy,-999px)) scale(.6);opacity:0;transition:opacity .25s,transform .12s linear;pointer-events:none}
-.ring.on.touch .ring-glow{opacity:1;transform:translate(var(--gx),var(--gy)) scale(1)}
-.ring.on.touch.has .ring-glow{background:radial-gradient(closest-side,var(--rg-g1h),var(--rg-g2h) 55%,transparent)}
+/* 手指（滑鼠）碰到的地方周圍發亮（2026-11-06 使用者：不要指向線，要觸碰的區域周圍發亮）。
+   同日改成有流體感的光：光頭帶一點慣性追著手指，走過的路留下慢慢淡掉的光痕（canvas，畫法在下面程式的 trail）；顏色用 --rg-g1／--rg-g2（選到部門時 -h 那組比較亮） */
+.ring-trail{position:absolute;inset:0;width:100%;height:100%;opacity:0;transition:opacity .3s;pointer-events:none;filter:blur(6px)}   /* 淡的光痕畫在 8 位元畫布上會有顆粒，輕微模糊抹平 */
+.ring.on.touch .ring-trail{opacity:1}
 .ring.on .rl.none{opacity:.3}
 .ring.on .rl.none.on{opacity:.75}
 /* 手指移動時整個部門圈跟著小幅漂移（往手指的方向最多 14px，標誌反方向 6px，有景深感；2026-11-06 使用者） */
@@ -94,7 +94,7 @@ body.going .ring .rl.on{transform:translate(var(--x),var(--y)) scale(1.6);opacit
 .pfx-arrive body{opacity:0}
 @media (prefers-reduced-motion:reduce){
   .hm-float,.lead{animation:none}
-  .ring-dim,.rl,.ring-glow,.hm-svg{transition:none}
+  .ring-dim,.rl,.ring-trail,.hm-svg{transition:none}
 }
 </style>
 <script>/* 換頁動畫（core/js/pagefx.js）：從站內換頁過來的，body 先透明，等它從後面浮上來（不會先閃一下完整的畫面） */try{var r=document.referrer,n=performance.getEntriesByType("navigation")[0];if(r&&new URL(r).origin===location.origin&&(!n||n.type!=="reload")&&!matchMedia("(prefers-reduced-motion: reduce)").matches)document.documentElement.classList.add("pfx-arrive")}catch(e){}</script>
@@ -110,7 +110,7 @@ body.going .ring .rl.on{transform:translate(var(--x),var(--y)) scale(1.6);opacit
   <p class="foot">南臺科技大學學生會・各部門工作看板</p>
   <nav class="sr-only" aria-label="所有部門" id="srList"></nav>
 </div>
-<div class="ring" id="ring" hidden aria-hidden="true"><div class="ring-dim"></div><div class="ring-glow"></div><div id="ringLabels"></div><p class="ring-tip" id="ringTip">移到部門上放開</p></div>
+<div class="ring" id="ring" hidden aria-hidden="true"><div class="ring-dim"></div><canvas class="ring-trail" id="ringTrail"></canvas><div id="ringLabels"></div><p class="ring-tip" id="ringTip">移到部門上放開</p></div>
 <script src="core/js/pagefx.js"></script>
 <script src="dept/config.js"></script>
 <script>
@@ -169,10 +169,38 @@ body.going .ring .rl.on{transform:translate(var(--x),var(--y)) scale(1.6);opacit
   }
   function closeRing(){
     if(!ring.on)return;ring.on=false;for(const el of [ringEl,hm]){el.style.setProperty("--px","0px");el.style.setProperty("--py","0px")}ringEl.classList.remove("on","has","touch");hm.classList.remove("open");document.body.classList.remove("ring-open");hm.setAttribute("aria-expanded","false");
-    setTimeout(()=>{if(!ring.on)ringEl.hidden=true},RM()?0:500);
+    setTimeout(()=>{if(!ring.on){ringEl.hidden=true;trail.stop()}},RM()?0:500);   /* 光痕跟著整層淡出，藏起來之後才停 */
   }
   /* 指標位置 → 選哪個部門：離標誌中心 48px 以內不選（放開＝取消），以外看方向；手指周圍的白光跟著走 */
-  function glowAt(x,y){ringEl.style.setProperty("--gx",x+"px");ringEl.style.setProperty("--gy",y+"px")}
+  /* 光痕：光頭用彈性追指標（有一點慣性、會稍微甩過頭再回來），每一格記下光頭的位置；
+     每一格整張重畫：最近 0.6 秒走過的路各蓋一顆柔光（越舊越淡、越小），最後畫光頭本身。停下來時光痕收回成光頭那一團，不會殘留。
+     減少動態時不拖光痕，只畫指標位置的一團光 */
+  const trail=(()=>{
+    const cv=$("ringTrail"),cx=cv.getContext("2d"),LIFE=600;let W=0,H=0,raf=0,tx=0,ty=0,hx=0,hy=0,vx=0,vy=0,live=false,cols=null,pts=[];
+    const size=()=>{const dpr=Math.min(2,devicePixelRatio||1);W=innerWidth;H=innerHeight;cv.width=Math.round(W*dpr);cv.height=Math.round(H*dpr);cx.setTransform(dpr,0,0,dpr,0,0)};
+    const readCols=()=>{const st=getComputedStyle(ringEl),k=ringEl.classList.contains("has")?"h":"";cols=[st.getPropertyValue("--rg-g1"+k).trim(),st.getPropertyValue("--rg-g2"+k).trim()]};
+    const dot=(x,y,r,a)=>{const g=cx.createRadialGradient(x,y,0,x,y,r);g.addColorStop(0,cols[0]);g.addColorStop(.55,cols[1]);g.addColorStop(1,"rgba(0,0,0,0)");cx.globalAlpha=a;cx.fillStyle=g;cx.fillRect(x-r,y-r,r*2,r*2)};
+    function frame(now){
+      raf=0;if(!live)return;
+      cx.clearRect(0,0,W,H);readCols();
+      if(RM()){dot(tx,ty,110,1);return}
+      const lx=hx,ly=hy;vx=(vx+(tx-hx)*.22)*.68;vy=(vy+(ty-hy)*.22)*.68;hx+=vx;hy+=vy;
+      /* 這一格走過的線段每 10px 記一點（走得快也連成一條） */
+      const d=Math.hypot(hx-lx,hy-ly),n=Math.min(12,Math.max(1,Math.ceil(d/10)));
+      for(let i=1;i<=n;i++)pts.push({x:lx+(hx-lx)*i/n,y:ly+(hy-ly)*i/n,t:now});
+      while(pts.length&&now-pts[0].t>LIFE)pts.shift();
+      for(const q of pts){const k=1-(now-q.t)/LIFE;dot(q.x,q.y,40+60*k,.16*k*k)}
+      dot(hx,hy,110,1);
+      cx.globalAlpha=1;raf=requestAnimationFrame(frame);
+    }
+    return {
+      start(x,y){size();cx.clearRect(0,0,W,H);tx=hx=x;ty=hy=y;vx=vy=0;pts=[];live=true;if(!raf)raf=requestAnimationFrame(frame)},
+      to(x,y){tx=x;ty=y;if(live&&!raf)raf=requestAnimationFrame(frame)},
+      stop(){live=false;pts=[];if(raf){cancelAnimationFrame(raf);raf=0}},
+      resize(){if(live)size()}
+    };
+  })();
+  function glowAt(x,y){trail.to(x,y)}
   function drift(x,y){const k=14/Math.max(1,ring.R),dx=Math.max(-1,Math.min(1,(x-ring.cx)*k/14)),dy=Math.max(-1,Math.min(1,(y-ring.cy)*k/14));
     for(const el of [ringEl,hm]){el.style.setProperty("--px",(dx*14).toFixed(1)+"px");el.style.setProperty("--py",(dy*14).toFixed(1)+"px")}}
   function pick(x,y){glowAt(x,y);if(!RM())drift(x,y);const dx=x-ring.cx,dy=y-ring.cy;if(Math.hypot(dx,dy)<48){setSel(-1);return}
@@ -181,7 +209,7 @@ body.going .ring .rl.on{transform:translate(var(--x),var(--y)) scale(1.6);opacit
   hm.addEventListener("pointerdown",e=>{
     if(e.button>0||ring.on)return;ring.ptr=e.pointerId;ring.x0=e.clientX;ring.y0=e.clientY;
     try{hm.setPointerCapture(e.pointerId)}catch(_){}
-    glowAt(e.clientX,e.clientY);openRing(false);   /* 2026-11-06：按下的瞬間就打開、可以選（不用再等一秒） */
+    trail.start(e.clientX,e.clientY);openRing(false);   /* 2026-11-06：按下的瞬間就打開、可以選（不用再等一秒） */
   });
   hm.addEventListener("pointermove",e=>{
     if(e.pointerId!==ring.ptr)return;
@@ -205,7 +233,7 @@ body.going .ring .rl.on{transform:translate(var(--x),var(--y)) scale(1.6);opacit
     else if(e.key==="Escape"){e.preventDefault();closeRing()}
   });
   hm.addEventListener("blur",()=>{if(ring.kbd)closeRing()});
-  addEventListener("resize",()=>{if(ring.on)placeLabels()});
+  addEventListener("resize",()=>{if(ring.on)placeLabels();trail.resize()});
   addEventListener("pageshow",e=>{if(e.persisted){document.body.classList.remove("going");closeRing()}});
 })();
 </script>
