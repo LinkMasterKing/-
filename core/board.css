@@ -713,7 +713,10 @@ a.link:active{transform:scale(.96)}
 .top{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:12px;margin-bottom:14px}
 .marker .lbl{z-index:3;position:absolute;left:0;transform:translateX(-50%);font-size:12px;white-space:nowrap;background:var(--surface);border:1px solid var(--line);max-width:160px;overflow:hidden;text-overflow:ellipsis;line-height:18px;border-radius:999px;padding:0 8px;transition:transform .18s var(--ease),box-shadow .18s,border-color .18s,padding .2s}
 .marker .stem{z-index:1;position:absolute;left:-.5px;width:1px;background:var(--mc);opacity:.55}
-.marker .dot{z-index:2;position:absolute;top:35px;border-radius:50%;background:var(--mc);transition:transform .18s var(--ease),box-shadow .18s,border-color .18s,padding .2s;width:10px;height:10px;left:-5px;border:0;box-shadow:0 0 0 2.5px var(--surface);cursor:pointer}
+/* 註記：時程條上一根直立的長條（2026-11-05 使用者：點太小、擠在一起不好點，改成比較長的一條）；
+   比刻度高一截、上下各凸出 6px，左右另外多 8px 的透明可點範圍（::before） */
+.marker .dot{z-index:2;position:absolute;top:35px;border-radius:2px;background:var(--mc);transition:transform .18s var(--ease),box-shadow .18s,border-color .18s,padding .2s;width:4px;height:28px;left:-2px;border:0;box-shadow:0 0 0 2.5px var(--surface);cursor:pointer}
+.marker .dot::before{content:"";position:absolute;inset:-4px -8px}
 .marker{position:absolute;top:0;bottom:0;width:0;touch-action:none;--mc:var(--acc)!important}
 .marker.up .stem{top:22px;height:14px}
 .marker.down .stem{top:48px;height:16px}
@@ -731,7 +734,7 @@ a.link:active{transform:scale(.96)}
 .marker.quiet .dot{opacity:.7}
 .marker:not(.quiet) .lbl{transition:opacity .18s}
 @media (hover:hover){
-  .marker:hover .dot{transform:scale(1.35);box-shadow:0 0 0 2px var(--surface),0 0 10px 2px var(--mc)}
+  .marker:hover .dot{transform:scaleX(1.75);box-shadow:0 0 0 2px var(--surface),0 0 10px 2px var(--mc)}
   .marker:hover .lbl{border-color:var(--mc)}
 }
 .marker.pending .lbl{border-color:var(--acc)}
@@ -741,7 +744,7 @@ a.link:active{transform:scale(.96)}
 @media (max-width:640px){
   .marker .lbl{max-width:120px;font-size:11px}
 }
-@keyframes pulse{50%{transform:scale(1.35);box-shadow:0 0 0 2px var(--surface),0 0 12px 3px var(--mc)}}
+@keyframes pulse{50%{transform:scaleX(1.75);box-shadow:0 0 0 2px var(--surface),0 0 12px 3px var(--mc)}}
 
 /* ===== 完成紀錄 ===== */
 #donePanel{max-height:min(620px,72vh);display:flex;flex-direction:column;--surface:#111114;--bg:#1b1b21;--ink:#f4f4f6;--muted:#a9a9b3;--line:#34343c;--teal:#f4f4f6;--onteal:#111114;--teal-soft:#2a2a32;--lime:#b9a3ff;background:var(--surface);color:var(--ink);border-color:#111114;--done:var(--ok);overflow:hidden;--alt:#1d1d24;--hov:#2a2a33}

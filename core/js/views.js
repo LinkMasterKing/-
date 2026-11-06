@@ -88,7 +88,7 @@ function logHTML(it){
 const LH=22;
 function layoutTrack(tr){
   const isG=tr.classList.contains("g-track"),W=tr.clientWidth;if(!W||!tr.querySelector(".g-bar,.c-bar"))return;   /* 未排程的甘特列沒有條 */
-  const barH=isG?22:16,dotH=isG?6:10;   /* 甘特圖：刻度最高 22px，註記的點放在刻度上方 */
+  const barH=isG?22:16,dotH=isG?6:28;   /* 甘特圖：刻度最高 22px，註記的點放在刻度上方；議題詳情：註記是一根 28px 長條，跨過刻度上下各凸出 6px */
   const lanes={up:[],down:[]},info=[];
   [...tr.querySelectorAll(isG?".g-mk":".marker")].sort((a,b)=>parseFloat(a.style.left)-parseFloat(b.style.left)).forEach(m=>{
     const side=!isG&&m.classList.contains("down")?"down":"up";
