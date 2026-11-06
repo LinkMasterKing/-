@@ -7,6 +7,7 @@
 <meta name="description" content="南臺科技大學學生會各部門的工作看板入口。">
 <link rel="icon" href="dept/icons/favicon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="dept/icons/apple-touch-icon.png">
+<link rel="stylesheet" href="core/splash.css">
 <link rel="manifest" href="manifest.webmanifest">   <!-- 2026-11-06：全會共用一個 App，打開就是這一頁（core/js/app.js 的說明） -->
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
@@ -33,7 +34,7 @@ body{overflow-x:hidden}
 .eyebrow{display:flex;align-items:center;justify-content:center;gap:10px;margin:0 0 16px;font-family:"Jost",sans-serif;font-size:12px;letter-spacing:.24em;color:var(--muted)}
 /* --- 上方兩張大卡片：會長室（反白）、秘書處 --- */
 .leads{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
-.lead{position:relative;overflow:hidden;display:grid;align-content:space-between;gap:18px;min-height:168px;padding:18px 18px 16px;border-radius:26px;background:var(--card);color:inherit;text-decoration:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;transition:transform .18s var(--ease)}
+.lead{position:relative;overflow:hidden;display:grid;align-content:space-between;gap:18px;height:168px;padding:18px 18px 16px;border-radius:26px;background:var(--card);color:inherit;text-decoration:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;transition:transform .18s var(--ease)}
 .lead:active{transform:scale(.97)}
 .lead.pres{background:var(--ink);color:var(--bg)}
 /* 兩張大卡片也輕輕飄（2026-11-06 使用者）：上下 5px、6 秒一輪，兩張錯開半拍；用 translate 屬性做，不會跟按下微縮的 transform 打架 */
@@ -42,21 +43,19 @@ body{overflow-x:hidden}
 @keyframes leadFloat{0%,100%{translate:0 0}50%{translate:0 -5px}}
 .lead .en{font-family:"Jost",sans-serif;font-size:10.5px;letter-spacing:.26em;opacity:.6}
 .lead b{display:block;margin-top:4px;font-size:26px;font-weight:700;letter-spacing:.12em;line-height:1.15}
-.lead .st{display:flex;flex-wrap:wrap;gap:4px 16px;font-size:11.5px;opacity:.7}
-.lead .st .n{display:block;font-size:26px;font-weight:200;line-height:1.05;opacity:1}
-.lead .st .red .n{color:var(--red)}
+.lead .sub{display:block;margin-top:8px;font-size:12px;letter-spacing:.06em;opacity:.6;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}   /* 一行固定的說明（不放會變動的數字）；高度固定（height），載入前後不會變 */
 .lead .go{display:flex;justify-content:space-between;align-items:center;gap:8px;white-space:nowrap;padding-top:10px;border-top:1px solid color-mix(in srgb,currentColor 16%,transparent);font-size:11.5px;opacity:.7}
 .lead .ring-deco{position:absolute;right:-34px;top:-34px;width:120px;height:120px;border-radius:50%;border:1px solid color-mix(in srgb,currentColor 14%,transparent);pointer-events:none}
 @media (hover:hover){.lead:hover{transform:translateY(-2px)}.lead:hover .go span:last-child{transform:translateX(4px)}}
 .lead .go span:last-child{transition:transform .25s var(--ease)}
-@media (min-width:700px){.lead{min-height:200px;padding:22px}.lead b{font-size:30px}}
+@media (min-width:700px){.lead{height:200px;padding:22px}.lead b{font-size:30px}}
 /* --- 中間：漂浮的學生會標誌 --- */
 .stage{flex:1;display:grid;place-items:center;align-content:center;gap:18px;min-height:340px;padding:24px 0 8px}
 .hm{position:relative;width:132px;height:132px;padding:0;border:0;border-radius:50%;background:transparent;cursor:pointer;touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;z-index:6}
 .hm:focus-visible{outline:2px solid var(--ink);outline-offset:8px}
 .hm-float{position:absolute;inset:0;display:grid;place-items:center;animation:hmFloat 4.6s ease-in-out infinite}
 /* 標誌：淺色模式彩色；深色模式單色（文字色），黃藍兩塊之間用底色描一圈藍色外框當分隔縫（跟看板頁首的單色 logo 同一種做法） */
-.mk-gap{fill:none;stroke:var(--bg);stroke-width:7;stroke-linejoin:round;display:none}
+.mk-gap{fill:none;stroke:var(--bg);stroke-width:7;stroke-linejoin:round;display:none}   /* 深色時兩塊同色，藍色那塊外框描一圈底色當切割線；只留在黃色那塊範圍裡（clip-path #hmCut），外圍不描黑框（2026-11-06 使用者） */
 @media (prefers-color-scheme:dark){.hm-svg .mk-y,.hm-svg .mk-b{fill:var(--ink)}.hm-svg .mk-gap{display:inline}}
 /* 標誌不用陰影、也不做立體反光（2026-11-06 使用者：「泛光」是把陰影換成亮色的光，不是讓 logo 變立體）：眼睛的孔填底色（.mk-under）；外圍一圈柔和的亮光——淺色是暖白黃光，深色是白光 */
 .hm-svg{width:100%;height:auto;overflow:visible;filter:drop-shadow(0 0 18px rgba(255,214,110,.45)) drop-shadow(0 0 6px rgba(255,255,255,.9));transition:transform .5s var(--ease)}
@@ -100,7 +99,8 @@ body.ring-open .hm-float{animation-play-state:paused}
 body.going .ring .rl.on{transform:translate(var(--x),var(--y)) scale(1.6);opacity:0;transition:transform .45s var(--ease),opacity .45s}
 /* 放開選好部門：從放開的位置擴散一片光色蓋滿全螢幕（第一次擴散，擋住載入時間），蓋滿就換頁；看板那邊從同一個位置再擴散開來露出看板（第二次，pagefx.js 的 arrive）。
    顏色跟部門圈的字同色（深色白、淺色黑），兩頁用同一個顏色（存在 sessionStorage） */
-.burst{position:fixed;inset:0;z-index:20;pointer-events:none;background:var(--rg-ink);clip-path:circle(0 at var(--bx) var(--by))}
+.burst{position:fixed;left:0;top:0;z-index:20;pointer-events:none;border-radius:50%;background:var(--rg-ink);transform:scale(0);will-change:transform}   /* 圓形從放開的位置放大（只動 transform，交給顯示卡，手機才不卡；位置、大小由 go() 給） */
+body.going .hm,body.going .ring-trail{opacity:0;transition:opacity .16s linear}   /* 放開選好部門：標誌與停住的光痕淡出（2026-11-06 使用者） */
 .foot{margin:0;text-align:center;font-size:11px;letter-spacing:.14em;color:var(--muted)}
 .pfx-arrive body{opacity:0}
 @media (prefers-reduced-motion:reduce){
@@ -111,11 +111,13 @@ body.going .ring .rl.on{transform:translate(var(--x),var(--y)) scale(1.6);opacit
 <script>/* 換頁動畫（core/js/pagefx.js）：從站內換頁過來的，body 先透明，等它從後面浮上來（不會先閃一下完整的畫面） */try{var r=document.referrer,n=performance.getEntriesByType("navigation")[0];if(r&&new URL(r).origin===location.origin&&(!n||n.type!=="reload")&&!matchMedia("(prefers-reduced-motion: reduce)").matches)document.documentElement.classList.add("pfx-arrive")}catch(e){}</script>
 </head>
 <body>
+<script src="core/js/splash.js"></script>
+<script>mountSplash()   /* 2026-11-06 使用者：進總覽前一樣跑學生會開場動畫（App 打開就是這一頁）；從看板回來（站內）不放 */</script>
 <div class="wrap">
   <p class="eyebrow">WORK&nbsp;&nbsp;BOARDS</p>
   <div class="leads" id="leads"></div>
   <div class="stage">
-    <button type="button" class="hm" id="hm" aria-label="選擇部門：按住標誌，手指移到部門放開；鍵盤按 Enter" aria-haspopup="true"><span class="hm-float"><svg class="hm-svg" viewBox="25.08 53.16 152.57 175.44" aria-hidden="true"><path class="mk-under" d="M75,141a51.19,51.19,0,0,1,15-36.23,51.19,51.19,0,0,1,35.62-15.11A51.37,51.37,0,0,0,25.08,104.79V141A51.37,51.37,0,0,0,76.45,192.4a6.27,6.27,0,0,0,.75,0,50.76,50.76,0,0,0,24.19-6.43,52.2,52.2,0,0,0,11.46-8.68,51.2,51.2,0,0,0,15-36.24Z"/><path class="mk-under" d="M126.32,89.65a6.78,6.78,0,0,0-.78,0A51.36,51.36,0,0,0,75,141H127.8a51.2,51.2,0,0,1-15,36.24,52.2,52.2,0,0,1-11.46,8.68,50.76,50.76,0,0,1-24.19,6.43,51.39,51.39,0,0,0,100.5-15.11V141A51.39,51.39,0,0,0,126.32,89.65Z"/><path class="mk-y" fill="#f0bc23" d="M75,141a51.19,51.19,0,0,1,15-36.23,51.19,51.19,0,0,1,35.62-15.11A51.37,51.37,0,0,0,25.08,104.79V141A51.37,51.37,0,0,0,76.45,192.4a6.27,6.27,0,0,0,.75,0,50.76,50.76,0,0,0,24.19-6.43,52.2,52.2,0,0,0,11.46-8.68,51.2,51.2,0,0,0,15-36.24ZM68.8,90.21a3.57,3.57,0,0,1,0-.56,6.18,6.18,0,1,1,12.36,0v.22a6.18,6.18,0,0,1-12.33.34Z"/><path class="mk-gap" d="M126.32,89.65a6.78,6.78,0,0,0-.78,0A51.36,51.36,0,0,0,75,141H127.8a51.2,51.2,0,0,1-15,36.24,52.2,52.2,0,0,1-11.46,8.68,50.76,50.76,0,0,1-24.19,6.43,51.39,51.39,0,0,0,100.5-15.11V141A51.39,51.39,0,0,0,126.32,89.65Z"/><path class="mk-b" fill="#0a5baa" d="M126.32,89.65a6.78,6.78,0,0,0-.78,0A51.36,51.36,0,0,0,75,141H127.8a51.2,51.2,0,0,1-15,36.24,52.2,52.2,0,0,1-11.46,8.68,50.76,50.76,0,0,1-24.19,6.43,51.39,51.39,0,0,0,100.5-15.11V141A51.39,51.39,0,0,0,126.32,89.65ZM134,126.44a6.18,6.18,0,0,1-6.15,5.62c-.28,0-.53,0-.81-.05a6.15,6.15,0,0,1-4.87-3.71,5.67,5.67,0,0,1-.5-2.19v-.23a6.1,6.1,0,0,1,2.2-4.7,6.62,6.62,0,0,1,1.64-1,5.86,5.86,0,0,1,2.34-.47,6.16,6.16,0,0,1,6.18,6.17A3.44,3.44,0,0,1,134,126.44Z"/></svg></span></button>
+    <button type="button" class="hm" id="hm" aria-label="選擇部門：按住標誌，手指移到部門放開；鍵盤按 Enter" aria-haspopup="true"><span class="hm-float"><svg class="hm-svg" viewBox="25.08 53.16 152.57 175.44" aria-hidden="true"><defs><clipPath id="hmCut"><path d="M75,141a51.19,51.19,0,0,1,15-36.23,51.19,51.19,0,0,1,35.62-15.11A51.37,51.37,0,0,0,25.08,104.79V141A51.37,51.37,0,0,0,76.45,192.4a6.27,6.27,0,0,0,.75,0,50.76,50.76,0,0,0,24.19-6.43,52.2,52.2,0,0,0,11.46-8.68,51.2,51.2,0,0,0,15-36.24Z"/></clipPath></defs><path class="mk-under" d="M75,141a51.19,51.19,0,0,1,15-36.23,51.19,51.19,0,0,1,35.62-15.11A51.37,51.37,0,0,0,25.08,104.79V141A51.37,51.37,0,0,0,76.45,192.4a6.27,6.27,0,0,0,.75,0,50.76,50.76,0,0,0,24.19-6.43,52.2,52.2,0,0,0,11.46-8.68,51.2,51.2,0,0,0,15-36.24Z"/><path class="mk-under" d="M126.32,89.65a6.78,6.78,0,0,0-.78,0A51.36,51.36,0,0,0,75,141H127.8a51.2,51.2,0,0,1-15,36.24,52.2,52.2,0,0,1-11.46,8.68,50.76,50.76,0,0,1-24.19,6.43,51.39,51.39,0,0,0,100.5-15.11V141A51.39,51.39,0,0,0,126.32,89.65Z"/><path class="mk-y" fill="#f0bc23" d="M75,141a51.19,51.19,0,0,1,15-36.23,51.19,51.19,0,0,1,35.62-15.11A51.37,51.37,0,0,0,25.08,104.79V141A51.37,51.37,0,0,0,76.45,192.4a6.27,6.27,0,0,0,.75,0,50.76,50.76,0,0,0,24.19-6.43,52.2,52.2,0,0,0,11.46-8.68,51.2,51.2,0,0,0,15-36.24ZM68.8,90.21a3.57,3.57,0,0,1,0-.56,6.18,6.18,0,1,1,12.36,0v.22a6.18,6.18,0,0,1-12.33.34Z"/><path class="mk-gap" clip-path="url(#hmCut)" d="M126.32,89.65a6.78,6.78,0,0,0-.78,0A51.36,51.36,0,0,0,75,141H127.8a51.2,51.2,0,0,1-15,36.24,52.2,52.2,0,0,1-11.46,8.68,50.76,50.76,0,0,1-24.19,6.43,51.39,51.39,0,0,0,100.5-15.11V141A51.39,51.39,0,0,0,126.32,89.65Z"/><path class="mk-b" fill="#0a5baa" d="M126.32,89.65a6.78,6.78,0,0,0-.78,0A51.36,51.36,0,0,0,75,141H127.8a51.2,51.2,0,0,1-15,36.24,52.2,52.2,0,0,1-11.46,8.68,50.76,50.76,0,0,1-24.19,6.43,51.39,51.39,0,0,0,100.5-15.11V141A51.39,51.39,0,0,0,126.32,89.65ZM134,126.44a6.18,6.18,0,0,1-6.15,5.62c-.28,0-.53,0-.81-.05a6.15,6.15,0,0,1-4.87-3.71,5.67,5.67,0,0,1-.5-2.19v-.23a6.1,6.1,0,0,1,2.2-4.7,6.62,6.62,0,0,1,1.64-1,5.86,5.86,0,0,1,2.34-.47,6.16,6.16,0,0,1,6.18,6.17A3.44,3.44,0,0,1,134,126.44Z"/></svg></span></button>
     <p class="hint" id="hint">按住標誌，滑到部門放開</p>
   </div>
   <p class="foot">南臺科技大學學生會・各部門工作看板</p>
@@ -134,11 +136,15 @@ body.going .ring .rl.on{transform:translate(var(--x),var(--y)) scale(1.6);opacit
   /* 2026-11-06 使用者：放開的位置跑兩次全螢幕擴散（第一次擋住載入、第二次在看板那邊轉進去）。x、y＝放開的位置（鍵盤打開時用標誌中心） */
   const go=(u,x,y)=>{
     if(matchMedia("(prefers-reduced-motion: reduce)").matches){location.href=u;return}
+    /* 銜接（2026-11-06 使用者：放開瞬間要及時、跟光接得上）：擴散從光頭現在的位置、以光團的大小開始長大，不從 0 開始 */
+    if(ring.on&&!ring.kbd){const h=trail.head();x=h[0];y=h[1]}
+    trail.stop();   /* 光痕每格整張重畫（還有模糊）很吃主執行緒：一放開就停，擴散才順 */
     document.body.classList.add("going");
     const b=document.createElement("div");b.className="burst";ringEl.append(b);
     const R=Math.hypot(Math.max(x,innerWidth-x),Math.max(y,innerHeight-y))+2,col=getComputedStyle(b).backgroundColor;
+    Object.assign(b.style,{width:2*R+"px",height:2*R+"px",left:x-R+"px",top:y-R+"px"});
     try{sessionStorage.setItem("pfx-burst",JSON.stringify({x,y,c:col,t:Date.now()}))}catch(_){}
-    b.animate([{clipPath:`circle(0px at ${x}px ${y}px)`},{clipPath:`circle(${R}px at ${x}px ${y}px)`}],{duration:460,easing:"cubic-bezier(.55,0,.75,.2)",fill:"forwards"}).onfinish=()=>{location.href=u};
+    b.animate([{transform:`scale(${Math.min(.5,70/R).toFixed(3)})`},{transform:"scale(1)"}],{duration:420,easing:"cubic-bezier(.4,0,.2,1)",fill:"forwards"}).onfinish=()=>{location.href=u};   /* 一開始就快、最後收慢；蓋滿就換頁 */
   };
   const RM=()=>matchMedia("(prefers-reduced-motion: reduce)").matches;
   /* ---------- 數字（讀各部門網站上的資料檔，只讀）：跟看板同一套「沒有進度」判斷（回報期限前後都沒更新） ---------- */
@@ -153,16 +159,15 @@ body.going .ring .rl.on{transform:translate(var(--x),var(--y)) scale(1.6);opacit
   const leadIds=["president","secretariat"],leads=leadIds.map(id=>D.find(d=>d.id===id)).filter(Boolean);
   const rest=D.filter(d=>!leadIds.includes(d.id));
   const EN={president:"PRESIDENT",secretariat:"SECRETARIAT"};
+  /* 2026-11-06 使用者：上面兩張大卡片不要放會即時更新的資訊（數字、最後儲存），大小固定，載入前後不會變。
+     只放英文小字、名稱、一行固定的說明、「開啟 →」；畫一次就好，不跟著資料重畫。各部門的數字只留在部門圈 */
+  const LEAD_SUB={president:"追蹤各部門・開放會議編輯",secretariat:"會議報告事項・各部門週報"};
   function drawLeads(){
-    $("leads").innerHTML=leads.map(d=>{const s=cache.has(d.id)?stats(cache.get(d.id)):undefined;
-      const body=s===undefined?`<span class="st">讀取中…</span>`:!s?`<span class="st">尚未建立</span>`
-        :d.follow?`<span class="st"><span><span class="n num">${s.fw}</span>追蹤項目</span></span>`
-        :`<span class="st"><span><span class="n num">${s.live}</span>即時回報</span><span><span class="n num">${s.iss}</span>議題</span>${s.st?`<span class="red"><span class="n num">${s.st}</span>沒有進度</span>`:""}</span>`;
-      return `<a class="lead${d.id==="president"?" pres":""}" href="${href(d)}"><span class="ring-deco" aria-hidden="true"></span><span><span class="en">${EN[d.id]||""}</span><b>${esc(d.name)}</b></span>${body}<span class="go"><span>${s&&s.saved?`最後儲存 ${s.saved}`:""}</span><span>開啟 →</span></span></a>`}).join("");
+    $("leads").innerHTML=leads.map(d=>`<a class="lead${d.id==="president"?" pres":""}" href="${href(d)}"><span class="ring-deco" aria-hidden="true"></span><span><span class="en">${EN[d.id]||""}</span><b>${esc(d.name)}</b><span class="sub">${LEAD_SUB[d.id]||""}</span></span><span class="go"><span></span><span>開啟 →</span></span></a>`).join("");
     $("srList").innerHTML=D.map(d=>`<a href="${href(d)}">${esc(d.name)}</a>`).join("");
   }
   drawLeads();
-  Promise.all(D.map(d=>fetch(d.path,{cache:"no-cache"}).then(r=>r.ok?r.json():null).catch(()=>null).then(x=>cache.set(d.id,x)))).then(()=>{drawLeads();if(ring.on)placeLabels()});
+  Promise.all(D.map(d=>fetch(d.path,{cache:"no-cache"}).then(r=>r.ok?r.json():null).catch(()=>null).then(x=>cache.set(d.id,x)))).then(()=>{if(ring.on)placeLabels()});   /* 數字只給部門圈用 */
 
   /* ---------- 長按選部門 ---------- */
   const hm=$("hm"),ringEl=$("ring"),hint=$("hint");
@@ -264,6 +269,7 @@ body.going .ring .rl.on{transform:translate(var(--x),var(--y)) scale(1.6);opacit
   });
   hm.addEventListener("blur",()=>{if(ring.kbd)closeRing()});
   addEventListener("resize",()=>{if(ring.on)placeLabels();trail.resize()});
+  splashOut();   /* 開場動畫播完（字型好了、至少 0.6 秒）才淡出（core/js/splash.js） */
   addEventListener("pageshow",e=>{if(e.persisted){document.body.classList.remove("going");ringEl.querySelectorAll(".burst").forEach(b=>b.remove());closeRing()}});   /* 從看板按返回回到快取的這一頁：收掉蓋滿的光色 */
 })();
 </script>
