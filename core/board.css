@@ -212,17 +212,17 @@ body.edit .sec-edit-btn{display:inline-flex;animation:fadeSlide .4s var(--ease) 
 .add-row{width:100%;justify-content:center;align-items:center;margin-top:12px;border-radius:14px;min-height:46px;letter-spacing:.02em;padding-right:19px!important}
 /* 區塊內部的版面與繪製各自獨立：上方即時回報展開收合時，下面的區塊只要整塊往下移，不用重算、重畫內容 */
 .panel:not(#livePanel){contain:layout paint}
-/* 即時回報：不要大外框，膠囊直接放在頁面上（標題列照舊） */
-#livePanel{border:0;background:none;padding:4px 0 8px;border-radius:0}
+/* 即時回報、完成紀錄：不要大外框，膠囊直接放在頁面上（標題列照舊；完成紀錄 2026-11-06 起比照即時回報） */
+#livePanel,#donePanel{border:0;background:none;padding:4px 0 8px;border-radius:0}
 @media (max-width:900px){
   .layout{grid-template-columns:minmax(0,1fr)}
 }
 @media (hover:hover){
-  .panel:not(#livePanel):hover{box-shadow:var(--glow-soft)}
+  .panel:not(#livePanel):not(#donePanel):hover{box-shadow:var(--glow-soft)}
 }
 @media (max-width:640px){
   .panel{padding:14px 14px;border-radius:16px}
-  #livePanel{padding:2px 0 6px}
+  #livePanel,#donePanel{padding:2px 0 6px}
   .panel-head{flex-wrap:wrap;row-gap:6px}
   .panel-head>.sub{font-size:11.5px;flex-basis:100%}
 }
@@ -279,10 +279,7 @@ body.edit .sec-edit-btn{display:inline-flex;animation:fadeSlide .4s var(--ease) 
 .events .ev:not([open]) .ev-chev,.events .ev.closing>summary .ev-chev{color:#5d5d66}
 .events .ev.closing>summary .ev-chev{transform:none}
 .events .ev:not([open]) .ev-del{border-color:#c9c9d0}
-/* 完成紀錄膠囊：收合時空心綠框、文字全綠（顏色跟著完成紀錄區塊的 --done）；展開後跟即時回報一樣 */
-.events .done-ev:not([open]),.events .done-ev.closing{background:transparent;border-color:var(--done);color:var(--done)}
-.events .done-ev:not([open]) .ev-chev,.events .done-ev.closing>summary .ev-chev{color:var(--done)}
-.events .done-ev:not([open]) .ev-del{border-color:currentColor}
+/* 完成紀錄膠囊：跟即時回報完全同一套（2026-11-06 起；以前收合時是空心綠框綠字），只有燈號是綠色（data-st="done"） */
 .events .done-ev.new{animation:doneIn .9s var(--ease) both}
 /* 展開：深淺色模式都是淺灰底黑字（在這張卡片上重設色彩變數） */
 .ev[open]{--surface:#f6f6f8;--bg:#fff;--ink:#111114;--pop:#fff;--pop-sh:inset 0 0 0 .5px rgba(0,0,0,.1),0 14px 32px rgba(0,0,0,.16);--muted:#5d5d66;--line:#dcdce2;--teal:#111114;--onteal:#fff;--teal-soft:#e6e6ec;background:var(--surface);color:var(--ink);border-color:var(--surface)}
@@ -754,9 +751,9 @@ a.link:active{transform:scale(.96)}
 @keyframes pulse{50%{transform:scaleY(1.3);box-shadow:0 0 10px 2px color-mix(in srgb,var(--mc) 60%,transparent)}}
 
 /* ===== 完成紀錄 ===== */
-#donePanel{max-height:min(620px,72vh);display:flex;flex-direction:column;--surface:#111114;--bg:#1b1b21;--ink:#f4f4f6;--muted:#a9a9b3;--line:#34343c;--teal:#f4f4f6;--onteal:#111114;--teal-soft:#2a2a32;--lime:#b9a3ff;background:var(--surface);color:var(--ink);border-color:#111114;--done:var(--ok);overflow:hidden;--alt:#1d1d24;--hov:#2a2a33}
+#donePanel{max-height:min(620px,72vh);display:flex;flex-direction:column;--done:var(--ok);overflow:hidden}   /* 2026-11-06 使用者：不要黑色反白的大外框，比照即時回報（外框、底色見「版面與區塊外框」段的 #livePanel,#donePanel），只有燈號是綠色 */
 /* 膠囊清單（跟即時回報同一套 .events .ev，見「即時回報」段的「完成紀錄膠囊」）；區塊太長時清單自己捲 */
-#donePanel .scroll{overflow-y:auto;flex:1;margin:0 -18px -16px;padding:4px 18px 16px;scrollbar-gutter:stable}
+#donePanel .scroll{overflow-y:auto;flex:1;margin:0 -4px;padding:4px 4px 16px;scrollbar-gutter:stable}
 .done-body{font-size:13px;display:grid;gap:6px}
 .done-body ul{margin:0;padding-left:18px}
 #donePanel h2{min-width:0}
@@ -773,61 +770,6 @@ a.link:active{transform:scale(.96)}
 #doneDetail .done-body{margin-top:14px;font-size:14px}
 @media (max-width:640px){
   #donePanel{max-height:none}
-}
-@media (prefers-color-scheme:dark){
-  :root:not([data-theme="light"]) #donePanel{--surface:#f4f4f6}
-}
-:root[data-theme="dark"] #donePanel{--surface:#f4f4f6}
-@media (prefers-color-scheme:dark){
-  :root:not([data-theme="light"]) #donePanel{--bg:#fff}
-}
-:root[data-theme="dark"] #donePanel{--bg:#fff}
-@media (prefers-color-scheme:dark){
-  :root:not([data-theme="light"]) #donePanel{--ink:#111114;--pop:#fff;--pop-sh:inset 0 0 0 .5px rgba(0,0,0,.1),0 14px 32px rgba(0,0,0,.16);}
-}
-:root[data-theme="dark"] #donePanel{--ink:#111114;--pop:#fff;--pop-sh:inset 0 0 0 .5px rgba(0,0,0,.1),0 14px 32px rgba(0,0,0,.16);}
-@media (prefers-color-scheme:dark){
-  :root:not([data-theme="light"]) #donePanel{--muted:#5d5d66}
-}
-:root[data-theme="dark"] #donePanel{--muted:#5d5d66}
-@media (prefers-color-scheme:dark){
-  :root:not([data-theme="light"]) #donePanel{--line:#dcdce2}
-}
-:root[data-theme="dark"] #donePanel{--line:#dcdce2}
-@media (prefers-color-scheme:dark){
-  :root:not([data-theme="light"]) #donePanel{--teal:#111114}
-}
-:root[data-theme="dark"] #donePanel{--teal:#111114}
-@media (prefers-color-scheme:dark){
-  :root:not([data-theme="light"]) #donePanel{--onteal:#fff}
-}
-:root[data-theme="dark"] #donePanel{--onteal:#fff}
-@media (prefers-color-scheme:dark){
-  :root:not([data-theme="light"]) #donePanel{--teal-soft:#e6e6ec}
-}
-:root[data-theme="dark"] #donePanel{--teal-soft:#e6e6ec}
-@media (prefers-color-scheme:dark){
-  :root:not([data-theme="light"]) #donePanel{--lime:#7a5cf0}
-}
-:root[data-theme="dark"] #donePanel{--lime:#7a5cf0}
-@media (prefers-color-scheme:dark){
-  :root:not([data-theme="light"]) #donePanel{border-color:#f4f4f6}
-}
-:root[data-theme="dark"] #donePanel{border-color:#f4f4f6}
-@media (prefers-color-scheme:dark){
-  :root:not([data-theme="light"]) #donePanel{--done:#18a058}
-}
-:root[data-theme="dark"] #donePanel{--done:#18a058}
-@media (prefers-color-scheme:dark){
-  :root:not([data-theme="light"]) #donePanel{--alt:#e3e3ea}
-}
-:root[data-theme="dark"] #donePanel{--alt:#e3e3ea}
-@media (prefers-color-scheme:dark){
-  :root:not([data-theme="light"]) #donePanel{--hov:#d4d4dd}
-}
-:root[data-theme="dark"] #donePanel{--hov:#d4d4dd}
-@media (hover:hover){
-  #donePanel:hover{box-shadow:0 0 0 1.5px #fff,0 0 28px 2px rgba(255,255,255,.55),0 12px 30px -10px rgba(0,0,0,.35)}
 }
 @media (prefers-reduced-motion:reduce){
 }
@@ -1698,7 +1640,7 @@ body.no-done .layout{grid-template-columns:minmax(0,1fr)}
 
 /* ===== 一般螢幕：圓角補半像素 ===== */
 @media (max-resolution:1.99dppx){
-  :where(.chev-btn,.tag,.kid-ev,.ev-parent,.count,.badge,.circ,.tm-pill:not(.on),.lg-cat,.csel-btn,.tm-row,.gen-btn,.week-top button,.panel:not(#livePanel),.week,.edit-block,.note,.pill,.set-list,.staff-chip,.lg-item:not(.old),.chip span,input,textarea,select,button.icon:not(.ghost),.dlg-actions button:not(.ghost):not(.primary):not(.danger-solid),.anim-ctl button,.edit-block button:not(.ghost),.actions button:not(.ghost):not(.primary)){box-shadow:0 0 0 .5px var(--line)}
+  :where(.chev-btn,.tag,.kid-ev,.ev-parent,.count,.badge,.circ,.tm-pill:not(.on),.lg-cat,.csel-btn,.tm-row,.gen-btn,.week-top button,.panel:not(#livePanel):not(#donePanel),.week,.edit-block,.note,.pill,.set-list,.staff-chip,.lg-item:not(.old),.chip span,input,textarea,select,button.icon:not(.ghost),.dlg-actions button:not(.ghost):not(.primary):not(.danger-solid),.anim-ctl button,.edit-block button:not(.ghost),.actions button:not(.ghost):not(.primary)){box-shadow:0 0 0 .5px var(--line)}
   :where(.lg-cat){box-shadow:0 0 0 .5px var(--red)}
 }
 
