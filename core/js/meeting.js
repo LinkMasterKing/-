@@ -37,9 +37,9 @@ function mtGroupHTML(m,ed){
   const evs=mtEvs(m);if(!evs.length)return "";
   return `<section class="mt-dept" data-mtdept="${m.id}" data-fk="mt${m.id}">${ed&&m.dirty?'<p class="sub mt-dirty">已修改，按「儲存」後寫回</p>':""}
     <div class="events mt-list">${withState(m.data,()=>evs.map(e=>{const st=evStatus(e),par=parentOf(e);
-      return `<details class="ev mt-ev" data-mtev="${e.id}" data-st="${st}"${MTS.open.has(e.id)?" open":""}>
+      return `<details class="ev mt-ev" data-ev="${e.id}" data-mtev="${e.id}" data-st="${st}"${MTS.open.has(e.id)?" open":""}>
         <summary><span class="live-dot" aria-hidden="true"></span><b>${esc(e.name)}</b><span class="mt-st">${EV_ST[st]}</span><span class="ev-chev" aria-hidden="true">▾</span></summary>
-        <div class="ev-body">${ed?evFieldsHTML(e):`${par?`<p class="ev-parent-full">母議題：${esc(par.title)}</p>`:""}${e.desc?`<p>${esc(e.desc)}</p>`:`<p class="sub">（沒有說明）</p>`}${evTimesHTML(e)}${staffHTML(e.staff)}${labelChipsHTML(e.labels)}${evLinksHTML(e)}`}</div></details>`}).join(""))}</div></section>`;
+        <div class="ev-body">${ed?evFieldsHTML(e):`${par?`<p class="ev-parent-full">母議題：${esc(par.title)}</p>`:""}${e.desc?`<p>${esc(e.desc)}</p>`:`<p class="sub">沒有說明</p>`}${evTimesHTML(e)}${staffHTML(e.staff)}${labelChipsHTML(e.labels)}${evLinksHTML(e)}`}</div></details>`}).join(""))}</div></section>`;
 }
 document.addEventListener("toggle",e=>{const d=e.target;if(!d.matches||!d.matches("#meetEdList .mt-ev"))return;if(d.open)MTS.open.add(d.dataset.mtev);else MTS.open.delete(d.dataset.mtev)},true);
 /* 秘書處「會議」分頁的報告事項（2026-11-06 使用者：一個一個編輯每個部門釘選要報告的即時回報，最後根據改動的紀錄匯出會議紀錄 PDF）：

@@ -148,7 +148,8 @@ function cardHTML(it,open,pane,sel){
 let ifFld=null;
 const ifOpen=(t,id,k)=>!!ifFld&&ifFld.t===t&&ifFld.id===id&&ifFld.k===k;
 function ifFieldHTML(t,id,k,label,view,editor){return fldRowHTML({open:ifOpen(t,id,k),k,label,view,editor,del:/^l:(?!\+)/.test(k),key:"iffk",pen:"ifpen",fx:"iffx",attr:`data-ift="${t}" data-ifid="${id}"`})}
-const noneTxt=t=>`<span class="sub">（${t}）</span>`;
+/* 欄位沒有內容時的灰字：不用全形括號（2026-11-06 使用者：文字要視覺上對齊——全形「（」左邊自帶半格空白，整欄看起來往右縮） */
+const noneTxt=t=>`<span class="sub">${t}</span>`;
 /* 階段：每一列一個階段（可改名、刪除），「目前」選這個議題現在在哪個階段；「+ 階段」在最後加一列 */
 const stageRowHTML=(g,cur)=>`<span class="stg-row"><button type="button" class="stg-cur" data-iffx="stgcur" aria-pressed="${cur}">目前</button><input data-stg value="${esc(g)}" placeholder="階段名稱"><button type="button" class="icon stg-del" data-iffx="stgdel" aria-label="刪除這個階段">${ico("close","solo")}</button></span>`;
 function stageEditorHTML(it){return `<div class="stg-list">${it.tags.map((g,k)=>stageRowHTML(g,k===it.cur)).join("")}</div><button type="button" class="ghost evd-add" data-iffx="stgadd">+ 階段</button><span class="sub evf-hint">按「目前」選這個議題現在在哪個階段；空白的階段會拿掉</span>`}
@@ -263,10 +264,10 @@ function evFieldsHTML(ev){
   const lblChips=labelChipsHTML(ev.labels);
   return `<div class="evfs">
       ${evFieldHTML(ev,"name","名稱",`<b>${esc(ev.name)}</b>`,()=>`<input data-e="name" value="${esc(ev.name)}">`)}
-      ${evFieldHTML(ev,"desc","說明",ev.desc?`<span class="evf-desc">${esc(ev.desc)}</span>`:`<span class="sub">（沒有說明，點一下填寫）</span>`,()=>`<textarea data-e="desc" rows="4" placeholder="簡短說明">${esc(ev.desc||"")}</textarea>`)}
-      ${evFieldHTML(ev,"issue","母議題",par?esc(par.title):`<span class="sub">（不連結）</span>`,()=>fieldHTML({name:"evIssue",label:"結案或完成一段時，會自動寫進這個議題的處理紀錄",type:"select",value:ev.issueId||"",options:opts}))}
-      ${state.members.length?evFieldHTML(ev,"staff","專員",staffChips||`<span class="sub">（沒有標專員）</span>`,()=>fieldHTML({name:"staff",label:"從本看板的身分挑選，可複選",type:"multi",value:ev.staff||[],options:staffOpts()})):""}
-      ${evFieldHTML(ev,"labels","標籤",lblChips||`<span class="sub">（沒有標籤）</span>`,()=>labelPickerHTML("labels",ev.labels))}
+      ${evFieldHTML(ev,"desc","說明",ev.desc?`<span class="evf-desc">${esc(ev.desc)}</span>`:noneTxt("沒有說明，點一下填寫"),()=>`<textarea data-e="desc" rows="4" placeholder="簡短說明">${esc(ev.desc||"")}</textarea>`)}
+      ${evFieldHTML(ev,"issue","母議題",par?esc(par.title):noneTxt("不連結"),()=>fieldHTML({name:"evIssue",label:"結案或完成一段時，會自動寫進這個議題的處理紀錄",type:"select",value:ev.issueId||"",options:opts}))}
+      ${state.members.length?evFieldHTML(ev,"staff","專員",staffChips||noneTxt("沒有標專員"),()=>fieldHTML({name:"staff",label:"從本看板的身分挑選，可複選",type:"multi",value:ev.staff||[],options:staffOpts()})):""}
+      ${evFieldHTML(ev,"labels","標籤",lblChips||noneTxt("沒有標籤"),()=>labelPickerHTML("labels",ev.labels))}
       <div class="evf-group"><span class="evf-l">時間標記</span>
         ${ts.map(t=>evFieldHTML(ev,"t:"+t.id,"",evTimeView(t,par),()=>evTimeEditor(ev,t))).join("")}
         ${evFldOpen(ev,"t:+")?evFieldHTML(ev,"t:+","",'',()=>evTimeEditor(ev,null)):`<button type="button" class="ghost evd-add" data-evpen="t:+">${ico("calendar")}+ 時間</button>`}</div>
@@ -284,7 +285,7 @@ function evCapHTML(ev,o){
   const st=evStatus(ev),par=parentOf(ev),sel=o.md&&ev.id===o.sel,ed=cardEd("e",ev.id);
   /* 左右兩欄時被選到的那顆只是清單裡的空位，內容在右側詳情，不重複畫編輯欄位 */
   const body=ed&&!sel?`${evMetaHTML(ev,st)}${evFieldsHTML(ev)}${evToolsHTML(ev)}${editBarHTML()}`
-    :`${par?`<p class="ev-parent-full">母議題：${esc(par.title)}</p>`:""}${evMetaHTML(ev,st)}${ev.desc?`<p>${esc(ev.desc)}</p>`:`<p class="sub">（沒有說明）</p>`}
+    :`${par?`<p class="ev-parent-full">母議題：${esc(par.title)}</p>`:""}${evMetaHTML(ev,st)}${ev.desc?`<p>${esc(ev.desc)}</p>`:`<p class="sub">沒有說明</p>`}
         ${evTimesHTML(ev)}${staffHTML(ev.staff)}${labelChipsHTML(ev.labels)}
         ${evLinksHTML(ev)}${sel?"":`<div class="ev-edrow">${editBtnHTML("e:"+ev.id)}</div>`}`;
   return `<details class="ev ${sel?"sel":""} ${ev.id===o.next?"next":""} ${ed?"sec-edit":""}" data-ev="${ev.id}" data-edbox="e:${ev.id}" data-st="${st}" ${!o.md&&(openEv.has(ev.id)||ed)?"open":""}${sel?' aria-current="true"':""}>
@@ -299,7 +300,7 @@ function evDetailHTML(ev){
     ${evMetaHTML(ev,st)}`;
   if(!ed)return `<div class="evd" data-ev="${ev.id}" data-st="${st}">${head}
     ${par?`<p class="sub evd-par">母議題：${esc(par.title)}</p>`:""}
-    ${ev.desc?`<p class="evd-desc">${esc(ev.desc)}</p>`:`<p class="sub">（沒有說明）</p>`}
+    ${ev.desc?`<p class="evd-desc">${esc(ev.desc)}</p>`:`<p class="sub">沒有說明</p>`}
     ${evTimesHTML(ev)}${staffHTML(ev.staff)}${labelChipsHTML(ev.labels)}
     ${evLinksHTML(ev)}</div>`;
   return `<div class="evd editing sec-edit" data-ev="${ev.id}" data-edbox="e:${ev.id}" data-st="${st}">${head}
