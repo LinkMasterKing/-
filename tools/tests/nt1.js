@@ -10,19 +10,8 @@ for(const [w,h,sc,tc] of [[1300,900,'dark',false],[412,860,'light',true]]){const
  console.log(w,'badge',await p.evaluate(()=>$('#notiBtn .noti-n').textContent),'(want 3: 開會、問卷期間、明日回覆；議題不算)');
  await p.click('#notiBtn');await p.waitForTimeout(900);
  console.log(w,'cards',await p.evaluate(()=>[...document.querySelectorAll('#notiOv .nd-card')].map(c=>c.querySelectorAll('.nd-row').length+':'+c.classList.contains('today'))));
- console.log(w,'stack',await p.evaluate(()=>[NS.n,nsCur(),document.querySelectorAll('.ns-card').length]),'poster',await p.evaluate(()=>[$('.pc-mon').textContent.replace(/^\d+/,''),document.querySelectorAll('.pc-e.span').length,Math.max(...[...document.querySelectorAll('.pc-week')].map(x=>+x.style.getPropertyValue('--lanes')))]));
+ console.log(w,'no recent stack',await p.evaluate(()=>!document.querySelector('.nstack')),'poster',await p.evaluate(()=>[$('.pc-mon').textContent.replace(/^\d+/,''),document.querySelectorAll('.pc-e.span').length,Math.max(...[...document.querySelectorAll('.pc-week')].map(x=>+x.style.getPropertyValue('--lanes')))]));
  await p.screenshot({path:`nt1_${w}.png`});await p.screenshot({path:`nt1_${w}_full.png`,fullPage:false});
- /* 智慧堆疊：往上拖一張 */
- const st=await p.$('.nstack');const bb=await st.boundingBox();const cx=bb.x+bb.width/2,cy=bb.y+bb.height/2;
- await p.mouse.move(cx,cy);await p.mouse.down();for(let i=1;i<=8;i++){await p.mouse.move(cx,cy-i*9);await p.waitForTimeout(16)}
- console.log(w,'drag mid p',await p.evaluate(()=>NS.p.x.toFixed(2)),'dots',await p.evaluate(()=>NS.el.classList.contains('dots-on')));
- await p.mouse.up();await p.waitForTimeout(900);console.log(w,'after drag',await p.evaluate(()=>nsCur()));
- /* 往下拖過頭（第一張之前）：橡皮筋，放開回 0 */
- await p.evaluate(()=>{nsGo(0)});await p.waitForTimeout(700);
- await p.mouse.move(cx,cy);await p.mouse.down();for(let i=1;i<=8;i++){await p.mouse.move(cx,cy+i*25);await p.waitForTimeout(16)}
- console.log(w,'rubber p',await p.evaluate(()=>NS.p.x.toFixed(2)),'(>-0.35)');await p.mouse.up();await p.waitForTimeout(900);console.log(w,'back',await p.evaluate(()=>NS.p.x.toFixed(2)));
- /* 左右滑 */
- await p.mouse.move(cx+60,cy);await p.mouse.down();await p.mouse.move(cx,cy,{steps:5});await p.mouse.up();await p.waitForTimeout(800);console.log(w,'swipe x',await p.evaluate(()=>nsCur()));
  /* 搜尋 */
  await p.fill('#notiQ','校長');await p.waitForTimeout(400);console.log(w,'search',await p.evaluate(()=>[!$('#notiRes').hidden,document.querySelectorAll('#notiRes .nr').length,$('#notiRes mark')?.textContent]));
  await p.screenshot({path:`nt1_${w}_search.png`});
@@ -49,6 +38,12 @@ for(const [w,h,sc,tc] of [[1300,900,'dark',false],[412,860,'light',true]]){const
  await p.mouse.up();await p.waitForTimeout(700);
  console.log(w,'swiped right',await p.evaluate(k=>[TRI.yes.includes(k),document.querySelectorAll('#notiOv .nd-card.today .nd-pick .nd-row').length>=0,JSON.parse(localStorage.getItem(TRI_KEY())).yes.length],k0),'cards',n0);
  await p.click('#notiDeck [data-dkgo=no]');await p.waitForTimeout(700);console.log(w,'button no',await p.evaluate(()=>[TRI.no.length,TRI.last.length]));
+ /* 今日卡片：只寫件數；點開（這一天）列出今天本來的＋剛滑過的（今天處理／還不要） */
+ console.log(w,'today card count',await p.evaluate(()=>$('#notiOv .nd-card.today .nd-pick b')?.textContent||'(右滑的都是今天本來就有的)'));
+ await p.evaluate(()=>notiOpenDay(today()));await p.waitForTimeout(600);
+ console.log(w,'today view',await p.evaluate(()=>[document.querySelectorAll('#notiDay .dv-sub').length,[...document.querySelectorAll('#notiDay .dv-sub h4')].map(h=>h.textContent).join('/')]));
+ await p.screenshot({path:`nt1_${w}_today.png`});
+ await p.evaluate(()=>{NOTI.day=null;renderNoti()});
  await p.click('#notiDeck [data-dkundo]');await p.waitForTimeout(400);console.log(w,'undo',await p.evaluate(()=>[TRI.no.length,TRI.yes.length]));
  await p.evaluate(()=>{localStorage.removeItem(TRI_KEY());TRI=triLoad()});
  await p.click('#notiOv .noti-seg [data-k=all]');await p.waitForTimeout(1500);console.log(w,'all',await p.evaluate(()=>[!!NOTI.all,NOTI.loading,$('.pc-foot').textContent]));
