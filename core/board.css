@@ -828,7 +828,7 @@ a.link:active{transform:scale(.96)}
 }
 .week:hover{transform:none!important}
 @media (max-width:640px){
-  .page-week{width:100vw}
+  .page-week{width:100vw;border-left:0;box-shadow:none}   /* 手機滿版：左邊框與陰影是以前疊在主頁旁邊時用的，滿版時只會變成一條擋路的線（2026-11-06 使用者） */
   .week-wrap{--wt:calc(16px + env(safe-area-inset-top));--wr:max(14px,env(safe-area-inset-right));--wl:max(14px,env(safe-area-inset-left))}
   .week-text{font-size:14px}
   .week-top{padding-bottom:10px;row-gap:10px}
