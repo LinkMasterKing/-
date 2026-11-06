@@ -186,7 +186,7 @@ function posterHTML(list){
       let ln=lanes.findIndex(z=>z<i0);if(ln<0){ln=lanes.length;lanes.push(-1)}lanes[ln]=i1;
       return `<span class="pc-e${i1>i0?" span":""}" aria-hidden="true" style="--i0:${i0};--i1:${i1};--ln:${ln};--c:${all?deptColor(x.dept):"var(--ink)"}"></span>`}).join("");
     return `<div class="pc-week" style="--lanes:${lanes.length}">${nums}${evs}</div>`}).join("");
-  return `<div class="pc-head" aria-hidden="true"><b class="pc-mon">${MON_EN[mi]}</b><span class="pc-yr num">${String(y).slice(0,2)}<br>${String(y).slice(2)}</span></div>
+  return `<div class="pc-head" aria-label="${y} 年 ${mi+1} 月"><b class="pc-mon"><span class="pc-mn num">${mi+1}</span>${MON_EN[mi]}</b><span class="pc-yr num">${String(y).slice(0,2)}<br>${String(y).slice(2)}</span></div>
     <div class="pc-wk" aria-hidden="true">${["MON","TUE","WED","THU","FRI","SAT","SUN"].map(x=>`<span>${x}</span>`).join("")}</div>
     <div class="pc-body" role="group" aria-label="${y} 年 ${mi+1} 月">${body}</div>
     <p class="pc-foot">${all?"全會":esc(CFG.dept.name||"本部門")}・學生會</p>`;

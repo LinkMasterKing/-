@@ -1298,6 +1298,8 @@ dialog#dlg:has(.csel.open){overflow:visible}
 .pc{--pc-lane:9px;padding-top:4px}   /* 每一層事件線 9px（不寫字，只看幾條線） */
 .pc-head{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px}
 .pc-mon{font-family:"Jost",sans-serif;font-weight:600;font-size:clamp(68px,13vw,120px);line-height:.82;letter-spacing:-.02em}
+/* 月份數字（2026-11-06 使用者：只有英文縮寫不直觀）：放在縮寫前面，同樣大小、Jost 細體，跟粗體縮寫一細一粗 */
+.pc-mn{font-weight:200;margin-right:.14em;letter-spacing:-.04em}
 .pc-yr{font-weight:600;font-size:clamp(26px,4.4vw,40px);line-height:.95;text-align:right}
 .pc-wk,.pc-week{display:grid;grid-template-columns:repeat(7,minmax(0,1fr))}
 .pc-wk{padding-bottom:8px;margin-bottom:4px;border-bottom:1px solid var(--ink);font-family:"Jost",sans-serif;font-weight:500;font-size:12px;letter-spacing:.08em;text-align:center;color:var(--muted)}

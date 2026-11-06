@@ -10,7 +10,7 @@ for(const [w,h,sc,tc] of [[1300,900,'dark',false],[412,860,'light',true]]){const
  console.log(w,'badge',await p.evaluate(()=>$('#notiBtn .noti-n').textContent),'(want 3: 開會、問卷期間、明日回覆；議題不算)');
  await p.click('#notiBtn');await p.waitForTimeout(900);
  console.log(w,'cards',await p.evaluate(()=>[...document.querySelectorAll('#notiOv .nd-card')].map(c=>c.querySelectorAll('.nd-row').length+':'+c.classList.contains('today'))));
- console.log(w,'stack',await p.evaluate(()=>[NS.n,nsCur(),document.querySelectorAll('.ns-card').length]),'poster',await p.evaluate(()=>[$('.pc-mon').textContent,document.querySelectorAll('.pc-e.span').length,Math.max(...[...document.querySelectorAll('.pc-week')].map(x=>+x.style.getPropertyValue('--lanes')))]));
+ console.log(w,'stack',await p.evaluate(()=>[NS.n,nsCur(),document.querySelectorAll('.ns-card').length]),'poster',await p.evaluate(()=>[$('.pc-mon').textContent.replace(/^\d+/,''),document.querySelectorAll('.pc-e.span').length,Math.max(...[...document.querySelectorAll('.pc-week')].map(x=>+x.style.getPropertyValue('--lanes')))]));
  await p.screenshot({path:`nt1_${w}.png`});await p.screenshot({path:`nt1_${w}_full.png`,fullPage:false});
  /* 智慧堆疊：往上拖一張 */
  const st=await p.$('.nstack');const bb=await st.boundingBox();const cx=bb.x+bb.width/2,cy=bb.y+bb.height/2;
@@ -52,7 +52,7 @@ for(const [w,h,sc,tc] of [[1300,900,'dark',false],[412,860,'light',true]]){const
  await p.click('#notiDeck [data-dkundo]');await p.waitForTimeout(400);console.log(w,'undo',await p.evaluate(()=>[TRI.no.length,TRI.yes.length]));
  await p.evaluate(()=>{localStorage.removeItem(TRI_KEY());TRI=triLoad()});
  await p.click('#notiOv .noti-seg [data-k=all]');await p.waitForTimeout(1500);console.log(w,'all',await p.evaluate(()=>[!!NOTI.all,NOTI.loading,$('.pc-foot').textContent]));
- await p.click('#notiOv [data-nmon="1"]');await p.waitForTimeout(700);console.log(w,'month',await p.evaluate(()=>[NOTI.month,$('.pc-mon').textContent]));
+ await p.click('#notiOv [data-nmon="1"]');await p.waitForTimeout(700);console.log(w,'month',await p.evaluate(()=>[NOTI.month,$('.pc-mon').textContent.replace(/^\d+/,'')]));
  await p.click('#notiOv .pc-d:not(.pc-pad)');await p.waitForTimeout(300);console.log(w,'day',await p.evaluate(()=>NOTI.day));
  await p.keyboard.press('Escape');await p.waitForTimeout(700);console.log(w,'closed',await p.evaluate(()=>[notiOpen,$('#notiOv').hidden]));
  console.log(w,'errs',p.errs.filter(x=>!x.includes('404')))}
