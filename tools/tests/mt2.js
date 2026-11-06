@@ -16,7 +16,7 @@ await p.click('#tabbar [data-tab=ext]');await p.waitForTimeout(1200);
 console.log('chips',await p.evaluate(()=>[...document.querySelectorAll('#meetPick [data-mtpick]')].map(x=>x.textContent).join(' | ')),'shown',await p.evaluate(()=>[...document.querySelectorAll('#meetEdList .mt-dept')].map(x=>x.dataset.mtdept).join()));
 await p.click('#meetStep [data-mtstep="1"]');await p.waitForTimeout(700);console.log('after next',await p.evaluate(()=>[MTS.sel,document.querySelector('#meetStep').textContent.replace(/\s+/g,' ')]));
 await p.click('#meetPick [data-mtpick=marketing]');await p.waitForTimeout(600);
-await p.screenshot({path:'mt2_meet.png'});
+await p.screenshot({path:'mt2_meet.png'});await p.evaluate(()=>document.getElementById('wkPanel').scrollIntoView());await p.waitForTimeout(300);await p.screenshot({path:'mt2_week.png'});await p.click('#wkBody .wk-cap summary').catch(()=>{});await p.waitForTimeout(800);console.log('week cap opened',await p.evaluate(()=>[...document.querySelectorAll('#wkBody .wk-cap')].map(d=>d.open)));await p.evaluate(()=>document.getElementById('meetEdPanel').scrollIntoView());
 console.log('edit btn visible',await p.evaluate(()=>{const b=document.querySelector('#meetEdPanel [data-edit]');return !b.hidden&&!!b.offsetParent}));
 await p.click('#meetEdPanel [data-edit]');await p.waitForTimeout(900);
 await p.evaluate(()=>{const m=MT.depts.get('marketing');m.data.events.find(e=>e.id==='m1').desc='十一月貼文（會議決定延到下週）';m.dirty=true;render()});

@@ -28,16 +28,20 @@ async function mtLoadAll(force){
 /* 會長室的授權：會長室資料的 meetGrant.date 是今天才算開放（過了那天自動失效） */
 function mtGrant(){const pr=MT.depts.get("president"),g=pr&&pr.data&&pr.data.meetGrant;return g&&g.date===today()?g:null}
 const mtCanEdit=()=>secEd("meetedit")&&!!mtGrant();
-/* 一個部門的報告事項卡片（ed＝畫成可以點欄位編輯）。2026-11-06 起一次只畫一個部門（MTS.sel） */
-const MTS={sel:""};
+/* 一個部門的報告事項（ed＝畫成可以點欄位編輯）。一次只畫一個部門（MTS.sel）。
+   2026-11-06 使用者：秘書處看起來依然很臃腫，不要直接粗暴地條列——每一筆收成跟即時回報同一種膠囊（<details class="ev">，motion.js 的展開收合動畫），
+   收合只看燈號、名稱、狀態，點了才展開說明、時間、連結；哪幾筆開著記在 MTS.open，重畫後照舊 */
+const MTS={sel:"",open:new Set()};
 const mtEvs=m=>m&&m.data?m.data.events.filter(e=>!e.doneAt&&e.report):[];
 function mtGroupHTML(m,ed){
   const evs=mtEvs(m);if(!evs.length)return "";
-  return `<section class="mt-dept" data-mtdept="${m.id}" data-fk="mt${m.id}"><h3>${ed&&m.dirty?'<span class="sub">已修改，儲存後寫回</span>':""}<a class="fw-open" href="?d=${encodeURIComponent(m.id)}" target="_blank" rel="noopener">開啟看板 →</a></h3>
-    <div class="mt-list">${withState(m.data,()=>evs.map(e=>{const st=evStatus(e);
-      return `<article class="mt-ev" data-ev="${e.id}" data-st="${st}"><div class="mt-top"><span class="live-dot" aria-hidden="true"></span><b>${esc(e.name)}</b><span class="ev-st">${EV_ST[st]}</span></div>
-        ${ed?evFieldsHTML(e):`${parentOf(e)?`<p class="sub">母議題：${esc(parentOf(e).title)}</p>`:""}${e.desc?`<p class="fw-text">${esc(e.desc)}</p>`:""}${evTimesHTML(e)}${staffHTML(e.staff)}${labelChipsHTML(e.labels)}${evLinksHTML(e)}`}</article>`}).join(""))}</div></section>`;
+  return `<section class="mt-dept" data-mtdept="${m.id}" data-fk="mt${m.id}">${ed&&m.dirty?'<p class="sub mt-dirty">已修改，按「儲存」後寫回</p>':""}
+    <div class="events mt-list">${withState(m.data,()=>evs.map(e=>{const st=evStatus(e),par=parentOf(e);
+      return `<details class="ev mt-ev" data-mtev="${e.id}" data-st="${st}"${MTS.open.has(e.id)?" open":""}>
+        <summary><span class="live-dot" aria-hidden="true"></span><b>${esc(e.name)}</b><span class="mt-st">${EV_ST[st]}</span><span class="ev-chev" aria-hidden="true">▾</span></summary>
+        <div class="ev-body">${ed?evFieldsHTML(e):`${par?`<p class="ev-parent-full">母議題：${esc(par.title)}</p>`:""}${e.desc?`<p>${esc(e.desc)}</p>`:`<p class="sub">（沒有說明）</p>`}${evTimesHTML(e)}${staffHTML(e.staff)}${labelChipsHTML(e.labels)}${evLinksHTML(e)}`}</div></details>`}).join(""))}</div></section>`;
 }
+document.addEventListener("toggle",e=>{const d=e.target;if(!d.matches||!d.matches("#meetEdList .mt-ev"))return;if(d.open)MTS.open.add(d.dataset.mtev);else MTS.open.delete(d.dataset.mtev)},true);
 /* 秘書處「會議」分頁的報告事項（2026-11-06 使用者：一個一個編輯每個部門釘選要報告的即時回報，最後根據改動的紀錄匯出會議紀錄 PDF）：
    上面一排有報告事項的部門（件數；改過還沒儲存的部門有小圓點），一次看一個；下面上一個／下一個部門。
    會長室今天開放時，按這張的「編輯」就能改（每個部門都能改，切換部門不會丟掉；按「儲存」才一起寫回）。沒有報告事項的部門列在最下面一行 */
@@ -49,9 +53,11 @@ function renderMeet(){
   if(!has.some(m=>m.id===MTS.sel))MTS.sel=has[0]?has[0].id:"";
   const g=mtGrant(),btn=edp.querySelector("[data-edit]");
   btn.hidden=!g;   /* 會長室今天有開放才有「編輯」（登入才看得到，見 board.css「單卡編輯」段） */
-  $("#meetEdSt").innerHTML=g?`<span class="grant-on">會長室已開放</span>（${esc(g.by||"會長室")}，${esc((g.at||"").slice(11,16))}）· 今天 23:59 前可以修改${secEd("meetedit")?"":" · 登入後按「編輯」"}`
-    :`<span class="grant-off">尚未開放修改</span>：要會長室在「會長室」分頁打開「秘書處會議編輯」，當天有效。`;
-  $("#meetPick").innerHTML=has.map(m=>`<button type="button" role="tab" class="wk-d" data-mtpick="${m.id}" aria-selected="${m.id===MTS.sel}">${m.dirty?'<i class="wk-new" aria-label="已修改"></i>':""}${esc(m.name)}<span class="num">${mtEvs(m).length}</span></button>`).join("");
+  /* 狀態只寫一行短的 */
+  $("#meetEdSt").innerHTML=g?`<span class="grant-on">開放修改中</span> · ${esc(g.by||"會長室")} ${esc((g.at||"").slice(11,16))} 開，今天有效`
+    :`<span class="grant-off">未開放修改</span> · 會長室開放當天才能改`;
+  $("#meetPick").innerHTML=has.map(m=>`<button type="button" role="tab" class="wk-d" data-mtpick="${m.id}" aria-selected="${m.id===MTS.sel}">${m.dirty?'<i class="wk-new" aria-label="已修改"></i>':""}${esc(m.name)}<span class="num">${mtEvs(m).length}</span></button>`).join("")
+    +(MTS.sel?`<a class="fw-open mt-open" href="?d=${encodeURIComponent(MTS.sel)}" target="_blank" rel="noopener">開啟看板 →</a>`:"");   /* 開啟看板放在部門膠囊那一排的右邊，不另外佔一列 */
   const ed=mtCanEdit(),loading=MT.loading&&!MT.depts.size?`<p class="sub">讀取各部門資料中…</p>`:"";
   $("#meetEdList").innerHTML=loading+(MTS.sel?mtGroupHTML(MT.depts.get(MTS.sel),ed):MT.depts.size?`<p class="empty">目前沒有部門標「會議要報告」。各部門在自己的即時回報按「會議要報告」後會出現在這裡。</p>`:"")
     +(none.length?`<p class="sub mt-none">沒有報告事項：${none.map(m=>esc(m.name)).join("、")}</p>`:"")
@@ -171,21 +177,24 @@ if(CFG.meeting)document.addEventListener("visibilitychange",()=>{if(!document.hi
    只讀：直接用上面 MT.depts 讀到的各部門資料（weeks[]），不另外存任何東西。「擷取最新」＝重新讀一次各部門的資料檔。
    上面一排部門膠囊（後面是週報份數；這週有新的亮綠點），下面是選到的部門：週次膠囊（新到舊）＋那一份的全文＋「複製文字」；
    「全部部門最新一份」把每個部門最新那份接在一起，可以一次複製。 */
-const WK={dept:"all",week:null};
+const WK={dept:"all",week:null,open:new Set()};   /* open：全部最新裡展開的部門 */
 function wkThisWeek(d){return !!d&&d>=addDays(today(),-((pd(today()).getDay()+6)%7))}   /* 這週（週一起）產出的 */
 function renderWeekRead(){
   const p=$("#wkPanel");if(!p)return;p.hidden=!CFG.meeting;if(!CFG.meeting)return;
   const ms=[...MT.depts.values()],ws=m=>m.data?[...m.data.weeks].filter(w=>w.text).sort((a,b)=>b.date.localeCompare(a.date)):[];
   if(WK.dept!=="all"&&!MT.depts.has(WK.dept))WK.dept="all";
   $("#wkDepts").innerHTML=[`<button type="button" role="tab" class="wk-d" data-wkd="all" aria-selected="${WK.dept==="all"}">全部最新</button>`,
-    ...ms.map(m=>{const n=ws(m).length,fresh=n&&wkThisWeek(ws(m)[0].date);return `<button type="button" role="tab" class="wk-d${n?"":" none"}" data-wkd="${m.id}" aria-selected="${WK.dept===m.id}">${fresh?'<i class="wk-new" aria-label="這週有新的"></i>':""}${esc(m.name)}<span class="num">${n}</span></button>`})].join("");
+    ...ms.filter(m=>ws(m).length||m.id===WK.dept).map(m=>{const n=ws(m).length,fresh=n&&wkThisWeek(ws(m)[0].date);return `<button type="button" role="tab" class="wk-d${n?"":" none"}" data-wkd="${m.id}" aria-selected="${WK.dept===m.id}">${fresh?'<i class="wk-new" aria-label="這週有新的"></i>':""}${esc(m.name)}<span class="num">${n}</span></button>`})].join("");
   const body=$("#wkBody");
   if(MT.loading&&!ms.length){body.innerHTML=`<p class="sub">讀取各部門資料中…</p>`;return}
   const block=(m,w,head)=>`<article class="wk-doc" data-wkdoc><div class="wk-top">${head}<span class="num">${fmt(w.date)}</span>${wkThisWeek(w.date)?'<span class="wk-fresh">本週</span>':""}<button type="button" class="icon" data-wkcopy>複製文字</button></div><pre class="wk-text">${esc(w.text)}</pre></article>`;
   if(WK.dept==="all"){
-    const docs=ms.map(m=>{const w=ws(m)[0];return w?block(m,w,`<span class="tag sm">${esc(m.name)}</span>`):""}).filter(Boolean);
+    /* 全部最新：每個部門一顆膠囊（部門、日期、本週），點了才展開全文（2026-11-06 使用者：秘書處太臃腫，要收起來） */
+    const cap=(m,w)=>`<details class="ev wk-cap" data-wkdoc data-wkcap="${m.id}"${WK.open.has(m.id)?" open":""}><summary><b>${esc(m.name)}</b><span class="num wk-date">${fmt(w.date)}</span>${wkThisWeek(w.date)?'<span class="wk-fresh">本週</span>':""}<span class="ev-chev" aria-hidden="true">▾</span></summary>
+      <div class="ev-body"><div class="wk-top"><button type="button" class="icon" data-wkcopy>複製文字</button></div><pre class="wk-text">${esc(w.text)}</pre></div></details>`;
+    const docs=ms.map(m=>{const w=ws(m)[0];return w?cap(m,w):""}).filter(Boolean);
     const miss=ms.filter(m=>!ws(m).length).map(m=>m.name);
-    body.innerHTML=(docs.length?`<div class="wk-all-tools"><button type="button" class="icon" data-wkcopyall>全部複製</button></div>${docs.join("")}`:`<p class="empty">還沒有任何部門產出週報。</p>`)+(miss.length?`<p class="sub wk-miss">還沒有週報：${miss.map(esc).join("、")}</p>`:"");
+    body.innerHTML=(docs.length?`<div class="wk-all-tools"><button type="button" class="icon" data-wkcopyall>全部複製</button></div><div class="events wk-caps">${docs.join("")}</div>`:`<p class="empty">還沒有任何部門產出週報。</p>`)+(miss.length?`<p class="sub wk-miss">還沒有週報：${miss.map(esc).join("、")}</p>`:"");
     return;
   }
   const m=MT.depts.get(WK.dept),list=ws(m);
@@ -194,6 +203,7 @@ function renderWeekRead(){
   body.innerHTML=`<div class="wk-weeks" role="tablist" aria-label="週次">${list.slice(0,12).map(x=>`<button type="button" role="tab" class="wk-w" data-wkw="${x.id}" aria-selected="${x.id===w.id}"><span class="num">${fmt(x.date).slice(5)}</span></button>`).join("")}</div>
     ${block(m,w,`<span class="tag sm">${esc(m.name)}</span>`)}<a class="wk-open" href="?d=${encodeURIComponent(m.id)}" target="_blank" rel="noopener">開啟${esc(m.name)}看板 →</a>`;
 }
+document.addEventListener("toggle",e=>{const d=e.target;if(!d.matches||!d.matches("#wkBody .wk-cap"))return;if(d.open)WK.open.add(d.dataset.wkcap);else WK.open.delete(d.dataset.wkcap)},true);
 document.addEventListener("click",e=>{
   const t=e.target;if(!t.closest||!t.closest("#wkPanel"))return;
   const d=t.closest("[data-wkd]");if(d){WK.dept=d.dataset.wkd;WK.week=null;renderWeekRead();return}
