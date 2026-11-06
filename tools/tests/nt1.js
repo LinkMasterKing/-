@@ -38,12 +38,13 @@ for(const [w,h,sc,tc] of [[1300,900,'dark',false],[412,860,'light',true]]){const
  await p.mouse.up();await p.waitForTimeout(700);
  console.log(w,'swiped right',await p.evaluate(k=>[TRI.yes.includes(k),document.querySelectorAll('#notiOv .nd-card.today .nd-pick .nd-row').length>=0,JSON.parse(localStorage.getItem(TRI_KEY())).yes.length],k0),'cards',n0);
  await p.click('#notiDeck [data-dkgo=no]');await p.waitForTimeout(700);console.log(w,'button no',await p.evaluate(()=>[TRI.no.length,TRI.last.length]));
- /* 今日卡片：只寫件數；點開（這一天）列出今天本來的＋剛滑過的（今天處理／還不要） */
- console.log(w,'today card count',await p.evaluate(()=>$('#notiOv .nd-card.today .nd-pick b')?.textContent||'(右滑的都是今天本來就有的)'));
- await p.evaluate(()=>notiOpenDay(today()));await p.waitForTimeout(600);
- console.log(w,'today view',await p.evaluate(()=>[document.querySelectorAll('#notiDay .dv-sub').length,[...document.querySelectorAll('#notiDay .dv-sub h4')].map(h=>h.textContent).join('/')]));
+ /* 今日卡片：只寫件數；點今日卡片＝放大成全螢幕的「今日」層（本來就要做＋今天處理） */
+ console.log(w,'today card count',await p.evaluate(()=>$('#notiOv .nd-card.today .nd-pick b')?.textContent));
+ await p.evaluate(()=>$('#notiOv .nd-card.today').scrollIntoView({block:'center'}));await p.click('#notiOv .nd-card.today');await p.waitForTimeout(250);
+ await p.screenshot({path:`nt1_${w}_today_mid.png`});await p.waitForTimeout(700);
+ console.log(w,'today layer',await p.evaluate(()=>[todayOpen,!$('#todayOv').hidden,[...document.querySelectorAll('#todayOv .td-sec h3')].map(h=>h.textContent.replace(/\s+/g,'')).join('/'),document.querySelectorAll('#todayOv .td-row').length]));
  await p.screenshot({path:`nt1_${w}_today.png`});
- await p.evaluate(()=>{NOTI.day=null;renderNoti()});
+ await p.keyboard.press('Escape');await p.waitForTimeout(600);console.log(w,'today closed, noti still open',await p.evaluate(()=>[todayOpen,$('#todayOv').hidden,notiOpen,$('#notiOv .nd-card.today').style.opacity]));
  await p.click('#notiDeck [data-dkundo]');await p.waitForTimeout(400);console.log(w,'undo',await p.evaluate(()=>[TRI.no.length,TRI.yes.length]));
  await p.evaluate(()=>{localStorage.removeItem(TRI_KEY());TRI=triLoad()});
  await p.click('#notiOv .noti-seg [data-k=all]');await p.waitForTimeout(1500);console.log(w,'all',await p.evaluate(()=>[!!NOTI.all,NOTI.loading,$('.pc-foot').textContent]));
