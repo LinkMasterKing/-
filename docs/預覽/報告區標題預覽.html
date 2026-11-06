@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>報告區標題預覽</title>
+<title>報告區標題預覽（第二輪）</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Jost:wght@200;300;400;500&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
 <style>
 /* 預覽：即時回報上下兩區的區名（會議報告事項／其他回報）。顏色照看板變數 */
@@ -22,29 +22,33 @@ h2{margin:0 0 14px;font-size:15px;letter-spacing:.12em}h2 small{font-weight:400;
 .now .zh{display:flex;align-items:center;gap:8px;margin:0 0 10px 4px;font-size:12.5px;letter-spacing:.08em;color:var(--muted)}
 .now .zh .num{font-size:12px;padding:0 7px;border-radius:999px;border:1px solid currentColor;line-height:17px}
 .now .rep .zh{color:var(--red)}
-/* A 細線區隔：區名＋細線延伸＋細體數字（跟區塊標題列同一種語言） */
-.A .zh{display:flex;align-items:center;gap:10px;margin:0 4px 12px;font-size:13px;font-weight:500;letter-spacing:.14em;color:var(--muted)}
-.A .zh::after{content:"";flex:1;height:1px;background:var(--hair);order:2}
-.A .zh .num{order:3;font-size:20px;font-weight:200;letter-spacing:0;line-height:1;color:var(--muted)}
-.A .rep .zh{color:var(--ink)}
-.A .rep .zh::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--red);box-shadow:0 0 0 4px color-mix(in srgb,var(--red) 18%,transparent)}
-.A .rep .zh .num{color:var(--red)}
-/* B 實心小膠囊 */
-.B .zh{display:inline-flex;align-items:center;gap:8px;margin:0 0 12px 2px;height:28px;padding:0 6px 0 12px;border-radius:999px;font-size:12.5px;font-weight:500;letter-spacing:.1em;background:color-mix(in srgb,var(--ink) 8%,transparent);color:var(--muted)}
-.B .zh .num{min-width:20px;height:20px;display:grid;place-items:center;border-radius:999px;font-size:12px;letter-spacing:0;background:color-mix(in srgb,var(--ink) 12%,transparent);color:var(--ink)}
-.B .rep .zh{background:var(--red);color:#fff}.B .rep .zh .num{background:rgba(255,255,255,.25);color:#fff}
-/* C 大數字：細體大數字在前、區名小字在後 */
-.C .zh{display:flex;align-items:baseline;gap:10px;margin:0 4px 12px}
-.C .zh .num{order:-1;font-size:34px;font-weight:200;line-height:.9;letter-spacing:-.02em;color:var(--muted)}
-.C .zh b{font-size:13px;font-weight:500;letter-spacing:.14em;color:var(--muted)}
-.C .rep .zh .num{color:var(--red)}.C .rep .zh b{color:var(--ink)}
+/* 第二輪（使用者：A／B／C 都不好） */
+/* D 不寫區名：報告的膠囊右邊直接標「報告」，兩組之間一條細線＋小字 */
+.D .rep .zh{display:none}
+.D .rep .cap::after{content:"報告";margin-left:auto;font-size:11.5px;font-weight:500;letter-spacing:.14em;color:var(--red)}
+.D .rest .zh{display:flex;align-items:center;gap:10px;margin:16px 4px 12px;font-size:11.5px;letter-spacing:.14em;color:var(--muted)}
+.D .rest .zh::before,.D .rest .zh::after{content:"";flex:1;height:1px;background:var(--hair)}
+.D .rest .zh .num{display:none}
+/* E 一組框起來：報告事項整組放進淡紅底大框，框內左上一行標題 */
+.E .rep{padding:14px 10px 6px;border-radius:30px;background:color-mix(in srgb,var(--red) 12%,transparent)}
+.E .zh{display:flex;align-items:baseline;gap:8px;margin:0 10px 12px;font-size:13px;font-weight:700;letter-spacing:.12em}
+.E .zh .num{font-weight:400;color:var(--muted);letter-spacing:0}
+.E .rep .zh{color:var(--red)}.E .rep .zh .num{color:var(--red);opacity:.8}
+.E .rest .zh{color:var(--muted);font-weight:500;margin-top:6px}
+/* F 跟標題列一樣：大一點的粗體區名＋英文小字，不加顏色、不加框；報告區只多一顆紅點 */
+.F .zh{display:flex;align-items:baseline;gap:8px;margin:0 4px 12px}
+.F .zh b{font-size:15px;font-weight:700!important;letter-spacing:.12em}
+.F .zh .num{font-size:13px;color:var(--muted)}
+.F .zh .num::before{content:"·  "}
+.F .rep .zh b::before{content:"";display:inline-block;width:8px;height:8px;margin:0 8px 2px 0;border-radius:50%;background:var(--red);vertical-align:middle}
+.F .rest .zh b{color:var(--muted);font-weight:500!important}
 </style></head><body>
 <div class="wrap">
   <div class="top"><h1>報告區標題</h1><button type="button" id="th">切換深淺色</button></div>
   <section class="now"><h2>現在<small>紅字＋外框數字</small></h2></section>
-  <section class="A"><h2>A 細線區隔<small>紅點＋區名＋細線延伸＋細體數字</small></h2></section>
-  <section class="B"><h2>B 小膠囊<small>報告區紅底白字、其他回報淡灰</small></h2></section>
-  <section class="C"><h2>C 大數字<small>細體大數字在前、區名在後</small></h2></section>
+  <section class="D"><h2>D 不寫區名<small>報告的膠囊右邊直接寫「報告」，兩組之間細線＋「其他回報」</small></h2></section>
+  <section class="E"><h2>E 整組框起來<small>報告事項放進淡紅底大框，框內一行標題</small></h2></section>
+  <section class="F"><h2>F 安靜的區名<small>粗體區名＋件數，報告區只多一顆紅點</small></h2></section>
 </div>
 <script>
 const caps=(xs)=>xs.map(t=>`<div class="cap"><i></i>${t}</div>`).join("");
