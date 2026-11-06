@@ -10,9 +10,9 @@ const SHELL_HTML=`<div class="pager" id="pager">
           <label class="hero-search"><svg class="hs-ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.8" cy="10.8" r="6.3"/><path d="m15.6 15.6 4.4 4.4"/></svg><input id="boardQ" type="text" inputmode="search" enterkeyhint="search" autocomplete="off" aria-label="搜尋這個看板" aria-controls="boardRes"><button type="button" class="hq-clear" aria-label="清除搜尋"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button></label>
           <div class="hero-res glass" id="boardRes" role="listbox" aria-label="搜尋結果" hidden></div>
         </div>
-        <span class="pill" id="weekPillBox"><span id="weekPill"></span><span class="pill-zh" id="weekZh"></span></span>
+        <button type="button" class="noti-btn" id="notiBtn" aria-label="通知" title="今日／明日要處理的事、行事曆"><svg class="ico solo" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><g class="i-bell"><path d="M6.2 16.4V11a5.8 5.8 0 0 1 11.6 0v5.4l1.6 1.8H4.6z"/><path d="M10.2 20.4a2 2 0 0 0 3.6 0"/></g></svg><span class="noti-n num" hidden></span></button>
       </header>
-      <div class="hero-rule"><span class="hero-info"><span class="sub sr-only" id="saveInfo" role="status"></span></span><span class="actions"><span class="hero-btns" id="actions"></span><button type="button" class="noti-btn" id="notiBtn" aria-label="通知" title="今日／明日要處理的事、行事曆"><svg class="ico solo" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><g class="i-bell"><path d="M6.2 16.4V11a5.8 5.8 0 0 1 11.6 0v5.4l1.6 1.8H4.6z"/><path d="M10.2 20.4a2 2 0 0 0 3.6 0"/></g></svg><span class="noti-n num" hidden></span></button></span></div>
+      <div class="hero-rule"><span class="hero-info"><span class="sub sr-only" id="saveInfo" role="status"></span></span><span class="actions"><span class="hero-btns" id="actions"></span></span></div>
       <div class="banner"><span class="live-dot" aria-hidden="true"></span><b>編輯中</b><span class="sub">即時回報、進度、完成紀錄：點哪一欄就改哪一欄 · 其他區按標題列的「編輯這區」 · 全部改完按「儲存並同步」</span></div>
 
       <section class="panel grant-panel" id="grantPanel" aria-labelledby="grH" hidden>

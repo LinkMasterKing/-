@@ -4,7 +4,7 @@ const c=require('./common');c.serveRemote=true;
 (async()=>{const {b,mk}=await c.setup();
 for(const [w,h,sc,tc] of [[1300,900,'dark',false],[412,860,'light',true]]){c.q='';const p=await mk(w,h,sc,tc);
  await p.waitForFunction(()=>!document.getElementById('splash'),null,{timeout:8000}).catch(()=>{});await p.waitForTimeout(300);
- console.log(w,'header',await p.evaluate(()=>{const l=$('.logo-box').getBoundingClientRect();return [Math.round(l.left+l.width/2-innerWidth/2),$('#boardQ').placeholder,$('#weekPill').textContent,!!$('#weekBtn'),!!$('#bigDate'),!!$('#titleSlot'),getComputedStyle($('#saveInfo')).width]}));
+ console.log(w,'header',await p.evaluate(()=>{const l=$('.logo-box').getBoundingClientRect();return [Math.round(l.left+l.width/2-innerWidth/2),$('#boardQ').placeholder,(()=>{const b=$('#notiBtn').getBoundingClientRect(),s=$('.hero-search').getBoundingClientRect();return 'bell right of search:'+(b.left>s.right&&Math.abs((b.top+b.height/2)-(s.top+s.height/2))<2)})(),!!$('#weekBtn'),!!$('#bigDate'),!!$('#titleSlot'),getComputedStyle($('#saveInfo')).width]}));
  await p.screenshot({path:`hd1_${w}.png`,clip:{x:0,y:0,width:w,height:300}});
  /* 搜尋 */
  const t=await p.evaluate(()=>state.events.find(e=>!e.doneAt).name);const q=t.slice(0,2);
