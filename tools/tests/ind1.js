@@ -16,15 +16,15 @@ await p.fill('#dlgForm input[name=pw]','0000');await ok();await p.waitForTimeout
 await p.fill('#dlgForm input[name=name]','王');await p.fill('#dlgForm input[name=p1]','wang-password-1');await p.fill('#dlgForm input[name=p2]','wang-password-1');await ok();await p.waitForTimeout(2500);await (async()=>{for(let i=0;i<4;i++){await p.waitForTimeout(500);const t=await p.$eval('#dlg[open] #dlgForm>b',b=>b.textContent).catch(()=>'');if(/共用密碼太短|沒有連上雲端/.test(t))await p.click('#dlgForm [data-act=cancel]').catch(()=>{})}})();   /* 2026-11-05：建立第一個身分後，共用密碼 0000 會請管理員換（team.js 的 sharedPwFix），測試先取消 */
 await p.$eval('#setOv [data-set=report]',e=>e.scrollIntoView({block:'center'}));await p.click('#setOv [data-set=report]');await p.waitForTimeout(700);await ok();await p.waitForTimeout(900);
 const long='這是一段很長的內文，用來測試換行之後第二行的起點是否對齊段落本身的左邊，而不是整份文件最左邊。'.repeat(3);
-await p.click('.rpt-free .rpt-text');
+await p.click('.rpt-ch[data-k=free] .rpt-text');
 const lv=async k=>{await p.click(`.rpt-pt [data-lv=${k}]`);await p.waitForTimeout(250)};
 await lv('h1');await p.keyboard.type('大段標題');await lv('p');await p.keyboard.type(long);
 await p.keyboard.press('Enter');await p.keyboard.type(long);   // 用 Enter 換段
 await lv('h2');await p.keyboard.type('小段標題');await lv('p');await p.keyboard.type(long);
 await p.keyboard.press('Enter');await p.keyboard.type(long);
-const r=await p.evaluate(()=>{const box=document.querySelector('.rpt-free .rpt-text'),L=box.getBoundingClientRect().left;
+const r=await p.evaluate(()=>{const box=document.querySelector('.rpt-ch[data-k=free] .rpt-text'),L=box.getBoundingClientRect().left;
  return [...box.children].map(n=>{const rg=document.createRange();rg.selectNodeContents(n);const xs=[...new Set([...rg.getClientRects()].map(q=>Math.round(q.left-L)))];
   const bf=n.matches('h3,h4')?Math.round(n.getBoundingClientRect().left-L+parseFloat(getComputedStyle(n).paddingLeft)):null;
   return `${n.tagName} in=${n.dataset.in||'-'} 行起點=${xs.join('/')} 標題文字起點=${bf??''} ${n.textContent.slice(0,6)}`})});
 console.log(r.join('\n'));
-await p.locator('.rpt-free').screenshot({path:'/home/claude/ind.png'});console.log('errs',errs);await b.close()})();
+await p.locator('.rpt-ch[data-k=free]').first().screenshot({path:'/home/claude/ind.png'});console.log('errs',errs);await b.close()})();

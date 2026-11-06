@@ -1,6 +1,6 @@
-/* 核心｜工作報告：選期間 → 預覽（文字可直接修改、可新增或移除區塊）→ 列印成 PDF
-   內容：本期摘要（數字＋期間甘特圖）、議題處理情形（逐案）、自訂區塊（預設「工作檢討」「下期規劃」）
-   預覽裡打的字只用在這一份報告，不會存進看板。 */
+/* 核心｜工作報告：選期間 → 預覽（文字可直接修改；可加章節、文字／圖片／卡片圖塊）→ 列印成 PDF
+   結構：封面、目錄、各章（預設：本期摘要〔數字＋期間甘特圖〕、議題處理情形〔逐案〕、工作檢討、下期規劃）
+   預覽裡的字、上傳的圖片只用在這一份報告，不會存進看板、不會上傳。 */
 let rptOpen=false,rptRange=null;
 
 /* ---------- 資料：期間內處理過的議題、即時回報、週報 ---------- */
@@ -33,18 +33,37 @@ function rptGantt(d){
   return `<figure class="rpt-gantt" contenteditable="false"><svg viewBox="0 0 ${W} ${H+8}" role="img" aria-label="期間甘特圖">${grid}${now}${bars}</svg></figure>`;
 }
 
-/* ---------- 報告內容 ---------- */
-const rptSec=(k,h,body,cls="")=>`<section class="rpt-sec ${cls}" data-k="${k}"><button type="button" class="rpt-x" contenteditable="false" aria-label="移除這個區塊">移除</button><h2 contenteditable="true">${h}</h2>${body}</section>`;
-const rptFree=(h,ph)=>rptSec("free",h,`<div class="rpt-text" contenteditable="true" data-ph="${ph}"></div>`,"rpt-free");
+/* ---------- 報告內容（2026-11-06 改版：封面 → 目錄 → 各章） ----------
+   版面參考使用者給的極簡白紙範例：大標題靠左、上下小字資訊、細線分隔、細體大數字當章節號。
+   每一章是一張紙（列印時從新的一頁開始）：章首＝細體大數字＋章名＋右上角章節索引（I II III…，目前這章實心）。
+   章裡是一個個「圖塊」：文字（段落小工具）、圖片（上傳、調大小與位置）、卡片（分項說明）、看板自動產生的內容（摘要數字、甘特圖、議題逐案）。
+   編輯（加章節、加圖塊、上傳圖片、改字）都只用在這一份報告，不存進看板、不上傳（使用者決定）。 */
+const RPT_IMG_W=[33,50,66,100];   /* 圖片寬度的快速選項（％，以內文寬為準）；拖曳右下角可在 25～100％ 之間調，每 5％ 一格 */
+const rptBlk=(kind,inner,tools="")=>`<div class="rpt-blk" data-blk="${kind}" tabindex="-1"><div class="rpt-bt" contenteditable="false">${tools}<button type="button" data-bmv="-1" aria-label="上移">${ico("prev","solo")}</button><button type="button" data-bmv="1" aria-label="下移">${ico("next","solo")}</button><button type="button" data-bx aria-label="移除這個圖塊">移除</button></div>${inner}</div>`;
+const rptTextBlk=(ph="在這裡輸入內容…",html="")=>rptBlk("text",`<div class="rpt-text" contenteditable="true" data-ph="${ph}">${html}</div>`);
+const rptCardHTML=()=>`<div class="rpt-card"><button type="button" class="rpt-card-x" contenteditable="false" data-cx aria-label="移除這張卡片">${ico("close","solo")}</button><b contenteditable="true" data-ph="項目名稱"></b><div class="rpt-card-t" contenteditable="true" data-ph="說明"></div></div>`;
+const rptCardsBlk=()=>rptBlk("cards",`<div class="rpt-cards" data-cols="2">${rptCardHTML()}${rptCardHTML()}</div><button type="button" class="rpt-card-add" contenteditable="false" data-cadd>＋ 卡片</button>`,
+  `<button type="button" data-cols="2" class="on">兩欄</button><button type="button" data-cols="3">三欄</button>`);
+const rptImgBlk=src=>rptBlk("img",`<figure class="rpt-img" data-al="c" style="--w:66%"><div class="rpt-img-box"><img src="${src}" alt=""><span class="rpt-img-h" contenteditable="false" aria-hidden="true"></span></div><figcaption contenteditable="true" data-ph="圖說（可留白）"></figcaption></figure>`,
+  RPT_IMG_W.map(w=>`<button type="button" data-iw="${w}"${w===66?' class="on"':""}>${w===100?"滿版":w+"%"}</button>`).join("")+`<i class="rpt-bt-sep"></i>`+[["l","靠左"],["c","置中"],["r","靠右"]].map(([k,n])=>`<button type="button" data-ia="${k}"${k==="c"?' class="on"':""}>${n}</button>`).join(""));
+const rptAuto=html=>rptBlk("auto",html);   /* 看板自動產生的內容：可以移除、排順序，字可以直接改 */
+const rptCh=(k,title,blocks)=>`<section class="rpt-page rpt-sec rpt-ch" data-k="${k}">
+    <header class="rpt-ch-h"><span class="rpt-ch-n num" contenteditable="false"></span><h2 contenteditable="true" data-ph="章節名稱">${esc(title)}</h2><span class="rpt-tabs" contenteditable="false" aria-hidden="true"></span>
+      <span class="rpt-ct" contenteditable="false"><button type="button" data-cmv="-1" aria-label="章節上移">${ico("prev","solo")}</button><button type="button" data-cmv="1" aria-label="章節下移">${ico("next","solo")}</button><button type="button" data-chx aria-label="移除這一章">移除這章</button></span></header>
+    <div class="rpt-blocks">${blocks}</div>
+    <div class="rpt-ins" contenteditable="false"><span>在這章加入</span><button type="button" data-ins="text">＋ 文字</button><button type="button" data-ins="img">＋ 圖片</button><button type="button" data-ins="cards">＋ 卡片</button></div></section>`;
 function rptHTML(d){
-  const dept=CFG.dept.name||state.title,logo=CFG.logo?document.getElementById("dept-logo"):null;   /* 沒有 logo 的部門不放 */
+  const dept=CFG.dept.name||state.title;
   const staffJoin=ids=>staffNames(ids).join("、");
-  const head=`<header class="rpt-head"><div class="rpt-logo">${logo?logo.innerHTML:""}</div>
-    <div class="rpt-ttl"><h1 contenteditable="true">${esc(dept)} 工作報告</h1><p class="rpt-sub" contenteditable="true">${state.yearLabel?esc(state.yearLabel)+"　｜　":""}報告期間 ${fmt(d.from)} – ${fmt(d.to)}</p>
-      <a class="rpt-live" href="${esc(boardURL())}" target="_blank" rel="noopener">查看看板即時動態<span class="rpt-url">${esc(boardURL().replace(/^https?:\/\//,""))}</span></a></div>
-    <dl class="rpt-meta"><div><dt>報告人</dt><dd contenteditable="true">${esc(meName())}</dd></div><div><dt>製表日期</dt><dd contenteditable="true">${fmt(today())}</dd></div></dl></header>`;
-  const stat=(n,t,s)=>`<div><b>${n}</b><span>${t}</span><small>${s}</small></div>`;
-  const sum=rptSec("sum","本期摘要",`<div class="rpt-stats" contenteditable="true">${stat(d.issues.length,"處理議題",`完成 ${d.nDone}・進行中 ${d.nAct}`)}${stat(d.marks,"處理紀錄","期間內的議題註記")}${stat(d.evNew.length,"新增即時回報",`完成 ${d.evDone.length}・併入議題 ${d.evLinked}`)}${stat(d.weeks.length,"每週概述","期間內的週報")}</div>${rptGantt(d)}`);
+  const dot=s=>fmt(s).replaceAll("/",".");
+  const cover=`<section class="rpt-page rpt-cover">
+    <div class="cv-top"><div class="cv-org"><span class="cv-logo">${suLogoMono("南臺科大學生會")}</span><b contenteditable="true">${esc(dept)}</b></div><span class="cv-date num" contenteditable="true">${dot(today())}</span></div>
+    <div class="cv-mid"><p class="cv-k num">WORK REPORT</p><h1 contenteditable="true">工作報告</h1><p class="cv-sub" contenteditable="true">${state.yearLabel?esc(state.yearLabel)+"・":""}${dot(d.from)} – ${dot(d.to)}</p></div>
+    <div class="cv-foot"><div class="cv-col"><span contenteditable="true">${esc(meName())}</span><span contenteditable="true" data-ph="職稱（可留白）"></span><span contenteditable="true">南臺科技大學學生會　${esc(dept)}</span></div>
+      <div class="cv-col"><span>看板即時動態</span><a class="rpt-live num" href="${esc(boardURL())}" target="_blank" rel="noopener">${esc(boardURL().replace(/^https?:\/\//,""))}</a><span class="num">製表 ${dot(today())}</span></div></div></section>`;
+  const toc=`<section class="rpt-page rpt-toc"><header class="toc-h"><span class="num">CONTENTS</span><h2>目錄</h2></header><ol class="toc-list"></ol></section>`;
+  const stat=(n,t,s)=>`<div><b class="num">${n}</b><span>${t}</span><small>${s}</small></div>`;
+  const sum=rptCh("sum","本期摘要",rptAuto(`<div class="rpt-stats" contenteditable="true">${stat(d.issues.length,"處理議題",`完成 ${d.nDone}・進行中 ${d.nAct}`)}${stat(d.marks,"處理紀錄","期間內的議題註記")}${stat(d.evNew.length,"新增即時回報",`完成 ${d.evDone.length}・併入議題 ${d.evLinked}`)}${stat(d.weeks.length,"每週概述","期間內的週報")}</div>`)+(rptGantt(d)?rptAuto(rptGantt(d)):""));
   const issue=it=>{
     const meta=[hasDates(it)?`期間 ${fmt(it.start)} – ${fmt(it.end)}`:"",it.tags[it.cur]?`目前階段：${it.tags[it.cur]}`:"",staffJoin(it.staff)?`專員：${staffJoin(it.staff)}`:""].filter(Boolean).join("　｜　");
     const mk=sortedMarkers(it).filter(m=>!m.date||d.inP(m.date));
@@ -55,10 +74,25 @@ function rptHTML(d){
       ${it.note?`<h4>目前進度</h4><p>${esc(it.note)}</p>`:""}
       ${evs.length?`<h4>相關即時回報</h4><p>${evs.map(e=>`${esc(evName(e))}（${e.doneAt?fmt(e.doneAt).slice(5)+" 完成":"處理中"}）`).join("、")}</p>`:""}
       ${it.links.length?`<h4>相關連結</h4><p>${it.links.map(l=>`<a href="${esc(safeUrl(l.url))}" target="_blank" rel="noopener">${esc(l.name)}</a>`).join("、")}</p>`:""}</article>`};
-  const iss=rptSec("issues","議題處理情形",`<div class="rpt-body" contenteditable="true">${d.issues.map(issue).join("")||'<p class="rpt-none">這段期間沒有處理中的議題</p>'}</div>`);
-  return head+sum+iss+rptFree("工作檢討","在這裡輸入這段期間的工作檢討…")+rptFree("下期規劃","在這裡輸入下一期的規劃…");
+  const iss=rptCh("issues","議題處理情形",rptAuto(`<div class="rpt-body" contenteditable="true">${d.issues.map(issue).join("")||'<p class="rpt-none">這段期間沒有處理中的議題</p>'}</div>`));
+  return cover+toc+sum+iss+rptCh("free","工作檢討",rptTextBlk("在這裡輸入這段期間的工作檢討…"))+rptCh("free","下期規劃",rptTextBlk("在這裡輸入下一期的規劃…"));
 }
-
+/* 空白判斷：列印時空白的圖塊、整章都空白的章不印，目錄與章節號跟著跳過 */
+const rptBlank=el=>{
+  const k=el.dataset.blk;if(k==="img"||k==="auto")return false;
+  if(k==="cards")return ![...el.querySelectorAll(".rpt-card [contenteditable]")].some(c=>c.textContent.trim());
+  return ![...el.querySelectorAll('[contenteditable="true"]')].some(c=>c.textContent.trim());   /* 只看能打字的地方，不算工具鈕上的字 */
+};
+/* 章節號、目錄、右上角的章節索引一起重算（加章、刪章、排順序、改章名、列印前） */
+function rptSync(print){
+  const ov=$("#rptOv");if(!ov)return;
+  const chs=[...ov.querySelectorAll(".rpt-ch")];
+  chs.forEach(c=>{c.querySelectorAll(".rpt-blk").forEach(b=>b.classList.toggle("is-blank",rptBlank(b)));c.classList.toggle("is-blank",![...c.querySelectorAll(".rpt-blk")].some(b=>!b.classList.contains("is-blank")))});
+  const vis=chs.filter(c=>!print||!c.classList.contains("is-blank")),R=n=>["I","II","III","IV","V","VI","VII","VIII","IX","X","XI","XII"][n]||String(n+1);
+  vis.forEach((c,i)=>{c.querySelector(".rpt-ch-n").textContent=String(i+1).padStart(2,"0");
+    c.querySelector(".rpt-tabs").innerHTML=vis.map((_,j)=>`<i class="${j===i?"on":""}">${R(j)}</i>`).join("")});
+  ov.querySelector(".toc-list").innerHTML=vis.map((c,i)=>`<li><span class="toc-n num">${String(i+1).padStart(2,"0")}</span><span class="toc-t"><b>${esc(c.querySelector("h2").textContent.trim()||"（未命名）")}</b><small class="num">${R(i)}</small></span></li>`).join("");
+}
 /* ---------- 預覽視窗 ---------- */
 async function reportDialog(){
   const t=today(),pick=[state.termStart,CFG.term.start].find(x=>x&&x<=t)||addDays(t,-90);
@@ -69,12 +103,12 @@ async function reportDialog(){
 function openReport(from,to){
   closeReport(true);rptRange={from,to};
   document.body.insertAdjacentHTML("beforeend",`<div class="rpt-ov" id="rptOv" role="dialog" aria-modal="true" aria-label="工作報告預覽">
-    <div class="anim-top rpt-bar"><div class="anim-title"><span class="anim-k">REPORT</span><b>工作報告預覽</b><span class="sub rpt-hint">文字都可以直接點開修改・空白的區塊不會印出來</span></div>
-      <div class="anim-ctl"><button type="button" id="rptAdd">＋ 新增區塊</button><button type="button" class="primary" id="rptPrint">${ico("download")}存成 PDF</button><button type="button" id="rptClose" aria-label="關閉工作報告">${ico("close")}關閉</button></div></div>
+    <div class="anim-top rpt-bar"><div class="anim-title"><span class="anim-k">REPORT</span><b>工作報告預覽</b><span class="sub rpt-hint">文字都可以直接點開修改・空白的圖塊與章節不會印出來・不會存進看板</span></div>
+      <div class="anim-ctl"><button type="button" id="rptAdd">＋ 章節</button><button type="button" class="primary" id="rptPrint">${ico("download")}存成 PDF</button><button type="button" id="rptClose" aria-label="關閉工作報告">${ico("close")}關閉</button></div></div>
     <div class="rpt-scroll"><article class="rpt-paper" spellcheck="false">${rptHTML(rptData(from,to))}</article></div></div>`);
   const ov=$("#rptOv");rptOpen=true;document.body.classList.add("rpt-open");
   $("#rptClose").onclick=()=>closeReport();Back.layers.report();$("#rptPrint").onclick=rptPrint;$("#rptAdd").onclick=rptAdd;
-  ov.addEventListener("click",e=>{const x=e.target.closest(".rpt-x");if(x){const s=x.closest(".rpt-sec");if(reduceMotion())s.remove();else s.animate([{opacity:1},{opacity:0,transform:"translateY(-6px)"}],{duration:200,easing:"ease-in"}).onfinish=()=>s.remove()}});
+  rptBind(ov);rptSync();
   /* 貼上時只留純文字，不帶別處的格式 */
   ov.addEventListener("paste",e=>{const t=e.clipboardData&&e.clipboardData.getData("text/plain");if(t==null||!e.target.closest('[contenteditable="true"]'))return;e.preventDefault();document.execCommand("insertText",false,t)});
   rptParaTool(ov);
@@ -88,10 +122,59 @@ function closeReport(instant){
 }
 function rptAdd(){
   const p=$("#rptOv .rpt-paper");if(!p)return;
-  p.insertAdjacentHTML("beforeend",rptFree("新區塊","在這裡輸入內容…"));
-  const s=p.lastElementChild,h=s.querySelector("h2");
-  s.scrollIntoView({behavior:reduceMotion()?"auto":"smooth",block:"center"});
-  h.focus();const r=document.createRange();r.selectNodeContents(h);const sel=getSelection();sel.removeAllRanges();sel.addRange(r);
+  p.insertAdjacentHTML("beforeend",rptCh("free","",rptTextBlk()));
+  const s=p.lastElementChild,h=s.querySelector("h2");rptSync();rptIn(s);
+  s.scrollIntoView({behavior:reduceMotion()?"auto":"smooth",block:"start"});h.focus();
+}
+/* 新加的東西淡入、移除的淡出（只動 transform／opacity） */
+const rptIn=el=>{if(!reduceMotion())el.animate([{opacity:0,transform:"translateY(8px)"},{opacity:1,transform:"none"}],{duration:MO.base,easing:MO.out})};
+const rptOut=(el,then)=>{if(reduceMotion()){el.remove();then&&then();return}el.animate([{opacity:1},{opacity:0,transform:"translateY(-6px) scale(.98)"}],{duration:MO.fast,easing:MO.in}).onfinish=()=>{el.remove();then&&then()}};
+/* 位置互換時用 FLIP 滑過去 */
+function rptSwap(el,dir){
+  const sib=dir<0?el.previousElementSibling:el.nextElementSibling;if(!sib||!sib.matches(el.classList.contains("rpt-ch")?".rpt-ch":".rpt-blk"))return;
+  const a=el.getBoundingClientRect().top,b=sib.getBoundingClientRect().top;
+  if(dir<0)sib.before(el);else sib.after(el);
+  if(reduceMotion())return;
+  [[el,a],[sib,b]].forEach(([x,t])=>{const d=t-x.getBoundingClientRect().top;if(d)x.animate([{transform:`translateY(${d}px)`},{transform:"none"}],{duration:MO.slow,easing:MO.out})});
+}
+/* 上傳圖片：讀成 data URL（只在這份報告裡，不上傳）；太大的先縮到長邊 2000px，列印不會太重 */
+function rptPickImg(ch){
+  const inp=document.createElement("input");inp.type="file";inp.accept="image/*";inp.hidden=true;document.body.append(inp);
+  inp.onchange=()=>{const f=inp.files&&inp.files[0];inp.remove();if(!f)return;
+    const url=URL.createObjectURL(f),im=new Image();
+    im.onload=()=>{const k=Math.min(1,2000/Math.max(im.width,im.height)),c=document.createElement("canvas");c.width=Math.round(im.width*k);c.height=Math.round(im.height*k);
+      c.getContext("2d").drawImage(im,0,0,c.width,c.height);URL.revokeObjectURL(url);
+      const src=c.toDataURL(/png|gif|webp/.test(f.type)?"image/png":"image/jpeg",.88);
+      ch.querySelector(".rpt-blocks").insertAdjacentHTML("beforeend",rptImgBlk(src));const b=ch.querySelector(".rpt-blocks").lastElementChild;rptIn(b);rptSync();b.focus({preventScroll:true})};
+    im.onerror=()=>{URL.revokeObjectURL(url);toast("這個檔案讀不出圖片")};im.src=url};
+  inp.click();
+}
+/* 圖片寬度：拖曳右下角（25～100％，每 5％ 一格，不會超出內文寬；高度另有上限，見 CSS 的 .rpt-img img） */
+function rptImgDrag(h,e){
+  const fig=h.closest(".rpt-img"),col=fig.parentElement.getBoundingClientRect().width,box=h.parentElement.getBoundingClientRect(),x0=e.clientX,w0=box.width,al=fig.dataset.al;
+  const k=al==="c"?2:al==="r"?-1:1;   /* 置中時兩邊一起長，拖一下要算兩倍 */
+  const mv=ev=>{const w=Math.max(25,Math.min(100,Math.round((w0+(ev.clientX-x0)*k)/col*20)*5));fig.style.setProperty("--w",w+"%");fig.closest(".rpt-blk").querySelectorAll("[data-iw]").forEach(b=>b.classList.toggle("on",+b.dataset.iw===w))};
+  const up=()=>{removeEventListener("pointermove",mv);removeEventListener("pointerup",up);removeEventListener("pointercancel",up);fig.classList.remove("sizing")};
+  fig.classList.add("sizing");addEventListener("pointermove",mv);addEventListener("pointerup",up);addEventListener("pointercancel",up);e.preventDefault();
+}
+function rptBind(ov){
+  ov.addEventListener("click",e=>{
+    const t=e.target,ch=t.closest(".rpt-ch"),blk=t.closest(".rpt-blk");
+    const ins=t.closest("[data-ins]");if(ins&&ch){const k=ins.dataset.ins;if(k==="img"){rptPickImg(ch);return}
+      ch.querySelector(".rpt-blocks").insertAdjacentHTML("beforeend",k==="cards"?rptCardsBlk():rptTextBlk());const b=ch.querySelector(".rpt-blocks").lastElementChild;rptIn(b);rptSync();
+      const f=b.querySelector('[contenteditable="true"]');if(f)f.focus();return}
+    if(t.closest("[data-bx]")&&blk){rptOut(blk,rptSync);return}
+    const bm=t.closest("[data-bmv]");if(bm&&blk){rptSwap(blk,+bm.dataset.bmv);return}
+    if(t.closest("[data-chx]")&&ch){rptOut(ch,rptSync);return}
+    const cm=t.closest("[data-cmv]");if(cm&&ch){rptSwap(ch,+cm.dataset.cmv);rptSync();return}
+    const iw=t.closest("[data-iw]");if(iw&&blk){blk.querySelector(".rpt-img").style.setProperty("--w",iw.dataset.iw+"%");blk.querySelectorAll("[data-iw]").forEach(b=>b.classList.toggle("on",b===iw));return}
+    const ia=t.closest("[data-ia]");if(ia&&blk){blk.querySelector(".rpt-img").dataset.al=ia.dataset.ia;blk.querySelectorAll("[data-ia]").forEach(b=>b.classList.toggle("on",b===ia));return}
+    const co=t.closest("[data-cols]");if(co&&blk&&co.tagName==="BUTTON"){blk.querySelector(".rpt-cards").dataset.cols=co.dataset.cols;blk.querySelectorAll("button[data-cols]").forEach(b=>b.classList.toggle("on",b===co));return}
+    if(t.closest("[data-cadd]")&&blk){const g=blk.querySelector(".rpt-cards");g.insertAdjacentHTML("beforeend",rptCardHTML());const c=g.lastElementChild;rptIn(c);c.querySelector("b").focus();return}
+    const cx=t.closest("[data-cx]");if(cx){const c=cx.closest(".rpt-card");if(c.parentElement.children.length>1)rptOut(c);return}
+  });
+  ov.addEventListener("pointerdown",e=>{const h=e.target.closest(".rpt-img-h");if(h)rptImgDrag(h,e)});
+  ov.addEventListener("input",e=>{if(e.target.closest&&e.target.closest(".rpt-ch-h h2"))rptSync()});
 }
 /* ---------- 段落小工具（自訂區塊：工作檢討、下期規劃、新區塊） ----------
    游標在自訂區塊裡時，那一段左邊（手機在區塊下方）浮出三個小鈕：大段（（一）自動編號）、小段（1. 自動編號）、內文。
@@ -158,7 +241,8 @@ function rptPrint(){
   if(document.activeElement&&document.activeElement.blur)document.activeElement.blur();
   const t=document.title,r=rptRange||{from:"",to:""};
   document.title=`${CFG.dept.name||""}工作報告_${r.from.replaceAll("-","")}-${r.to.replaceAll("-","")}`;
-  const back=()=>{document.title=t;removeEventListener("afterprint",back)};addEventListener("afterprint",back);
+  rptSync(true);   /* 空白的章不印：章節號、目錄、索引先照要印的重排，印完再排回來 */
+  const back=()=>{document.title=t;rptSync();removeEventListener("afterprint",back)};addEventListener("afterprint",back);
   try{window.print()}catch(_){back();toast("這個環境不能列印：請用瀏覽器打開網站再匯出")}
 }
 document.addEventListener("keydown",e=>{if(e.key==="Escape"&&rptOpen&&!$("#dlg").open)closeReport()});
