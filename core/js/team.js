@@ -41,14 +41,18 @@ async function kdfCheck(stored,pw){if(!stored||!pw)return false;const [s,h]=stor
 /* ---------- 進入編輯：選身分＋個人密碼 ---------- */
 async function unlockEdit(){
   if(!hasSubtle()){toast("這個瀏覽器不支援加密功能，無法使用編輯身分");return false}
+  const dn=CFG.dept.name,all=!!(state.sync&&state.sync.tokenAll);   /* all：學生會已經用全會密碼開通（provision.js），走一步一步的加入流程 */
   if(!state.members.length){
-    /* 舊版看板：先用現有的共用密碼登入，再建立第一個個人身分 */
+    /* 部門第一位成員（2026-11-06 使用者：第一個開通的人不用透過有權杖的管理員說明任何操作，也不用碰雲端、權杖）：
+       1/2 輸入學生會給的密碼 → 2/2 取名字、設個人密碼（預設記住這台裝置）→ 完成畫面。上傳權限從全會密碼那份自動解開 */
     const init=!!(state.sync&&state.sync.initial);
-    const pw=await unlockShared(init?"第一次使用：輸入初始密碼":"輸入目前的編輯密碼",
-      init?"這個部門已經由學生會開通雲端。請輸入學生會給你的初始密碼，接著建立你的身分，你會是這個部門的第一位管理員。":"");
+    const pw=await unlockShared(all?`加入${dn}（1/2）：輸入學生會給的密碼`:init?"第一次使用：輸入初始密碼":"輸入目前的編輯密碼",
+      all?`${dn}還沒有人使用，你會是第一位成員（也是管理員）。\n第 1 步：輸入學生會給的密碼（各部門都一樣，向學生會索取）。\n第 2 步：取一個名字、設定你自己的個人密碼。\n完成後看板會自動連上雲端，不用做任何其他設定。`
+        :init?"這個部門已經由學生會開通雲端。請輸入學生會給你的初始密碼，接著建立你的身分，你會是這個部門的第一位管理員。":"");
     if(pw===null)return false;
     sharedPwSession=pw;
-    const ok=await createMember(true);if(!ok)return false;
+    const ok=await createMember(true,all?`加入${dn}（2/2）：建立你的身分`:"");if(!ok)return false;
+    if(all){await joinDone(true);return true}
     if(init)await ownSharedPw();
     else if(pw.length<MIN_PW)await sharedPwFix();
     await cloudWarn();
@@ -62,8 +66,9 @@ async function unlockEdit(){
        validate:async o=>{const m=state.members.find(x=>x.id===o.who);return m&&await kdfCheck(m.kdf,o.pw)?"":"個人密碼不正確。忘記的話請部門管理員刪掉你的身分，再用「＋ 新增身分」重新建立。"}});
     if(v===null)return false;
     if(v==="alt"){
-      const pw=await unlockShared("新增身分：先輸入部門共用密碼","共用密碼由部門管理員提供（剛開通的部門是學生會給的初始密碼）。輸入後就能建立自己的身分。");if(pw===null)continue;
-      sharedPwSession=pw;if(await createMember(false)){await cloudWarn();return true}continue;
+      const pw=await unlockShared(all?`新增身分（1/2）：輸入密碼`:"新增身分：先輸入部門共用密碼",
+        all?`輸入學生會給的密碼（各部門都一樣），或${dn}管理員給的部門共用密碼。\n下一步取名字、設定你自己的個人密碼，完成後自動連上雲端。`:"共用密碼由部門管理員提供（剛開通的部門是學生會給的初始密碼）。輸入後就能建立自己的身分。");if(pw===null)continue;
+      sharedPwSession=pw;if(await createMember(false,all?"新增身分（2/2）：建立你的身分":"")){if(all)await joinDone(false);else await cloudWarn();return true}continue;
     }
     const m=state.members.find(x=>x.id===v.who);last=v.who;
     if(m&&await kdfCheck(m.kdf,v.pw)){
@@ -83,9 +88,9 @@ function pwProblem(p1,p2,what){
   if(p1!==p2)return "兩次輸入的密碼不一樣，請再輸入一次";
   return "";
 }
-async function askNewPassword(title,extra=[]){
+async function askNewPassword(title,extra=[],tail=[]){
   const named=extra.some(f=>f.name==="name");
-  const v=await ask(title,[...extra,{name:"p1",label:`個人密碼（至少 ${MIN_PW} 碼）`,type:"password"},{name:"p2",label:"再輸入一次",type:"password"}],
+  const v=await ask(title,[...extra,{name:"p1",label:`個人密碼（至少 ${MIN_PW} 碼）`,type:"password"},{name:"p2",label:"再輸入一次",type:"password"},...tail],
     {note:`個人密碼只有你自己知道，之後換裝置就用它登入。登入時勾「記住密碼」，同一台裝置就不用再打。`,
      validate:o=>{if(named){const n=(o.name||"").trim();if(!n)return "請填名字";if(state.members.some(m=>m.name===n))return "已經有同名的身分，請換一個名字（例如加上職稱）"}
        return pwProblem(o.p1||"",o.p2||"","個人密碼")}});
@@ -110,22 +115,34 @@ async function sharedPwFix(){
 /* 換共用密碼：重新加密上傳權限（這台裝置有權杖時），初始密碼的標記拿掉 */
 async function setSharedPw(pw){
   await setPw(pw);sharedPwSession=pw;
+  /* 這台裝置沒有權杖：先用自己身分那份（個人密碼加密）解開，不要把部門的上傳權限刪掉（2026-11-06：以前會刪，新成員就連不上雲端） */
+  const me=meMember();if(!ghToken()&&me&&me.tok&&sessionPw){try{localStorage.setItem(TOKEN_KEY,await decToken(me.tok,sessionPw))}catch(_){}}
   if(ghToken())await rememberToken(ghToken(),pw);else if(state.sync)delete state.sync.tokenEnc;
   if(state.sync)delete state.sync.initial;
 }
 /* 登入後這台裝置還是沒有連上雲端（部門還沒開通）：明白告訴使用者資料只會存在這台裝置 */
 async function cloudWarn(){
   if(!cloudOn()||ghToken())return;
-  await ask("這台裝置沒有連上雲端",[],{note:"這個部門還沒開通雲端，你的修改只會存在這台裝置的瀏覽器，其他人、其他裝置都看不到。\n請學生會管理員在自己的電腦打開「設定 → 開通部門」開通後，再重新登入。"});
+  await ask("這台裝置沒有連上雲端",[],{note:"這個部門還沒開通雲端，你的修改只會存在這台裝置的瀏覽器，其他人、其他裝置都看不到。\n請通知學生會：後台管理員打開自己電腦上的看板，就會自動開通所有部門；開通後重新登入即可。"});
 }
-async function createMember(first){
-  const v=await askNewPassword(first?"建立你的編輯身分（第一位會是管理員）":"新增編輯身分",[{name:"name",label:"名字（會顯示在編輯紀錄）",ph:"例如：王小明"}]);
+/* 加入完成（全會密碼開通的部門）：說清楚現在的狀態與之後怎麼用；萬一沒解開上傳權限（不太會發生）照舊提醒 */
+async function joinDone(first){
+  if(cloudOn()&&!ghToken()){await cloudWarn();return}
+  const me=meMember(),dn=CFG.dept.name;
+  await ask(`完成：你已經加入${dn}`,[],{note:`你的身分：${me?me.name:""}${first?"（管理員）":""}。看板已經連上雲端，按卡片上的「編輯」修改、按「儲存」後大家都看得到。\n`
+    +`換一台裝置：打開設定 → 登入 → 選你的名字、輸入個人密碼，就會自動連上。\n`
+    +`其他人加入：請他打開設定 → 登入 →「＋ 新增身分」，輸入學生會給的密碼（各部門都一樣）${first?"。之後也可以到「設定 → 身分與專員」設定只有你們部門知道的共用密碼":""}。`});
+}
+async function createMember(first,title){
+  const v=await askNewPassword(title||(first?"建立你的編輯身分（第一位會是管理員）":"新增編輯身分"),[{name:"name",label:"名字（會顯示在編輯紀錄）",ph:"例如：王小明"}],
+    [{name:"rem",label:"在這個裝置上記住密碼（下次不用再輸入）",type:"check",value:true}]);
   if(!v)return false;
   const m={id:uid("m"),name:v.name.trim(),role:first?"admin":"member",kdf:await kdfMake(v.p1),createdAt:nowStr()};
   let tk=ghToken();
-  if(!tk&&state.sync&&state.sync.tokenEnc&&sharedPwSession){try{tk=await decToken(state.sync.tokenEnc,sharedPwSession);localStorage.setItem(TOKEN_KEY,tk)}catch(_){tk=""}}
+  if(!tk&&sharedPwSession){tk=await tokenFromShared(sharedPwSession);if(tk){try{localStorage.setItem(TOKEN_KEY,tk)}catch(_){}}}   /* 全會密碼那份或部門共用密碼那份 */
   if(tk)m.tok=await encToken(tk,v.p1);
   state.members.push(m);meId=m.id;sessionPw=v.p1;try{localStorage.setItem(ME_KEY,m.id)}catch(_){}
+  if(v.rem)await remSave(m);
   await persist(`已建立身分「${m.name}」`);
   return true;
 }
@@ -249,7 +266,7 @@ function diffState(a,b){
     if(o.role!==m.role)L.push(`設定｜${m.role==="admin"?"設為管理員":"取消管理員"}｜${m.name}`);if(o.kdf!==m.kdf)L.push(`設定｜更改個人密碼｜${m.name}`)}
   for(const [id,m] of AMb)if(!BMb.has(id))L.push(`設定｜刪除編輯身分｜${m.name}`);
   if(a.pwKdf!==b.pwKdf&&a.pwKdf&&b.pwKdf)L.push("設定｜更改部門共用密碼");else if(!a.pwKdf&&b.pwKdf)L.push("設定｜共用密碼升級加密");
-  const sy=x=>{const s={...(x.sync||{})};delete s.tokenEnc;delete s.initial;return s};
+  const sy=x=>{const s={...(x.sync||{})};delete s.tokenEnc;delete s.tokenAll;delete s.resetAt;delete s.initial;return s};
   if(!same(sy(a),sy(b)))L.push("設定｜雲端同步設定");else if(!same((a.sync||{}).tokenEnc,(b.sync||{}).tokenEnc))L.push("設定｜更新雲端連線");
   /* 會長室的追蹤項目 */
   const AF=byId(a.follows),BF=byId(b.follows),fl=f=>{const d=(window.BOARD_DEPTS||[]).find(x=>x.id===f.dept);return `${d?d.name:f.dept}的${(typeof FW_KIND!=="undefined"&&FW_KIND[f.kind])||f.kind}`};

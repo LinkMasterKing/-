@@ -2,7 +2,7 @@
 
 function defaultRange(){const d=new Date();return{start:ym(new Date(d.getFullYear(),d.getMonth()-1,1)),end:ym(new Date(d.getFullYear(),d.getMonth()+4,1))}}
 /* ---------- 資料版本與自動遷移 ---------- */
-const SCHEMA_VERSION=10;
+const SCHEMA_VERSION=11;
 let MIGRATE_NOTE={staffDropped:0};   /* 這次讀進來時遷移掉的東西（只給畫面提示，不存進資料） */
 const MIGRATIONS={
   /* v2 → v3：結構不變，只是開始記錄 schemaVersion（拆檔版） */
@@ -35,6 +35,9 @@ const MIGRATIONS={
   8:s=>{s.meetGrant=s.meetGrant||null;return s},
   /* v9 → v10：學期 semester＝"up"（上學期）／"down"（下學期）／""（不指定）；甘特圖打開時預設看這個學期。舊資料補 "" */
   9:s=>{s.semester=s.semester||"";return s},
+  /* v10 → v11（2026-11-06 全會密碼）：sync.tokenAll＝用全會密碼加密的上傳權限（權杖），由後台管理員的裝置自動補進每個部門（provision.js）；
+     測試部門重置時另有 sync.resetAt（重置時間）。兩個都是選填，舊資料不用補 */
+  10:s=>s,
 };
 function migrate(s){
   let v=+s.schemaVersion||+s.v||2;if(v<2)v=2;
