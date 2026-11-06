@@ -291,7 +291,7 @@ function evCapHTML(ev,o){
         ${evTimesHTML(ev)}${staffHTML(ev.staff)}${labelChipsHTML(ev.labels)}
         ${evLinksHTML(ev)}`;
   return `<details class="ev ${sel?"sel":""} ${ev.id===o.next?"next":""}" data-ev="${ev.id}" data-st="${st}" ${!o.md&&openEv.has(ev.id)?"open":""}${sel?' aria-current="true"':""}>
-      <summary><span class="live-dot" aria-hidden="true"></span><b>${esc(ev.name)}</b>${par?`<span class="ev-parent">→ ${esc(par.title)}</span>`:""}<button type="button" class="ev-del edit-only" data-evdel aria-label="刪除「${esc(ev.name)}」">${ico("close","solo")}</button><span class="ev-chev" aria-hidden="true">▾</span></summary>
+      <summary><span class="live-dot" aria-hidden="true"></span><b>${esc(ev.name)}</b>${par?`<span class="ev-parent">→ ${esc(par.title)}</span>`:""}${ev.report?'<span class="ev-rep">報告</span>':""}<button type="button" class="ev-del edit-only" data-evdel aria-label="刪除「${esc(ev.name)}」">${ico("close","solo")}</button><span class="ev-chev" aria-hidden="true">▾</span></summary>
       <div class="ev-body">${body}</div>
     </details>`;
 }
@@ -331,8 +331,9 @@ function renderEvents(){
   const cap=ev=>evCapHTML(ev,o);
   const addBtn=`<button type="button" class="ghost edit-only add-row" id="addEvent">+ 新增即時回報</button>`;   /* 新增鈕排在格子最後一格，跟一顆膠囊一樣大（只在這區編輯中顯示） */
   const empty=`<p class="empty">${state.locked?"目前沒有即時回報。":"需要即時回報的事項放這裡，只要名稱和說明。按「編輯」→「+ 新增即時回報」。"}</p>`;
-  const zone=(k,h,list,tail)=>`<div class="ev-zone" data-zone="${k}">${h?`<div class="ev-zone-h">${h}<span class="num">${list.length}</span></div>`:""}<div class="events">${list.length?list.map(cap).join(""):h?"":empty}${tail}</div></div>`;
-  $("#events").innerHTML=rep.length?zone("rep","會議報告事項",rep,"")+"\n      "+zone("rest","其他回報",rest,addBtn):zone("rest","",live,addBtn);
+  /* 2026-11-06 使用者從預覽選 D：報告區不寫區名（每顆膠囊右邊自己標「報告」），其他回報上面一條細線、中間小字區名 */
+  const zone=(k,h,list,tail)=>`<div class="ev-zone" data-zone="${k}">${h?`<div class="ev-zone-h"><span>${h}</span></div>`:""}<div class="events">${list.length?list.map(cap).join(""):h?"":empty}${tail}</div></div>`;
+  $("#events").innerHTML=rep.length?zone("rep","",rep,"")+"\n      "+zone("rest","其他回報",rest,addBtn):zone("rest","",live,addBtn);
   if(md){pane.innerHTML=evDetailHTML(live.find(e=>e.id===selEv));pane.hidden=false}else{pane.innerHTML="";pane.hidden=true}
   Anim.syncPings();
 }

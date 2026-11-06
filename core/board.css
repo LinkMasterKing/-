@@ -263,15 +263,14 @@ body.edit .sec-edit-btn{display:inline-flex;animation:fadeSlide .4s var(--ease) 
 .ev-chev{color:var(--muted);font-size:12px;transition:transform .25s var(--ease)}
 .ev[open] .ev-chev{transform:rotate(180deg)}
 .ev-del{flex:none;justify-content:center;align-items:center;width:28px;height:28px;min-height:0;padding:0;border-radius:50%;border:1px solid currentColor;background:transparent;color:inherit;font-size:13px}
-/* 會議要報告：右側詳情標題上的紅框小標（ev.report；膠囊本身已經分在上方區，不另外標） */
-.ev-rep{flex:none;padding:0 8px;border-radius:999px;font-size:11px;font-weight:500;line-height:18px;letter-spacing:.04em;border:1px solid var(--red);color:var(--red)}
-.evd-head .ev-rep{margin-left:-4px}
+/* 會議要報告：膠囊右邊（展開箭頭前）與右側詳情標題上的紅色小字「報告」（ev.report；不加框） */
+.ev-rep{flex:none;font-size:11.5px;font-weight:500;line-height:18px;letter-spacing:.14em;color:var(--red)}
 [data-evrep][aria-pressed="true"]{color:var(--red);border-color:var(--red)}
-/* 上下兩區：會議報告事項（有 ev.report）在上、其他回報在下；沒有報告事項時只有一區、不顯示區名 */
+/* 上下兩區：要報告的（有 ev.report）在上、其他回報在下；報告區不寫區名（膠囊自己標「報告」），
+   其他回報上面一條細線、中間小字「其他回報」（2026-11-06 使用者從預覽選 D）；沒有報告事項時只有一區、沒有分隔線 */
 .ev-zones{display:grid;gap:18px}
-.ev-zone-h{display:flex;align-items:center;gap:8px;margin:0 0 10px 4px;font-size:12.5px;letter-spacing:.08em;color:var(--muted)}
-.ev-zone-h .num{font-size:12px;padding:0 7px;border-radius:999px;border:1px solid currentColor;line-height:17px}
-.ev-zone[data-zone="rep"] .ev-zone-h{color:var(--red)}
+.ev-zone-h{display:flex;align-items:center;gap:12px;margin:0 4px 12px;font-size:11.5px;letter-spacing:.14em;color:var(--muted)}
+.ev-zone-h::before,.ev-zone-h::after{content:"";flex:1;height:1px;background:var(--hair)}
 .ev-parent{flex:0 1 auto;min-width:0;max-width:45%;font-size:11.5px;line-height:18px;padding:0 8px;border-radius:999px;border:1px solid currentColor;opacity:.85;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 /* 收合：白色膠囊 */
 .events .ev:not([open]),.events .ev.closing{border-radius:999px;background:#fff;border-color:var(--line);color:#111114}
