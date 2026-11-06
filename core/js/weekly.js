@@ -13,14 +13,22 @@ pager.addEventListener("scroll",()=>{
   else if(atMain&&onWeek){onWeek=false;Back.closed("week")}
 },{passive:true});
 $("#pageWeek").addEventListener("scroll",e=>{$(".week-top").classList.toggle("scrolled",e.target.scrollTop>4)},{passive:true});
-function goMain(instant){if(!onWeek)return;const go=()=>pager.scrollTo({left:0,behavior:"instant"});if(instant===true){PageFx.settle(pager);go();return}PageFx.swap(pager,pager,{mid:go})}
-$("#backMain").onclick=()=>goMain();
+function goMain(instant){weekFromSet=false;if(!onWeek)return;const go=()=>pager.scrollTo({left:0,behavior:"instant"});if(instant===true){PageFx.settle(pager);go();return}PageFx.swap(pager,pager,{mid:go})}
+$("#backMain").onclick=()=>weekBack();
 {const l=$("#weekSecLink");if(l)l.hidden=!!CFG.meeting||CFG.deptId==="secretariat"}   /* 秘書處自己就不顯示「秘書處調閱」 */
 /* 2026-11-05：頁首的「每週概述」按鈕拿掉，改從設定頁「每週概述」進來（nav.js 的 weekFromSettings）：
    設定往後退的同時，底下的看板已經換到每週概述那一頁，浮上來的就是每週概述 */
+let weekFromSet=false;
 function weekFromSettings(){
   if(!setOpen){goWeek();return}
-  closeSettings();pager.scrollTo({left:pager.scrollWidth,behavior:"instant"});
+  closeSettings();pager.scrollTo({left:pager.scrollWidth,behavior:"instant"});weekFromSet=true;
+}
+/* 每週概述的返回（返回鈕、系統返回）：從設定進來的就回到設定（2026-11-06 使用者），否則回主頁。
+   回設定：設定從後面浮上來蓋住（底下的看板不動），蓋滿之後才把底下換回主頁，之後關設定看到的是主頁 */
+function weekBack(instant){
+  if(!weekFromSet){goMain(instant);return}
+  weekFromSet=false;Back.replace("week","settings",i=>closeSettings(i));openSettings();
+  setTimeout(()=>{PageFx.settle(pager);pager.scrollTo({left:0,behavior:"instant"})},instant===true||reduceMotion()?0:160);
 }
 
 /* ---------- 即時回報：母議題連結、分段、狀態、時間標記 ---------- */

@@ -9,6 +9,7 @@ await p.click('#setBtn');await p.waitForTimeout(700);console.log('settings open'
 await p.goBack();await p.waitForTimeout(700);console.log('after back',await st(),p.url());
 await p.click('#setBtn');await p.waitForTimeout(800);await p.click('#setOv [data-set=week]');await p.waitForTimeout(1300);   /* 2026-11-05：每週概述從設定頁進去（頁首按鈕已拿掉） */console.log('week',await st());
 await p.goBack();await p.waitForTimeout(1200);console.log('after back week',await st());
+await p.goBack();await p.waitForTimeout(1000);console.log('after back again（從設定進每週概述：返回先回設定、再返回才關掉）',await st());
 // 拖曳返回手勢已停用（back.js 的 GESTURE=false）：拖了設定頁要還開著、沒有形變
 await p.click('#setBtn');await p.waitForTimeout(700);
 const cdp=await ctx.newCDPSession(p);
