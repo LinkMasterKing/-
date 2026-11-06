@@ -102,12 +102,11 @@ const SHELL_HTML=`<div class="pager" id="pager">
 /* 頁首學生會 logo：同一份 SU_LOGO 路徑。淺色模式用原檔的彩色（2026-11-06 使用者）；深色模式全部填文字色（board.css「頁首」段蓋掉 fill）。
    深色時標誌黃藍兩塊同色會黏成一團，所以藍色那塊的外框先描一圈底色（--bg）當分隔縫（.logo-gap，只在深色顯示），再疊上藍色本體；
    描邊只描外框那一段路徑（不含眼睛的洞），眼睛才不會被描大；
-   2026-11-06 使用者：不要黑框，只要兩個小人中間的切割線 → 描邊用 clip-path 只留在黃色那塊的範圍裡（兩塊重疊的地方），外圍不描 */
-let suCutN=0;
+   描邊是整圈（2026-11-06 使用者：只描黃色範圍裡的半圈會在邊緣變細收尾，要就整圈）；外圍那段跟底色同色，看不見 */
 function suLogoMono(label){
-  const [VX,VY,VW,VH]=SU_LOGO.box,[,,,,[[cy,dy],[cb,db]]]=SU_LOGO.emb,outer=db.slice(0,db.indexOf("Z")+1),id="suCut"+(++suCutN);
-  return `<svg class="logo" xmlns="http://www.w3.org/2000/svg" viewBox="${VX} ${VY} ${VW} ${VH}" role="img" aria-label="${label}"><defs><clipPath id="${id}"><path d="${dy.slice(0,dy.indexOf("Z")+1)}"/></clipPath></defs><g>
-    <path fill="${cy}" d="${dy}"/><path class="logo-gap" clip-path="url(#${id})" d="${outer}"/><path fill="${cb}" d="${db}"/>${SU_LOGO.g.map(g=>`<path fill="${g[4]}" d="${g[5]}"/>`).join("")}</g></svg>`;
+  const [VX,VY,VW,VH]=SU_LOGO.box,[,,,,[[cy,dy],[cb,db]]]=SU_LOGO.emb,outer=db.slice(0,db.indexOf("Z")+1);
+  return `<svg class="logo" xmlns="http://www.w3.org/2000/svg" viewBox="${VX} ${VY} ${VW} ${VH}" role="img" aria-label="${label}"><g>
+    <path fill="${cy}" d="${dy}"/><path class="logo-gap" d="${outer}"/><path fill="${cb}" d="${db}"/>${SU_LOGO.g.map(g=>`<path fill="${g[4]}" d="${g[5]}"/>`).join("")}</g></svg>`;
 }
 (function mountShell(){
   if(!document.getElementById("pager"))document.body.insertAdjacentHTML("afterbegin",SHELL_HTML);

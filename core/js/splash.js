@@ -49,7 +49,7 @@ function mountSplash(){
     document.body.insertAdjacentHTML("afterbegin",`<div class="splash" id="splash" aria-hidden="true"><div class="sp-logo" role="img" aria-label="南臺科大學生會 STUSTSA">
       <div class="sp-grp"><div class="sp-clip" style="--cut:${pc(ex+ew,VX,VW)}"><div class="sp-txt">
       ${SU_LOGO.g.map(([x,y,w,h,c,d],i)=>piece(x,y,w,h,`<path fill="${c}" d="${d}"/>`,"sp-g "+(i<7?"en":"zh"))).join("")}</div></div>
-      ${piece(ex,ey,ew,eh,`<defs><clipPath id="spCut"><path d="${ep[0][1].slice(0,ep[0][1].indexOf("Z")+1)}"/></clipPath></defs>`+ep.map(([c,d],i)=>i?`<g class="sp-b"><path class="sp-gap" clip-path="url(#spCut)" d="${d.slice(0,d.indexOf("Z")+1)}"/><path fill="${c}" d="${d}"/></g>`:`<path class="sp-y" fill="${c}" d="${d}"/>`).join(""),"sp-emb")}</div></div></div>`);   /* 標誌放在文字後面（DOM 順序），才蓋得住正從後面滑出的字 */
+      ${piece(ex,ey,ew,eh,ep.map(([c,d],i)=>i?`<g class="sp-b"><path class="sp-gap" d="${d.slice(0,d.indexOf("Z")+1)}"/><path fill="${c}" d="${d}"/></g>`:`<path class="sp-y" fill="${c}" d="${d}"/>`).join(""),"sp-emb")}</div></div></div>`);   /* 標誌放在文字後面（DOM 順序），才蓋得住正從後面滑出的字 */
     splashPlay();
   }
 }
