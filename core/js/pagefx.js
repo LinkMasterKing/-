@@ -14,8 +14,11 @@ const PageFx=(()=>{
        離開＝往後翻開（0 → 70°）並淡掉，越翻越快；進來＝從另一側（−60°）翻回原位並浮現，越來越慢。
      只動 3D 旋轉與透明度，用 Web Animations（交給顯示卡，主執行緒忙也不會頓），沒有模糊。
      元素本身（整頁或疊層）只動透明度：離開時最後淡掉、進來時一開始就淡入（疊層打開時更快變不透明，蓋住底下那頁） */
-  const OUT=260,IN=420,SPREAD_OUT=170,SPREAD_IN=190,OVER=.7,FADE_IN=.15,COVER_IN=.08;   /* 每塊翻出／翻進多久、上下錯開的總時間、新頁在舊頁播到幾成時出發、新頁在前幾成變成不透明 */
-  const EASE_OUT="cubic-bezier(.55,0,.85,.4)",EASE_IN="cubic-bezier(.12,.8,.28,1)",MAXP=18;
+  const OUT=300,IN=440,SPREAD_OUT=160,SPREAD_IN=180,OVER=.7,BACK_OVER=.55,FADE_IN=.15,COVER_IN=.08;   /* 每塊翻出／翻進多久、上下錯開的總時間、新頁在舊頁播到幾成時出發（返回時早一點）、新頁在前幾成變成不透明 */
+  const EASE_OUT="cubic-bezier(.5,0,.75,.45)",EASE_IN="cubic-bezier(.12,.8,.28,1)",MAXP=14;
+  /* 角度：前進＝離開 0→70°（往後翻開）、進來 −60°→0；返回（2026-11-06 使用者：返回時效果不好、太快、像卡住）＝前進倒過來：
+     離開 0→−60°（朝你翻走）、進來 70°→0（底下那頁從被翻開的位置轉回來），看起來是同一扇門轉回來，不是突然露出底下那頁 */
+  const ANG={out:[0,70],in:[-60,0],bout:[0,-60],bin:[70,0]};
   let tok=0;const owner=new WeakMap();const live=new Set();   /* live：目前還在換頁動畫裡的元素；owner：每個元素目前歸哪一次換頁管：被新的換頁接手，舊的那段就停下 */
   const keep=new WeakMap(),anims=new WeakMap();
   function save(el){if(!keep.has(el))keep.set(el,{o:el.style.opacity,p:el.style.pointerEvents})}
@@ -36,21 +39,23 @@ const PageFx=(()=>{
     walk(el,0);return out;
   }
   /* 一段動畫：dir＝"out"（翻出去）或 "in"（翻進來）；fadeIn＝新頁在前幾成變成不透明 */
-  function run(el,dir,my,fadeIn=FADE_IN){
+  function run(el,dir,my,fadeIn=FADE_IN,back=false,lag=0){   /* lag：整段晚多久開始（期間區塊停在起始的角度） */
     if(!el)return Promise.resolve();
     save(el);el.style.pointerEvents="none";(anims.get(el)||[]).forEach(a=>a.cancel());
-    const o=dir==="out",H=innerHeight||1,ps=pieces(el),list=[];
-    const dur=o?OUT:IN,spread=o?SPREAD_OUT:SPREAD_IN,total=dur+spread;
+    const o=dir==="out",H=innerHeight||1,ps=pieces(el),list=[],[a0,a1]=ANG[(back?"b":"")+dir];
+    const dur=o?OUT:IN,spread=o?SPREAD_OUT:SPREAD_IN,total=dur+spread+lag;
     ps.forEach(({el:p,r,base})=>{
-      const delay=Math.round(Math.max(0,Math.min(1,r.top/H))*spread);
+      const delay=lag+Math.round(Math.max(0,Math.min(1,r.top/H))*spread);
       /* 區塊本身原本的變形（例如工具列用 translateX(-50%) 置中）要保留：翻動疊在它前面；轉軸扣掉原本的位移，才會剛好在畫面左邊 */
       let tx=0;if(base){try{tx=new DOMMatrix(base).m41}catch(_){}}
       const ax=`${Math.round(tx-r.left)}px ${Math.round(r.height/2)}px`,T=d=>`perspective(1100px) rotateY(${d}deg)${base?" "+base:""}`;
-      const kf=o?[{transform:T(0),opacity:1,transformOrigin:ax},{transform:T(70),opacity:0,transformOrigin:ax}]
-               :[{transform:T(-60),opacity:0,transformOrigin:ax},{opacity:1,offset:.45},{transform:T(0),opacity:1,transformOrigin:ax}];
+      const kf=o?[{transform:T(a0),opacity:1,transformOrigin:ax},{opacity:1,offset:.35},{transform:T(a1),opacity:0,transformOrigin:ax}]
+               :[{transform:T(a0),opacity:0,transformOrigin:ax},{opacity:1,offset:.45},{transform:T(a1),opacity:1,transformOrigin:ax}];
       list.push(p.animate(kf,{duration:dur,delay,easing:o?EASE_OUT:EASE_IN,fill:"both"}));
     });
-    list.push(el.animate(o?[{opacity:1},{opacity:1,offset:.62},{opacity:0}]:[{opacity:0},{opacity:1,offset:Math.max(.02,fadeIn*IN/total)},{opacity:1}],{duration:total,easing:"linear",fill:"both"}));
+    /* 元素本身的透明度：離開時最後淡掉（返回時早一點淡，才看得到底下那頁轉回來）；進來時一開始淡入（fadeIn＝0：本來就看得到，不動） */
+    if(o)list.push(el.animate(back?[{opacity:1},{opacity:1,offset:.28},{opacity:0,offset:.6},{opacity:0}]:[{opacity:1},{opacity:1,offset:.62},{opacity:0}],{duration:total,easing:"linear",fill:"both"}));
+    else if(fadeIn>0)list.push(el.animate([{opacity:0},{opacity:1,offset:Math.max(.02,fadeIn*IN/total)},{opacity:1}],{duration:total,easing:"linear",fill:"both"}));
     anims.set(el,list);
     return Promise.all(list.map(a=>a.finished.catch(()=>{}))).then(()=>{});
   }
@@ -71,8 +76,8 @@ const PageFx=(()=>{
       /* 疊層蓋上來（打開設定、通知、編輯紀錄、工作報告、設定子頁）：底下那頁不動，疊層從後面浮上來、一開始就變不透明蓋住它（2026-11-05 使用者：不要閃現主頁） */
       owner.delete(from);live.delete(from);hold(to);M();await run(to,"in",my,COVER_IN);
     }else if(zf>zt){
-      /* 疊層退開（關閉）：底下那頁本來就在、不動，疊層往後退、淡掉露出它 */
-      owner.delete(to);live.delete(to);reset(to);M();await run(from,"out",my);
+      /* 疊層退開（關閉，返回）：疊層的區塊朝你翻走、疊層淡掉；播到 BACK_OVER 時底下那頁的區塊從被翻開的位置轉回來（底下那頁本身一直是不透明的） */
+      reset(to);M();await Promise.all([run(from,"out",my,FADE_IN,true),run(to,"in",my,0,true,Math.round((OUT+SPREAD_OUT)*BACK_OVER))]);
     }else{hold(to);const pOut=run(from,"out",my);await wait((OUT+SPREAD_OUT)*OVER);M();await Promise.all([pOut,run(to,"in",my)])}
     /* 中途被打斷也一樣把該做的做完（顯示新頁、藏起舊頁），只是還在別次換頁手上的元素不還原樣式 */
     M();done&&done();
