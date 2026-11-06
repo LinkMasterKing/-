@@ -655,8 +655,13 @@ html.ev-drag-on,html.ev-drag-on *{-webkit-user-select:none;user-select:none;curs
 .att{border-top:1px dashed var(--line);padding-top:8px;border-color:var(--hair)}
 .att-h{font-size:12px;color:var(--muted);margin-bottom:4px}
 .links{display:flex;flex-wrap:wrap;gap:6px;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
-a.link{display:inline-flex;align-items:center;min-height:32px;text-decoration:none;color:#fff;padding:3px 12px;border-radius:8px;font-size:13.5px;border:1px solid rgba(0,0,0,.08);transition:transform .22s var(--ease),box-shadow .22s var(--ease),border-color .22s var(--ease),background-color .2s,opacity .2s;border-color:rgba(127,127,140,.35)}
-a.link:hover{filter:brightness(1.1)}
+/* --- 超連結標籤（淡色膠囊，2026-11-06 使用者從預覽選 C） ---
+   全圓角；底＝連結選的顏色（--c，views.js 用 style 傳進來）往文字色混一點後淡淡鋪一層（半透明；深色頁面上會稍微提亮，深淺色、淺灰膠囊上都適用），
+   字＝同色往文字色混一點（淺色底上偏深、深色底上偏亮）；右邊外連小箭頭。編輯欄位裡的 span.link 同一個外觀 */
+.link{display:inline-flex;align-items:center;gap:6px;min-height:34px;padding:0 13px;border-radius:999px;font-size:13.5px;font-weight:500;text-decoration:none;background:color-mix(in srgb,color-mix(in srgb,var(--c) 82%,var(--ink)) 18%,transparent);color:color-mix(in srgb,var(--c) 72%,var(--ink));transition:transform .22s var(--ease),background-color .2s}
+a.link::after{content:"";width:10px;height:10px;flex:none;background:currentColor;-webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12' fill='none' stroke='%23000' stroke-width='1.5' stroke-linecap='round'%3E%3Cpath d='M4 2.5h5.5V8M9.3 2.7 2.8 9.2'/%3E%3C/svg%3E") center/contain no-repeat;mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12' fill='none' stroke='%23000' stroke-width='1.5' stroke-linecap='round'%3E%3Cpath d='M4 2.5h5.5V8M9.3 2.7 2.8 9.2'/%3E%3C/svg%3E") center/contain no-repeat;opacity:.8}
+a.link:active{transform:scale(.96)}
+@media (hover:hover){a.link:hover{background:color-mix(in srgb,color-mix(in srgb,var(--c) 82%,var(--ink)) 28%,transparent)}}
 .card-toggle:hover,.card-toggle:focus-visible{transform:none;box-shadow:none}
 .card:focus-within{background:color-mix(in srgb,var(--ink) 5%,transparent)}
 .note{margin:2px 0 0;padding:10px 12px;border-radius:12px;background:var(--bg);font-size:14px;line-height:1.7;white-space:pre-wrap;word-break:break-word;-webkit-user-select:text;user-select:text;background-color:var(--surface);border:1px solid var(--line)}
@@ -685,16 +690,11 @@ a.link:hover{filter:brightness(1.1)}
 .tag.cur{border-color:var(--ink)}
 .tag.past{border-color:var(--muted)}
 @media (hover:hover){
-  a.link:hover{transform:translateY(-2px) scale(1.04)}
-}
-a.link:active{transform:scale(.96)}
-@media (hover:hover){
-  a.link:hover{box-shadow:0 6px 18px -4px rgba(0,0,0,.35),0 0 0 1px rgba(255,255,255,.4) inset;filter:brightness(1.08)}
   .c-track:hover .c-bar{box-shadow:var(--glow-bar)}
   .log li:hover{transform:translateX(3px)}
 }
 @media (prefers-reduced-motion:reduce){
-  .tag:hover,a.link:hover{transform:none!important}
+  .tag:hover{transform:none!important}
 }
 @media (max-width:640px){
   #progPanel{--cpx:14px}
