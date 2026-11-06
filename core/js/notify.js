@@ -215,21 +215,23 @@ function todayMorph(ov,card,reverse){
   ov.querySelector(".td-bg").animate(kf,o);
   return inner.animate(ki,o).finished;
 }
+/* 卡片藏起來／換回來要「瞬間」：卡片本身的 opacity 有 CSS 過渡，直接改會慢慢淡入，今日層收掉後卡片晚一點才出現＝閃一下（2026-11-06 使用者回報） */
+function tdCardShow(card,on){if(!card)return;card.style.transition="none";card.style.opacity=on?"":"0";void card.offsetWidth;card.style.transition=""}
 function openToday(card){
   if(todayOpen)return;todayOpen=true;
   let ov=$("#todayOv");if(!ov){document.body.insertAdjacentHTML("beforeend",`<div class="td-ov" id="todayOv" role="dialog" aria-modal="true" aria-label="今日" hidden><div class="td-bg"></div><div class="td-scroll"></div></div>`);ov=$("#todayOv")}
   ov.getAnimations({subtree:true}).forEach(a=>a.cancel());
   ov.querySelector(".td-scroll").innerHTML=todayHTML();ov.querySelector(".td-scroll").scrollTop=0;ov.hidden=false;ov.classList.remove("off");Back.opened("today",i=>closeToday(i));ov._card=card;
   if(reduceMotion()||!card){ov.classList.add("on");return}
-  card.style.opacity="0";ov.classList.add("on");
+  tdCardShow(card,false);ov.classList.add("on");
   todayMorph(ov,card,false).then(()=>ov.getAnimations({subtree:true}).forEach(a=>a.cancel())).catch(()=>{});
 }
 function closeToday(instant){
   const ov=$("#todayOv");if(!ov||!todayOpen)return;todayOpen=false;Back.closed("today");
-  const card=ov._card&&ov._card.isConnected?ov._card:$("#notiOv .nd-card.today"),done=()=>{ov.hidden=true;ov.classList.remove("on","off");ov.getAnimations({subtree:true}).forEach(a=>a.cancel());if(card)card.style.opacity=""};
+  const card=ov._card&&ov._card.isConnected?ov._card:$("#notiOv .nd-card.today"),done=()=>{ov.hidden=true;ov.classList.remove("on","off");ov.getAnimations({subtree:true}).forEach(a=>a.cancel());tdCardShow(card,true)};
   if(instant===true||reduceMotion()||!card){done();return}
   ov.getAnimations({subtree:true}).forEach(a=>a.cancel());ov.querySelector(".td-scroll").scrollTo({top:0});
-  card.style.opacity="0";   /* 倒放期間卡片藏著（底板縮回卡片的位置與圓角，播完換回卡片，看起來就是同一張） */
+  tdCardShow(card,false);   /* 倒放期間卡片藏著（底板縮回卡片的位置與圓角，播完換回卡片，看起來就是同一張） */
   todayMorph(ov,card,true).then(done).catch(done);
 }
 function renderNoti(){
