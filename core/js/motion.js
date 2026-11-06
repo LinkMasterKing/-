@@ -57,10 +57,10 @@ document.addEventListener("click",e=>{
   e.preventDefault();
   /* 桌面、區塊被選到時：點即時回報或完成紀錄的一筆＝在右側打開，再點一次＝收起（不就地展開）。
      例外：在別的區塊被選到時就地展開過、切過來還開著的那一筆，點了先就地收起（不然會收不起來、直接跳去分欄） */
-  if(!d.open&&d.matches(".ev:not([data-done])")&&mdOn("live")){mdSelect("live",d.dataset.ev);return}
+  if(!d.open&&d.matches(".ev:not([data-done]):not(.mt-ev)")&&mdOn("live")){mdSelect("live",d.dataset.ev);return}   /* 秘書處的會議膠囊（.mt-ev）是別的部門的，一律就地展開 */
   if(!d.open&&d.matches("[data-done]")&&mdOn("done")){mdSelect("done",d.dataset.issue||d.dataset.ev);return}
   /* 手機：即時回報、完成紀錄一次只開一張（打開這張時，同一區開著的其他張一起收起） */
-  if(!d.open&&d.matches(".ev")&&isPhone()){const box=d.closest("#events,#doneList");if(box)box.querySelectorAll(".ev[open]").forEach(o=>{if(o!==d)animateDetails(o,false)})}
+  if(!d.open&&d.matches(".ev")&&isPhone()){const box=d.closest("#events,#doneList,#meetEdList,#wkBody");if(box)box.querySelectorAll(".ev[open]").forEach(o=>{if(o!==d)animateDetails(o,false)})}   /* 秘書處的報告事項、週報膠囊也照這條（2026-11-06 使用者：一次只能開一個） */
   animateDetails(d,!d.open);
 },true);
 

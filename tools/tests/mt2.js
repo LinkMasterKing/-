@@ -19,7 +19,17 @@ await p.click('#meetPick [data-mtpick=marketing]');await p.waitForTimeout(600);
 await p.screenshot({path:'mt2_meet.png'});await p.evaluate(()=>document.getElementById('wkPanel').scrollIntoView());await p.waitForTimeout(300);await p.screenshot({path:'mt2_week.png'});await p.click('#wkBody .wk-cap summary').catch(()=>{});await p.waitForTimeout(800);console.log('week cap opened',await p.evaluate(()=>[...document.querySelectorAll('#wkBody .wk-cap')].map(d=>d.open)));await p.evaluate(()=>document.getElementById('meetEdPanel').scrollIntoView());
 console.log('edit btn visible',await p.evaluate(()=>{const b=document.querySelector('#meetEdPanel [data-edit]');return !b.hidden&&!!b.offsetParent}));
 await p.click('#meetEdPanel [data-edit]');await p.waitForTimeout(900);
-await p.evaluate(()=>{const m=MT.depts.get('marketing');m.data.events.find(e=>e.id==='m1').desc='十一月貼文（會議決定延到下週）';m.dirty=true;render()});
+/* 真的在畫面上改（2026-11-06：以前直接改資料，沒抓到膠囊少了 data-ev 就不能點欄位編輯）：展開第一顆 → 點「說明」→ 改字 → 完成 */
+await p.click('#meetEdList .mt-ev[data-ev=m1] summary');await p.waitForTimeout(700);
+console.log('ui: capsule open',await p.evaluate(()=>document.querySelector('#meetEdList .mt-ev[data-ev=m1]').open));
+await p.click('#meetEdList .mt-ev[data-ev=m1] [data-evpen=desc]');await p.waitForTimeout(400);
+await p.fill('#meetEdList .mt-ev[data-ev=m1] textarea[data-e=desc]','十一月貼文（會議決定延到下週）');
+await p.click('#meetEdList .mt-ev[data-ev=m1] [data-evfx=ok]');await p.waitForTimeout(500);
+console.log('ui: dirty',await p.evaluate(()=>MT.depts.get('marketing').dirty),'still open',await p.evaluate(()=>document.querySelector('#meetEdList .mt-ev[data-ev=m1]').open));
+/* 手機一次只開一張：打開第二顆，第一顆收起來 */
+await p.click('#meetEdList .mt-ev[data-ev=m2] summary');await p.waitForTimeout(800);
+console.log('one open at a time',await p.evaluate(()=>[...document.querySelectorAll('#meetEdList .mt-ev')].map(d=>d.dataset.ev+':'+d.open).join(' ')));
+await p.screenshot({path:'mt2_edit.png'});
 await p.waitForTimeout(300);await p.click('#meetEdPanel [data-edsave]');await p.waitForTimeout(4000);
 const mk2=st.puts[API+'data-marketing.json'],sec=st.puts[API+'data-secretariat.json'];
 console.log('marketing written',mk2.events.find(e=>e.id==='m1').desc,'| commits',st.commits.slice(0,3).map(x=>x.split('\n')[0]));
