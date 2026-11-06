@@ -12,93 +12,182 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Jost:wght@200;300;400;500&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
 <style>
-/* 總覽首頁：列出所有部門的看板。沿用看板的視覺語言（純黑底／白底、細框、長箭頭、紅色重點），自成一頁不載入看板程式 */
-:root{--bg:#fff;--ink:#111114;--muted:#5d5d66;--hair:#e2e2e8;--line:#111114;--red:#e0342a;--ok:#3ccf7f;--ease:cubic-bezier(.2,.9,.25,1);color-scheme:light}
-@media (prefers-color-scheme:dark){:root{--bg:#000;--ink:#f1f1f4;--muted:#a3a3ae;--hair:#2c2c34;--line:#f1f1f4;--red:#ff5a4e;color-scheme:dark}}
+/* 各部門總覽（2026-11-06 使用者指定）：上方會長室、秘書處兩張大卡片；中間一顆漂浮的學生會標誌（無文字）。
+   長按標誌 1 秒＝輕微振動 → 畫面從標誌往外拉暗 → 其他部門的名字在標誌周圍一圈亮起來；手指移到哪個方向就選到哪個部門，放開＝打開那個部門的看板。
+   電腦：按住滑鼠 1 秒後可以用滾輪換部門，放開打開。鍵盤：標誌上按 Enter 打開選單，方向鍵換、Enter 開、Esc 關。
+   沿用看板的視覺語言（純黑／白底、Jost＋Noto Sans TC、細框、紅色重點）；動畫只動 transform／opacity。自成一頁，不載入看板程式 */
+:root{--bg:#fff;--ink:#111114;--muted:#5d5d66;--hair:#e2e2e8;--card:#f4f4f6;--red:#e0342a;--ok:#3ccf7f;--ease:cubic-bezier(.2,.9,.25,1);--spring:cubic-bezier(.3,1.3,.5,1);color-scheme:light}
+@media (prefers-color-scheme:dark){:root{--bg:#000;--ink:#f1f1f4;--muted:#a3a3ae;--hair:#2c2c34;--card:#141417;--red:#ff5a4e;color-scheme:dark}}
 *{box-sizing:border-box}
-html,body{margin:0;-webkit-tap-highlight-color:transparent;background:var(--bg);color:var(--ink);font-family:"Noto Sans TC",system-ui,"PingFang TC","Microsoft JhengHei",sans-serif;-webkit-font-smoothing:antialiased}
-.wrap{max-width:1100px;margin:0 auto;padding:calc(28px + env(safe-area-inset-top)) max(clamp(16px,3vw,40px),env(safe-area-inset-right)) calc(48px + env(safe-area-inset-bottom)) max(clamp(16px,3vw,40px),env(safe-area-inset-left))}
+html,body{margin:0;min-height:100%;-webkit-tap-highlight-color:transparent;background:var(--bg);color:var(--ink);font-family:"Noto Sans TC",system-ui,"PingFang TC","Microsoft JhengHei",sans-serif;-webkit-font-smoothing:antialiased}
+body{overflow-x:hidden}
+.wrap{min-height:100vh;min-height:100dvh;max-width:900px;margin:0 auto;display:flex;flex-direction:column;padding:calc(20px + env(safe-area-inset-top)) max(16px,env(safe-area-inset-right)) calc(28px + env(safe-area-inset-bottom)) max(16px,env(safe-area-inset-left))}
 .num{font-family:"Jost",sans-serif}
-/* 頁首 */
-.hero{display:grid;gap:10px;padding-bottom:18px;border-bottom:1.5px solid var(--ink)}
-.eyebrow{display:flex;align-items:center;gap:12px;font-family:"Jost",sans-serif;font-size:13px;letter-spacing:.16em;color:var(--ink)}
-.eyebrow small{font-family:"Noto Sans TC",sans-serif;font-size:11px;letter-spacing:.12em;color:var(--muted)}
-.hero h1{margin:0;font-size:clamp(28px,4.4vw,44px);font-weight:400;letter-spacing:.08em}
-.hero p{margin:0;font-size:13px;color:var(--muted)}
-/* 區塊標題＋細線長箭頭 */
-.sec-h{display:flex;align-items:center;gap:12px;margin:32px 0 6px;font-size:17px;font-weight:500;letter-spacing:.1em}
-.sec-h .en{font-family:"Jost",sans-serif;font-size:11px;letter-spacing:.2em;color:var(--muted)}
-.arrow{flex:1;height:1px;background:var(--ink);position:relative}
-.arrow::after{content:"";position:absolute;right:0;top:-5px;width:10px;height:10px;border-top:1px solid var(--ink);border-right:1px solid var(--ink);transform:rotate(45deg);transform-origin:center}
-/* 部門清單：整列是連結、列與列之間細線；寬的時候兩欄 */
-.list{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,420px),1fr));column-gap:28px}
-.dept{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:4px 16px;padding:18px 4px;border-top:1px solid var(--hair);color:inherit;text-decoration:none;border-radius:0;transition:background-color .2s}
-.dept:hover{background:color-mix(in srgb,var(--ink) 5%,transparent)}
-/* 手機點一下：不要系統的藍色點擊反白、也不要長按選取整列文字；改成跟 hover 一樣的淡底 */
-.dept{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
-.dept:active{background:color-mix(in srgb,var(--ink) 8%,transparent)}
-.dept:focus-visible{outline:2px solid var(--ink);outline-offset:-2px}
-.dept b{font-size:20px;font-weight:700;letter-spacing:.1em}
-.dept .stat{grid-column:1;display:flex;flex-wrap:wrap;align-items:center;gap:4px 14px;font-size:12.5px;color:var(--muted)}
-.dept .stat .n{font-size:15px;color:var(--ink);margin-right:3px}
-.dept .stat .red .n{color:var(--red)}
-.dept .go{grid-row:1/3;grid-column:2;font-family:"Jost",sans-serif;font-size:13px;letter-spacing:.12em;color:var(--muted);display:flex;align-items:center;gap:8px;transition:transform .25s var(--ease),color .2s}
-.dept:hover .go{transform:translateX(4px);color:var(--ink)}
-.dot{width:9px;height:9px;border-radius:50%;background:var(--red);display:inline-block;margin-right:6px;vertical-align:1px}
-/* 會長室：放最上面、字大一點 */
-.lead .dept{border-top:1px solid var(--line);border-bottom:1px solid var(--line);padding:22px 4px}
-.lead .dept b{font-size:24px}
-.foot{margin-top:36px;font-size:12px;color:var(--muted)}
-/* 換頁動畫（core/js/pagefx.js）：站內換頁過來時 body 先透明，等它從後面浮上來 */
+.sr-only{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+.eyebrow{display:flex;align-items:center;justify-content:center;gap:10px;margin:0 0 16px;font-family:"Jost",sans-serif;font-size:12px;letter-spacing:.24em;color:var(--muted)}
+/* --- 上方兩張大卡片：會長室（反白）、秘書處 --- */
+.leads{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.lead{position:relative;overflow:hidden;display:grid;align-content:space-between;gap:18px;min-height:168px;padding:18px 18px 16px;border-radius:26px;background:var(--card);color:inherit;text-decoration:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;transition:transform .18s var(--ease)}
+.lead:active{transform:scale(.97)}
+.lead.pres{background:var(--ink);color:var(--bg)}
+.lead .en{font-family:"Jost",sans-serif;font-size:10.5px;letter-spacing:.26em;opacity:.6}
+.lead b{display:block;margin-top:4px;font-size:26px;font-weight:700;letter-spacing:.12em;line-height:1.15}
+.lead .st{display:flex;flex-wrap:wrap;gap:4px 16px;font-size:11.5px;opacity:.7}
+.lead .st .n{display:block;font-size:26px;font-weight:200;line-height:1.05;opacity:1}
+.lead .st .red .n{color:var(--red)}
+.lead .go{display:flex;justify-content:space-between;align-items:center;gap:8px;white-space:nowrap;padding-top:10px;border-top:1px solid color-mix(in srgb,currentColor 16%,transparent);font-size:11.5px;opacity:.7}
+.lead .ring-deco{position:absolute;right:-34px;top:-34px;width:120px;height:120px;border-radius:50%;border:1px solid color-mix(in srgb,currentColor 14%,transparent);pointer-events:none}
+@media (hover:hover){.lead:hover{transform:translateY(-2px)}.lead:hover .go span:last-child{transform:translateX(4px)}}
+.lead .go span:last-child{transition:transform .25s var(--ease)}
+@media (min-width:700px){.lead{min-height:200px;padding:22px}.lead b{font-size:30px}}
+/* --- 中間：漂浮的學生會標誌 --- */
+.stage{flex:1;display:grid;place-items:center;align-content:center;gap:18px;min-height:340px;padding:24px 0 8px}
+.hm{position:relative;width:132px;height:132px;padding:0;border:0;border-radius:50%;background:transparent;cursor:pointer;touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;z-index:6}
+.hm:focus-visible{outline:2px solid var(--ink);outline-offset:8px}
+.hm-float{position:absolute;inset:0;display:grid;place-items:center;animation:hmFloat 4.6s ease-in-out infinite}
+.hm-svg{width:100%;height:auto;filter:drop-shadow(0 14px 22px rgba(0,0,0,.18));transition:transform .5s var(--ease)}
+.hm.press .hm-svg{transform:scale(.9);transition:transform 1s cubic-bezier(.3,.1,.3,1)}   /* 按住的這一秒慢慢縮小（蓄力） */
+.hm.open .hm-svg{transform:scale(.82);transition:transform .4s var(--spring)}
+@keyframes hmFloat{0%,100%{transform:translateY(0) rotate(-1.5deg)}50%{transform:translateY(-10px) rotate(1.5deg)}}
+/* 蓄力圈：按住時一圈細線從標誌往外擴到滿（scale），滿了就打開 */
+.hm-charge{position:absolute;inset:-14px;border-radius:50%;border:1.5px solid var(--ink);opacity:0;transform:scale(.7);pointer-events:none}
+.hm.press .hm-charge{opacity:.5;transform:scale(1);transition:transform 1s linear,opacity .2s}
+.hint{margin:0;font-size:12px;letter-spacing:.2em;color:var(--muted);transition:opacity .3s}
+.hint.bump{animation:hintBump .5s var(--ease)}
+@keyframes hintBump{30%{transform:translateY(-3px);color:var(--ink)}}
+/* --- 長按後：從標誌往外拉暗，周圍一圈部門名字亮起來 --- */
+.ring{position:fixed;inset:0;z-index:5;pointer-events:none}
+.ring[hidden]{display:none}
+.ring-dim{position:absolute;left:var(--cx);top:var(--cy);width:300vmax;height:300vmax;margin:-150vmax 0 0 -150vmax;border-radius:50%;background:radial-gradient(closest-side,rgba(0,0,0,.9) 60%,rgba(0,0,0,.84));transform:scale(0);opacity:0}
+.ring.on .ring-dim{transform:scale(1);opacity:1;transition:transform .7s cubic-bezier(.2,.8,.2,1),opacity .25s}
+.rl{position:absolute;left:var(--cx);top:var(--cy);display:grid;justify-items:center;gap:2px;width:112px;margin-left:-56px;margin-top:-22px;color:#fff;text-align:center;opacity:0;transform:translate(0,0) scale(.6);transition:transform .5s var(--spring),opacity .35s}
+.ring.on .rl{opacity:.55;transform:translate(var(--x),var(--y)) scale(1);transition-delay:calc(var(--k) * 35ms + 120ms)}
+.rl b{font-size:19px;font-weight:700;letter-spacing:.14em;white-space:nowrap}
+.rl small{font-size:11px;letter-spacing:.06em;color:rgba(255,255,255,.65);white-space:nowrap}
+.rl small .red{color:#ff5a4e}
+.ring.on .rl.on{opacity:1;transform:translate(var(--x),var(--y)) scale(1.25);transition-delay:0s;transition-duration:.25s}
+.ring.on .rl.none{opacity:.3}
+.ring.on .rl.none.on{opacity:.75}
+/* 指向線：從標誌中心到選到的部門 */
+.ring-ptr{position:absolute;left:var(--cx);top:var(--cy);width:var(--len,0px);height:1px;background:linear-gradient(90deg,rgba(255,255,255,0),rgba(255,255,255,.55));transform-origin:0 50%;transform:rotate(var(--a,0deg)) scaleX(0);opacity:0;transition:transform .25s var(--ease),opacity .2s}
+.ring.on.has .ring-ptr{opacity:1;transform:rotate(var(--a,0deg)) scaleX(1)}
+.ring-tip{position:absolute;left:0;right:0;bottom:calc(36px + env(safe-area-inset-bottom));text-align:center;color:rgba(255,255,255,.7);font-size:12px;letter-spacing:.18em;opacity:0;transition:opacity .4s .3s}
+.ring.on .ring-tip{opacity:1}
+body.ring-open .hm-float{animation-play-state:paused}
+body.going .ring .rl.on{transform:translate(var(--x),var(--y)) scale(1.6);opacity:0;transition:transform .45s var(--ease),opacity .45s}
+.foot{margin:0;text-align:center;font-size:11px;letter-spacing:.14em;color:var(--muted)}
 .pfx-arrive body{opacity:0}
-@media (prefers-reduced-motion:no-preference){.dept{animation:in .5s var(--ease) both;animation-delay:calc(var(--i,0)*40ms)}@keyframes in{from{opacity:0;transform:translateY(8px)}}}
+@media (prefers-reduced-motion:reduce){
+  .hm-float{animation:none}
+  .ring-dim,.rl,.ring-ptr,.hm-svg,.hm-charge{transition:none}
+}
 </style>
 <script>/* 換頁動畫（core/js/pagefx.js）：從站內換頁過來的，body 先透明，等它從後面浮上來（不會先閃一下完整的畫面） */try{var r=document.referrer,n=performance.getEntriesByType("navigation")[0];if(r&&new URL(r).origin===location.origin&&(!n||n.type!=="reload")&&!matchMedia("(prefers-reduced-motion: reduce)").matches)document.documentElement.classList.add("pfx-arrive")}catch(e){}</script>
 </head>
 <body>
 <div class="wrap">
-  <header class="hero">
-    <div class="eyebrow">WORK&nbsp;&nbsp;BOARDS<small>工作看板</small></div>
-    <h1>各部門工作進度</h1>
-    <p>南臺科技大學學生會 · 點一個部門進入它的看板</p>
-  </header>
-  <div class="lead" id="lead"></div>
-  <h2 class="sec-h">各部門<span class="en">DEPARTMENTS</span><span class="arrow" aria-hidden="true"></span></h2>
-  <div class="list" id="list"></div>
-  <p class="foot">數字是各部門最近一次儲存的內容；「沒有進度」＝即時回報在回報期限前後都沒有更新。</p>
+  <p class="eyebrow">WORK&nbsp;&nbsp;BOARDS</p>
+  <div class="leads" id="leads"></div>
+  <div class="stage">
+    <button type="button" class="hm" id="hm" aria-label="選擇部門：長按一秒，手指移到部門放開；鍵盤按 Enter" aria-haspopup="true"><span class="hm-charge" aria-hidden="true"></span><span class="hm-float"><svg class="hm-svg" viewBox="25.08 53.16 152.57 175.44" aria-hidden="true"><path fill="#f0bc23" d="M75,141a51.19,51.19,0,0,1,15-36.23,51.19,51.19,0,0,1,35.62-15.11A51.37,51.37,0,0,0,25.08,104.79V141A51.37,51.37,0,0,0,76.45,192.4a6.27,6.27,0,0,0,.75,0,50.76,50.76,0,0,0,24.19-6.43,52.2,52.2,0,0,0,11.46-8.68,51.2,51.2,0,0,0,15-36.24ZM68.8,90.21a3.57,3.57,0,0,1,0-.56,6.18,6.18,0,1,1,12.36,0v.22a6.18,6.18,0,0,1-12.33.34Z"/><path fill="#0a5baa" d="M126.32,89.65a6.78,6.78,0,0,0-.78,0A51.36,51.36,0,0,0,75,141H127.8a51.2,51.2,0,0,1-15,36.24,52.2,52.2,0,0,1-11.46,8.68,50.76,50.76,0,0,1-24.19,6.43,51.39,51.39,0,0,0,100.5-15.11V141A51.39,51.39,0,0,0,126.32,89.65ZM134,126.44a6.18,6.18,0,0,1-6.15,5.62c-.28,0-.53,0-.81-.05a6.15,6.15,0,0,1-4.87-3.71,5.67,5.67,0,0,1-.5-2.19v-.23a6.1,6.1,0,0,1,2.2-4.7,6.62,6.62,0,0,1,1.64-1,5.86,5.86,0,0,1,2.34-.47,6.16,6.16,0,0,1,6.18,6.17A3.44,3.44,0,0,1,134,126.44Z"/></svg></span></button>
+    <p class="hint" id="hint">長按標誌，選擇部門</p>
+  </div>
+  <p class="foot">南臺科技大學學生會・各部門工作看板</p>
+  <nav class="sr-only" aria-label="所有部門" id="srList"></nav>
 </div>
+<div class="ring" id="ring" hidden aria-hidden="true"><div class="ring-dim"></div><div class="ring-ptr"></div><div id="ringLabels"></div><p class="ring-tip" id="ringTip">移到部門上放開</p></div>
 <script src="core/js/pagefx.js"></script>
 <script src="dept/config.js"></script>
 <script>
-/* 各部門清單來自 dept/config.js 的 BOARD_DEPTS；數字讀各部門網站上的資料檔（只讀） */
 (()=>{
-  const D=window.BOARD_DEPTS||[],esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+  const D=window.BOARD_DEPTS||[],$=id=>document.getElementById(id),esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
   const href=d=>d.id==="rights"?"index.html":`index.html?d=${encodeURIComponent(d.id)}`;
-  const pd=s=>{const [y,m,d]=s.split("-").map(Number);return new Date(y,m-1,d)},ymd=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
-  /* 跟看板同一套判斷：回報期限（預設週二）前後都沒更新＝沒有進度 */
+  const go=u=>{document.body.classList.add("going");setTimeout(()=>{window.PageFx?PageFx.leave(u):location.href=u},matchMedia("(prefers-reduced-motion: reduce)").matches?0:260)};
+  const RM=()=>matchMedia("(prefers-reduced-motion: reduce)").matches;
+  /* ---------- 數字（讀各部門網站上的資料檔，只讀）：跟看板同一套「沒有進度」判斷（回報期限前後都沒更新） ---------- */
+  const ymd=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
   const cut=+((window.BOARD_CONFIG||{}).week||{}).cutoff||2;
   const stall=e=>{const t=new Date(),back=(t.getDay()-cut+7)%7,due=new Date(t);due.setDate(t.getDate()-back);const prev=new Date(due);prev.setDate(due.getDate()-7);
     const P=ymd(prev),ds=(e.touched&&e.touched.length?e.touched:[e.createdAt||""]).map(x=>String(x).slice(0,10));
     if(e.roundAt&&String(e.roundAt).slice(0,10)>P)return false;if((e.createdAt||"")>ymd(due))return false;return !ds.some(x=>x>P)};
-  const row=(d,i,s)=>`<a class="dept" href="${href(d)}" style="--i:${i}"><b>${esc(d.name)}</b>
-    <span class="stat">${s}</span><span class="go">開啟<span aria-hidden="true">→</span></span></a>`;
-  const statOf=(d,data)=>{
-    if(!data)return "尚未建立 · 第一次進去儲存後才會有資料";
-    if(d.follow)return `<span><span class="n num">${(data.follows||[]).length}</span>個追蹤項目</span>${data.savedAt?`<span>最後儲存 ${esc(String(data.savedAt).slice(5,10).replace("-","/"))}</span>`:""}`;
-    const live=(data.events||[]).filter(e=>!e.doneAt),st=live.filter(stall).length,act=(data.issues||[]).filter(i=>!i.doneAt&&!((+i.progress||0)>=100)).length;
-    return `<span><span class="n num">${live.length}</span>即時回報</span>${st?`<span class="red"><span class="dot" aria-hidden="true"></span><span class="n num">${st}</span>沒有進度</span>`:""}<span><span class="n num">${act}</span>進行中議題</span>${data.savedAt?`<span>最後儲存 ${esc(String(data.savedAt).slice(5,10).replace("-","/"))}</span>`:""}`;
-  };
-  const lead=D.filter(d=>d.follow),rest=D.filter(d=>!d.follow);
-  const draw=cache=>{
-    document.getElementById("lead").innerHTML=lead.map((d,i)=>row(d,i,cache.has(d.id)?statOf(d,cache.get(d.id)):"讀取中…")).join("");
-    document.getElementById("list").innerHTML=rest.map((d,i)=>row(d,i+1,cache.has(d.id)?statOf(d,cache.get(d.id)):"讀取中…")).join("");
-  };
-  const cache=new Map();draw(cache);
-  Promise.all(D.map(d=>fetch(d.path,{cache:"no-cache"}).then(r=>r.ok?r.json():null).catch(()=>null).then(x=>cache.set(d.id,x)))).then(()=>{
-    /* 第二次畫時不要再播進場動畫 */
-    document.querySelectorAll(".dept").forEach(a=>a.style.animation="none");
-    const keep=document.body.offsetHeight;draw(cache);document.querySelectorAll(".dept").forEach(a=>a.style.animation="none");
+  const stats=data=>{if(!data)return null;const live=(data.events||[]).filter(e=>!e.doneAt);return {live:live.length,st:live.filter(stall).length,iss:(data.issues||[]).filter(i=>!i.doneAt).length,fw:(data.follows||[]).length,saved:data.savedAt?String(data.savedAt).slice(5,10).replace("-","/"):""}};
+  const cache=new Map();
+  /* 上方兩張大卡片：會長室、秘書處 */
+  const leadIds=["president","secretariat"],leads=leadIds.map(id=>D.find(d=>d.id===id)).filter(Boolean);
+  const rest=D.filter(d=>!leadIds.includes(d.id));
+  const EN={president:"PRESIDENT",secretariat:"SECRETARIAT"};
+  function drawLeads(){
+    $("leads").innerHTML=leads.map(d=>{const s=cache.has(d.id)?stats(cache.get(d.id)):undefined;
+      const body=s===undefined?`<span class="st">讀取中…</span>`:!s?`<span class="st">尚未建立</span>`
+        :d.follow?`<span class="st"><span><span class="n num">${s.fw}</span>追蹤項目</span></span>`
+        :`<span class="st"><span><span class="n num">${s.live}</span>即時回報</span><span><span class="n num">${s.iss}</span>議題</span>${s.st?`<span class="red"><span class="n num">${s.st}</span>沒有進度</span>`:""}</span>`;
+      return `<a class="lead${d.id==="president"?" pres":""}" href="${href(d)}"><span class="ring-deco" aria-hidden="true"></span><span><span class="en">${EN[d.id]||""}</span><b>${esc(d.name)}</b></span>${body}<span class="go"><span>${s&&s.saved?`最後儲存 ${s.saved}`:""}</span><span>開啟 →</span></span></a>`}).join("");
+    $("srList").innerHTML=D.map(d=>`<a href="${href(d)}">${esc(d.name)}</a>`).join("");
+  }
+  drawLeads();
+  Promise.all(D.map(d=>fetch(d.path,{cache:"no-cache"}).then(r=>r.ok?r.json():null).catch(()=>null).then(x=>cache.set(d.id,x)))).then(()=>{drawLeads();if(ring.on)placeLabels()});
+
+  /* ---------- 長按選部門 ---------- */
+  const hm=$("hm"),ringEl=$("ring"),hint=$("hint");
+  const ring={on:false,sel:-1,cx:0,cy:0,R:0,ptr:null,timer:0,x0:0,y0:0,kbd:false};
+  function placeLabels(){
+    const n=rest.length,r=hm.getBoundingClientRect();ring.cx=r.left+r.width/2;ring.cy=r.top+r.height/2;
+    ring.R=Math.max(130,Math.min(innerWidth/2-52,innerHeight/2-70,230));
+    ringEl.style.setProperty("--cx",ring.cx+"px");ringEl.style.setProperty("--cy",ring.cy+"px");
+    $("ringLabels").innerHTML=rest.map((d,k)=>{const a=-Math.PI/2+k*2*Math.PI/n,s=cache.has(d.id)?stats(cache.get(d.id)):undefined;
+      return `<span class="rl${s===null?" none":""}" data-k="${k}" style="--k:${k};--x:${(Math.cos(a)*ring.R).toFixed(1)}px;--y:${(Math.sin(a)*ring.R).toFixed(1)}px"><b>${esc(d.name)}</b><small>${s===undefined?"":!s?"尚未建立":`即時回報 ${s.live}${s.st?`・<span class="red">${s.st} 沒進度</span>`:""}`}</small></span>`}).join("");
+    setSel(ring.sel);
+  }
+  function setSel(k){
+    ring.sel=k;ringEl.querySelectorAll(".rl").forEach(l=>l.classList.toggle("on",+l.dataset.k===k));
+    ringEl.classList.toggle("has",k>=0);
+    if(k>=0){const a=-90+k*360/rest.length;ringEl.style.setProperty("--a",a+"deg");ringEl.style.setProperty("--len",(ring.R-40)+"px");$("ringTip").textContent=`放開打開「${rest[k].name}」`}
+    else $("ringTip").textContent=ring.kbd?"方向鍵選擇・Enter 打開・Esc 關閉":"移到部門上放開";
+  }
+  function openRing(kbd){
+    ring.kbd=!!kbd;ring.sel=-1;placeLabels();ringEl.hidden=false;void ringEl.offsetWidth;ring.on=true;ringEl.classList.add("on");hm.classList.remove("press");hm.classList.add("open");document.body.classList.add("ring-open");
+    hm.setAttribute("aria-expanded","true");
+    try{navigator.vibrate&&navigator.vibrate(18)}catch(_){}   /* 簡單振動（iPhone 的 Safari 不支援振動，只有畫面效果） */
+    if(kbd)setSel(0);
+  }
+  function closeRing(){
+    if(!ring.on)return;ring.on=false;ringEl.classList.remove("on","has");hm.classList.remove("open");document.body.classList.remove("ring-open");hm.setAttribute("aria-expanded","false");
+    setTimeout(()=>{if(!ring.on)ringEl.hidden=true},RM()?0:500);
+  }
+  /* 指標位置 → 選哪個部門：離標誌中心 48px 以內不選（放開＝取消），以外看方向 */
+  function pick(x,y){const dx=x-ring.cx,dy=y-ring.cy;if(Math.hypot(dx,dy)<48){setSel(-1);return}
+    const n=rest.length;let a=Math.atan2(dy,dx)+Math.PI/2;if(a<0)a+=2*Math.PI;setSel(Math.round(a/(2*Math.PI/n))%n)}
+  hm.addEventListener("contextmenu",e=>e.preventDefault());
+  hm.addEventListener("pointerdown",e=>{
+    if(e.button>0||ring.on)return;ring.ptr=e.pointerId;ring.x0=e.clientX;ring.y0=e.clientY;
+    try{hm.setPointerCapture(e.pointerId)}catch(_){}
+    hm.classList.add("press");clearTimeout(ring.timer);ring.timer=setTimeout(()=>openRing(false),1000);
   });
+  hm.addEventListener("pointermove",e=>{
+    if(e.pointerId!==ring.ptr)return;
+    if(!ring.on){if(Math.hypot(e.clientX-ring.x0,e.clientY-ring.y0)>14){clearTimeout(ring.timer);hm.classList.remove("press")}return}   /* 還沒滿一秒就移動：取消 */
+    pick(e.clientX,e.clientY);
+  });
+  const up=e=>{
+    if(e.pointerId!==ring.ptr)return;ring.ptr=null;clearTimeout(ring.timer);
+    if(!ring.on){if(hm.classList.contains("press")){hm.classList.remove("press");hint.classList.remove("bump");void hint.offsetWidth;hint.classList.add("bump")}return}   /* 沒按滿一秒：提示要長按 */
+    if(ring.sel>=0)go(href(rest[ring.sel]));else closeRing();
+  };
+  hm.addEventListener("pointerup",up);hm.addEventListener("pointercancel",e=>{if(e.pointerId===ring.ptr){ring.ptr=null;clearTimeout(ring.timer);hm.classList.remove("press");closeRing()}});
+  /* 電腦：按住打開後用滾輪換部門 */
+  addEventListener("wheel",e=>{if(!ring.on||ring.ptr==null)return;e.preventDefault();const n=rest.length;setSel(((ring.sel<0?(e.deltaY>0?-1:0):ring.sel)+(e.deltaY>0?1:-1)+n)%n)},{passive:false});
+  /* 鍵盤 */
+  hm.addEventListener("keydown",e=>{
+    if(!ring.on){if(e.key==="Enter"||e.key===" "){e.preventDefault();openRing(true)}return}
+    const n=rest.length;
+    if(["ArrowRight","ArrowDown"].includes(e.key)){e.preventDefault();setSel((ring.sel+1)%n)}
+    else if(["ArrowLeft","ArrowUp"].includes(e.key)){e.preventDefault();setSel((ring.sel-1+n)%n)}
+    else if(e.key==="Enter"&&ring.sel>=0){e.preventDefault();go(href(rest[ring.sel]))}
+    else if(e.key==="Escape"){e.preventDefault();closeRing()}
+  });
+  hm.addEventListener("blur",()=>{if(ring.kbd)closeRing()});
+  addEventListener("resize",()=>{if(ring.on)placeLabels()});
+  addEventListener("pageshow",e=>{if(e.persisted){document.body.classList.remove("going");closeRing()}});
 })();
 </script>
 </body>
