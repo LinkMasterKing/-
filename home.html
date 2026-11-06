@@ -55,23 +55,26 @@ body{overflow-x:hidden}
 .hint.bump{animation:hintBump .5s var(--ease)}
 @keyframes hintBump{30%{transform:translateY(-3px);color:var(--ink)}}
 /* --- 長按後：從標誌往外拉暗，周圍一圈部門名字亮起來 --- */
+/* 部門圈的顏色（2026-11-06 使用者：淺色模式要反過來）：淺色＝白色半透明蓋住後面、深色字、手指周圍是淡淡的深色光暈；深色＝黑色拉暗、白字、白光 */
+.ring{--rg-dim1:rgba(255,255,255,.9);--rg-dim2:rgba(255,255,255,.84);--rg-ink:#111114;--rg-sub:rgba(17,17,20,.55);--rg-halo:rgba(17,17,20,.18);--rg-g1:rgba(17,17,20,.10);--rg-g2:rgba(17,17,20,.03);--rg-g1h:rgba(17,17,20,.14);--rg-g2h:rgba(17,17,20,.04);--rg-tip:rgba(17,17,20,.6)}
+@media (prefers-color-scheme:dark){.ring{--rg-dim1:rgba(0,0,0,.9);--rg-dim2:rgba(0,0,0,.84);--rg-ink:#fff;--rg-sub:rgba(255,255,255,.65);--rg-halo:rgba(255,255,255,.55);--rg-g1:rgba(255,255,255,.26);--rg-g2:rgba(255,255,255,.08);--rg-g1h:rgba(255,255,255,.34);--rg-g2h:rgba(255,255,255,.1);--rg-tip:rgba(255,255,255,.7)}}
 .ring{position:fixed;inset:0;z-index:5;pointer-events:none}
 .ring[hidden]{display:none}
-.ring-dim{position:absolute;left:var(--cx);top:var(--cy);width:300vmax;height:300vmax;margin:-150vmax 0 0 -150vmax;border-radius:50%;background:radial-gradient(closest-side,rgba(0,0,0,.9) 60%,rgba(0,0,0,.84));transform:scale(0);opacity:0}
+.ring-dim{position:absolute;left:var(--cx);top:var(--cy);width:300vmax;height:300vmax;margin:-150vmax 0 0 -150vmax;border-radius:50%;background:radial-gradient(closest-side,var(--rg-dim1) 60%,var(--rg-dim2));transform:scale(0);opacity:0}
 .ring.on .ring-dim{transform:scale(1);opacity:1;transition:transform .7s cubic-bezier(.2,.8,.2,1),opacity .25s}
-.rl{position:absolute;left:var(--cx);top:var(--cy);display:grid;justify-items:center;gap:2px;width:112px;margin-left:-56px;margin-top:-22px;color:#fff;text-align:center;opacity:0;transform:translate(0,0) scale(.6);transition:transform .5s var(--spring),opacity .35s}
+.rl{position:absolute;left:var(--cx);top:var(--cy);display:grid;justify-items:center;gap:2px;width:112px;margin-left:-56px;margin-top:-22px;color:var(--rg-ink);text-align:center;opacity:0;transform:translate(0,0) scale(.6);transition:transform .5s var(--spring),opacity .35s}
 .ring.on .rl{opacity:.55;transform:translate(var(--x),var(--y)) scale(1);transition-delay:calc(var(--k) * 35ms + 120ms)}
 .rl b{font-size:19px;font-weight:700;letter-spacing:.14em;white-space:nowrap}
-.rl small{font-size:11px;letter-spacing:.06em;color:rgba(255,255,255,.65);white-space:nowrap}
-.rl small .red{color:#ff5a4e}
-.ring.on .rl.on{opacity:1;transform:translate(var(--x),var(--y)) scale(1.25);transition-delay:0s;transition-duration:.25s;text-shadow:0 0 18px rgba(255,255,255,.55)}
+.rl small{font-size:11px;letter-spacing:.06em;color:var(--rg-sub);white-space:nowrap}
+.rl small .red{color:var(--red)}
+.ring.on .rl.on{opacity:1;transform:translate(var(--x),var(--y)) scale(1.25);transition-delay:0s;transition-duration:.25s;text-shadow:0 0 18px var(--rg-halo)}
 /* 手指（滑鼠）碰到的地方周圍發亮：一團柔和的白光跟著指標走（2026-11-06 使用者：不要指向線，要觸碰的區域周圍發亮） */
-.ring-glow{position:absolute;left:0;top:0;width:220px;height:220px;margin:-110px 0 0 -110px;border-radius:50%;background:radial-gradient(closest-side,rgba(255,255,255,.26),rgba(255,255,255,.08) 55%,rgba(255,255,255,0));transform:translate(var(--gx,-999px),var(--gy,-999px)) scale(.6);opacity:0;transition:opacity .25s,transform .12s linear;pointer-events:none}
+.ring-glow{position:absolute;left:0;top:0;width:220px;height:220px;margin:-110px 0 0 -110px;border-radius:50%;background:radial-gradient(closest-side,var(--rg-g1),var(--rg-g2) 55%,transparent);transform:translate(var(--gx,-999px),var(--gy,-999px)) scale(.6);opacity:0;transition:opacity .25s,transform .12s linear;pointer-events:none}
 .ring.on.touch .ring-glow{opacity:1;transform:translate(var(--gx),var(--gy)) scale(1)}
-.ring.on.touch.has .ring-glow{background:radial-gradient(closest-side,rgba(255,255,255,.34),rgba(255,255,255,.1) 55%,rgba(255,255,255,0))}
+.ring.on.touch.has .ring-glow{background:radial-gradient(closest-side,var(--rg-g1h),var(--rg-g2h) 55%,transparent)}
 .ring.on .rl.none{opacity:.3}
 .ring.on .rl.none.on{opacity:.75}
-.ring-tip{position:absolute;left:0;right:0;bottom:calc(36px + env(safe-area-inset-bottom));text-align:center;color:rgba(255,255,255,.7);font-size:12px;letter-spacing:.18em;opacity:0;transition:opacity .4s .3s}
+.ring-tip{position:absolute;left:0;right:0;bottom:calc(36px + env(safe-area-inset-bottom));text-align:center;color:var(--rg-tip);font-size:12px;letter-spacing:.18em;opacity:0;transition:opacity .4s .3s}
 .ring.on .ring-tip{opacity:1}
 body.ring-open .hm-float{animation-play-state:paused}
 body.going .ring .rl.on{transform:translate(var(--x),var(--y)) scale(1.6);opacity:0;transition:transform .45s var(--ease),opacity .45s}
