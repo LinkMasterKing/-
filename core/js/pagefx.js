@@ -6,7 +6,7 @@
    - 每一格（requestAnimationFrame）同時設定縮放、透明度、模糊（CSS filter: blur，四周平均的景深模糊，交給顯示卡畫）；
      模糊量跟「這一刻的速度」成正比（縮放曲線的斜率），所以舊頁剛開始退的時候清楚、越退越糊；新頁剛浮出來最糊、停下來時清楚。
    - 縮放的中心是「畫面正中央」（換算成元素自己的座標），長頁面捲到一半也一樣往畫面中央退。
-   - 模糊屬於 DESIGN.md「動畫規則」裡換頁動畫的例外（使用者要求）；手機忙的時候可能掉格。
+   - 模糊屬於 DESIGN.md「動畫規則」裡換頁動畫的例外（使用者要求）；手機（觸控）不模糊（NOBLUR，2026-11-06 起）。
    - 疊層（設定、通知、編輯紀錄、工作報告、設定子頁；z-index 比較高的）打開時底下那頁不動，只有疊層從後面浮上來、前 8% 就不透明；
      關閉時底下那頁也不動，疊層往後退、淡掉（2026-11-05 使用者：打開設定不要閃現主頁）。同一層級之間（每週概述、跨頁）才是前後兩頁一起動。
    - 同一時間只有兩層在動（舊頁、新頁）：新頁等舊頁退到八成五、幾乎淡掉才出發，並在前 15% 就變成不透明，
@@ -17,6 +17,8 @@
    這個檔不依賴看板的其他程式（home.html 也載入它）。 */
 const PageFx=(()=>{
   const RM=()=>matchMedia("(prefers-reduced-motion: reduce)").matches;
+  /* 手機（觸控）不模糊（2026-11-06 使用者：動畫順暢最重要；整頁模糊是手機最吃力的效果）：縮放、透明度、時間、層級都照舊 */
+  const NOBLUR=matchMedia("(pointer: coarse)").matches;
   const OUT=280,IN=440,OVER=.85,BLUR=14,SCALE=.12,FADE_IN=.15,COVER_IN=.08;   /* 舊頁退多久、新頁浮多久、新頁在舊頁退到幾成時出發、最大模糊（px）、退到多小（1−SCALE）、新頁在前幾成變成不透明 */
   let tok=0;const owner=new WeakMap();const live=new Set();   /* live：目前還在換頁動畫裡的元素；owner：每個元素目前歸哪一次換頁管：被新的換頁接手，舊的那段就停下 */
   const keep=new WeakMap();
@@ -37,7 +39,7 @@ const PageFx=(()=>{
         const t=Math.min(1,(now-t0)/dur),out=dir==="out";
         const k=out?SCALE*t*t*t:SCALE*Math.pow(1-t,3),v=out?t*t:Math.pow(1-t,2);
         const o=out?(t<.35?1:Math.max(0,1-(t-.35)/.65)):Math.min(1,t/fadeIn);
-        el.style.transform=`scale(${(1-k).toFixed(4)})`;el.style.filter=blurK?`blur(${(BLUR*blurK*v).toFixed(2)}px)`:"";el.style.opacity=o.toFixed(3);
+        el.style.transform=`scale(${(1-k).toFixed(4)})`;el.style.filter=blurK&&!NOBLUR?`blur(${(BLUR*blurK*v).toFixed(2)}px)`:"";el.style.opacity=o.toFixed(3);
         if(t<1)requestAnimationFrame(frame);else res();
       };
       requestAnimationFrame(frame);
