@@ -276,6 +276,8 @@ function diffState(a,b){
   const AD=byId(a.docs),BD=byId(b.docs);
   for(const [k,d] of BD){const o=AD.get(k);if(!o)L.push(`文件｜新增｜${d.name}`);else if(o.name!==d.name||o.url!==d.url)L.push(`文件｜修改｜${o.name!==d.name?o.name+"→":""}${d.name}`)}
   for(const [k,d] of AD)if(!BD.has(k))L.push(`文件｜刪除｜${d.name}`);
+  /* 秘書處的會議紀錄 */
+  {const AM=byId(a.minutes),BM=byId(b.minutes);for(const [k,m] of BM){const o=AM.get(k);if(!o||JSON.stringify(o.items)!==JSON.stringify(m.items))L.push(`會議紀錄｜${fmt(m.date)}｜${m.items.length} 項修改`)}}
   if(AD.size&&BD.size===AD.size&&[...BD.keys()].join()!==[...AD.keys()].join())L.push("文件｜調整順序");
   return L;
 }

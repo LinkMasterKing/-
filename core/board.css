@@ -496,7 +496,7 @@ a.doc-pill:active{scale:.96}
 .mt-depts{display:grid;gap:18px}
 .mt-dept h3{display:flex;align-items:center;gap:10px;margin:0 0 6px;font-size:14px;font-weight:500}
 .mt-dept h3 .num{color:var(--muted);font-size:13px}
-.mt-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,340px),1fr));margin:0 -18px}
+.mt-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,340px),1fr));margin:0 -18px}   /* auto-fit：只有一筆時佔滿整列 */
 .mt-ev{display:grid;gap:6px;align-content:start;padding:14px 18px 16px;border-top:1px solid var(--line);min-width:0}
 .mt-top{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .mt-top b{font-size:16px;line-height:1.4;overflow-wrap:anywhere}
@@ -505,6 +505,13 @@ a.doc-pill:active{scale:.96}
 .mt-ev[data-st="ok"]{--st-c:var(--st-ok)}.mt-ev[data-st="go"]{--st-c:var(--st-go)}.mt-ev[data-st="stall"]{--st-c:var(--st-stall)}
 .mt-ev .evfs{margin-top:4px}
 .meet-panel .panel-head #meetRefresh{margin-left:auto}
+/* 2026-11-06：一次看一個部門（上面一排部門膠囊 .mt-pick 沿用週報的 .wk-d），下面上一個／下一個部門、最下面匯出會議紀錄 */
+.mt-none{margin:4px 0 0;font-size:12.5px}
+.mt-step{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:14px}
+.mt-step:empty{display:none}
+.mt-step button{gap:6px;font-size:13px}
+.mt-foot{display:flex;align-items:center;flex-wrap:wrap;gap:8px 14px;margin-top:14px;padding-top:12px;border-top:1px solid var(--hair)}
+.mt-foot .sub{margin:0;font-size:12.5px}
 @media (max-width:640px){
   .mt-list{margin:0 -14px}
   .mt-ev{padding:12px 14px 14px}

@@ -35,19 +35,21 @@ const SHELL_HTML=`<div class="pager" id="pager">
         <div class="follows" id="follows" data-flip></div>
         <button class="ghost edit-only add-row" id="addFollow">+ 追蹤項目</button>
       </section>
-      <section class="panel follow-panel meet-panel" id="meetPanel" aria-labelledby="mtH" hidden>
-        <div class="panel-head"><h2 id="mtH">會議報告事項<span class="en">MEETING</span></h2><button type="button" class="icon" data-mtrefresh>重新整理</button></div>
-        <div class="mt-depts" id="meetList" data-flip></div>
-      </section>
       <section class="panel follow-panel meet-panel wk-panel" id="wkPanel" aria-labelledby="wkH" hidden>
         <div class="panel-head"><h2 id="wkH">各部門週報<span class="en">WEEKLY</span></h2><button type="button" class="icon" data-mtrefresh>擷取最新</button></div>
         <div class="wk-depts" id="wkDepts" role="tablist" aria-label="部門"></div>
         <div class="wk-body" id="wkBody" data-flow></div>
       </section>
+      <!-- 秘書處：會議報告事項（2026-11-06 起「會議報告事項」與「會議編輯」合成這一張，meeting.js 的 renderMeet）。
+           上面一排部門（有報告事項的，後面是件數），一次看一個部門，下面上一個／下一個部門；會長室今天開放時這張有「編輯」，逐部門改；
+           最下面「匯出會議紀錄」：照寫回各部門時記下的修改，產生會議紀錄（report.js 的預覽，存成 PDF） -->
       <section class="panel follow-panel meet-panel meet-edit" id="meetEdPanel" data-edbox="s:meetedit" aria-labelledby="meH" hidden>
-        <div class="panel-head"><h2 id="meH">會議編輯<span class="en">EDIT</span></h2><button type="button" class="icon" data-mtrefresh>重新整理</button><button type="button" class="icon card-edit-btn" data-edit="s:meetedit" hidden>編輯</button></div>
+        <div class="panel-head"><h2 id="meH">會議報告事項<span class="en">MEETING</span></h2><button type="button" class="icon" data-mtrefresh>重新整理</button><button type="button" class="icon card-edit-btn" data-edit="s:meetedit" hidden>編輯</button></div>
         <p class="sub grant-st" id="meetEdSt"></p>
+        <div class="wk-depts mt-pick" id="meetPick" role="tablist" aria-label="部門"></div>
         <div class="mt-depts" id="meetEdList" data-flip></div>
+        <div class="mt-step" id="meetStep"></div>
+        <div class="mt-foot"><button type="button" class="icon" id="minutesBtn">匯出會議紀錄</button><span class="sub" id="minutesInfo"></span></div>
       </section>
       <div class="layout">
         <div class="sgroup" data-sec="live">
@@ -136,7 +138,7 @@ function suLogoColor(label){
   const lay=document.querySelector(".layout");
   if(lay&&CFG.mergeDone){const g=lay.querySelector('.sgroup[data-sec="done"]'),l=lay.querySelector('.sgroup[data-sec="live"]');if(g&&l){while(g.firstChild)l.append(g.firstChild);g.remove()}}
   if(lay&&CFG.ext&&!lay.querySelector('.sgroup[data-sec="ext"]')){lay.insertAdjacentHTML("beforeend",'<div class="sgroup sgroup-ext" data-sec="ext"></div>');const x=lay.lastElementChild;
-    ["#docsPanel","#grantPanel","#followPanel","#actPanel","#meetPanel","#meetEdPanel","#wkPanel"].forEach(q=>{const p=document.querySelector(q);if(p)x.append(p)})}
+    ["#docsPanel","#grantPanel","#followPanel","#actPanel","#meetEdPanel","#wkPanel"].forEach(q=>{const p=document.querySelector(q);if(p)x.append(p)})}
   /* 關閉的區塊 */
   Object.entries(CFG.sections).forEach(([k,on])=>document.body.classList.toggle("no-"+k,!on));
 })();
