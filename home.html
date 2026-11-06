@@ -55,7 +55,7 @@ body{overflow-x:hidden}
 /* 標誌不用陰影、也不做立體反光（2026-11-06 使用者：「泛光」是把陰影換成亮色的光，不是讓 logo 變立體）：眼睛的孔填底色（.mk-under）；外圍一圈柔和的亮光——淺色是暖白黃光，深色是白光 */
 .hm-svg{width:100%;height:auto;overflow:visible;filter:drop-shadow(0 0 18px rgba(255,214,110,.45)) drop-shadow(0 0 6px rgba(255,255,255,.9));transition:transform .5s var(--ease)}
 .mk-under{fill:var(--bg)}
-@media (prefers-color-scheme:dark){.hm-svg{filter:drop-shadow(0 0 18px rgba(255,255,255,.22)) drop-shadow(0 0 4px rgba(255,255,255,.25))}}
+@media (prefers-color-scheme:dark){.hm-svg{filter:drop-shadow(0 14px 22px rgba(0,0,0,.7))}}   /* 深色：標誌有黑色分隔縫，發光會跟黑邊打架，改用黑色陰影（2026-11-06 使用者） */
 .hm.open .hm-svg{transform:scale(.82);transition:transform .4s var(--spring)}
 @keyframes hmFloat{0%,100%{transform:translateY(0) rotate(-1.5deg)}50%{transform:translateY(-10px) rotate(1.5deg)}}
 .hint{margin:0;font-size:12px;letter-spacing:.2em;color:var(--muted);transition:opacity .3s}

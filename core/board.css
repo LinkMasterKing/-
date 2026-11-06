@@ -1231,14 +1231,12 @@ dialog#dlg:has(.csel.open){overflow:visible}
 }
 
 /* --- 今日（獨立一層，notify.js 的 openToday） ---
-   點今日卡片：底板（.td-bg，跟今日卡片同色：文字色底）從卡片位置放大成全螢幕，內容淡入、各列逐一由下往上；關閉時縮回卡片 */
+   點今日卡片：整層用 clip-path 從卡片的位置與圓角揭開成全螢幕、內容從卡片位置彈到定位（彈簧，略帶回彈）；各列逐一由下往上；關閉時彈回卡片 */
 .td-ov{position:fixed;inset:0;z-index:39;color:var(--bg)}
 .td-ov[hidden]{display:none}
-.td-bg{position:absolute;inset:0;background:var(--ink);transform-origin:0 0}
+.td-bg{position:absolute;inset:0;background:var(--ink)}
 .td-scroll{position:absolute;inset:0;overflow:auto;overscroll-behavior:contain;padding:calc(18px + env(safe-area-inset-top)) max(18px,env(safe-area-inset-right)) calc(40px + var(--bar-in) + env(safe-area-inset-bottom)) calc(var(--rail-in) + max(18px,env(safe-area-inset-left)))}   /* 讓出底部工具列／左側細欄 */
-.td-in{max-width:720px;margin:0 auto;display:grid;gap:28px;opacity:0;transform:translateY(14px)}
-.td-ov.on .td-in{opacity:1;transform:none;transition:opacity .3s .18s,transform .5s .18s var(--mo-out)}
-.td-ov.off .td-in{opacity:0;transition:opacity .12s}
+.td-in{max-width:720px;margin:0 auto;display:grid;gap:28px}   /* 展開／收合的位移、縮放、透明度由 notify.js 的 todayMorph 依彈簧曲線做 */
 .td-top{display:flex;align-items:flex-end;gap:14px;padding-bottom:16px;border-bottom:1px solid color-mix(in srgb,var(--bg) 18%,transparent)}
 .td-num{font-family:"Jost",sans-serif;font-weight:200;font-size:88px;line-height:.78;letter-spacing:-.03em}
 .td-lab{display:grid;gap:4px}

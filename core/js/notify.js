@@ -181,23 +181,41 @@ function todayHTML(){
     <section class="td-sec" style="--s:0"><h3>本來就要做<span class="num">${own.length}</span></h3>${own.length?`<ol class="td-list">${todayRows(own,t)}</ol>`:`<p class="td-none">今天沒有排定的事</p>`}</section>
     <section class="td-sec is-pick" style="--s:1"><h3>今天處理<small>在「整理」右滑的</small><span class="num">${pk.length}</span></h3>${pk.length?`<ol class="td-list">${todayRows(pk)}</ol>`:`<p class="td-none">還沒有右滑的事。到「整理」把今天要處理的往右滑。</p>`}</section></div>`;
 }
+/* 彈簧曲線取樣（質量 1、阻尼比 z、勁度 k）：回傳 0→1 的進度（會超過 1 再回來＝Q 彈）與總時間，拿來產生 Web Animations 的關鍵影格 */
+function springCurve(z,k){
+  const out=[0];let x=0,v=0,t=0;const dt=1/120,c=2*z*Math.sqrt(k);
+  while(t<2){for(let i=0;i<2;i++){v+=(-k*(x-1)-c*v)*dt/2;x+=v*dt/2}t+=dt;out.push(x);if(t>.2&&Math.abs(1-x)<.0015&&Math.abs(v)<.02)break}
+  out[out.length-1]=1;return {p:out,dur:Math.round(t*1000)};
+}
+/* 今日層的展開／收合（2026-11-06 使用者：進入、返回要更 Q 彈流暢）：
+   整層用 clip-path 從卡片的位置與圓角「揭開」到全螢幕（圓角不會被拉歪），裡面的內容同時從卡片的位置彈到定位（transform）；
+   兩個都照同一條彈簧曲線走（展開略帶回彈、收合較緊），卡片在動畫期間藏起來，看起來就是卡片本身長大 */
+function todayMorph(ov,card,open){
+  const r=card.getBoundingClientRect(),W=innerWidth,H=innerHeight,inner=ov.querySelector(".td-in");
+  const ir=inner.getBoundingClientRect(),dx=r.left+14-ir.left,dy=r.top+12-ir.top;   /* 內容的左上（大日期）對齊卡片的大日期 */
+  const S=open?springCurve(.62,190):springCurve(.82,280),n=S.p.length;   /* 展開回彈多一點（約 8%）、收合緊一點 */
+  const clip=p=>{const q=Math.max(0,p);return `inset(${(r.top*(1-q)).toFixed(1)}px ${((W-r.right)*(1-q)).toFixed(1)}px ${((H-r.bottom)*(1-q)).toFixed(1)}px ${(r.left*(1-q)).toFixed(1)}px round ${(26*(1-Math.min(1,q))).toFixed(1)}px)`};
+  const kf=[],ki=[];
+  S.p.forEach((v,i)=>{const p=open?v:1-v,off=i/(n-1);kf.push({offset:off,clipPath:clip(p)});ki.push({offset:off,transform:`translate(${(dx*(1-p)).toFixed(1)}px,${(dy*(1-p)).toFixed(1)}px) scale(${(.92+.08*p).toFixed(4)})`,opacity:open?Math.min(1,.35+p*1.3):Math.max(0,p*1.6-.2)})});
+  inner.style.transformOrigin="0 0";
+  ov.animate(kf,{duration:S.dur,fill:"both"});
+  return inner.animate(ki,{duration:S.dur,fill:"both"}).finished;
+}
 function openToday(card){
   if(todayOpen)return;todayOpen=true;
   let ov=$("#todayOv");if(!ov){document.body.insertAdjacentHTML("beforeend",`<div class="td-ov" id="todayOv" role="dialog" aria-modal="true" aria-label="今日" hidden><div class="td-bg"></div><div class="td-scroll"></div></div>`);ov=$("#todayOv")}
-  ov.querySelector(".td-scroll").innerHTML=todayHTML();ov.hidden=false;Back.opened("today",i=>closeToday(i));
-  const bg=ov.querySelector(".td-bg"),r=card&&card.getBoundingClientRect();ov._card=card;
-  if(reduceMotion()||!r){ov.classList.add("on");return}
-  card.style.opacity="0";
-  const from=`translate(${r.left}px,${r.top}px) scale(${r.width/innerWidth},${r.height/innerHeight})`;
-  bg.animate([{transform:from,borderRadius:"26px"},{transform:"none",borderRadius:"0px"}],{duration:520,easing:"cubic-bezier(.25,1.12,.4,1)"});
-  void ov.offsetWidth;ov.classList.add("on");
+  ov.getAnimations({subtree:true}).forEach(a=>a.cancel());
+  ov.querySelector(".td-scroll").innerHTML=todayHTML();ov.querySelector(".td-scroll").scrollTop=0;ov.hidden=false;ov.classList.remove("off");Back.opened("today",i=>closeToday(i));ov._card=card;
+  if(reduceMotion()||!card){ov.classList.add("on");return}
+  card.style.opacity="0";ov.classList.add("on");
+  todayMorph(ov,card,true).then(()=>{ov.getAnimations().forEach(a=>a.cancel());const i=ov.querySelector(".td-in");i.getAnimations().forEach(a=>a.cancel())}).catch(()=>{});
 }
 function closeToday(instant){
   const ov=$("#todayOv");if(!ov||!todayOpen)return;todayOpen=false;Back.closed("today");
-  const card=ov._card&&ov._card.isConnected?ov._card:$("#notiOv .nd-card.today"),done=()=>{ov.hidden=true;ov.classList.remove("on","off");if(card)card.style.opacity=""};
+  const card=ov._card&&ov._card.isConnected?ov._card:$("#notiOv .nd-card.today"),done=()=>{ov.hidden=true;ov.classList.remove("on","off");ov.getAnimations({subtree:true}).forEach(a=>a.cancel());if(card)card.style.opacity=""};
   if(instant===true||reduceMotion()||!card){done();return}
-  const r=card.getBoundingClientRect(),bg=ov.querySelector(".td-bg");ov.classList.add("off");ov.classList.remove("on");
-  bg.animate([{transform:"none",borderRadius:"0px"},{transform:`translate(${r.left}px,${r.top}px) scale(${r.width/innerWidth},${r.height/innerHeight})`,borderRadius:"26px"}],{duration:380,easing:"cubic-bezier(.4,0,.2,1)",fill:"forwards"}).finished.then(()=>{bg.getAnimations().forEach(a=>a.cancel());done()}).catch(done);
+  ov.getAnimations({subtree:true}).forEach(a=>a.cancel());ov.querySelector(".td-scroll").scrollTo({top:0});
+  todayMorph(ov,card,false).then(done).catch(done);
 }
 function renderNoti(){
   const el=$("#notiOv .noti-inner");if(!el||!notiOpen)return;
