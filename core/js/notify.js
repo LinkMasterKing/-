@@ -95,7 +95,7 @@ function notiInner(){
     :Object.entries(NOTI_ST).map(([k,c])=>`<span><i style="--c:${c}"></i>${EV_ST[k]}</span>`).join("");
   return `${all?`<p class="sub noti-note">${NOTI.loading?"讀取各部門資料中…":"全會：讀各部門的資料檔，只能看、不能改。"}</p>`:""}
     <div class="noti-days">${dayCardHTML(t,"今日","today",list)}${dayCardHTML(addDays(t,1),"明日","",list)}</div>
-    <section class="noti-tri"><h3 class="noti-h"><b>整理</b><span>右滑今天處理・左滑還不要</span></h3>${deckHTML(list)}</section>
+    ${triDeck(list).length?`<section class="noti-tri" id="notiTri"><h3 class="noti-h"><b>整理</b><span>右滑今天處理・左滑還不要</span></h3>${deckHTML(list)}</section>`:""}
     <section class="noti-cal">
       <div class="cal-top"><h3 class="noti-h"><b>行事曆</b></h3><button type="button" class="icon" data-nmon="-1" aria-label="上個月">${ico("prev","solo")}</button><button type="button" class="icon" data-nmon="1" aria-label="下個月">${ico("next","solo")}</button><button type="button" class="icon" data-nmon="0">回到本月</button></div>
       ${dayViewHTML(list)}
@@ -106,6 +106,7 @@ function notiInner(){
 /* ---------- 整理：交友軟體式左滑右滑（2026-11-05 使用者要求） ----------
    卡片堆＝所有還沒處理的事件（今天起還沒結束、今天還沒滑過的時間標記），一次一張、後面露出兩張。
    右滑＝今天處理（放進「今日」卡片的「今天處理」）；左滑＝還不要（今天不再出現）。也可以按下面的 ✕／✓，「復原」退回上一張。
+   全部滑完＝整個「整理」區收起來（高度縮掉、淡出），今天不再出現；隔天結果清空，卡片堆跟著回來（2026-11-06 使用者）。
    結果只存在這台裝置的 localStorage（workboard:triage:部門代號），隔天自動清空；不上傳、別人看不到。
    動畫只動 transform／opacity：跟手指走、依位移傾斜，放開超過 30% 寬或甩得夠快就飛出去，否則彈回。 */
 const TRI_KEY=()=>`workboard:triage:${CFG.deptId||"rights"}`;
@@ -125,12 +126,20 @@ function deckCardHTML(x,i){
 function deckHTML(list){
   const xs=triDeck(list),o=triFresh();
   return `<div class="noti-deck" id="notiDeck">
-    <div class="dk-stack">${xs.length?xs.slice(0,3).map(deckCardHTML).reverse().join(""):`<div class="dk-empty"><b>都整理好了</b><span class="sub">今天處理 ${o.yes.length} 件・還不要 ${o.no.length} 件</span>${o.yes.length+o.no.length?`<button type="button" class="icon" data-dkreset>全部重來</button>`:""}</div>`}</div>
-    <div class="dk-ctl"><button type="button" class="dk-btn no" data-dkgo="no" aria-label="還不要"${xs.length?"":" disabled"}>${ico("close","solo")}</button><button type="button" class="icon dk-undo" data-dkundo${o.last.length?"":" disabled"}>復原</button><button type="button" class="dk-btn yes" data-dkgo="yes" aria-label="今天處理"${xs.length?"":" disabled"}>${ico("check","solo")}</button></div>
-    <p class="dk-count sub num">${xs.length?`還有 ${xs.length} 件`:""}</p></div>`;
+    <div class="dk-stack">${xs.slice(0,3).map(deckCardHTML).reverse().join("")}</div>
+    <div class="dk-ctl"><button type="button" class="dk-btn no" data-dkgo="no" aria-label="還不要">${ico("close","solo")}</button><button type="button" class="icon dk-undo" data-dkundo${o.last.length?"":" disabled"}>復原</button><button type="button" class="dk-btn yes" data-dkgo="yes" aria-label="今天處理">${ico("check","solo")}</button></div>
+    <p class="dk-count sub num">還有 ${xs.length} 件</p></div>`;
 }
 function triCommit(key,dir){
-  const o=triFresh();o.yes=o.yes.filter(k=>k!==key);o.no=o.no.filter(k=>k!==key);o[dir].push(key);o.last.push(key);o.last=o.last.slice(-30);triSave(o);renderNoti();
+  const o=triFresh();o.yes=o.yes.filter(k=>k!==key);o.no=o.no.filter(k=>k!==key);o[dir].push(key);o.last.push(key);o.last=o.last.slice(-30);triSave(o);
+  const sec=$("#notiTri");
+  if(sec&&!triDeck(notiList()).length&&!reduceMotion()){triFold(sec).then(renderNoti);return}   /* 滑完最後一張：整區收起來再重畫 */
+  renderNoti();
+}
+/* 「整理」區收起：高度縮到 0、淡出，下面的區塊跟著往上補（連同區塊間距 30px，.noti-inner 的 gap） */
+function triFold(sec){
+  const h=sec.offsetHeight;sec.style.overflow="hidden";
+  return sec.animate([{height:h+"px",opacity:1,marginBottom:"0px"},{height:"0px",opacity:0,marginBottom:"-30px"}],{duration:MO.layout,easing:MO.out,fill:"forwards"}).finished.catch(()=>{});
 }
 function triUndo(){const o=triFresh(),k=o.last.pop();if(!k)return;o.yes=o.yes.filter(x=>x!==k);o.no=o.no.filter(x=>x!==k);triSave(o);renderNoti()}
 /* 讓最上面那張飛出去（dir：yes 往右、no 往左），播完才記下來重畫 */
@@ -182,23 +191,25 @@ function todayHTML(){
     <section class="td-sec is-pick" style="--s:1"><h3>今天處理<small>在「整理」右滑的</small><span class="num">${pk.length}</span></h3>${pk.length?`<ol class="td-list">${todayRows(pk)}</ol>`:`<p class="td-none">還沒有右滑的事。到「整理」把今天要處理的往右滑。</p>`}</section></div>`;
 }
 /* 彈簧曲線取樣（質量 1、阻尼比 z、勁度 k）：回傳 0→1 的進度（會超過 1 再回來＝Q 彈）與總時間，拿來產生 Web Animations 的關鍵影格 */
-function springCurve(z,k){
+function springCurve(z,k,tol=.0015){
   const out=[0];let x=0,v=0,t=0;const dt=1/120,c=2*z*Math.sqrt(k);
-  while(t<2){for(let i=0;i<2;i++){v+=(-k*(x-1)-c*v)*dt/2;x+=v*dt/2}t+=dt;out.push(x);if(t>.2&&Math.abs(1-x)<.0015&&Math.abs(v)<.02)break}
+  while(t<2){for(let i=0;i<2;i++){v+=(-k*(x-1)-c*v)*dt/2;x+=v*dt/2}t+=dt;out.push(x);if(t>.2&&Math.abs(1-x)<tol&&Math.abs(v)<tol*13)break}
   out[out.length-1]=1;return {p:out,dur:Math.round(t*1000)};
 }
 /* 今日層的展開／收合（2026-11-06 使用者：進入、返回要更 Q 彈流暢）：
-   整層用 clip-path 從卡片的位置與圓角「揭開」到全螢幕（圓角不會被拉歪），裡面的內容同時從卡片的位置彈到定位（transform）；
-   兩個都照同一條彈簧曲線走（展開略帶回彈、收合較緊），卡片在動畫期間藏起來，看起來就是卡片本身長大 */
+   底板（.td-bg，純色）用 clip-path 從卡片的位置與圓角「揭開」到全螢幕（圓角不會被拉歪），裡面的內容同時從卡片的位置彈到定位（transform）；
+   兩個都照同一條彈簧曲線走（展開略帶回彈、收合不回彈、尾巴短）。
+   2026-11-06 使用者回報返回卡頓：clip-path 只裁純色底板（每格重畫很便宜），內容只動 transform／opacity（合成器）；
+   收合時卡片一開始就回到底板下面，最後一段底板淡掉直接露出卡片，不會停在一塊空白卡上等動畫收尾 */
 function todayMorph(ov,card,open){
   const r=card.getBoundingClientRect(),W=innerWidth,H=innerHeight,inner=ov.querySelector(".td-in");
   const ir=inner.getBoundingClientRect(),dx=r.left+14-ir.left,dy=r.top+12-ir.top;   /* 內容的左上（大日期）對齊卡片的大日期 */
-  const S=open?springCurve(.62,190):springCurve(.82,280),n=S.p.length;   /* 展開回彈多一點（約 8%）、收合緊一點 */
+  const S=open?springCurve(.62,190):springCurve(1,340,.006),n=S.p.length;   /* 展開回彈多一點（約 8%）；收合臨界阻尼、快收尾 */
   const clip=p=>{const q=Math.max(0,p);return `inset(${(r.top*(1-q)).toFixed(1)}px ${((W-r.right)*(1-q)).toFixed(1)}px ${((H-r.bottom)*(1-q)).toFixed(1)}px ${(r.left*(1-q)).toFixed(1)}px round ${(26*(1-Math.min(1,q))).toFixed(1)}px)`};
   const kf=[],ki=[];
-  S.p.forEach((v,i)=>{const p=open?v:1-v,off=i/(n-1);kf.push({offset:off,clipPath:clip(p)});ki.push({offset:off,transform:`translate(${(dx*(1-p)).toFixed(1)}px,${(dy*(1-p)).toFixed(1)}px) scale(${(.92+.08*p).toFixed(4)})`,opacity:open?Math.min(1,.35+p*1.3):Math.max(0,p*1.6-.2)})});
+  S.p.forEach((v,i)=>{const p=open?v:1-v,off=i/(n-1);kf.push(open?{offset:off,clipPath:clip(p)}:{offset:off,clipPath:clip(p),opacity:Math.min(1,p/.28)});ki.push({offset:off,transform:`translate(${(dx*(1-p)).toFixed(1)}px,${(dy*(1-p)).toFixed(1)}px) scale(${(.92+.08*p).toFixed(4)})`,opacity:open?Math.max(0,Math.min(1,p*1.5-.1)):Math.max(0,p*1.6-.2)})});
   inner.style.transformOrigin="0 0";
-  ov.animate(kf,{duration:S.dur,fill:"both"});
+  ov.querySelector(".td-bg").animate(kf,{duration:S.dur,fill:"both"});
   return inner.animate(ki,{duration:S.dur,fill:"both"}).finished;
 }
 function openToday(card){
@@ -208,13 +219,14 @@ function openToday(card){
   ov.querySelector(".td-scroll").innerHTML=todayHTML();ov.querySelector(".td-scroll").scrollTop=0;ov.hidden=false;ov.classList.remove("off");Back.opened("today",i=>closeToday(i));ov._card=card;
   if(reduceMotion()||!card){ov.classList.add("on");return}
   card.style.opacity="0";ov.classList.add("on");
-  todayMorph(ov,card,true).then(()=>{ov.getAnimations().forEach(a=>a.cancel());const i=ov.querySelector(".td-in");i.getAnimations().forEach(a=>a.cancel())}).catch(()=>{});
+  todayMorph(ov,card,true).then(()=>ov.getAnimations({subtree:true}).forEach(a=>a.cancel())).catch(()=>{});
 }
 function closeToday(instant){
   const ov=$("#todayOv");if(!ov||!todayOpen)return;todayOpen=false;Back.closed("today");
   const card=ov._card&&ov._card.isConnected?ov._card:$("#notiOv .nd-card.today"),done=()=>{ov.hidden=true;ov.classList.remove("on","off");ov.getAnimations({subtree:true}).forEach(a=>a.cancel());if(card)card.style.opacity=""};
   if(instant===true||reduceMotion()||!card){done();return}
   ov.getAnimations({subtree:true}).forEach(a=>a.cancel());ov.querySelector(".td-scroll").scrollTo({top:0});
+  card.style.opacity="";   /* 卡片先回到底板下面（底板最後淡掉時露出來） */
   todayMorph(ov,card,false).then(done).catch(done);
 }
 function renderNoti(){
@@ -324,7 +336,6 @@ document.addEventListener("click",e=>{
   const cd=t.closest("[data-cal]");if(cd){const d=cd.dataset.cal,was=NOTI.day;NOTI.day=was===d?null:d;renderNoti();const v=$("#notiDay");if(v&&!was)Anim.enter(v,"down");return}   /* 點日期：上方出現「這一天」；再點一次收起 */
   const g=t.closest("[data-dkgo]");if(g){const c=$('#notiDeck .dk-card[data-i="0"]');if(c)dkFly(c,g.dataset.dkgo);return}
   if(t.closest("[data-dkundo]")){triUndo();return}
-  if(t.closest("[data-dkreset]")){const o=triFresh();o.yes=[];o.no=[];o.last=[];triSave(o);renderNoti();return}
 });
 document.addEventListener("keydown",e=>{if(e.key==="Escape"&&notiOpen&&!$("#dlg").open&&!setOpen){e.preventDefault();closeNoti()}});
 

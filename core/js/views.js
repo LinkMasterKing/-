@@ -73,7 +73,7 @@ function renderGantt(){
 
 /* 階段標籤與連結按鈕（只顯示；編輯中改用逐欄編輯的「階段」「超連結」欄） */
 function tagsHTML(it){return it.tags.map((g,k)=>`<span class="tag ${k===it.cur?"cur":k<it.cur?"past":""}">${esc(g)}</span>`).join("")}
-function linkHTML(l){return `<a class="link" style="background:${esc(l.color)}" href="${esc(safeUrl(l.url))}" target="_blank" rel="noopener">${esc(l.name)}</a>`}
+function linkHTML(l){return `<a class="link" style="--c:${esc(l.color)}" href="${esc(safeUrl(l.url))}" target="_blank" rel="noopener">${esc(l.name)}</a>`}
 function latestMarkerId(list){
   const dated=list.filter(m=>m.date).sort((a,b)=>a.date.localeCompare(b.date)||a.at-b.at);
   const pick=dated.length?dated[dated.length-1]:[...list].sort((a,b)=>a.at-b.at).pop();
@@ -167,7 +167,7 @@ function issueFieldsHTML(it){
       ${state.members.length?F("staff","專員",staffNames(it.staff).map(n=>`<span class="staff-chip">${esc(n)}</span>`).join("")||noneTxt("沒有標專員"),()=>fieldHTML({name:"staff",label:"從本看板的身分挑選，可複選",type:"multi",value:it.staff||[],options:staffOpts()})):""}
       ${F("labels","標籤",labelChipsHTML(it.labels)||noneTxt("沒有標籤"),()=>labelPickerHTML("labels",it.labels))}
       <div class="evf-group"><span class="evf-l">超連結</span>
-        ${it.links.map(l=>F("l:"+l.id,"",`<span class="link" style="background:${esc(l.color)}">${esc(l.name)}</span><span class="sub evf-url">${esc(l.url)}</span>`,()=>linkEditorHTML(l,it.links.length,"iffx"))).join("")}
+        ${it.links.map(l=>F("l:"+l.id,"",`<span class="link" style="--c:${esc(l.color)}">${esc(l.name)}</span><span class="sub evf-url">${esc(l.url)}</span>`,()=>linkEditorHTML(l,it.links.length,"iffx"))).join("")}
         ${ifOpen("i",it.id,"l:+")?F("l:+","","",()=>linkEditorHTML(null,it.links.length,"iffx")):`<button type="button" class="ghost evd-add" data-ifpen="l:+" data-ift="i" data-ifid="${it.id}">+ 超連結</button>`}</div>
     </div>`;
 }
@@ -220,7 +220,7 @@ function evTimesHTML(ev){
 /* 連結按鈕列 */
 function evLinksHTML(ev){
   if(!ev.links.length)return "";
-  return `<div class="links ev-links">${ev.links.map(l=>`<a class="link" style="background:${esc(l.color)}" href="${esc(safeUrl(l.url))}" target="_blank" rel="noopener">${esc(l.name)}</a>`).join("")}</div>`;
+  return `<div class="links ev-links">${ev.links.map(l=>`<a class="link" style="--c:${esc(l.color)}" href="${esc(safeUrl(l.url))}" target="_blank" rel="noopener">${esc(l.name)}</a>`).join("")}</div>`;
 }
 /* ---------- 逐欄編輯（頁首按「編輯」後，即時回報不用再按「編輯這區」） ----------
    檢視時照常顯示內容；編輯中每一欄本身就是可以點的（滑過去底色微亮、游標變成可點），點哪一欄只有那一欄變成輸入框，其他照常顯示。
@@ -274,7 +274,7 @@ function evFieldsHTML(ev){
         ${ts.map(t=>evFieldHTML(ev,"t:"+t.id,"",evTimeView(t,par),()=>evTimeEditor(ev,t))).join("")}
         ${evFldOpen(ev,"t:+")?evFieldHTML(ev,"t:+","",'',()=>evTimeEditor(ev,null)):`<button type="button" class="ghost evd-add" data-evpen="t:+">${ico("calendar")}+ 時間</button>`}</div>
       <div class="evf-group"><span class="evf-l">超連結</span>
-        ${ev.links.map(l=>evFieldHTML(ev,"l:"+l.id,"",`<span class="link" style="background:${esc(l.color)}">${esc(l.name)}</span><span class="sub evf-url">${esc(l.url)}</span>`,()=>evLinkEditor(ev,l))).join("")}
+        ${ev.links.map(l=>evFieldHTML(ev,"l:"+l.id,"",`<span class="link" style="--c:${esc(l.color)}">${esc(l.name)}</span><span class="sub evf-url">${esc(l.url)}</span>`,()=>evLinkEditor(ev,l))).join("")}
         ${evFldOpen(ev,"l:+")?evFieldHTML(ev,"l:+","",'',()=>evLinkEditor(ev,null)):`<button type="button" class="ghost evd-add" data-evpen="l:+">+ 超連結</button>`}</div>
     </div>`;
 }
@@ -291,7 +291,7 @@ function evCapHTML(ev,o){
         ${evTimesHTML(ev)}${staffHTML(ev.staff)}${labelChipsHTML(ev.labels)}
         ${evLinksHTML(ev)}`;
   return `<details class="ev ${sel?"sel":""} ${ev.id===o.next?"next":""}" data-ev="${ev.id}" data-st="${st}" ${!o.md&&openEv.has(ev.id)?"open":""}${sel?' aria-current="true"':""}>
-      <summary><span class="live-dot" aria-hidden="true"></span><b>${esc(ev.name)}</b>${par?`<span class="ev-parent">→ ${esc(par.title)}</span>`:""}<button type="button" class="ev-del edit-only" data-evdel aria-label="刪除「${esc(ev.name)}」">${ico("close","solo")}</button><span class="ev-chev" aria-hidden="true">▾</span></summary>
+      <summary><span class="live-dot" aria-hidden="true"></span><b>${esc(ev.name)}</b>${par?`<span class="ev-parent">→ ${esc(par.title)}</span>`:""}${ev.report?'<span class="ev-rep">報告</span>':""}<button type="button" class="ev-del edit-only" data-evdel aria-label="刪除「${esc(ev.name)}」">${ico("close","solo")}</button><span class="ev-chev" aria-hidden="true">▾</span></summary>
       <div class="ev-body">${body}</div>
     </details>`;
 }
@@ -331,8 +331,9 @@ function renderEvents(){
   const cap=ev=>evCapHTML(ev,o);
   const addBtn=`<button type="button" class="ghost edit-only add-row" id="addEvent">+ 新增即時回報</button>`;   /* 新增鈕排在格子最後一格，跟一顆膠囊一樣大（只在這區編輯中顯示） */
   const empty=`<p class="empty">${state.locked?"目前沒有即時回報。":"需要即時回報的事項放這裡，只要名稱和說明。按「編輯」→「+ 新增即時回報」。"}</p>`;
-  const zone=(k,h,list,tail)=>`<div class="ev-zone" data-zone="${k}">${h?`<div class="ev-zone-h">${h}<span class="num">${list.length}</span></div>`:""}<div class="events">${list.length?list.map(cap).join(""):h?"":empty}${tail}</div></div>`;
-  $("#events").innerHTML=rep.length?zone("rep","會議報告事項",rep,"")+"\n      "+zone("rest","其他回報",rest,addBtn):zone("rest","",live,addBtn);
+  /* 2026-11-06 使用者從預覽選 D：報告區不寫區名（每顆膠囊右邊自己標「報告」），其他回報上面一條細線、中間小字區名 */
+  const zone=(k,h,list,tail)=>`<div class="ev-zone" data-zone="${k}">${h?`<div class="ev-zone-h"><span>${h}</span></div>`:""}<div class="events">${list.length?list.map(cap).join(""):h?"":empty}${tail}</div></div>`;
+  $("#events").innerHTML=rep.length?zone("rep","",rep,"")+"\n      "+zone("rest","其他回報",rest,addBtn):zone("rest","",live,addBtn);
   if(md){pane.innerHTML=evDetailHTML(live.find(e=>e.id===selEv));pane.hidden=false}else{pane.innerHTML="";pane.hidden=true}
   Anim.syncPings();
 }
@@ -343,7 +344,7 @@ function renderDone(){
   const de=state.events.filter(ev=>ev.doneAt);
   const ids=new Set([...ds.map(i=>i.id),...de.map(e=>e.id)]);
   const dnew=id=>prevDone&&!prevDone.has(id)?"new":"";
-  const link=l=>`<a class="link" style="background:${esc(l.color)}" href="${esc(safeUrl(l.url))}" target="_blank" rel="noopener">${esc(l.name)}</a>`;
+  const link=l=>`<a class="link" style="--c:${esc(l.color)}" href="${esc(safeUrl(l.url))}" target="_blank" rel="noopener">${esc(l.name)}</a>`;
   const ed=secEd("done");if(!ed)ifFld=null;
   /* 每一筆拆成：屬性、標題、副標、內容，膠囊與右側詳情共用；編輯中名稱、完成日期、說明（即時回報多母議題）換成逐欄編輯（doneFieldsHTML） */
   const items=ds.map(it=>({id:it.id,d:it.doneAt||"",attr:`data-issue="${it.id}"`,title:esc(it.title),sub:`${fmt(it.doneAt)||"—"} · 議題`,del:`data-deldone aria-label="刪除「${esc(it.title)}」"`,
