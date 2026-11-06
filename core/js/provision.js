@@ -1,53 +1,94 @@
-/* 核心｜開通部門（全會）：讓各部門的人不用自己弄 GitHub 權杖也能上傳。
-   誰用：有 GitHub 權杖的學生會管理員，在自己已經連上雲端的裝置上（設定 →「開通部門」）。
-   做什麼：設一組「全會初始密碼」（至少 12 碼），對勾選的部門：
-     - 雲端還沒有資料檔：建立一份空白看板（data-代號.json），共用密碼＝初始密碼，上傳權限（權杖）用初始密碼加密存進去；
-     - 已經有資料檔：只換共用密碼（pwKdf）與加密的權杖（sync.tokenEnc），看板內容、身分都不動，舊的共用密碼失效。
-     兩種都標 sync.initial＝true（部門第一位管理員登入後，team.js 會請他換成部門自己的共用密碼）。
-   之後部門的人：在設定頁按「登入」→ 輸入初始密碼 → 建立身分（第一位是管理員）→ 自動連上雲端（auth.js 的 unlockShared 解開權杖）。
-   資料存在哪、誰看得到：各部門資料檔在公開的 repo，任何人都下載得到，但權杖是加密的，沒有初始密碼（或部門共用密碼、個人密碼）解不開；
-   知道密碼的人就能寫入整個 repo（所有部門），所以初始密碼只交給各部部長。
-   權杖不會顯示在畫面或 console。 */
-const PV_ST={none:"雲端還沒有資料檔",nokey:"已有資料檔，但新成員連不上雲端",ok:"已開通（新成員可以連上）",err:"讀取失敗"};
+/* 核心｜全會密碼與自動開通（2026-11-06 第二版，取代原本「開通部門」的手動勾選與初始密碼）
+   使用者要求：部門的人第一次進系統不要處理雲端、權杖貼上；第一個開通的人也不用透過有權杖的管理員說明操作。
+   做法：
+   - 後台管理員（這台裝置有權杖、cloud.js 的 siteAdmin）在「設定 → 網站管理 → 全會密碼」設一次全會密碼（至少 12 碼）。
+     看板用它把權杖加密成一份 tokenAll，存在這台裝置（ALL_KEY，只存加密後的，不存密碼）。
+   - 自動開通（pvAuto）：後台管理員的裝置打開任何部門的看板時（最多每 10 分鐘一次，boot.js），逐一檢查所有部門的資料檔：
+       沒有資料檔＝建立空白看板（只有 tokenAll，沒有部門共用密碼）；有資料檔但 tokenAll 不是最新的＝只補上 sync.tokenAll，其他內容、各部門的共用密碼都不動。
+   - 部門的人：設定 → 登入 → 輸入學生會給的全會密碼（或部門自己的共用密碼）→ 取名字、設個人密碼 → 自動連上雲端（team.js 的 unlockEdit、auth.js 的 sharedKind／tokenFromShared）。
+   - 權杖換新（後台管理員貼了新的權杖）：這台裝置存的 tokenAll 還是舊權杖加密的（用權杖指紋 fp 判斷），要再輸入一次全會密碼才會更新到各部門。
+   資料存在哪、誰看得到：tokenAll 在各部門的資料檔（公開的 repo，任何人都下載得到），但沒有全會密碼解不開；
+   知道全會密碼的人能加入任何部門，也就能寫入整個 repo，所以全會密碼只交給各部門的人。權杖不會顯示在畫面或 console。
+   測試部門（dept/config.js 的 test:true，水果部）：後台管理員可以「重置」，回到剛開通的狀態（pvReset）。 */
+const ALL_KEY="workboard:tokenall";
+function allRead(){try{const a=JSON.parse(localStorage.getItem(ALL_KEY)||"null");return a&&a.blob?a:null}catch(_){return null}}
+async function tokPrint(t){const h=await crypto.subtle.digest("SHA-256",_te.encode(String(t||"")));return toB64(new Uint8Array(h)).slice(0,16)}
+const allFresh=async a=>!!(a&&ghToken()&&a.fp===await tokPrint(ghToken()));   /* 這台裝置的 tokenAll 是不是用目前這把權杖加密的 */
+/* 空白看板：雲端位置照這台裝置的設定寫進去（github.io 上本來就會自動判斷，寫明了在其他網址也連得上） */
+const pvBlank=d=>{const c=cloudCfg();return {schemaVersion:SCHEMA_VERSION,id:d.boardId,title:`${d.name}工作進度`,members:[],issues:[],events:[],weeks:[],savedAt:nowStr(),sync:{owner:c.owner,repo:c.repo,branch:c.branch,path:d.path}}};
 async function pvStatus(d){
   const c={...cloudCfg(),path:d.path},h={Accept:"application/vnd.github+json",Authorization:"Bearer "+ghToken()};
   try{
     const r=await fetch(apiURL(c)+"?ref="+encodeURIComponent(c.branch)+"&t="+Date.now(),{headers:h,cache:"no-store"});
     if(r.status===404)return {d,st:"none"};
     if(!r.ok)return {d,st:"err",code:r.status};
-    const j=await r.json(),data=JSON.parse(b64dec(j.content));
-    return {d,st:data.sync&&data.sync.tokenEnc?"ok":"nokey",sha:j.sha,data};
+    const j=await r.json();return {d,st:"ok",sha:j.sha,data:JSON.parse(b64dec(j.content))};
   }catch(_){return {d,st:"err"}}
 }
-async function pvWrite(x,pw){
-  const c={...cloudCfg(),path:x.d.path},h={Accept:"application/vnd.github+json",Authorization:"Bearer "+ghToken(),"Content-Type":"application/json"};
-  const fresh=!x.data,data=fresh?{schemaVersion:SCHEMA_VERSION,id:x.d.boardId,title:`${x.d.name}工作進度`,members:[],issues:[],events:[],weeks:[]}:x.data;
-  data.pwKdf=await kdfMake(pw);delete data.pwHash;
-  data.sync={...(data.sync||{}),tokenEnc:await encToken(ghToken(),pw),initial:true};
+async function pvPut(d,data,sha,what){
+  const c={...cloudCfg(),path:d.path},h={Accept:"application/vnd.github+json",Authorization:"Bearer "+ghToken(),"Content-Type":"application/json"};
   const who=meName()||"學生會管理員";
-  const body={message:`〔${who}〕設定｜${fresh?"開通雲端（建立看板）":"重設共用密碼並開通雲端"}\n\n用全會初始密碼開通；新成員輸入初始密碼後會自動連上雲端。\n\nBoard-Log: 1`,content:b64enc(JSON.stringify(data,null,1)),branch:c.branch};
-  if(x.sha)body.sha=x.sha;
+  const body={message:`〔${who}〕設定｜${what}\n\n全會密碼自動開通（provision.js）。\n\nBoard-Log: 1`,content:b64enc(JSON.stringify(data,null,1)),branch:c.branch};
+  if(sha)body.sha=sha;
   try{const r=await fetch(apiURL(c),{method:"PUT",headers:h,body:JSON.stringify(body)});
-    return r.ok?"":r.status===409||r.status===422?"剛好有人存過，請重新開啟這個畫面再試":r.status===401?"權杖無效或過期":r.status===403||r.status===404?"權杖沒有寫入權限":"失敗（"+r.status+"）"}
+    return r.ok?"":r.status===409||r.status===422?"剛好有人存過，下次再補":r.status===401?"權杖無效或過期":r.status===403||r.status===404?"權杖沒有寫入權限":"失敗（"+r.status+"）"}
   catch(_){return "連不上 GitHub"}
 }
-async function provisionDepts(){
-  if(!cloudOn()||!ghToken()){await ask("這台裝置沒有權杖",[],{note:"開通部門要在已經連上雲端（貼過 GitHub 權杖）的裝置上做。請到「雲端同步」貼上權杖後再來。"});return}
-  if(editing){await ask("請先結束編輯",[],{note:"開通會直接寫入各部門的雲端資料。請先把編輯中的那張卡片按「儲存」或「取消」，再開通。"});return}
-  toast("讀取各部門的狀態…");
-  const list=await Promise.all(BOARD_DEPTS.map(pvStatus));
-  const first=BOARD_DEPTS[0].id;
-  const fields=[...list.map(x=>({name:"d_"+x.d.id,type:"check",label:`${x.d.name}：${PV_ST[x.st]}${x.st==="err"&&x.code?`（${x.code}）`:""}`,value:x.st==="none"||x.st==="nokey"&&x.d.id!==first})),
-    {name:"p1",label:`全會初始密碼（至少 ${MIN_PW} 碼）`,type:"password"},{name:"p2",label:"再輸入一次",type:"password"}];
-  const v=await ask("開通部門（全會）",fields,{wide:true,
-    note:"勾選要開通的部門，設一組全會初始密碼，交給各部部長。部長在設定頁按「登入」、輸入初始密碼、建立身分（第一位是管理員），就會自動連上雲端。\n已有資料檔的部門：只換共用密碼與上傳權限，看板內容、身分都不動，舊的共用密碼失效。\n權杖用初始密碼加密後存在公開的資料檔裡；知道密碼的人就能寫入整個網站的資料，請只交給部長。",
-    validate:o=>{if(!list.some(x=>o["d_"+x.d.id]))return "請至少勾一個部門";if(list.some(x=>o["d_"+x.d.id]&&x.st==="err"))return "有勾選的部門讀取失敗，先取消勾選或稍後再試";return pwProblem(o.p1||"",o.p2||"","初始密碼")}});
+/* 自動開通：report＝true 時不看間隔、回傳結果給畫面顯示；否則安靜地做（最多每 10 分鐘一次） */
+let pvBusy=false;
+async function pvAuto(report){
+  if(pvBusy||!siteAdmin()||!cloudOn()||!ghToken()||!hasSubtle())return null;
+  const a=allRead();if(!a)return null;
+  if(!(await allFresh(a))){if(!report)toast("權杖換過了：到「設定 → 網站管理 → 全會密碼」再輸入一次，各部門才會用新的權杖");return {stale:true}}
+  if(!report){try{const t=+localStorage.getItem(ALL_KEY+":at")||0;if(Date.now()-t<6e5)return null;localStorage.setItem(ALL_KEY+":at",String(Date.now()))}catch(_){}}
+  pvBusy=true;const out={made:[],fixed:[],bad:[]};
+  try{
+    for(const d of BOARD_DEPTS){
+      if(d.id===CFG.deptId&&editing)continue;   /* 自己這個部門正在編輯：下次再補，免得儲存時跟雲端衝突 */
+      const x=await pvStatus(d);if(x.st==="err"){out.bad.push(`${d.name}（讀取失敗${x.code?"，"+x.code:""}）`);continue}
+      if(x.data&&JSON.stringify((x.data.sync||{}).tokenAll||null)===JSON.stringify(a.blob))continue;
+      const data=x.data||pvBlank(d);data.sync={...(data.sync||{}),tokenAll:a.blob};
+      const e=await pvPut(d,data,x.sha,x.data?"補上全會密碼的上傳權限":"開通雲端（建立看板）");
+      if(e)out.bad.push(`${d.name}（${e}）`);else (x.data?out.fixed:out.made).push(d.name);
+    }
+  }finally{pvBusy=false}
+  if([...out.made,...out.fixed].includes(CFG.dept.name)&&!editing){cloud.etag=null;await cloudPull({force:true});render()}   /* 自己這個部門剛更新：載入雲端的新版本 */
+  return out;
+}
+const allSub=()=>allRead()?"已設定：各部門自動開通，部門的人用這組密碼加入":"還沒設定：設定後各部門自動開通，部門的人不用碰權杖";
+/* 設定 → 網站管理 → 全會密碼 */
+async function allPwSet(){
+  if(!cloudOn()||!ghToken()){await ask("這台裝置沒有權杖",[],{note:"全會密碼要在已經連上雲端（貼過 GitHub 權杖）的裝置上設定。請先到「雲端同步」貼上權杖。"});return}
+  if(editing){await ask("請先結束編輯",[],{note:"設定全會密碼會直接寫入各部門的雲端資料。請先把編輯中的那張卡片按「儲存」或「取消」。"});return}
+  const old=allRead();
+  const v=await ask(old?"更改全會密碼":"設定全會密碼",[{name:"p1",label:`全會密碼（至少 ${MIN_PW} 碼）`,type:"password"},{name:"p2",label:"再輸入一次",type:"password"}],
+    {note:"全會密碼交給各部門的人：第一次使用時在設定頁按「登入」，輸入這組密碼、取名字、設個人密碼，就會自動連上雲端，不用碰權杖。"
+      +"\n設定後，這台裝置每次打開看板都會自動檢查各部門：沒有看板的建立、缺上傳權限的補上（各部門現有的內容與共用密碼都不動）。"
+      +(old?"\n改了以後舊的全會密碼就不能用來加入（已經加入的人不受影響）。換了新權杖也要在這裡再輸入一次。":"")
+      +"\n上傳權限用這組密碼加密後放在公開的資料檔，所以密碼要夠長、只交給各部門的人。",
+     validate:o=>pwProblem(o.p1||"",o.p2||"","全會密碼")});
   if(!v)return;
-  const pick=list.filter(x=>v["d_"+x.d.id]),reset=pick.filter(x=>x.data);
-  if(reset.length){const ok=await ask("確認重設共用密碼",[],{danger:"確認開通",note:`${reset.map(x=>x.d.name).join("、")} 已經有資料，共用密碼會換成這組初始密碼，舊的共用密碼就不能用了。看板內容與身分不會變；已經有身分的人照常用個人密碼登入。`});
-    if(ok!=="delete")return}
-  const res=[];for(const x of pick){res.push([x,await pvWrite(x,v.p1)])}
-  const bad=res.filter(r=>r[1]),good=res.filter(r=>!r[1]);
-  if(good.some(([x])=>x.d.id===CFG.deptId)){cloud.etag=null;await cloudPull({force:true});render()}   /* 開通的是目前這個部門：載入新的設定 */
-  await ask(bad.length?"部分部門沒有開通":"開通完成",[],{note:(good.length?`已開通：${good.map(([x])=>x.d.name).join("、")}。把初始密碼交給這些部門的部長，請他們打開自己部門的看板，按「編輯」輸入初始密碼。`:"")+(bad.length?`\n沒有開通：${bad.map(([x,m])=>`${x.d.name}（${m}）`).join("、")}`:"")});
+  const a={blob:await encToken(ghToken(),v.p1),fp:await tokPrint(ghToken())};
+  try{localStorage.setItem(ALL_KEY,JSON.stringify(a))}catch(_){await ask("沒有存起來",[],{note:"這個瀏覽器不能保存資料，請換一個瀏覽器再設定。"});return}
+  toast("正在更新各部門…");
+  const r=await pvAuto(true);if(!r)return;
+  await ask(r.bad.length?"部分部門沒有更新":"全會密碼已設定",[],{note:
+    (r.made.length?`新建立看板：${r.made.join("、")}\n`:"")+(r.fixed.length?`補上上傳權限：${r.fixed.join("、")}\n`:"")
+    +(r.bad.length?`沒有更新：${r.bad.join("、")}（下次打開看板會再試）\n`:"")
+    +"把全會密碼交給各部門的人就好，他們不用做任何雲端設定。"});
+  renderSettings();
+}
+/* 重置測試部門（只有 test:true 的部門）：回到剛開通的狀態（身分、內容全部清空，只留全會密碼的上傳權限） */
+async function pvReset(id){
+  const d=BOARD_DEPTS.find(x=>x.id===id&&x.test),a=allRead();if(!d)return;
+  if(!a||!(await allFresh(a))){await ask("請先設定全會密碼",[],{note:"重置後的部門要用全會密碼加入，請先在「全會密碼」設定（或換了權杖後再輸入一次）。"});return}
+  if(editing&&CFG.deptId===d.id){await ask("請先結束編輯",[],{note:"請先把編輯中的那張卡片按「儲存」或「取消」。"});return}
+  const ok=await ask(`重置${d.name}`,[],{danger:"重置",note:`${d.name}會回到剛開通的狀態：身分、議題、即時回報、週報、標籤全部清空（只有測試部門可以重置）。\n重置後在設定頁按「登入」、輸入全會密碼，就能重新走一次第一位成員的流程。要模擬全新的裝置，請用無痕視窗打開（一般視窗裡已經存著上傳權限）。`});
+  if(ok!=="delete")return;
+  const x=await pvStatus(d);if(x.st==="err"){await ask("重置失敗",[],{note:"讀取失敗，請稍後再試。"});return}
+  const data=pvBlank(d);Object.assign(data.sync,{tokenAll:a.blob,resetAt:nowStr()});
+  const e=await pvPut(d,data,x.sha,"重置測試部門");
+  if(e){await ask("重置失敗",[],{note:e});return}
+  if(CFG.deptId===d.id){try{localStorage.removeItem(KEY)}catch(_){}remClear();meId="";location.reload();return}
+  toast(`${d.name}已重置`);
 }

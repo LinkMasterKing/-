@@ -33,6 +33,8 @@ const BOARD_BASE = {
    網址加 ?d=代號 開那個部門，例如 …/?d=marketing；沒加就是權益部。
    每個部門的資料是 repo 根目錄下自己的檔案（權益部沿用 data.json）。
    logo:false＝頁首先用文字代替 logo；follow:true＝有「追蹤」面板（會長室）；meeting:true＝有「會議報告事項」與「會議編輯」面板（秘書處）；grant:true＝開放秘書處會議編輯的開關（會長室）
+   test:true＝測試用部門（2026-11-06 水果部）：不出現在總覽、各部門彙整（window.BOARD_DEPTS 不含它），只能用網址 ?d=代號 進去；
+     後台管理員可以在設定 → 網站管理「重置」它（回到剛開通的狀態，provision.js 的 pvReset）
    --------------------------------------------------------- */
 const BOARD_DEPTS = [
   { id: "rights",      name: "權益部", path: "data.json", boardId: "board-main", logo: true },
@@ -44,13 +46,14 @@ const BOARD_DEPTS = [
   { id: "affairs",     name: "社務部" },
   { id: "pr",          name: "公關部" },
   { id: "works",       name: "工務部" },
-].map(d => ({ path: `data-${d.id}.json`, boardId: `board-${d.id}`, logo: false, follow: false, meeting: false, grant: false, ...d }));
+  { id: "fruit",       name: "水果部", test: true },
+].map(d => ({ path: `data-${d.id}.json`, boardId: `board-${d.id}`, logo: false, follow: false, meeting: false, grant: false, test: false, ...d }));
 
 (() => {
   const q = new URLSearchParams(location.search).get("d") || "rights";
   const d = BOARD_DEPTS.find(x => x.id === q) || BOARD_DEPTS[0];
   const org = "南臺科技大學學生會";
-  window.BOARD_DEPTS = BOARD_DEPTS;
+  window.BOARD_DEPTS = BOARD_DEPTS.filter(x => !x.test);   /* 總覽、各部門彙整用（不含測試部門）；開通、重置用完整的 BOARD_DEPTS */
   window.BOARD_CONFIG = {
     ...BOARD_BASE,
     deptId: d.id,

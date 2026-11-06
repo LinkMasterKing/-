@@ -32,6 +32,7 @@ if(cloudOn())(async()=>{
   if(r!=="offline"&&navigator.onLine)netFail=false;
   if(r==="empty"||r==="error"||r==="offline"||r==="limited"){try{const l=JSON.parse(localStorage.getItem(KEY)||"null");if(l&&l.issues&&(l.savedAt||"")>(state.savedAt||"")){state=normalize(l)}}catch(_){}}
   render();remBoot();
+  pvAuto(false);   /* 後台管理員的裝置：自動開通各部門（provision.js；最多每 10 分鐘一次，其他人的裝置什麼都不做） */
   setInterval(async()=>{if(document.hidden||editing)return;const r=await cloudPull();if(r==="updated"){render();toast("看板已更新為最新內容")}else renderHeader()},60000);
   document.addEventListener("visibilitychange",async()=>{if(!document.hidden&&!editing){const r=await cloudPull();if(r==="updated"){render();toast("看板已更新為最新內容")}}});
 })();

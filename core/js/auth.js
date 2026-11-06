@@ -21,18 +21,32 @@ async function rememberToken(tok,pw){
   if((pw||"").length<8)return "weak";
   state.sync=Object.assign({},state.sync||{},{tokenEnc:await encToken(tok,pw)});return "ok";
 }
+/* 加入部門時輸入的密碼（2026-11-06 全會密碼）：學生會給的全會密碼（解得開 sync.tokenAll），或部門自己的共用密碼（pwKdf）。
+   回傳 "all"／"dept"／""（不對）。自動開通建立的看板只有全會密碼、沒有部門共用密碼：預設的 0000 不算 */
+async function sharedKind(pw){
+  const ta=state.sync&&state.sync.tokenAll;
+  if(ta&&pw&&hasSubtle()){try{await decToken(ta,pw);return "all"}catch(_){}}
+  if(ta&&!state.pwKdf&&!state.pwHash)return "";
+  return await checkPw(pw||"")?"dept":"";
+}
+/* 用加入時輸入的密碼取出上傳權限（全會密碼那份或部門共用密碼那份），解不開回傳空字串。權杖不顯示在畫面或 console */
+async function tokenFromShared(pw){
+  const s=state.sync||{};if(!pw||!hasSubtle())return "";
+  for(const o of [s.tokenAll,s.tokenEnc]){if(!o)continue;try{return await decToken(o,pw)}catch(_){}}
+  return "";
+}
 async function unlockShared(title,note){
   for(;;){
-    const v=await ask(title||"輸入部門共用密碼",[{name:"pw",label:state.sync&&state.sync.initial?"初始密碼":"共用密碼",type:"password"}],
-      {...(state.members.length||(state.sync&&state.sync.initial)?{}:{alt:"更改密碼"}),note:note||"",
-       validate:async o=>await checkPw(o.pw||"")?"":"密碼不正確。剛開通的部門請用學生會給的初始密碼；忘記共用密碼請找部門管理員重設。"});
+    const all=!!(state.sync&&state.sync.tokenAll);let kind="";
+    const v=await ask(title||"輸入部門共用密碼",[{name:"pw",label:all?"學生會給的密碼（或部門共用密碼）":state.sync&&state.sync.initial?"初始密碼":"共用密碼",type:"password"}],
+      {...(all||state.members.length||(state.sync&&state.sync.initial)?{}:{alt:"更改密碼"}),note:note||"",
+       validate:async o=>(kind=await sharedKind(o.pw||""))?"":all?"密碼不正確。請向學生會索取密碼（各部門都一樣），或向部門管理員要部門共用密碼。":"密碼不正確。剛開通的部門請用學生會給的初始密碼；忘記共用密碼請找部門管理員重設。"});
     if(v===null)return null;
     if(v==="alt"){await changePassword();continue}
     {
       sessionPw=v.pw||"";
-      if(!state.pwKdf&&hasSubtle()){try{await setPw(sessionPw)}catch(_){}}
-      const te=state.sync&&state.sync.tokenEnc;
-      if(te&&!ghToken()&&hasSubtle()){try{localStorage.setItem(TOKEN_KEY,await decToken(te,sessionPw))}catch(_){}}
+      if(kind==="dept"&&!state.pwKdf&&hasSubtle()){try{await setPw(sessionPw)}catch(_){}}   /* 舊的共用密碼雜湊升級成 PBKDF2（全會密碼不寫進部門的共用密碼） */
+      if(!ghToken()){const t=await tokenFromShared(sessionPw);if(t){try{localStorage.setItem(TOKEN_KEY,t)}catch(_){}}}
       return v.pw||"";
     }
   }

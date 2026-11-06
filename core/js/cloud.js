@@ -8,9 +8,9 @@ function cloudCfg(){
 }
 const cloudOn=()=>{const c=cloudCfg();return !!(c.owner&&c.repo)&&!HOSTED};
 const ghToken=()=>{try{return localStorage.getItem(TOKEN_KEY)||""}catch(_){return ""}};
-/* 後台管理員（2026-11-06）：設定頁「網站管理」（雲端同步、分享預覽、開通部門）只給這台裝置是後台管理員的人看。
+/* 後台管理員（2026-11-06）：設定頁「網站管理」（雲端同步、分享預覽、全會密碼）只給這台裝置是後台管理員的人看。
    記號只存在這台裝置的瀏覽器（localStorage），不上傳。自己貼過權杖（雲端同步、儲存前的權杖欄）就記上；
-   新裝置或還沒記上的，網址加 ?admin 打開一次。各部門登入時自動解出的權杖不算（那是開通部門給的）。
+   新裝置或還沒記上的，網址加 ?admin 打開一次。各部門登入時自動解出的權杖不算（那是全會密碼、部門共用密碼或個人密碼解開的）。
    這只是把入口藏起來，不是權限控管。 */
 const SITE_ADMIN_KEY="workboard:siteadmin";
 const siteAdminMark=()=>{try{localStorage.setItem(SITE_ADMIN_KEY,"1")}catch(_){}};

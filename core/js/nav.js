@@ -192,7 +192,7 @@ function settingsInner(){
       (termOwn()?setRow("term","calendar","學年與開學日",`${esc(t.yearLabel||"學年未設定")}${({up:"・上學期",down:"・下學期"}[t.semester]||"")} · ${t.termStart?fmt(t.termStart)+" 開學":"開學日未設定"} · 全會共用`):""))+
     setSec(setRow("backup","download","備份","匯出、匯入看板內容（JSON 檔）")+
       setRow("device","device","這台裝置",remName?`記住：${esc(remName)} · 安裝成 App`:"沒有記住身分 · 安裝成 App"))+
-    (siteAdmin()?setSec(setRow("site","cloud","網站管理","雲端同步、分享預覽、開通部門（只有後台管理員看得到）")):"");
+    (siteAdmin()?setSec(setRow("site","cloud","網站管理","雲端同步、分享預覽、全會密碼（只有後台管理員看得到）")):"");
 }
 /* 設定頁（與手機子頁）的標題列：左邊學生會 logo（頁首同一個，深淺色規則見 board.css「頁首」段），右邊關閉／返回。只是圖，點了沒有作用（2026-11-06 使用者） */
 const SET_LOGO=()=>`<span class="set-logo">${suLogoMono("南臺科大學生會")}</span>`;
@@ -366,7 +366,9 @@ const SET_HUBS={
     {k:"cloud",ic:"cloud",t:"雲端同步",sub:cloudOn()?`${esc(c.owner)}/${esc(c.repo)} · ${ghToken()?"這台裝置已連上":"這台裝置還沒有權杖"}`:"尚未設定",
       flow:async()=>{const before=JSON.stringify(state);const ok=await cloudSettings();if(ok&&!editing&&JSON.stringify(state)!==before)await settingSave(()=>{},"雲端設定已更新");else render()}},
     {k:"share",ic:"share",t:"分享預覽",sub:"貼連結到 LINE、IG、FB 時顯示的標題與說明（所有部門共用）",flow:()=>shareSettings()},
-    ...(cloudOn()&&ghToken()?[{k:"provision",ic:"people",t:"開通部門（全會）",sub:"用一組初始密碼，讓各部門不用權杖也能連上雲端",flow:()=>provisionDepts()}]:[])]}),
+    /* 全會密碼與自動開通、重置測試部門（provision.js） */
+    ...(cloudOn()&&ghToken()?[{k:"allpw",ic:"people",t:"全會密碼",sub:allSub(),flow:()=>allPwSet()},
+      ...BOARD_DEPTS.filter(d=>d.test).map(d=>({k:"reset-"+d.id,ic:"history",t:`重置${d.name}（測試）`,sub:`回到剛開通的狀態，可以重新測試第一位成員的加入流程（網址 ?d=${d.id}）`,flow:()=>pvReset(d.id)}))]:[])]}),
 };
 /* 有下一層的項目（桌面版放右側面板、手機進子頁） */
 const SET_FLOWS={
