@@ -198,22 +198,37 @@ function springCurve(z,k,tol=.0015){
 }
 /* 今日層的展開／收合（2026-11-06 使用者：進入、返回要更 Q 彈流暢）：
    底板（.td-bg，純色）用 clip-path 從卡片的位置與圓角「揭開」到全螢幕（圓角不會被拉歪），裡面的內容同時從卡片的位置彈到定位（transform）；
-   兩個都照同一條彈簧曲線走（展開略帶回彈、收合不回彈、尾巴短）。
-   2026-11-06 使用者回報返回卡頓：clip-path 只裁純色底板（每格重畫很便宜），內容只動 transform／opacity（合成器）；
-   收合（2026-11-06 使用者：返回直接把進入動畫倒著播）：同一組關鍵影格、同一條彈簧，direction:"reverse"；卡片整段藏著，播完才換回卡片 */
+   clip-path 只裁純色底板（每格重畫很便宜），內容只動 transform／opacity（合成器）。
+   展開：彈簧（.62／190）略超出全螢幕再回來。
+   收合（2026-11-06 使用者：收回時像動畫突然斷掉，要復位那一下明顯縮小再彈回）：不再倒放展開動畫（倒放的結尾是全速撞到卡片後停住），
+   改用自己的欠阻尼彈簧（.55／90）從全螢幕收向卡片；底板只播到剛好收到卡片大小（進度第一次到 0）為止，
+   彈簧剩下的那段（縮過頭＝比卡片小、彈回來稍微超過、停住，結束時速度為 0）交給卡片本身接著播（tdCardLand）。
+   回傳的 Promise 收合時帶著剩下那段進度（≤0 表示比卡片小） */
 function todayMorph(ov,card,reverse){
   const r=card.getBoundingClientRect(),W=innerWidth,H=innerHeight,inner=ov.querySelector(".td-in");
   const ir=inner.getBoundingClientRect(),dx=r.left+14-ir.left,dy=r.top+12-ir.top;   /* 內容的左上（大日期）對齊卡片的大日期 */
-  const S=springCurve(.62,190);   /* 回彈約 8%；倒放時先輕輕鼓一下再縮回卡片 */
-  if(reverse){   /* 彈簧最後一段幾乎不動（離終點 1.5% 以內），倒放時會變成一開始卡住不動：剪掉這段尾巴 */
-    let k=S.p.length-1;while(k>1&&Math.abs(1-S.p[k-1])<.015)k--;S.dur=Math.round(S.dur*k/(S.p.length-1));S.p=S.p.slice(0,k+1);S.p[k]=1}
-  const n=S.p.length,o={duration:S.dur,fill:"both",direction:reverse?"reverse":"normal"};
+  let P,dur,tail=null;
+  if(!reverse){const S=springCurve(.62,190);P=S.p;dur=S.dur}   /* 回彈約 8% */
+  else{
+    const S=springCurve(.55,90,.003),A=S.p.map(x=>1-x);   /* 1（全螢幕）→ 0（卡片），會衝到 0 以下再回來 */
+    let k=1;while(k<A.length-1&&A[k]>0)k++;
+    P=A.slice(0,k+1);P[k]=0;dur=Math.round(k/120*1000);tail=A.slice(k);   /* springCurve 每 1/120 秒取一點 */
+  }
+  const n=P.length,o={duration:dur,fill:"both"};
   const clip=p=>{const q=Math.max(0,p);return `inset(${(r.top*(1-q)).toFixed(1)}px ${((W-r.right)*(1-q)).toFixed(1)}px ${((H-r.bottom)*(1-q)).toFixed(1)}px ${(r.left*(1-q)).toFixed(1)}px round ${(26*(1-Math.min(1,q))).toFixed(1)}px)`};
   const kf=[],ki=[];
-  S.p.forEach((p,i)=>{const off=i/(n-1);kf.push({offset:off,clipPath:clip(p)});ki.push({offset:off,transform:`translate(${(dx*(1-p)).toFixed(1)}px,${(dy*(1-p)).toFixed(1)}px) scale(${(.92+.08*p).toFixed(4)})`,opacity:Math.max(0,Math.min(1,p*1.5-.1))})});
+  P.forEach((p,i)=>{const off=i/(n-1);kf.push({offset:off,clipPath:clip(p)});ki.push({offset:off,transform:`translate(${(dx*(1-p)).toFixed(1)}px,${(dy*(1-p)).toFixed(1)}px) scale(${(.92+.08*p).toFixed(4)})`,opacity:Math.max(0,Math.min(1,p*1.5-.1))})});
   inner.style.transformOrigin="0 0";
   ov.querySelector(".td-bg").animate(kf,o);
-  return inner.animate(ki,o).finished;
+  return inner.animate(ki,o).finished.then(()=>tail);
+}
+/* 收回卡片的那一刻，卡片接著播收合彈簧剩下的那段（2026-11-06 使用者：復位那一下要明顯縮小再彈回）：
+   進度 p≤0 換成卡片的縮放 1+a·p，a 讓最小值剛好 .94（彈回來約 1.01，最後停在 1、速度為 0）；
+   起點就是原尺寸，跟底板收到卡片大小的那一格接得上，不會跳一下 */
+function tdCardLand(card,tail){
+  if(!card||!tail||tail.length<3||reduceMotion())return;
+  const lo=Math.min(...tail),a=lo<0?.06/-lo:0,N=tail.length-1,kf=tail.map((p,i)=>({offset:i/N,transform:`scale(${(1+a*p).toFixed(4)})`}));
+  kf[N].transform="scale(1)";card.animate(kf,{duration:Math.round(N/120*1000),easing:"linear"});
 }
 /* 卡片藏起來／換回來要「瞬間」：卡片本身的 opacity 有 CSS 過渡，直接改會慢慢淡入，今日層收掉後卡片晚一點才出現＝閃一下（2026-11-06 使用者回報） */
 function tdCardShow(card,on){if(!card)return;card.style.transition="none";card.style.opacity=on?"":"0";void card.offsetWidth;card.style.transition=""}
@@ -231,8 +246,8 @@ function closeToday(instant){
   const card=ov._card&&ov._card.isConnected?ov._card:$("#notiOv .nd-card.today"),done=()=>{ov.hidden=true;ov.classList.remove("on","off");ov.getAnimations({subtree:true}).forEach(a=>a.cancel());tdCardShow(card,true)};
   if(instant===true||reduceMotion()||!card){done();return}
   ov.getAnimations({subtree:true}).forEach(a=>a.cancel());ov.querySelector(".td-scroll").scrollTo({top:0});
-  tdCardShow(card,false);   /* 倒放期間卡片藏著（底板縮回卡片的位置與圓角，播完換回卡片，看起來就是同一張） */
-  todayMorph(ov,card,true).then(done).catch(done);
+  tdCardShow(card,false);   /* 收合期間卡片藏著（底板收到卡片的位置與圓角時換回卡片，看起來就是同一張；剩下的縮過頭、彈回由卡片接著播） */
+  todayMorph(ov,card,true).then(tail=>{done();tdCardLand(card,tail)}).catch(done);
 }
 function renderNoti(){
   const el=$("#notiOv .noti-inner");if(!el||!notiOpen)return;

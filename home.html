@@ -50,12 +50,13 @@ h1 svg{width:.62em;height:.62em;flex:none}
 .view{--fl:0px;position:relative;overflow:hidden;margin:-30px calc(-1*max(20px,env(safe-area-inset-right))) -30px -6px;padding:30px max(20px,env(safe-area-inset-right)) 30px 6px;touch-action:pan-y;cursor:grab;
   -webkit-mask:linear-gradient(90deg,transparent 0,#000 var(--fl),#000 calc(100% - 90px),transparent 100%);mask:linear-gradient(90deg,transparent 0,#000 var(--fl),#000 calc(100% - 90px),transparent 100%)}
 .view.drag{cursor:grabbing}
-.belt{display:flex;gap:14px;width:max-content;will-change:transform}
+.belt{--sq:0;--sk:0;display:flex;gap:14px;width:max-content;will-change:transform}   /* --sq／--sk 寫在整排上、卡片繼承（拖曳時每格只寫一次） */
 /* 卡片：整張都是霧面漸層（三色：亮 --g1、中 --g2、暗 --g3，兩團大光暈錯開），字直接放在上面 */
-.card{--g1:#bcc7be;--g2:#9aa48c;--g3:#323d2e;--sq:0;position:relative;flex:none;width:clamp(236px,24vw,282px);height:360px;display:flex;flex-direction:column;padding:20px 20px 18px;border-radius:26px;overflow:hidden;color:#fff;text-decoration:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;-webkit-user-drag:none;
+.card{--g1:#bcc7be;--g2:#9aa48c;--g3:#323d2e;position:relative;flex:none;width:clamp(236px,24vw,282px);height:360px;display:flex;flex-direction:column;padding:20px 20px 18px;border-radius:26px;overflow:hidden;color:#fff;text-decoration:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;-webkit-user-drag:none;
   background:radial-gradient(120% 80% at 10% 0%,var(--g1) 0%,transparent 60%),radial-gradient(130% 90% at 90% 100%,var(--g3) 0%,transparent 72%),linear-gradient(165deg,var(--g1) 0%,var(--g2) 46%,var(--g3) 100%);
   box-shadow:0 12px 22px -16px color-mix(in srgb,var(--g3) 75%,transparent);   /* 陰影不能超出卡片列的留白（30px），不然會被裁出一塊方形的影子 */
-  transform:scale(calc(1 - var(--sq) * .035)) skewX(calc(var(--sk,0) * 1deg));scale:1;transition:scale .5s var(--spring),box-shadow .3s var(--ease)}
+  transform:scale(calc(1 - var(--sq) * .035)) skewX(calc(var(--sk) * 1deg));scale:1;transition:scale .5s var(--spring),box-shadow .3s var(--ease);
+  will-change:transform}   /* 每張卡片自己一層：拖曳時的微縮、斜一點只在顯示卡上變形，漸層不用每格重畫（2026-11-06 使用者：手機滑動很卡） */
 .card::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,transparent 35%,rgba(0,0,0,.26));pointer-events:none}   /* 下半部壓暗一點：字都放在下半部，白字看得清楚（上半部漸層最亮，放字會看不清） */
 .card>*{position:relative;z-index:1}
 .card .en{font-size:10.5px;letter-spacing:.26em;opacity:.85;text-shadow:0 1px 10px rgba(0,0,0,.2)}
@@ -63,7 +64,7 @@ h1 svg{width:.62em;height:.62em;flex:none}
 .card b{margin-top:6px;font-size:28px;font-weight:700;letter-spacing:.1em;line-height:1.1;text-shadow:0 2px 16px rgba(0,0,0,.2)}
 .card .dash{width:22px;height:1.5px;margin:14px 0 10px;background:#fff;opacity:.75}
 .card p{margin:0;font-size:13px;line-height:1.6;opacity:.9;min-height:3.2em}
-.card .go{position:absolute;top:16px;right:16px;display:grid;place-items:center;width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,.22);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);transition:background-color .25s,color .25s}
+.card .go{position:absolute;top:16px;right:16px;display:grid;place-items:center;width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,.24);transition:background-color .25s,color .25s}
 .card .go svg{width:14px;height:14px;transition:transform .35s var(--spring)}
 .card:focus-visible{outline:2px solid var(--ink);outline-offset:3px}
 @media (hover:hover){.card:hover .go{background:#fff;color:var(--g3)}.card:hover .go svg{transform:translate(2px,-2px)}}
@@ -151,15 +152,18 @@ h1,.note{animation:rise .7s var(--ease) both}
      放開：照放開的速度往前滑一段，停在最近的一張卡片開頭；用彈簧（會稍微甩過頭再彈回來）。箭頭、滾輪也是設目標、交給彈簧。
      移動越快，卡片微微縮小、往移動方向斜一點（--sq、--sk），停下來彈回原狀。只動 transform，手機也順 */
   const cards=[...belt.children];let x=0,v=0,target=0,raf=0,drag=null,moved=false;
-  const gap=14,cw=()=>cards[0].getBoundingClientRect().width+gap;
-  const padL=()=>parseFloat(getComputedStyle(view).paddingLeft)||0,FADE=90;   /* 右邊 90px 是淡出區：最後一張要停在淡出區左邊、整張看得到 */
-  const visW=()=>view.clientWidth-padL()-FADE;
-  const maxX=()=>Math.max(0,belt.scrollWidth-visW());
+  /* 尺寸只在載入、改變視窗大小時量一次（M），拖曳中每格只寫樣式、不讀版面，不會每格被迫重排（2026-11-06 使用者：手機滑動很卡） */
+  const gap=14,FADE=90;   /* 右邊 90px 是淡出區：最後一張要停在淡出區左邊、整張看得到 */
+  const M={w:0,vis:0,max:0,tot:1};
+  const measure=()=>{M.w=cards[0].getBoundingClientRect().width+gap;M.vis=view.clientWidth-(parseFloat(getComputedStyle(view).paddingLeft)||0)-FADE;M.tot=belt.scrollWidth||1;M.max=Math.max(0,M.tot-M.vis)};
+  const cw=()=>M.w,visW=()=>M.vis,maxX=()=>M.max;
   const snap=t=>{const w=cw(),m=maxX();return Math.max(-m,Math.min(0,Math.round(t/w)*w))};
   const rubber=(t,m)=>t>0?t*.35/(1+t/400):t<-m?-m+(t+m)*.35/(1+(-m-t)/400):t;
+  let pSq="",pSk="",pFl="";
   function paint(){belt.style.transform=`translate3d(${x.toFixed(2)}px,0,0)`;
-    const sp=Math.min(1,Math.abs(v)/2600),sk=Math.max(-1,Math.min(1,-v/2600))*2.2;cards.forEach(c=>{c.style.setProperty("--sq",sp.toFixed(3));c.style.setProperty("--sk",sk.toFixed(2))});
-    view.style.setProperty("--fl",x<-4?"70px":"0px");sync()}
+    const sq=Math.min(1,Math.abs(v)/2600).toFixed(3),sk=(Math.max(-1,Math.min(1,-v/2600))*2.2).toFixed(2),fl=x<-4?"70px":"0px";
+    if(sq!==pSq)belt.style.setProperty("--sq",pSq=sq);if(sk!==pSk)belt.style.setProperty("--sk",pSk=sk);if(fl!==pFl)view.style.setProperty("--fl",pFl=fl);
+    sync()}
   let last=0;
   function step(now){
     const dt=Math.min(.032,(now-(last||now))/1000)||.016;last=now;
@@ -174,7 +178,9 @@ h1,.note{animation:rise .7s var(--ease) both}
   addEventListener("pointermove",e=>{if(!drag||e.pointerId!==drag.id)return;const dx=e.clientX-drag.x0,dy=e.clientY-drag.y0;
     if(!drag.axis){if(Math.hypot(dx,dy)<6)return;drag.axis=Math.abs(dx)>Math.abs(dy)?"x":"y";if(drag.axis==="y"){drag.card&&drag.card.classList.remove("press");drag=null;return}
       moved=true;view.classList.add("drag");try{view.setPointerCapture(e.pointerId)}catch(_){}drag.card&&drag.card.classList.remove("press")}
-    const now=performance.now(),m=maxX();x=rubber(drag.start+dx,m);v=(e.clientX-drag.lx)/Math.max(1,now-drag.lt)*1000*.8+v*.2;drag.lx=e.clientX;drag.lt=now;target=x;paint()});
+    const now=performance.now(),m=maxX();x=rubber(drag.start+dx,m);v=(e.clientX-drag.lx)/Math.max(1,now-drag.lt)*1000*.8+v*.2;drag.lx=e.clientX;drag.lt=now;target=x;
+    if(!dragRaf)dragRaf=requestAnimationFrame(()=>{dragRaf=0;paint()})});   /* 手指移動的事件一格可能來好幾次：合併成每格畫一次 */
+  let dragRaf=0;
   const up=e=>{if(!drag||e.pointerId!==drag.id)return;const d=drag;drag=null;view.classList.remove("drag");d.card&&d.card.classList.remove("press");
     if(!moved)return;const proj=x+v*.22;go(snap(proj))};
   addEventListener("pointerup",up);addEventListener("pointercancel",up);
@@ -189,11 +195,14 @@ h1,.note{animation:rise .7s var(--ease) both}
   belt.addEventListener("focusin",e=>{const c=e.target.closest(".card");if(!c)return;view.scrollLeft=0;const i=cards.indexOf(c),w=cw(),vis=visW();const l=i*w;if(l+x<0||l+w+x>vis)go(snap(-l))});
   /* 進度條、箭頭狀態 */
   const prog=$("prog");
-  function sync(){const m=maxX(),tot=belt.scrollWidth||1,pw=Math.min(1,visW()/tot),f=m<1?0:Math.max(-.08,Math.min(1.08,-x/m));   /* 拖過頭時實線也跟著微微超出（橡皮筋） */
-    prog.style.setProperty("--pw",(pw*100).toFixed(1)+"%");prog.style.setProperty("--px",(f*(1-pw)/pw*100).toFixed(1)+"%");
-    $("prev").disabled=target>=-1;$("next").disabled=target<=-m+1}
-  addEventListener("resize",()=>{const m=maxX();target=Math.max(-m,Math.min(0,target));x=target;paint()});
-  paint();
+  let pPw="",pPx="",pPrev=null,pNext=null;
+  function sync(){const m=maxX(),tot=M.tot,pw=Math.min(1,visW()/tot),f=m<1?0:Math.max(-.08,Math.min(1.08,-x/m));   /* 拖過頭時實線也跟著微微超出（橡皮筋） */
+    const a=(pw*100).toFixed(1)+"%",b=(f*(1-pw)/pw*100).toFixed(1)+"%",dp=target>=-1,dn=target<=-m+1;
+    if(a!==pPw)prog.style.setProperty("--pw",pPw=a);if(b!==pPx)prog.style.setProperty("--px",pPx=b);
+    if(dp!==pPrev)$("prev").disabled=pPrev=dp;if(dn!==pNext)$("next").disabled=pNext=dn}
+  addEventListener("resize",()=>{measure();const m=maxX();target=Math.max(-m,Math.min(0,target));x=target;paint()});
+  measure();paint();
+  if(document.fonts)document.fonts.ready.then(()=>{measure();paint()});   /* 字型載入後卡片寬度可能變：再量一次 */
 
   /* ---------- 點卡片進部門：這一頁自己的離場動畫（只動 transform／opacity，交給顯示卡），播完才換頁；看板那邊從後面浮上來（pagefx.js） ----------
      點到的那張往前放大一點、其他卡片往兩邊滑開淡出、標題與其他字往上淡出，整頁最後往後退一點淡掉 */
