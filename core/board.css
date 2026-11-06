@@ -882,8 +882,8 @@ fieldset.multi legend{padding:0;margin-bottom:6px;font-size:13px;color:var(--mut
 .chip input:focus-visible+span{outline:2px solid var(--ink);outline-offset:2px}
 dialog#dlg{border:0;border-radius:26px;color:var(--ink)}
 .dlg-ghost{border:0;border-radius:26px;color:var(--ink);animation:none;pointer-events:none;display:block}
-dialog#dlg.glass{position:fixed;background:rgba(22,22,24,.64);-webkit-backdrop-filter:blur(28px) saturate(170%);backdrop-filter:blur(28px) saturate(170%)}
-:root:not([data-theme="dark"]) dialog#dlg.glass{background:rgba(255,255,255,.7)}
+dialog#dlg.glass{position:fixed;--glass-bg:rgba(22,22,24,.64);--glass-solid:#1c1c1f;-webkit-backdrop-filter:blur(28px) saturate(170%);backdrop-filter:blur(28px) saturate(170%)}
+:root:not([data-theme="dark"]) dialog#dlg.glass{--glass-bg:rgba(255,255,255,.7);--glass-solid:#f7f7f9}
 dialog#dlg[open]{animation:dlgIn .4s cubic-bezier(.2,.9,.25,1.12)}
 dialog#dlg[open]::backdrop{background:rgba(0,0,0,.3);-webkit-backdrop-filter:blur(2px);backdrop-filter:blur(2px);animation:fade .3s ease}
 .dlg-ghost-bd{position:fixed;inset:0;z-index:2147482999;background:rgba(0,0,0,.3);pointer-events:none}
@@ -931,7 +931,7 @@ dialog#dlg:has(.csel.open){overflow:visible}
   dialog{padding:16px}
 }
 @media (prefers-color-scheme:dark){
-  :root:not([data-theme="light"]) dialog#dlg.glass{background:rgba(22,22,24,.64)}
+  :root:not([data-theme="light"]) dialog#dlg.glass{--glass-bg:rgba(22,22,24,.64);--glass-solid:#1c1c1f}
   :root:not([data-theme="light"]) #dlg :is(input:not([type=checkbox]),textarea,select){background:rgba(0,0,0,.28);border-color:rgba(255,255,255,.32)}
   :root:not([data-theme="light"]) #dlg .csel-btn{background:rgba(0,0,0,.28);border-color:rgba(255,255,255,.32)}
 }
@@ -1002,12 +1002,19 @@ dialog#dlg:has(.csel.open){overflow:visible}
 @media (prefers-reduced-motion:no-preference){@keyframes icoX{0%,100%{transform:rotate(0)}50%{transform:rotate(90deg) scale(.85)}}}
 
 /* ===== 液態玻璃材質 ===== */
-/* .glass：毛玻璃（對話框、底部工具列）。背景模糊＋內緣高光＋跟著指標移動的反光（--mx／--my，util.js 的 glassify），不用 SVG 折射 */
-.glass{--glass-sh:inset 0 0 0 .5px rgba(255,255,255,.2),inset 1.5px 1.5px 1px -1px rgba(255,255,255,.6),inset -1.5px -1.5px 1px -1px rgba(255,255,255,.2),inset 0 0 24px rgba(255,255,255,.045),0 14px 34px rgba(0,0,0,.45);position:relative;isolation:isolate;background:rgba(28,28,30,.34);-webkit-backdrop-filter:blur(14px) saturate(150%);backdrop-filter:blur(14px) saturate(150%);box-shadow:var(--glass-sh)}   /* 光影放在 --glass-sh，別的規則要保留它時直接引用 */
+/* .glass：毛玻璃（對話框、底部工具列）。背景模糊＋內緣高光＋跟著指標移動的反光（--mx／--my，util.js 的 glassify），不用 SVG 折射
+   底色用變數：--glass-bg（半透明，配背景模糊）、--glass-solid（純色，手機用，見本段最後）；別的規則要換底色時改這兩個變數，不直接寫 background */
+.glass{--glass-bg:rgba(28,28,30,.34);--glass-solid:#1c1c1e;--glass-sh:inset 0 0 0 .5px rgba(255,255,255,.2),inset 1.5px 1.5px 1px -1px rgba(255,255,255,.6),inset -1.5px -1.5px 1px -1px rgba(255,255,255,.2),inset 0 0 24px rgba(255,255,255,.045),0 14px 34px rgba(0,0,0,.45);position:relative;isolation:isolate;background:var(--glass-bg);-webkit-backdrop-filter:blur(14px) saturate(150%);backdrop-filter:blur(14px) saturate(150%);box-shadow:var(--glass-sh)}   /* 光影放在 --glass-sh，別的規則要保留它時直接引用 */
 .glass::after{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;background:radial-gradient(140px circle at var(--mx,28%) var(--my,-30%),rgba(255,255,255,.13),transparent 70%)}
-:root:not([data-theme="dark"]) .glass{--glass-sh:inset 0 0 0 .5px rgba(0,0,0,.1),inset 1.5px 1.5px 1px -1px rgba(255,255,255,.95),inset -1.5px -1.5px 1px -1px rgba(255,255,255,.6),inset 0 0 22px rgba(255,255,255,.35),0 12px 30px rgba(0,0,0,.14);background:rgba(255,255,255,.42)}
+:root:not([data-theme="dark"]) .glass{--glass-sh:inset 0 0 0 .5px rgba(0,0,0,.1),inset 1.5px 1.5px 1px -1px rgba(255,255,255,.95),inset -1.5px -1.5px 1px -1px rgba(255,255,255,.6),inset 0 0 22px rgba(255,255,255,.35),0 12px 30px rgba(0,0,0,.14);--glass-bg:rgba(255,255,255,.42);--glass-solid:#f2f2f5}
 @media (prefers-color-scheme:dark){
-  :root:not([data-theme="light"]) .glass{--glass-sh:inset 0 0 0 .5px rgba(255,255,255,.2),inset 1.5px 1.5px 1px -1px rgba(255,255,255,.6),inset -1.5px -1.5px 1px -1px rgba(255,255,255,.2),inset 0 0 24px rgba(255,255,255,.045),0 14px 34px rgba(0,0,0,.45);background:rgba(28,28,30,.34)}
+  :root:not([data-theme="light"]) .glass{--glass-sh:inset 0 0 0 .5px rgba(255,255,255,.2),inset 1.5px 1.5px 1px -1px rgba(255,255,255,.6),inset -1.5px -1.5px 1px -1px rgba(255,255,255,.2),inset 0 0 24px rgba(255,255,255,.045),0 14px 34px rgba(0,0,0,.45);--glass-bg:rgba(28,28,30,.34);--glass-solid:#1c1c1e}
+}
+/* 手機（觸控）：不用背景模糊，玻璃一律純色（2026-11-06 使用者：動畫順暢最重要，玻璃會加重手機負擔就換純色；Pixel 10）。
+   背景模糊在後面的內容一動（捲動、展開、換頁）就要每格重算。內緣高光、陰影、反光照舊，動畫與層級不變 */
+@media (pointer:coarse){
+  .glass{background:var(--glass-solid)}
+  .glass,dialog#dlg.glass,.csel-list,dialog#dlg[open]::backdrop{-webkit-backdrop-filter:none;backdrop-filter:none}
 }
 @supports not ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))){
   .glass{background:var(--surface)!important}
@@ -1041,13 +1048,19 @@ dialog#dlg:has(.csel.open){overflow:visible}
 #setBtn.due .tb-due{opacity:1;transform:none}
 /* 依背後亮度反轉（nav.js 的 tbContrast，標在分頁列與設定鍵上）：文字色與玻璃底色一起換 */
 .tabbar .on-light{--tb-ink:#111114;--tb-surface:#fff;--tb-muted:#4a4a53}
-#tabbar .glass.on-light{background:rgba(255,255,255,.42)}
+#tabbar .glass.on-light{--glass-bg:rgba(255,255,255,.42);--glass-solid:#f2f2f5}
 .tabbar .on-dark{--tb-ink:#f4f4f6;--tb-surface:#111114;--tb-muted:#b9b9c2}
-#tabbar .glass.on-dark{background:rgba(28,28,30,.34)}
+#tabbar .glass.on-dark{--glass-bg:rgba(28,28,30,.34);--glass-solid:#1c1c1e}
 /* 設定鍵選取＝跟鏡片一樣的實心（放在反轉色之後，選取時蓋過玻璃底色） */
 #tabbar .tb-gear.on{background:var(--tb-ink);color:var(--tb-surface)}
 #tabbar .tb-gear.on .ico{stroke-width:2}
-.tabbar .tab-l,.tabbar .tab-ind{transition:color .35s,background-color .35s}
+.tabbar .tab-l,.tabbar .tab-ind{transition:color .35s,background-color .35s,opacity .25s var(--mo-out),transform .42s var(--mo-spring)}
+/* 底部工具列（900px 以下）：只有鏡片底下那一格（.lit，跟著鏡片走，拖曳時也是）顯示文字；其他格文字淡掉、圖示往下移到置中
+   （2026-11-06 使用者：沒被選到的不用顯示文字）。只動 transform／opacity，分頁寬高不變，鏡片位置照舊（用版面位置算）；設定打開時（鏡片關掉）全部只剩圖示 */
+@media (max-width:899px){
+  .tabbar .tab:not(.lit) .tab-l{opacity:0;transform:translateY(-3px) scale(.92)}
+  .tabbar .tab:not(.lit) .tab-ind{transform:translateY(8px)}
+}
 #tabbar .tab:focus-visible,#tabbar .tb-gear:focus-visible{outline:none}
 #tabbar .tab:focus-visible .tab-l{text-decoration:underline;text-decoration-thickness:1.5px;text-underline-offset:4px}
 #tabbar .tb-gear:focus-visible .ico{transform:scale(1.15)}

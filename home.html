@@ -50,12 +50,12 @@ h1 svg{width:.62em;height:.62em;flex:none}
 .view{--fl:0px;position:relative;overflow:hidden;margin:-30px calc(-1*max(20px,env(safe-area-inset-right))) -30px -6px;padding:30px max(20px,env(safe-area-inset-right)) 30px 6px;touch-action:pan-y;cursor:grab;
   -webkit-mask:linear-gradient(90deg,transparent 0,#000 var(--fl),#000 calc(100% - 90px),transparent 100%);mask:linear-gradient(90deg,transparent 0,#000 var(--fl),#000 calc(100% - 90px),transparent 100%)}
 .view.drag{cursor:grabbing}
-.belt{--sq:0;--sk:0;display:flex;gap:14px;width:max-content;will-change:transform}   /* --sq／--sk 寫在整排上、卡片繼承（拖曳時每格只寫一次） */
+.belt{display:flex;gap:14px;width:max-content;will-change:transform}
 /* 卡片：整張都是霧面漸層（三色：亮 --g1、中 --g2、暗 --g3，兩團大光暈錯開），字直接放在上面 */
 .card{--g1:#bcc7be;--g2:#9aa48c;--g3:#323d2e;position:relative;flex:none;width:clamp(236px,24vw,282px);height:360px;display:flex;flex-direction:column;padding:20px 20px 18px;border-radius:26px;overflow:hidden;color:#fff;text-decoration:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;-webkit-user-drag:none;
   background:radial-gradient(120% 80% at 10% 0%,var(--g1) 0%,transparent 60%),radial-gradient(130% 90% at 90% 100%,var(--g3) 0%,transparent 72%),linear-gradient(165deg,var(--g1) 0%,var(--g2) 46%,var(--g3) 100%);
   box-shadow:0 12px 22px -16px color-mix(in srgb,var(--g3) 75%,transparent);   /* 陰影不能超出卡片列的留白（30px），不然會被裁出一塊方形的影子 */
-  transform:scale(calc(1 - var(--sq) * .035)) skewX(calc(var(--sk) * 1deg));scale:1;transition:scale .5s var(--spring),box-shadow .3s var(--ease);
+  scale:1;transition:scale .5s var(--spring),box-shadow .3s var(--ease);
   will-change:transform}   /* 每張卡片自己一層：拖曳時的微縮、斜一點只在顯示卡上變形，漸層不用每格重畫（2026-11-06 使用者：手機滑動很卡） */
 .card::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,transparent 35%,rgba(0,0,0,.26));pointer-events:none}   /* 下半部壓暗一點：字都放在下半部，白字看得清楚（上半部漸層最亮，放字會看不清） */
 .card>*{position:relative;z-index:1}
@@ -150,7 +150,9 @@ h1,.note{animation:rise .7s var(--ease) both}
   /* ---------- 卡片列：拖曳＋慣性＋彈簧（Q 彈） ----------
      x＝整排往左移了多少（0～-max）。拖的時候跟著手指；超出兩端像橡皮筋（越拉越緊）。
      放開：照放開的速度往前滑一段，停在最近的一張卡片開頭；用彈簧（會稍微甩過頭再彈回來）。箭頭、滾輪也是設目標、交給彈簧。
-     移動越快，卡片微微縮小、往移動方向斜一點（--sq、--sk），停下來彈回原狀。只動 transform，手機也順 */
+     移動越快，卡片微微縮小、往移動方向斜一點，停下來彈回原狀。只動 transform，手機也順。
+     2026-11-06 Pixel 10 滑動卡：原本用 CSS 變數（--sq／--sk）寫在整排上讓卡片繼承，變數一變，整排卡片連同裡面每個元素每格都要重算樣式
+     （量過：4 倍降速下拖曳一次約 1600ms 的樣式重算）。改成斜一點寫在整排、微縮分段才寫卡片（見 paint），量過約 1600ms → 100ms 上下 */
   const cards=[...belt.children];let x=0,v=0,target=0,raf=0,drag=null,moved=false;
   /* 尺寸只在載入、改變視窗大小時量一次（M），拖曳中每格只寫樣式、不讀版面，不會每格被迫重排（2026-11-06 使用者：手機滑動很卡） */
   const gap=14,FADE=90;   /* 右邊 90px 是淡出區：最後一張要停在淡出區左邊、整張看得到 */
@@ -159,10 +161,13 @@ h1,.note{animation:rise .7s var(--ease) both}
   const cw=()=>M.w,visW=()=>M.vis,maxX=()=>M.max;
   const snap=t=>{const w=cw(),m=maxX();return Math.max(-m,Math.min(0,Math.round(t/w)*w))};
   const rubber=(t,m)=>t>0?t*.35/(1+t/400):t<-m?-m+(t+m)*.35/(1+(-m-t)/400):t;
-  let pSq="",pSk="",pFl="";
-  function paint(){belt.style.transform=`translate3d(${x.toFixed(2)}px,0,0)`;
-    const sq=Math.min(1,Math.abs(v)/2600).toFixed(3),sk=(Math.max(-1,Math.min(1,-v/2600))*2.2).toFixed(2),fl=x<-4?"70px":"0px";
-    if(sq!==pSq)belt.style.setProperty("--sq",pSq=sq);if(sk!==pSk)belt.style.setProperty("--sk",pSk=sk);if(fl!==pFl)view.style.setProperty("--fl",pFl=fl);
+  let pCt="",pFl="";
+  function paint(){
+    /* 斜一點寫在整排上（卡片高度相同、中心在同一條水平線，整排斜跟每張各自斜看起來一樣，而整排本來每格就要寫）；
+       微縮分成 8 段（每段約 1px），跨段才重寫卡片，拖曳中卡片很少需要重算樣式 */
+    const sk=(Math.max(-1,Math.min(1,-v/2600))*2.2).toFixed(2),q=Math.round(Math.min(1,Math.abs(v)/2600)*8)/8,fl=x<-4?"70px":"0px";
+    belt.style.transform=`translate3d(${x.toFixed(2)}px,0,0)`+(+sk?` skewX(${sk}deg)`:"");
+    const ct=q?`scale(${(1-q*.035).toFixed(4)})`:"";if(ct!==pCt){pCt=ct;cards.forEach(c=>c.style.transform=ct)}if(fl!==pFl)view.style.setProperty("--fl",pFl=fl);
     sync()}
   let last=0;
   function step(now){
