@@ -18,3 +18,12 @@
 :root[data-theme="dark"] .splash{background:#000}
 :root[data-theme="dark"] .splash path:not(.sp-gap){fill:#f1f1f4}
 :root[data-theme="dark"] .sp-gap{display:inline}
+/* 深色模式的標誌用單色線稿（splash.js 的 SU_LINE）：淺色時藏起來；深色時藏起彩色兩塊、顯示線稿（白色，黑底） */
+.sp-line{display:none;transform-box:fill-box;transform-origin:center}
+.sp-line path{fill:#f1f1f4}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]) .sp-line{display:inline}
+  :root:not([data-theme="light"]) :is(.sp-y,.sp-b){display:none}
+}
+:root[data-theme="dark"] .sp-line{display:inline}
+:root[data-theme="dark"] :is(.sp-y,.sp-b){display:none}
