@@ -775,7 +775,7 @@ a.link:active{transform:scale(.96)}
    標題列跟合併頁同一種（20px 標題＋細分隔線），捲動時黏在面板上方；「返回」只在桌面出現（手機用子頁上方的「返回」） */
 .week-wrap{max-width:640px}
 .week-wrap[hidden]{display:none}
-.week-top{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;position:sticky;top:0;background:var(--bg);z-index:5;padding:0 0 12px;margin-bottom:16px;border-bottom:1px solid var(--hair)}
+.week-top{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;position:sticky;top:-14px;background:var(--bg);z-index:5;padding:14px 0 12px;margin:-14px 0 16px;border-bottom:1px solid var(--hair)}   /* 黏住時往上多蓋 14px：面板／子頁上方有留白（.set-pane 14px、.set-sub-body 10px），不蓋住的話捲動時內容會從那段露出來（2026-11-06 使用者回報跑版） */
 .week-top h2{flex:1;min-width:0;font-size:20px;letter-spacing:.08em}
 .week-top h2::after{content:none}
 /* 「秘書處調閱 →」：秘書處的看板有「各部門週報」可以調閱每個部門的週報（秘書處自己不顯示） */
@@ -1294,13 +1294,16 @@ dialog#dlg:has(.csel.open){overflow:visible}
 .dv-top b{font-size:22px;font-weight:300}
 .dv-top span{font-size:12.5px;color:var(--muted);letter-spacing:.06em}
 .dv-x{margin-left:auto;width:32px;height:32px;min-height:0;padding:0;border-radius:50%;display:inline-grid;place-items:center;align-self:center}
-.dv-tags{display:flex;flex-wrap:wrap;gap:8px}
+/* 這一天的事件（2026-11-06 使用者：膠囊遇到長標題會折行、太醜 → 改成清單列）：左邊一條部門／狀態色的細直條，右邊標題（可以折行）、下一行次要色小字「時間・所屬」；列與列之間細線 */
+.dv-tags{display:grid}
 .dv-tag{animation:ndRise .45s var(--mo-out) both}.dv-tag:nth-child(2){animation-delay:.04s}.dv-tag:nth-child(3){animation-delay:.08s}.dv-tag:nth-child(4){animation-delay:.12s}.dv-tag:nth-child(n+5){animation-delay:.16s}
-.dv-tag{display:inline-flex;align-items:baseline;gap:7px;max-width:100%;padding:7px 14px;border-radius:999px;background:var(--bg);box-shadow:inset 0 0 0 1px var(--hair);font-size:13.5px}
-.dv-tag i{align-self:center;flex:none;width:7px;height:7px;border-radius:50%;background:var(--c)}
-.dv-tag .num{font-size:12px;color:var(--muted)}
-.dv-tag b{font-weight:500}
-.dv-tag small{font-size:11.5px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.dv-tag{display:grid;grid-template-columns:3px minmax(0,1fr);gap:12px;padding:11px 2px;font-size:14px}
+.dv-tag+.dv-tag{border-top:1px solid var(--hair)}
+.dv-tag i{border-radius:2px;background:var(--c)}
+.dv-tx{display:grid;gap:3px;min-width:0}
+.dv-tx b{font-weight:500;line-height:1.45}
+.dv-tx small{font-size:12px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.dv-tx .num{letter-spacing:.02em}
 .pc{--pc-lane:9px;padding-top:4px}   /* 每一層事件線 9px（不寫字，只看幾條線） */
 .pc-head{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px}
 .pc-mon{font-family:"Jost",sans-serif;font-weight:600;font-size:clamp(68px,13vw,120px);line-height:.82;letter-spacing:-.02em}
@@ -1412,22 +1415,27 @@ dialog#dlg:has(.csel.open){overflow:visible}
 /* ===== 工作報告 ===== */
 .rpt-ov{position:fixed;inset:0;z-index:90;background:var(--bg);color:var(--ink);display:flex;flex-direction:column;gap:10px;padding:calc(14px + env(safe-area-inset-top)) max(clamp(14px,3vw,40px),env(safe-area-inset-right)) 0 max(clamp(14px,3vw,40px),env(safe-area-inset-left))}
 .rpt-hint{font-size:12px;letter-spacing:.06em}
-.rpt-scroll{flex:1;overflow:auto;scrollbar-gutter:stable;padding:6px 0 calc(48px + env(safe-area-inset-bottom))}
+.rpt-scroll{flex:1;overflow:auto;overflow-anchor:none;scrollbar-gutter:stable;padding:6px 0 calc(48px + env(safe-area-inset-bottom))}
 /* 紙張：不管深淺色模式都是白紙黑字，列印也一樣。2026-11-06 改版：封面、目錄、每一章各一張紙（A4 比例），
    版面參考使用者給的極簡白紙範例：大標題靠左、上下小字、細線分隔、細體大數字（Jost 200）當章節號、右上角章節索引 */
 .rpt-paper{--ink:#111114;--muted:#5d5d66;--line:#111114;--hair:#dcdce2;--rest:#c9c9d0;--prog-lo:var(--accent-light);--prog-lo-ink:var(--accent-light);--today:var(--ink);--pad:6.667%;width:min(100%,210mm);margin:0 auto;display:grid;grid-template-columns:minmax(0,1fr);gap:28px;color:var(--ink);font-size:14px;line-height:1.75}
 .rpt-page{position:relative;aspect-ratio:210/297;padding:var(--pad) var(--pad) calc(var(--pad) + 8px);border-radius:4px;background:#fff;box-shadow:0 10px 40px rgba(0,0,0,.25)}
 .rpt-paper .num{font-family:"Jost",sans-serif}
 /* 紙張就是 A4 寬（210mm），左右留白 6.667%＝14mm、內文 182mm，跟列印的 @page 一樣，桌面預覽的換行就是 PDF 的換行（2026-11-06） */
-/* --- 實際斷頁（report.js 的 rptPaginate）：紅色虛線＝下一頁從這裡開始，紙張右上角標它從第幾頁開始；列印與量測時不出現 --- */
+/* --- 一張一張的紙（report.js 的 rptPaginate）：桌面上每一章依實際斷頁排成幾張 A4，紙與紙之間一條底色空隙（.rpt-gap），
+   斷點那一塊前面一個看不見的墊塊（.rpt-sp）把它推到下一張紙的開頭；每張紙右外側標「第 N 頁」（.rpt-pg，2026-11-06 使用者：標籤放側邊，不要壓到章節按鈕）。
+   手機紙張窄：頁碼放在紙裡右上角，斷點畫紅色虛線＋紅色小膠囊（.rpt-pb）。這些列印與量測時都不出現 --- */
+.rpt-sp{display:block;pointer-events:none}
+.rpt-gap{position:absolute;left:-2px;right:-2px;height:28px;background:color-mix(in srgb,var(--ink) 12%,var(--bg));box-shadow:inset 0 9px 12px -10px rgba(0,0,0,.45),inset 0 -9px 12px -10px rgba(0,0,0,.45);pointer-events:none;z-index:2}
+.rpt-pg{position:absolute;left:calc(100% + 14px);padding:2px 10px;border-radius:999px;border:1px solid var(--hair);background:var(--bg);color:var(--muted);font-size:11px;letter-spacing:.06em;white-space:nowrap;pointer-events:none;animation:fadeIn .3s both}
 .rpt-pb{position:absolute;left:0;right:0;height:0;border-top:1.5px dashed var(--accent-light);pointer-events:none;z-index:1;animation:fadeIn .3s both}
 .rpt-pb>span{position:absolute;right:10px;top:4px;padding:1px 8px;border-radius:999px;background:var(--accent-light);color:#fff;font-size:11px;letter-spacing:.06em;white-space:nowrap}
-.rpt-pb-top{top:10px;left:auto;right:12px;height:auto;padding:1px 8px;border-radius:999px;border:1px solid var(--hair);background:#fff;color:var(--muted);font-size:11px;letter-spacing:.06em}
+@media (max-width:999px){.rpt-pg{left:auto;right:10px;margin-top:8px;background:#fff;border-color:#dcdce2;color:#5d5d66}}   /* 紙張外面放不下：放在紙裡右上角 */
 .rpt-pages{margin-left:10px;font-size:12px;color:var(--muted);letter-spacing:.06em}
 /* 量測用（同一個 JS 工作裡加上又拿掉，畫面不會出現）：版面照列印 */
 .rpt-paper.rpt-measure{display:block;width:182mm;font-size:14px}
-.rpt-measure .rpt-page{aspect-ratio:auto;padding:0;box-shadow:none}
-.rpt-measure :is(.rpt-ct,.rpt-bt,.rpt-ins,.rpt-img-h,.rpt-card-x,.rpt-card-add,.rpt-blk.is-blank,.rpt-ch.is-blank,[data-ph]:empty,.rpt-pb){display:none}
+.rpt-measure .rpt-page{aspect-ratio:auto;padding:0;box-shadow:none}   /* 每章的最小高度（排成幾張紙時程式設的）量之前就先清掉了 */
+.rpt-measure :is(.rpt-ct,.rpt-bt,.rpt-ins,.rpt-img-h,.rpt-card-x,.rpt-card-add,.rpt-blk.is-blank,.rpt-ch.is-blank,[data-ph]:empty,.rpt-pb,.rpt-pg,.rpt-gap,.rpt-sp){display:none}
 .rpt-measure .rpt-blocks{display:block}
 .rpt-measure .rpt-blocks>.rpt-blk+.rpt-blk{margin-top:18px}
 .rpt-measure .rpt-stats{grid-template-columns:repeat(4,minmax(0,1fr))}
@@ -1443,9 +1451,7 @@ dialog#dlg:has(.csel.open){overflow:visible}
 .cv-top{display:flex;justify-content:space-between;align-items:flex-start;gap:16px}
 .cv-org{display:flex;align-items:center;gap:14px}
 .cv-org b{font-size:15px;font-weight:700;letter-spacing:.14em}
-.cv-logo .logo{display:block;height:34px;width:auto}
-.rpt-cover .cv-logo .logo path:not(.logo-gap){fill:#111114}   /* 封面一律黑色單色 logo，黃藍之間描白色分隔縫 */
-.rpt-cover .cv-logo .logo .logo-gap{display:inline;stroke:#fff}
+.cv-logo .su-logo-c{display:block;height:34px;width:auto}   /* 封面一律原檔彩色 logo（shell.js 的 suLogoColor，不跟深淺色） */
 .cv-date{font-size:12px;letter-spacing:.08em;color:var(--muted)}
 .cv-mid{margin-top:12%}
 .cv-k{margin:0 0 10px;font-size:12px;letter-spacing:.32em;color:var(--muted)}
@@ -1518,15 +1524,15 @@ dialog#dlg:has(.csel.open){overflow:visible}
 .rpt-stats b{font-family:"Jost",sans-serif;font-size:28px;font-weight:400;line-height:1.1}
 .rpt-stats span{font-size:13px;font-weight:600}
 .rpt-stats small{color:var(--muted);font-size:11.5px}
-.rpt-gantt{margin:0}
-.rpt-gantt svg{display:block;width:100%;height:auto;overflow:visible}
-.rg-grid{stroke:var(--hair);stroke-width:1}
-.rg-m{fill:var(--muted);font-size:11px}
-.rg-t{fill:var(--ink);font-size:12px}
-.rg-p{fill:var(--muted);font-size:11px}
-.rg-rest{stroke:var(--rest);stroke-width:2.5;stroke-linecap:round}
-.rg-fill{stroke:var(--acc);stroke-width:5;stroke-linecap:round}
-.rg-today{stroke:var(--today);stroke-width:1.5}
+/* 期間甘特圖（report.js 的 rptGantt）：跟看板甘特圖同一種細刻度（.tk） */
+.rpt-gantt{margin:0;display:grid;gap:4px}
+.rg-row{display:grid;grid-template-columns:minmax(0,150px) 40px minmax(0,1fr);align-items:center;gap:12px}
+.rg-t{font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rg-p{font-size:11.5px;color:var(--muted);text-align:right}
+.rg-bar{height:20px}
+.rg-axis{position:relative;height:22px}
+.rg-axis span{position:absolute;top:3px;font-size:11px;color:var(--muted);transform:translateX(3px);white-space:nowrap}
+.rg-axis .rg-now{top:1px;transform:translateX(-50%);padding:1px 7px;border-radius:999px;background:var(--ok);color:#06210f;font-size:10.5px;line-height:14px}
 .rpt-issue{padding:12px 0 14px;border-bottom:1px dashed var(--hair)}
 .rpt-issue:last-child{border-bottom:0}
 .rpt-issue h3{display:flex;flex-wrap:wrap;align-items:baseline;gap:12px;margin:0;font-size:16px;font-weight:600}
@@ -1586,7 +1592,7 @@ dialog#dlg:has(.csel.open){overflow:visible}
   body.rpt-open>:not(#rptOv){display:none}
   body.rpt-open #rptOv{position:static;display:block;padding:0;background:#fff}
   @page:first{@bottom-center{content:none}}   /* 封面不印頁碼 */
-  .rpt-bar,.rpt-pt,.rpt-ct,.rpt-bt,.rpt-ins,.rpt-pb,.rpt-img-h,.rpt-card-x,.rpt-card-add,.rpt-blk.is-blank,.rpt-ch.is-blank,.rpt-paper [data-ph]:empty{display:none}
+  .rpt-bar,.rpt-pt,.rpt-ct,.rpt-bt,.rpt-ins,.rpt-pb,.rpt-pg,.rpt-gap,.rpt-sp,.rpt-img-h,.rpt-card-x,.rpt-card-add,.rpt-blk.is-blank,.rpt-ch.is-blank,.rpt-paper [data-ph]:empty{display:none}
   .rpt-scroll{overflow:visible;padding:0}
   .rpt-paper{display:block;width:auto;margin:0;-webkit-print-color-adjust:exact;print-color-adjust:exact}
   .rpt-page{aspect-ratio:auto;padding:0;border-radius:0;box-shadow:none;break-before:page}
@@ -1594,7 +1600,7 @@ dialog#dlg:has(.csel.open){overflow:visible}
   .rpt-cover{height:266mm}   /* A4 高 297mm 扣掉上下邊界：封面三段撐滿一頁 */
   .rpt-blocks{display:block}.rpt-blocks>.rpt-blk+.rpt-blk{margin-top:18px}
   .rpt-paper [contenteditable="true"],.rpt-paper [contenteditable="true"]:is(:hover,:focus),.rpt-blk:is(:focus,:focus-within){background:none;box-shadow:none}
-  .rpt-stats,.rpt-gantt,.rpt-issue,.rpt-img,.rpt-card,.toc-list li{break-inside:avoid}
+  .rpt-stats,.rpt-gantt,.rpt-issue,.rpt-img,.rpt-card,.rpt-cards,.toc-list li,.rpt-paper :is(p,li,h3,h4){break-inside:avoid}   /* 每一段文字也不切開：預覽的分頁（rptPaginate）就是照這個排的 */
   .rpt-ch-h{break-after:avoid}
 }
 

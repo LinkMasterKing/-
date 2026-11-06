@@ -108,6 +108,13 @@ function suLogoMono(label){
   return `<svg class="logo" xmlns="http://www.w3.org/2000/svg" viewBox="${VX} ${VY} ${VW} ${VH}" role="img" aria-label="${label}"><g>
     <path fill="${cy}" d="${dy}"/><path class="logo-gap" d="${outer}"/><path fill="${cb}" d="${db}"/>${SU_LOGO.g.map(g=>`<path fill="${g[4]}" d="${g[5]}"/>`).join("")}</g></svg>`;
 }
+/* 文件（工作報告）上的學生會 logo：一律原檔彩色、不跟深淺色（2026-11-06 使用者：logo 在文件上都用彩色）。
+   class 不是 .logo，所以深色模式把 .logo 改成單色的規則不會套到；也不需要切割線（兩塊顏色本來就不同）。
+   黑白列印用的單色線稿另外放在 assets/學生會logo-單色線稿.svg（使用者提供，目前沒有用到） */
+function suLogoColor(label){
+  const [VX,VY,VW,VH]=SU_LOGO.box,[,,,,[[cy,dy],[cb,db]]]=SU_LOGO.emb;
+  return `<svg class="su-logo-c" xmlns="http://www.w3.org/2000/svg" viewBox="${VX} ${VY} ${VW} ${VH}" role="img" aria-label="${label}"><path fill="${cy}" d="${dy}"/><path fill="${cb}" d="${db}"/>${SU_LOGO.g.map(g=>`<path fill="${g[4]}" d="${g[5]}"/>`).join("")}</svg>`;
+}
 (function mountShell(){
   if(!document.getElementById("pager"))document.body.insertAdjacentHTML("afterbegin",SHELL_HTML);
   mountSplash();   /* 開頁的學生會進場畫面（core/js/splash.js，總覽頁也用同一份） */

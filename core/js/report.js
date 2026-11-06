@@ -16,21 +16,19 @@ function rptData(from,to){
 }
 
 /* ---------- 期間甘特圖（只畫這段期間，超出的部分切掉） ---------- */
+/* 報告裡的期間甘特圖（2026-11-06 使用者：套看板最新的樣子）：跟看板甘特圖同一種細刻度（views.js 的 ticksHTML、board.css 的 .tk），
+   每列＝議題名稱、時程 %、一排刻度（期間外淡色短、期間內已過深色長、還沒到灰色中、今天綠色最高）；上面月份，今天在期間內就加綠色小膠囊 */
 function rptGantt(d){
   const rows=d.issues.filter(i=>hasDates(i)&&(i.start<i.end?i.start:i.end)<=d.to&&(i.start<i.end?i.end:i.start)>=d.from);
   if(!rows.length)return "";
-  const W=720,NW=176,L=NW+12,R=W-6,RH=28,top=30,H=top+rows.length*RH;
-  const t0=pd(d.from).getTime(),t1=pd(d.to).getTime()+864e5,X=s=>L+Math.max(0,Math.min(1,(pd(s).getTime()-t0)/(t1-t0)))*(R-L);
+  const t0=pd(d.from).getTime(),t1=pd(d.to).getTime()+864e5,P=s=>Math.max(0,Math.min(100,(pd(s).getTime()-t0)/(t1-t0)*100));
   const ms=[],m=pd(d.from);m.setDate(1);if(m.getTime()<t0)m.setMonth(m.getMonth()+1);
   while(m.getTime()<t1){ms.push(ymd(m));m.setMonth(m.getMonth()+1)}
-  const grid=ms.map(s=>`<line class="rg-grid" x1="${X(s)}" x2="${X(s)}" y1="16" y2="${H}"/>${X(s)<R-26?`<text class="rg-m" x="${X(s)+3}" y="12">${pd(s).getMonth()+1}月</text>`:""}`).join("");
-  const td=today(),now=td>=d.from&&td<=d.to?`<line class="rg-today" x1="${X(td)}" x2="${X(td)}" y1="14" y2="${H}"/>`:"";
-  const bars=rows.map((it,k)=>{
-    const y=top+k*RH,s=it.start<it.end?it.start:it.end,e=it.start<it.end?it.end:it.start,x1=X(s),x2=X(e);
-    const sp=schedPct(it,d.to),xf=X(dateAtPct(it,sp)),name=it.title.length>12?it.title.slice(0,12)+"…":it.title;
-    return `<g data-tone="hi"><text class="rg-t" x="0" y="${y+4}">${esc(name)}</text><text class="rg-p" x="${NW}" y="${y+4}" text-anchor="end">${sp}%</text>`+
-      `<line class="rg-rest" x1="${x1}" x2="${Math.max(x1+1,x2)}" y1="${y}" y2="${y}"/>${xf>x1?`<line class="rg-fill" x1="${x1}" x2="${xf}" y1="${y}" y2="${y}"/>`:""}</g>`}).join("");
-  return `<figure class="rpt-gantt" contenteditable="false"><svg viewBox="0 0 ${W} ${H+8}" role="img" aria-label="期間甘特圖">${grid}${now}${bars}</svg></figure>`;
+  const td=today(),tn=td>=d.from&&td<=d.to?P(td):td>d.to?101:-1;
+  const axis=`<div class="rg-row rg-head"><span></span><span></span><div class="rg-axis">${ms.map(s=>`<span style="left:${P(s).toFixed(2)}%">${pd(s).getMonth()+1}月</span>`).join("")}${tn>=0&&tn<=100?`<span class="rg-now" style="left:${tn.toFixed(2)}%">今天 ${fmt(td).slice(5)}</span>`:""}</div></div>`;
+  const body=rows.map(it=>{const s=it.start<it.end?it.start:it.end,e=it.start<it.end?it.end:it.start;
+    return `<div class="rg-row"><span class="rg-t">${esc(it.title)}</span><span class="rg-p num">${schedPct(it,d.to)}%</span><div class="rg-bar">${ticksHTML(84,P(s),P(e),tn)}</div></div>`}).join("");
+  return `<figure class="rpt-gantt" contenteditable="false">${axis}${body}</figure>`;
 }
 
 /* ---------- 報告內容（2026-11-06 改版：封面 → 目錄 → 各章） ----------
@@ -57,7 +55,7 @@ function rptHTML(d){
   const staffJoin=ids=>staffNames(ids).join("、");
   const dot=s=>fmt(s).replaceAll("/",".");
   const cover=`<section class="rpt-page rpt-cover">
-    <div class="cv-top"><div class="cv-org"><span class="cv-logo">${suLogoMono("南臺科大學生會")}</span><b contenteditable="true">${esc(dept)}</b></div><span class="cv-date num" contenteditable="true">${dot(today())}</span></div>
+    <div class="cv-top"><div class="cv-org"><span class="cv-logo">${suLogoColor("南臺科大學生會")}</span><b contenteditable="true">${esc(dept)}</b></div><span class="cv-date num" contenteditable="true">${dot(today())}</span></div>
     <div class="cv-mid"><p class="cv-k num">WORK REPORT</p><h1 contenteditable="true">工作報告</h1><p class="cv-sub" contenteditable="true">${termCfg().yearLabel?esc(termCfg().yearLabel)+"・":""}${dot(d.from)} – ${dot(d.to)}</p></div>
     <div class="cv-foot"><div class="cv-col"><span contenteditable="true">${esc(meName())}</span><span contenteditable="true" data-ph="職稱（可留白）"></span><span contenteditable="true">南臺科技大學學生會　${esc(dept)}</span></div>
       <div class="cv-col"><span>看板即時動態</span><a class="rpt-live num" href="${esc(boardURL())}" target="_blank" rel="noopener">${esc(boardURL().replace(/^https?:\/\//,""))}</a><span class="num">製表 ${dot(today())}</span></div></div></section>`;
@@ -99,73 +97,83 @@ function rptSync(print){
   ov.querySelector(".toc-list").innerHTML=vis.map((c,i)=>`<li><span class="toc-n num">${String(i+1).padStart(2,"0")}</span><span class="toc-t"><b>${esc(c.querySelector("h2").textContent.trim()||"（未命名）")}</b><small class="num">${R(i)}</small></span></li>`).join("");
   if(!print)rptPaginateSoon();
 }
-/* ---------- 實際斷頁（2026-11-06 使用者：工作報告要照實際斷頁的位置呈現，使用者才知道怎麼排版） ----------
-   預覽的紙張是一章一張、可以一直變長；存成 PDF 時瀏覽器會照 A4（內文 182×267mm，見 board.css 的 @page）切頁，
-   而且統計、甘特圖、議題、圖片、卡片、目錄項目不會被切開（break-inside:avoid）、章節標題不會單獨留在頁底。
-   這裡照同一套規則算出每一頁從哪裡開始：
-   1. 紙張加 .rpt-measure（board.css）：寬度、字級、要藏的東西（工具列、空白圖塊、提示字）都跟列印一樣，同一個 JS 工作裡量完就拿掉，畫面不會閃。
-   2. 每一章拆成「不能切開的塊」與「一行一行的文字」，從上往下排，放不下的那一塊（或那一行）換到下一頁；比整頁還高的塊從頁底硬切。
-   3. 拿掉 .rpt-measure 後，把每個斷點對回預覽上同一個元素（文字照第幾行對），畫一條紅色虛線＋「第 N 頁」；每張紙右上角標它從第幾頁開始，上方寫總頁數。
-   桌面上預覽的紙張就是 A4 寬（內文 182mm），換行跟 PDF 一樣；手機紙張比較窄，文字斷點照行數比例對過去（大約的位置）。 */
-const RPT_AVOID=".rpt-stats,.rpt-gantt,.rpt-issue,.rpt-img,.rpt-card,.toc-list li";
+/* ---------- 實際斷頁、一張一張的紙（2026-11-06 使用者：照真正的斷點分頁編輯，才知道怎麼排版） ----------
+   存成 PDF 時瀏覽器照 A4 切頁（內文 182×267mm，board.css 的 @page）。這裡用同一套規則先算出每一頁從哪一塊開始，再把預覽排成一張一張的 A4：
+   1. 量：紙張加 .rpt-measure（board.css，版面照列印；同一個 JS 工作裡加上又拿掉，畫面不會閃），每一章拆成「不能切開的塊」
+      （統計、甘特圖、議題、圖片、整組卡片、目錄項目，以及每一段文字、清單項目、小標——列印時也設成不切開），從上往下排，放不下的那塊換到下一頁；
+      章名不單獨留在頁底；比整頁還高的塊只能從頁底硬切（那種情況只畫紅色虛線）。
+   2. 排：桌面上紙張就是 A4 寬，換行跟 PDF 一樣。在每個斷點的那一塊前面插一個看不見的墊塊（.rpt-sp），把它推到下一張紙的開頭；
+      紙與紙之間畫一條底色的空隙（.rpt-gap），每張紙的右外側標「第 N 頁」（.rpt-pg），每章最後一張紙補到滿一張 A4 高。
+      手機紙張比較窄、換行不同，只在斷點畫紅色虛線＋「第 N 頁從這裡開始」。
+   3. 重算的時機：打字、加減圖塊、圖片載入、視窗大小改變、字型載入後（停 0.22 秒再算）；重算時捲動位置不動。 */
+const RPT_AVOID=".rpt-stats,.rpt-gantt,.rpt-issue,.rpt-img,.rpt-cards,.toc-list li,.rpt-ch-h,.toc-h";
 let rptPageH=0,rptPgT=0;
 function rptPaginateSoon(){clearTimeout(rptPgT);rptPgT=setTimeout(rptPaginate,220)}
 addEventListener("resize",()=>{if(rptOpen)rptPaginateSoon()});
-/* 一個元素裡每一行的上下緣（同一行的片段合併） */
-function rptLines(el){
-  const r=document.createRange();r.selectNodeContents(el);
-  const rs=[...r.getClientRects()].filter(x=>x.height>0).sort((a,b)=>a.top-b.top),L=[];
-  rs.forEach(x=>{const l=L[L.length-1];if(l&&x.top<l.bottom-2){l.top=Math.min(l.top,x.top);l.bottom=Math.max(l.bottom,x.bottom)}else L.push({top:x.top,bottom:x.bottom})});
-  if(!L.length){const b=el.getBoundingClientRect();if(b.height)L.push({top:b.top,bottom:b.bottom})}
-  return L;
-}
 const rptShown=el=>getComputedStyle(el).display!=="none";
 const rptBlockish=el=>{const d=getComputedStyle(el).display;return d!=="none"&&d!=="contents"&&!d.startsWith("inline")};
-/* 一章拆成要排的單位：{el,line（-1＝整塊）,n（這個元素共幾行）,keep（章節標題：跟下一塊同頁）,top,bottom} */
-function rptAtoms(sec){
+/* 一章拆成要排的塊：{el,keep（章名：跟下一塊同頁）,top,bottom}（top／bottom 相對這張紙） */
+function rptAtoms(sec,t0,k=1){
   const out=[];
   const walk=el=>{for(const c of el.children){
-    if(!rptShown(c)||c.classList.contains("rpt-pb"))continue;
-    const r=()=>c.getBoundingClientRect();
-    if(c.matches(RPT_AVOID)||c.matches(".rpt-ch-h,.toc-h")){const b=r();if(b.height)out.push({el:c,line:-1,keep:c.matches(".rpt-ch-h,.toc-h"),top:b.top,bottom:b.bottom});continue}
-    if([...c.children].some(rptBlockish)){walk(c);continue}
-    const ls=rptLines(c);ls.forEach((l,i)=>out.push({el:c,line:i,n:ls.length,top:l.top,bottom:l.bottom}));
+    if(!rptShown(c)||c.matches(".rpt-sp,.rpt-gap,.rpt-pg,.rpt-pb"))continue;
+    const atom=c.matches(RPT_AVOID)||![...c.children].some(rptBlockish);
+    if(!atom){walk(c);continue}
+    const r=c.getBoundingClientRect();if(r.height)out.push({el:c,keep:c.matches(".rpt-ch-h,.toc-h"),top:(r.top-t0)/k,bottom:(r.bottom-t0)/k});
   }};
   walk(sec);return out.sort((a,b)=>a.top-b.top);
 }
+const rptMM=mm=>{const t=document.createElement("div");t.style.cssText=`position:absolute;visibility:hidden;height:${mm}mm`;document.body.append(t);const h=t.getBoundingClientRect().height;t.remove();return h};
+function rptUnpage(){const p=$("#rptOv .rpt-paper");if(!p)return;p.querySelectorAll(".rpt-sp,.rpt-gap,.rpt-pg,.rpt-pb").forEach(x=>x.remove());p.querySelectorAll(":scope>.rpt-page").forEach(s=>{s.style.minHeight="";s.style.aspectRatio=""})}
 function rptPaginate(){
   const ov=$("#rptOv"),paper=ov&&ov.querySelector(".rpt-paper");if(!paper)return;
-  paper.querySelectorAll(".rpt-pb").forEach(x=>x.remove());rptMarkBlank(ov);
-  if(!rptPageH){const t=document.createElement("div");t.style.cssText="position:absolute;visibility:hidden;height:267mm";document.body.append(t);rptPageH=t.getBoundingClientRect().height;t.remove()}
-  const H=rptPageH,plan=[];let page=1;
+  const sc=ov.querySelector(".rpt-scroll"),keepY=sc?sc.scrollTop:0;
+  rptUnpage();const secs=[...paper.querySelectorAll(":scope>.rpt-page")];
+  rptMarkBlank(ov);
+  if(!rptPageH)rptPageH={H:rptMM(267),A4:rptMM(297),W:rptMM(210),top:rptMM(14)};
+  const {H,A4,W,top:PT}=rptPageH,plan=[];let page=1;
+  const K=()=>(paper.getBoundingClientRect().width/paper.offsetWidth)||1;   /* 報告打開時整層有縮放動畫（pagefx）：量到的距離先除掉縮放，什麼時候量都準 */
+  /* 1. 量 */
   paper.classList.add("rpt-measure");
-  for(const sec of paper.querySelectorAll(":scope>.rpt-page")){
+  for(const sec of secs){
     if(!rptShown(sec))continue;
     const start=page,brs=[];
     if(!sec.classList.contains("rpt-cover")){
-      const t0=sec.getBoundingClientRect().top,A=rptAtoms(sec).map(a=>({...a,top:a.top-t0,bottom:a.bottom-t0,h:a.bottom-a.top}));
-      let ps=0,lim=H;
+      const A=rptAtoms(sec,sec.getBoundingClientRect().top,K());let ps=0,lim=H;
       for(let i=0;i<A.length;i++){const a=A[i];if(a.bottom<=lim+1)continue;
-        let j=i;if(j>0&&A[j-1].keep&&A[j-1].top>ps+1)j--;   /* 章節標題不單獨留在頁底：跟著下一塊換頁 */
-        let y=A[j].top,off=0;
-        if(y<=ps+1){y=lim;off=lim-A[j].top}   /* 比一整頁還高：從頁底硬切 */
-        brs.push({a:A[j],off});ps=y;lim=y+H;i=j-1;
+        let j=i;if(j>0&&A[j-1].keep&&A[j-1].top>ps+1)j--;   /* 章名不單獨留在頁底：跟著下一塊換頁 */
+        if(A[j].top<=ps+1){brs.push({el:A[j].el,hard:lim-A[j].top});ps=lim;lim+=H;i=j-1;continue}   /* 比一整頁還高：從頁底硬切 */
+        brs.push({el:A[j].el});ps=A[j].top;lim=ps+H;i=j-1;
       }
     }
     plan.push({sec,start,brs});page+=brs.length+1;
   }
   paper.classList.remove("rpt-measure");
-  /* 對回預覽 */
+  /* 2. 排 */
+  const sheets=paper.offsetWidth>=W-2,GAP=28,k=K();
+  const mk=(cls,html,y)=>{const m=document.createElement("div");m.className=cls;m.contentEditable="false";m.innerHTML=html;if(y!=null)m.style.top=y.toFixed(1)+"px";return m};
   plan.forEach(({sec,start,brs})=>{
-    const t0=sec.getBoundingClientRect().top;
-    const tag=document.createElement("span");tag.className="rpt-pb rpt-pb-top num";tag.contentEditable="false";tag.textContent=`第 ${start} 頁`;sec.append(tag);
-    brs.forEach((b,k)=>{let y;
-      if(b.a.line<0){const r=b.a.el.getBoundingClientRect();y=r.top-t0+(b.off?b.off*(r.height/(b.a.h||1)):0)}
-      else{const L=rptLines(b.a.el),idx=Math.min(L.length-1,Math.round(b.a.line*L.length/(b.a.n||1)));y=(L[idx]||{top:t0}).top-t0}
-      const m=document.createElement("div");m.className="rpt-pb";m.contentEditable="false";m.style.top=y.toFixed(1)+"px";m.innerHTML=`<span class="num">第 ${start+k+1} 頁從這裡開始</span>`;sec.append(m)});
+    if(!sheets){
+      sec.append(mk("rpt-pg num",`第 ${start} 頁`,8));
+      const t0=sec.getBoundingClientRect().top;
+      brs.forEach((b,i)=>{const r=b.el.getBoundingClientRect();sec.append(mk("rpt-pb",`<span class="num">第 ${start+i+1} 頁從這裡開始</span>`,(r.top-t0)/k+(b.hard||0)))});
+      return;
+    }
+    sec.append(mk("rpt-pg num",`第 ${start} 頁`,0));sec.style.aspectRatio="auto";sec.style.minHeight=A4.toFixed(1)+"px";   /* 排的時候寬度固定（見下面） */
+    brs.forEach((b,i)=>{
+      const sheetTop=(i+1)*(A4+GAP),t0=sec.getBoundingClientRect().top;
+      sec.append(mk("rpt-gap","",sheetTop-GAP),mk("rpt-pg num",`第 ${start+i+1} 頁`,sheetTop));
+      if(b.hard){sec.append(mk("rpt-pb",`<span class="num">比一整頁還長，從這裡硬切</span>`,(b.el.getBoundingClientRect().top-t0)/k+b.hard));return}
+      const sp=document.createElement("div");sp.className="rpt-sp";sp.contentEditable="false";sp.setAttribute("aria-hidden","true");sp.style.height="1px";b.el.before(sp);   /* 先給 1px：高度 0 時上下段落的邊界會疊在一起，設了高度又不疊，位置會差一截 */
+      const now=(b.el.getBoundingClientRect().top-sec.getBoundingClientRect().top)/k,want=sheetTop+PT,d=want-now;
+      if(d>=-1)sp.style.height=(1+d).toFixed(1)+"px";else sp.style.marginTop=(d+1).toFixed(1)+"px";   /* 墊塊把這一塊推到下一張紙的開頭（格線的間距算在裡面，多出來就用負的上邊界抵掉） */
+    });
+    sec.style.aspectRatio="auto";sec.style.minHeight=((brs.length+1)*(A4+GAP)-GAP).toFixed(1)+"px";   /* 最後一張紙補到滿一張 A4。aspect-ratio 要先關掉：不然最小高度會照 A4 比例把寬度一起撐大 */
   });
-  const n=$("#rptPages");if(n)n.textContent=`存成 PDF 約 ${page-1} 頁`;
+  const n=$("#rptPages");if(n)n.textContent=`存成 PDF 共 ${page-1} 頁`;
+  if(sc)sc.scrollTop=keepY;
 }
+
 /* ---------- 預覽視窗 ---------- */
 async function reportDialog(){
   const t=today(),pick=[termCfg().termStart,CFG.term.start].find(x=>x&&x<=t)||addDays(t,-90);
@@ -176,7 +184,7 @@ async function reportDialog(){
 function openReport(from,to){
   closeReport(true);rptRange={from,to};
   document.body.insertAdjacentHTML("beforeend",`<div class="rpt-ov" id="rptOv" role="dialog" aria-modal="true" aria-label="工作報告預覽">
-    <div class="anim-top rpt-bar"><div class="anim-title"><span class="anim-k">REPORT</span><b>工作報告預覽</b><span class="sub rpt-hint">文字都可以直接點開修改・紅色虛線是實際斷頁的位置・空白的圖塊與章節不會印出來・不會存進看板</span><span class="rpt-pages num" id="rptPages" aria-live="polite"></span></div>
+    <div class="anim-top rpt-bar"><div class="anim-title"><span class="anim-k">REPORT</span><b>工作報告預覽</b><span class="sub rpt-hint">文字都可以直接點開修改・每一張紙就是 PDF 的一頁・空白的圖塊與章節不會印出來・不會存進看板</span><span class="rpt-pages num" id="rptPages" aria-live="polite"></span></div>
       <div class="anim-ctl"><button type="button" id="rptAdd">＋ 章節</button><button type="button" class="primary" id="rptPrint">${ico("download")}存成 PDF</button><button type="button" id="rptClose" aria-label="關閉工作報告">${ico("close")}關閉</button></div></div>
     <div class="rpt-scroll"><article class="rpt-paper" spellcheck="false">${rptHTML(rptData(from,to))}</article></div></div>`);
   const ov=$("#rptOv");rptOpen=true;document.body.classList.add("rpt-open");
@@ -318,7 +326,8 @@ function rptPrint(){
   const t=document.title,r=rptRange||{from:"",to:""};
   document.title=`${CFG.dept.name||""}工作報告_${r.from.replaceAll("-","")}-${r.to.replaceAll("-","")}`;
   rptSync(true);   /* 空白的章不印：章節號、目錄、索引先照要印的重排，印完再排回來 */
-  const back=()=>{document.title=t;rptSync();removeEventListener("afterprint",back)};addEventListener("afterprint",back);
+  clearTimeout(rptPgT);rptUnpage();   /* 預覽排成一張一張紙用的墊塊、空隙、每章最小高度先拿掉，列印照原本的內容流；印完再排回來 */
+  const back=()=>{document.title=t;rptSync();rptPaginate();removeEventListener("afterprint",back)};addEventListener("afterprint",back);
   try{window.print()}catch(_){back();toast("這個環境不能列印：請用瀏覽器打開網站再匯出")}
 }
 document.addEventListener("keydown",e=>{if(e.key==="Escape"&&rptOpen&&!$("#dlg").open)closeReport()});
