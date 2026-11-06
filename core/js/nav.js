@@ -108,7 +108,7 @@ function renderTabbar(){
   requestAnimationFrame(()=>lensTo(act));
   tbContrastSoon();
 }
-function tabGo(k){if(setOpen)closeSettings();if(notiOpen)closeNoti();goMain();setSection(k)}
+function tabGo(k){if(setOpen)closeSettings();if(notiOpen)closeNoti();setSection(k)}
 function setupTabbar(tb){
   const main=tb.querySelector(".tb-main"),gear=tb.querySelector(".tb-gear"),lensEl=tb.querySelector(".tb-lens");
   /* 毛玻璃：分頁列、設定鍵各一塊（桌面也一樣，分頁列直立） */
@@ -236,7 +236,8 @@ function closeSettings(instant){
 let paneKey="",paneSeq=0,paneJob=null;
 const PANE_MQ=matchMedia("(min-width:900px)");
 const setEls=()=>{const b=$("#setOv .set-body");return b&&{body:b,sc:b.querySelector(".set-scroll"),pane:b.querySelector(".set-pane")}};
-function setPaneHost(){if(subOpen)return $("#setSub .set-sub-body");const e=setEls();return setOpen&&paneKey&&e&&!e.pane.hidden?e.pane:null}
+function setPaneHost(){if(weekPaneEnd)return null;   /* 每週概述開著：生成週報等對話框跳出來，不畫到清單下面（weekly.js） */
+  if(subOpen)return $("#setSub .set-sub-body");const e=setEls();return setOpen&&paneKey&&e&&!e.pane.hidden?e.pane:null}
 /* ---------- 設定頁：手機版的下一層（全畫面子頁 #setSub） ----------
    手機（900px 以下）點了有下一層的項目：用換頁動畫進到子頁，表單畫在裡面（dlgOpen 經 setPaneHost 找到它，跟桌面右側面板同一套）；
    左上「返回」、系統返回鍵＝把這個流程當成取消（paneDismiss），流程一結束（完成、取消）就用換頁動畫回到設定清單。 */
@@ -280,6 +281,7 @@ function paneDismiss(all){
   const d=$("#dlg"),lg=$("#logOv"),hubOn=hubNow&&!hubNow.inFlow;
   if(hubNow&&(all||hubOn))hubNow.end();
   if(hubOn)return paneJob||Promise.resolve();
+  if(weekPaneEnd){weekPaneEnd();return paneJob||Promise.resolve()}   /* 每週概述（weekly.js 的 weekPane）：關掉就回到「報告」合併頁（或設定清單） */
   if(lg&&!lg.hidden&&lg.classList.contains("in-pane"))closeLog();
   else if(d.open&&d.classList.contains("in-pane")){const ev=new Event("cancel",{cancelable:true});d.dispatchEvent(ev);if(!ev.defaultPrevented)d.close()}
   return paneJob||Promise.resolve();
@@ -344,9 +346,9 @@ function hubRun(title,rows,foot=""){
   });
 }
 const SET_HUBS={
-  /* 報告：每週概述（離開設定、到每週概述頁；返回回到設定清單）與工作報告 */
+  /* 報告：每週概述（在同一個面板打開，返回回到這一頁；weekly.js 的 weekPane）與工作報告 */
   report:()=>hubRun("報告",()=>[
-    {k:"week",ic:"doc",t:"每週概述",sub:weekSub()+" · 生成週報、歷史週報",act:()=>weekFromSettings()},
+    {k:"week",ic:"doc",t:"每週概述",sub:weekSub()+" · 生成週報、歷史週報",flow:()=>weekPane()},
     {k:"report",ic:"doc",t:"工作報告",sub:"選期間、補寫內容，再存成 PDF",flow:()=>reportDialog()}]),
   backup:()=>hubRun("備份",()=>[
     {k:"export",ic:"download",t:"匯出備份",sub:"把目前的看板內容存成 JSON 檔，之後可以再匯入",act:()=>exportBackup()},
@@ -368,6 +370,7 @@ const SET_HUBS={
 };
 /* 有下一層的項目（桌面版放右側面板、手機進子頁） */
 const SET_FLOWS={
+  week:()=>weekPane(),
   log:()=>openLog(setPaneHost()),
   team:()=>teamSettings(),
   labels:()=>labelSettings(),
@@ -379,8 +382,7 @@ document.addEventListener("click",async e=>{
   if(e.target.closest("#setOv [data-set-login]")){if(await ensureLogin()){renderSettings();render()}return}   /* 登入後看板上的「編輯」鈕才出現（body.authed） */
   const r=e.target.closest("#setOv [data-set]");if(!r)return;
   const k=r.dataset.set;
-  if(k==="week"){weekFromSettings();return}   /* 登入前的「每週概述」：不用登入 */
-  if(r.getAttribute("aria-disabled")==="true"||!loggedIn()||!SET_FLOWS[k])return;
+  if(r.getAttribute("aria-disabled")==="true"||(k!=="week"&&!loggedIn())||!SET_FLOWS[k])return;   /* 登入前、唯讀時清單上的「每週概述」不用登入 */
   if(!PANE_MQ.matches){await subRun(SET_FLOWS[k]);return}   /* 手機：進到下一層全畫面子頁 */
   if(k===paneKey){await paneClose();return}   /* 再點一次選到的項目＝收起 */
   await paneRun(k,SET_FLOWS[k]);
@@ -421,7 +423,6 @@ function elastic(sc,inner){
   sc.addEventListener("touchend",up);sc.addEventListener("touchcancel",up);
 }
 elastic($("#pageMain"),document.querySelector("#pageMain .wrap"));
-elastic($("#pageWeek"),document.querySelector("#pageWeek .week-wrap"));
 
 /* ---------- 工具列文字依背後顏色自動反轉 ---------- */
 function lumUnder(x,y){

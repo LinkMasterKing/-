@@ -1,35 +1,20 @@
 /* 核心｜左右分頁、即時回報↔議題連結、每週概述產生器 */
-/* ---------- pager ----------
-   看板 ↔ 每週概述：2026-11-05 起不能用手指左右滑（.pager 的 overflow-x:hidden），改按按鈕，播換頁動畫（pagefx.js）：
-   整個畫面往後退 → 瞬間換到另一邊 → 從後面浮上來。已經在那一頁就什麼都不做（底部分頁每次都會呼叫 goMain） */
-const pager=$("#pager");
-let onWeek=false;
-const goWeek=()=>{if(onWeek)return;PageFx.swap(pager,pager,{mid:()=>pager.scrollTo({left:pager.scrollWidth,behavior:"instant"})})};
-function weekEnter(){const pw=$("#pageWeek");pw.classList.remove("enter");void pw.offsetWidth;pw.classList.add("enter");clearTimeout(pw._t);pw._t=setTimeout(()=>pw.classList.remove("enter"),1400)}
-/* 進到每週概述＝推一筆瀏覽紀錄（返回鍵／手勢會回主頁）；回到主頁（按返回鈕、滑回來、系統返回）就收掉那筆 */
-pager.addEventListener("scroll",()=>{
-  const atWeek=pager.scrollLeft>pager.scrollWidth-pager.clientWidth-40,atMain=pager.scrollLeft<40;
-  if(atWeek&&!onWeek){onWeek=true;weekEnter();Back.layers.week()}
-  else if(atMain&&onWeek){onWeek=false;Back.closed("week")}
-},{passive:true});
-$("#pageWeek").addEventListener("scroll",e=>{$(".week-top").classList.toggle("scrolled",e.target.scrollTop>4)},{passive:true});
-function goMain(instant){weekFromSet=false;if(!onWeek)return;const go=()=>pager.scrollTo({left:0,behavior:"instant"});if(instant===true){PageFx.settle(pager);go();return}PageFx.swap(pager,pager,{mid:go})}
-$("#backMain").onclick=()=>weekBack();
+/* ---------- 每週概述：設定裡的一頁（2026-11-06 使用者：改成跟其他設定同一種面板，返回先回「報告」合併頁、再返回才是設定清單） ----------
+   內容（#weekWrap：標題列、生成週報、週報清單）平常藏在畫面外；從設定「報告 → 每週概述」（或登入前清單上的「每週概述」）打開時，
+   weekPane 把它搬進設定的右側面板（桌面）／子頁（手機），關掉再搬回去。按鈕事件都掛在 document 上，搬動不影響。
+   開著的時候對話框（生成週報、新增、編輯週報）一律跳出來（nav.js 的 setPaneHost 在 weekPaneEnd 有值時不給面板），不會畫到清單下面。
+   返回：標題列的「返回」（桌面才有；手機用子頁上方的「返回」）、系統返回、Esc 都走 nav.js 的 paneDismiss，一次退一層 */
+let weekPaneEnd=null;
+function weekPane(){
+  return new Promise(res=>{
+    const host=setPaneHost(),w=$("#weekWrap");if(!host||!w){res();return}
+    host.append(w);w.hidden=false;renderWeeks();
+    w.classList.remove("enter");void w.offsetWidth;w.classList.add("enter");clearTimeout(w._t);w._t=setTimeout(()=>w.classList.remove("enter"),1400);   /* 標題列與週報逐一滑入 */
+    weekPaneEnd=()=>{weekPaneEnd=null;w.hidden=true;w.classList.remove("enter");document.body.append(w);res()};
+  });
+}
+$("#backMain").onclick=()=>paneDismiss();
 {const l=$("#weekSecLink");if(l)l.hidden=!!CFG.meeting||CFG.deptId==="secretariat"}   /* 秘書處自己就不顯示「秘書處調閱」 */
-/* 2026-11-05：頁首的「每週概述」按鈕拿掉，改從設定頁「每週概述」進來（nav.js 的 weekFromSettings）：
-   設定往後退的同時，底下的看板已經換到每週概述那一頁，浮上來的就是每週概述 */
-let weekFromSet=false;
-function weekFromSettings(){
-  if(!setOpen){goWeek();return}
-  closeSettings();pager.scrollTo({left:pager.scrollWidth,behavior:"instant"});weekFromSet=true;
-}
-/* 每週概述的返回（返回鈕、系統返回）：從設定進來的就回到設定（2026-11-06 使用者），否則回主頁。
-   回設定：設定從後面浮上來蓋住（底下的看板不動），蓋滿之後才把底下換回主頁，之後關設定看到的是主頁 */
-function weekBack(instant){
-  if(!weekFromSet){goMain(instant);return}
-  weekFromSet=false;Back.replace("week","settings",i=>closeSettings(i));openSettings();
-  setTimeout(()=>{PageFx.settle(pager);pager.scrollTo({left:0,behavior:"instant"})},instant===true||reduceMotion()?0:160);
-}
 
 /* ---------- 即時回報：母議題連結、分段、狀態、時間標記 ---------- */
 const parentOf=ev=>ev&&ev.issueId?state.issues.find(i=>i.id===ev.issueId):null;
