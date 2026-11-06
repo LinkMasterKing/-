@@ -47,13 +47,13 @@ function dayWhen(x,d){
 }
 function dayCardHTML(d,lab,cls,list){
   const xs=list.filter(x=>covers(x,d)),MAX=4;
-  /* 今日卡片：在「整理」裡右滑（今天處理）的事件不在卡片上列，只寫件數；點開卡片（這一天）才列出來 */
+  /* 今日卡片：在「整理」裡右滑（今天處理）的事件不在卡片上列，只寫件數；點今日卡片＝卡片放大成全螢幕的「今日」層（openToday）才列出來 */
   const pk=cls==="today"?triPicked(list):[];
-  return `<button type="button" class="nd-card${cls?" "+cls:""}" data-nopen="${d}" aria-label="${lab} ${fmt(d)}，${xs.length} 件事，打開這一天">
+  return `<button type="button" class="nd-card${cls?" "+cls:""}" data-nopen="${d}" aria-label="${lab} ${fmt(d)}，${xs.length} 件事，${cls==="today"?"打開今日":"打開這一天"}">
     <span class="nd-head"><span class="nd-num num">${+d.slice(8)}</span><span class="nd-lab"><b>${lab}<i>・</i>週${WD[pd(d).getDay()]}</b><small class="num">${xs.length?`${xs.length} 件`:nmd(d)}</small></span></span>
     ${xs.length?`<span class="nd-list">${xs.slice(0,MAX).map(x=>`<span class="nd-row" style="--c:${itemColor(x)}"><span class="nd-t num">${dayWhen(x,d)}</span><span class="nd-x"><b>${esc(x.title)}</b>${notiSub(x)?`<small>${esc(notiSub(x))}</small>`:""}</span></span>`).join("")}${xs.length>MAX?`<span class="nd-more">還有 ${xs.length-MAX} 件</span>`:""}</span>`
       :(pk.length?"":`<span class="nd-empty"><i aria-hidden="true"></i>沒有安排</span>`)}
-    ${pk.length?`<span class="nd-pick"><small>今天處理</small><b class="num">${pk.length}</b><small>件（右滑的）・點開看</small></span>`:""}
+    ${pk.length?`<span class="nd-pick"><i aria-hidden="true"></i><small>今天處理</small><b class="num">${pk.length}</b><small>件</small></span>`:""}
   </button>`;
 }
 
@@ -84,15 +84,9 @@ function posterHTML(list){
 /* 點了某一天：月曆上方「這一天」區塊，列出那天每件事（時刻、名稱、地點・即時回報）；平常不顯示 */
 function dayViewHTML(list){
   const d=NOTI.day;if(!d)return "";
-  let xs=list.filter(x=>covers(x,d));const tag=x=>`<span class="dv-tag" style="--c:${itemColor(x)}"><i aria-hidden="true"></i><span class="num">${x.end?`${nmd(x.date)}–${nmd(x.end)}`:x.time||"整天"}</span><b>${esc(x.title)}</b>${notiSub(x)?`<small>${esc(notiSub(x))}</small>`:""}</span>`;
-  /* 今天：除了今天本來要處理的，也列出在「整理」裡剛滑過的（右滑＝今天處理、左滑＝還不要），結果只存這台裝置 */
-  let extra="";
-  if(d===today()){const o=triFresh(),pick=k=>o[k].map(key=>list.find(x=>x.key===key)).filter(Boolean);
-    const yes=pick("yes"),no=pick("no"),swiped=new Set([...o.yes,...o.no]);xs=xs.filter(x=>!swiped.has(x.key));   /* 滑過的移到下面兩組，上面只留還沒滑的 */
-    extra=(yes.length?`<div class="dv-sub"><h4>今天處理<span class="num">${yes.length}</span></h4><div class="dv-tags">${yes.map(tag).join("")}</div></div>`:"")
-      +(no.length?`<div class="dv-sub is-no"><h4>還不要<span class="num">${no.length}</span></h4><div class="dv-tags">${no.map(tag).join("")}</div></div>`:"")}
+  const xs=list.filter(x=>covers(x,d)),tag=x=>`<span class="dv-tag" style="--c:${itemColor(x)}"><i aria-hidden="true"></i><span class="num">${x.end?`${nmd(x.date)}–${nmd(x.end)}`:x.time||"整天"}</span><b>${esc(x.title)}</b>${notiSub(x)?`<small>${esc(notiSub(x))}</small>`:""}</span>`;
   return `<div class="noti-dayview" id="notiDay"><div class="dv-top"><b class="num">${nmd(d)}</b><span>週${WD[pd(d).getDay()]}・${xs.length?`${xs.length} 件`:"沒有事件"}</span><button type="button" class="icon dv-x" data-nday="" aria-label="收起這一天">${ico("close","solo")}</button></div>
-    ${xs.length?`<div class="dv-tags">${xs.map(tag).join("")}</div>`:""}${extra}</div>`;
+    ${xs.length?`<div class="dv-tags">${xs.map(tag).join("")}</div>`:""}</div>`;
 }
 function notiInner(){
   const list=notiList(),t=today(),all=NOTI.scope==="all";
@@ -175,6 +169,36 @@ function dkBind(){
   };
   st.addEventListener("pointerup",end);st.addEventListener("pointercancel",end);
 }
+/* ---------- 今日（獨立一層，2026-11-06 使用者） ----------
+   點「今日」卡片：卡片從原位放大成全螢幕的一層（跟今日卡片同色：文字色底、底色字），單獨看今天「本來就要做」的事與「整理」裡右滑的「今天處理」。
+   動畫：底板從卡片的位置與大小放大到全螢幕（transform，略帶回彈），內容淡入、逐列由下往上；關閉時反過來縮回卡片。
+   返回鍵／手勢、Esc、右上「關閉」都會關。資料只讀；右滑結果照舊只存這台裝置 */
+let todayOpen=false;
+function todayRows(xs,d){return xs.map((x,i)=>`<li class="td-row" style="--c:${itemColor(x)};--i:${i}"><span class="td-t num">${d?dayWhen(x,d):x.end?`${nmd(x.date)}–${nmd(x.end)}`:`${nmd(x.date)}${x.time?" "+x.time:""}`}</span><span class="td-x"><b>${esc(x.title)}</b>${notiSub(x)?`<small>${esc(notiSub(x))}</small>`:""}</span></li>`).join("")}
+function todayHTML(){
+  const list=notiList(),t=today(),pk=triPicked(list),pkSet=new Set(pk.map(x=>x.key)),own=list.filter(x=>covers(x,t)&&!pkSet.has(x.key));
+  return `<div class="td-in"><div class="td-top"><span class="td-num num">${+t.slice(8)}</span><span class="td-lab"><b>今日</b><small class="num">${+t.slice(5,7)} 月・週${WD[pd(t).getDay()]}</small></span><button type="button" class="td-x-btn" data-tdclose aria-label="關閉今日">${ico("close")}關閉</button></div>
+    <section class="td-sec" style="--s:0"><h3>本來就要做<span class="num">${own.length}</span></h3>${own.length?`<ol class="td-list">${todayRows(own,t)}</ol>`:`<p class="td-none">今天沒有排定的事</p>`}</section>
+    <section class="td-sec is-pick" style="--s:1"><h3>今天處理<small>在「整理」右滑的</small><span class="num">${pk.length}</span></h3>${pk.length?`<ol class="td-list">${todayRows(pk)}</ol>`:`<p class="td-none">還沒有右滑的事。到「整理」把今天要處理的往右滑。</p>`}</section></div>`;
+}
+function openToday(card){
+  if(todayOpen)return;todayOpen=true;
+  let ov=$("#todayOv");if(!ov){document.body.insertAdjacentHTML("beforeend",`<div class="td-ov" id="todayOv" role="dialog" aria-modal="true" aria-label="今日" hidden><div class="td-bg"></div><div class="td-scroll"></div></div>`);ov=$("#todayOv")}
+  ov.querySelector(".td-scroll").innerHTML=todayHTML();ov.hidden=false;Back.opened("today",i=>closeToday(i));
+  const bg=ov.querySelector(".td-bg"),r=card&&card.getBoundingClientRect();ov._card=card;
+  if(reduceMotion()||!r){ov.classList.add("on");return}
+  card.style.opacity="0";
+  const from=`translate(${r.left}px,${r.top}px) scale(${r.width/innerWidth},${r.height/innerHeight})`;
+  bg.animate([{transform:from,borderRadius:"26px"},{transform:"none",borderRadius:"0px"}],{duration:520,easing:"cubic-bezier(.25,1.12,.4,1)"});
+  void ov.offsetWidth;ov.classList.add("on");
+}
+function closeToday(instant){
+  const ov=$("#todayOv");if(!ov||!todayOpen)return;todayOpen=false;Back.closed("today");
+  const card=ov._card&&ov._card.isConnected?ov._card:$("#notiOv .nd-card.today"),done=()=>{ov.hidden=true;ov.classList.remove("on","off");if(card)card.style.opacity=""};
+  if(instant===true||reduceMotion()||!card){done();return}
+  const r=card.getBoundingClientRect(),bg=ov.querySelector(".td-bg");ov.classList.add("off");ov.classList.remove("on");
+  bg.animate([{transform:"none",borderRadius:"0px"},{transform:`translate(${r.left}px,${r.top}px) scale(${r.width/innerWidth},${r.height/innerHeight})`,borderRadius:"26px"}],{duration:380,easing:"cubic-bezier(.4,0,.2,1)",fill:"forwards"}).finished.then(()=>{bg.getAnimations().forEach(a=>a.cancel());done()}).catch(done);
+}
 function renderNoti(){
   const el=$("#notiOv .noti-inner");if(!el||!notiOpen)return;
   const snap=Anim.capture();el.innerHTML=notiInner();Anim.play(snap);flowWatch();dkBind();notiSearch();
@@ -229,7 +253,7 @@ function openNoti(){
 }
 function closeNoti(instant){
   const ov=$("#notiOv");if(!ov||!notiOpen)return;
-  notiOpen=false;Back.closed("noti");
+  if(todayOpen)closeToday(true);notiOpen=false;Back.closed("noti");
   const done=()=>{if(!notiOpen){ov.hidden=true;ov.getAnimations().forEach(a=>a.cancel());if(!setOpen)document.body.classList.remove("set-open")}};
   if(instant){PageFx.settle(ov);return done()}
   PageFx.swap(ov,pageUnder(ov),{done});   /* 換頁動畫：通知往後退、底下那頁從後面浮上來 */
@@ -275,7 +299,7 @@ document.addEventListener("click",e=>{
   if(!t.closest(".noti-find"))searchClose();
   if(t.closest("#notiClose")){closeNoti();return}
   const nr=t.closest(".nr");if(nr){searchClose();$("#notiQ").blur();notiFocus(nr.dataset.nd,nr.dataset.ne);return}
-  const card=t.closest(".nd-card");if(card){const d=card.dataset.nopen;setTimeout(()=>{if(notiOpen)notiOpenDay(d)},reduceMotion()?0:200);return}   /* 等回彈跑一段再換內容，按壓動畫不會被重畫打斷 */
+  const card=t.closest(".nd-card");if(card){const d=card.dataset.nopen;if(card.classList.contains("today")){setTimeout(()=>{if(notiOpen)openToday(card)},reduceMotion()?0:140);return}setTimeout(()=>{if(notiOpen)notiOpenDay(d)},reduceMotion()?0:200);return}   /* 等回彈跑一段再換內容，按壓動畫不會被重畫打斷 */
   const mo=t.closest("[data-nmon]");if(mo){const k=+mo.dataset.nmon,d=pd(NOTI.month+"-01");if(k)d.setMonth(d.getMonth()+k);const nm=k?ym(d):today().slice(0,7);if(nm===NOTI.month)return;
     NOTI.day=null;notiMonth(nm,k<0?-1:1);return}
   if(t.closest("[data-nday]")){NOTI.day=null;renderNoti();return}
@@ -286,3 +310,6 @@ document.addEventListener("click",e=>{
 });
 document.addEventListener("keydown",e=>{if(e.key==="Escape"&&notiOpen&&!$("#dlg").open&&!setOpen){e.preventDefault();closeNoti()}});
 
+
+document.addEventListener("click",e=>{if(e.target.closest&&e.target.closest("[data-tdclose]"))closeToday()});
+document.addEventListener("keydown",e=>{if(e.key==="Escape"&&todayOpen){e.preventDefault();e.stopImmediatePropagation();closeToday()}},true);
