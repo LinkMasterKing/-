@@ -1263,7 +1263,7 @@ dialog#dlg:has(.csel.open){overflow:visible}
 
 /* --- 整理：交友軟體式左滑右滑（notify.js 的 deckHTML／dkBind） ---
    卡片堆最多露出三張（後面的往下 10px、縮 5%）；最上面那張跟手指走並傾斜，右滑浮出綠色「今天處理」、左滑浮出「還不要」；
-   下面一排：✕（還不要）、復原、✓（今天處理） */
+   下面一排：✕（還不要）、復原、✓（今天處理）；全部滑完整區收起來（notify.js 的 triFold），不畫空狀態 */
 .noti-deck{display:grid;gap:12px;scroll-margin-top:150px}   /* scroll-margin：捲過來時留出上面 sticky 的範圍切換＋搜尋欄 */
 .dk-stack{position:relative;height:196px;touch-action:pan-y;-webkit-user-select:none;user-select:none}
 .dk-card{position:absolute;inset:0 0 20px;display:grid;grid-template-columns:auto minmax(0,1fr);align-items:center;gap:18px;padding:22px 22px;border-radius:28px;background:color-mix(in srgb,var(--ink) 6%,var(--bg));box-shadow:0 10px 26px rgba(0,0,0,.12);transform:translateY(calc(var(--i) * 10px)) scale(calc(1 - var(--i) * .05));transform-origin:50% 100%;cursor:grab;will-change:transform}
@@ -1282,14 +1282,11 @@ dialog#dlg:has(.csel.open){overflow:visible}
 .dk-yes{left:16px;--o:var(--yes,0);color:#06210f;background:var(--ok);transform:rotate(-8deg)}
 .dk-no{right:16px;--o:var(--no,0);color:var(--bg);background:var(--muted);transform:rotate(8deg)}
 .dk-card.go-yes .dk-yes,.dk-card.go-no .dk-no{opacity:1}
-.dk-empty{position:absolute;inset:0 0 20px;display:grid;place-content:center;justify-items:center;gap:8px;border-radius:28px;border:1px dashed var(--hair);text-align:center}
-.dk-empty b{font-size:16px;letter-spacing:.12em}
-.dk-empty>*{animation:ndRise .5s var(--mo-out) both}.dk-empty>:nth-child(2){animation-delay:.08s}.dk-empty>:nth-child(3){animation-delay:.16s}   /* 「都整理好了」逐行浮現 */
 .dk-ctl{display:flex;justify-content:center;align-items:center;gap:18px}
 .dk-btn{width:54px;height:54px;min-height:0;padding:0;border-radius:50%;display:grid;place-items:center;font-size:20px}
 .dk-btn.yes{background:var(--ok);border-color:var(--ok);color:#06210f}
 .dk-btn.no{border-color:var(--hair)}
-.dk-btn[disabled],.dk-undo[disabled]{opacity:.35;pointer-events:none}
+.dk-undo[disabled]{opacity:.35;pointer-events:none}
 .dk-count{margin:-4px 0 0;text-align:center}
 @media (max-width:640px){
   .dk-stack{height:180px}
