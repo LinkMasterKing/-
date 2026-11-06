@@ -272,6 +272,13 @@ function diffState(a,b){
   const AF=byId(a.follows),BF=byId(b.follows),fl=f=>{const d=(window.BOARD_DEPTS||[]).find(x=>x.id===f.dept);return `${d?d.name:f.dept}的${(typeof FW_KIND!=="undefined"&&FW_KIND[f.kind])||f.kind}`};
   for(const [k,f] of BF)if(!AF.has(k))L.push(`追蹤｜新增｜${fl(f)}`);
   for(const [k,f] of AF)if(!BF.has(k))L.push(`追蹤｜移除｜${fl(f)}`);
+  /* 會長室的文件連結 */
+  const AD=byId(a.docs),BD=byId(b.docs);
+  for(const [k,d] of BD){const o=AD.get(k);if(!o)L.push(`文件｜新增｜${d.name}`);else if(o.name!==d.name||o.url!==d.url)L.push(`文件｜修改｜${o.name!==d.name?o.name+"→":""}${d.name}`)}
+  for(const [k,d] of AD)if(!BD.has(k))L.push(`文件｜刪除｜${d.name}`);
+  /* 秘書處的會議紀錄 */
+  {const AM=byId(a.minutes),BM=byId(b.minutes);for(const [k,m] of BM){const o=AM.get(k);if(!o||JSON.stringify(o.items)!==JSON.stringify(m.items))L.push(`會議紀錄｜${fmt(m.date)}｜${m.items.length} 項修改`)}}
+  if(AD.size&&BD.size===AD.size&&[...BD.keys()].join()!==[...AD.keys()].join())L.push("文件｜調整順序");
   return L;
 }
 /* 參數給秘書處寫回其他部門時用（a＝讀進來時、b＝改過的那份資料） */

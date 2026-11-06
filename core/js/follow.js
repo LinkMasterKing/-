@@ -36,7 +36,7 @@ function fwBody(f,d){
     const i=d.issues.find(x=>x.id===f.ref);if(!i)return miss("（找不到）");
     const mk=sortedMarkers(i)[0];
     return {title:i.title,dot:i.doneAt?"done":"issue",html:`<p class="fw-meta">${i.doneAt?`已結案 ${fmt(i.doneAt)}`:`${esc(i.tags[i.cur]||"")}${i.tags[i.cur]?" · ":""}${schedLabel(i)}`}</p>
-      ${hasDates(i)?`<div class="fw-bar"><i style="width:${schedPct(i)||0}%"></i></div>`:""}${i.note?`<p class="fw-text">${esc(i.note)}</p>`:""}${mk?`<p class="sub fw-mk">${mk.date?fmt(mk.date).slice(5)+" ":""}${esc(mk.text)}</p>`:""}`};
+      ${hasDates(i)?`<div class="fw-bar">${ticksHTML(48,0,100,(pd(today())-pd(i.start))/Math.max(1,pd(i.end)-pd(i.start))*100)}</div>`:""}${i.note?`<p class="fw-text">${esc(i.note)}</p>`:""}${mk?`<p class="sub fw-mk">${mk.date?fmt(mk.date).slice(5)+" ":""}${esc(mk.text)}</p>`:""}`};
   }
   if(f.kind==="week"){
     const ws=[...d.weeks].sort((a,b)=>b.date.localeCompare(a.date)),w=f.ref==="latest"?ws[0]:ws.find(x=>x.id===f.ref);
@@ -84,3 +84,33 @@ if(CFG.follow){
   const refresh=()=>{fwCache.clear();renderFollows()};
   setInterval(refresh,3e5);document.addEventListener("visibilitychange",()=>{if(!document.hidden)refresh()});
 }
+
+/* ---------- 會長室：文件（2026-11-06 使用者：會長平常有些文件要放在這裡開啟比較方便看） ----------
+   state.docs[]＝{id,name,url}。平常是一排膠囊按鈕（點了用新分頁打開）；按這區的「編輯」後每個按鈕旁邊有修改、上下移、刪除，下面「+ 新增文件」。
+   新增、修改用對話框（名稱、網址；沒寫 http 的自動補 https://），按這張卡片的「儲存」才上傳。網址存在公開的資料檔，任何人都看得到 */
+const docsEd=()=>editing&&cardEdit==="s:docs";
+const docURL=u=>{u=String(u||"").trim();if(!u)return "";return /^[a-z][a-z0-9+.-]*:/i.test(u)?u:"https://"+u};
+function renderDocs(){
+  const p=$("#docsPanel");if(!p)return;p.hidden=!CFG.follow;if(!CFG.follow)return;
+  const ds=state.docs||[],ed=docsEd();
+  $("#docsList").innerHTML=ds.map((d,i)=>ed
+    ?`<div class="doc-ed" data-doc="${d.id}"><span class="doc-pill">${ico("doc")}<b>${esc(d.name)}</b></span><small class="doc-u">${esc(d.url)}</small>
+       <span class="doc-tools"><button type="button" class="icon" data-docedit>修改</button><button type="button" class="icon" data-docmove="-1" aria-label="往前移"${i?"":" disabled"}>↑</button><button type="button" class="icon" data-docmove="1" aria-label="往後移"${i<ds.length-1?"":" disabled"}>↓</button><button type="button" class="icon danger" data-docdel aria-label="刪除「${esc(d.name)}」">刪除</button></span></div>`
+    :`<a class="doc-pill" data-doc="${d.id}" href="${esc(docURL(d.url))}" target="_blank" rel="noopener">${ico("doc")}<b>${esc(d.name)}</b><span class="doc-go" aria-hidden="true">↗</span></a>`).join("")
+    ||`<p class="empty">還沒有文件。登入後按這區的「編輯」→「+ 新增文件」，貼上文件的網址（例如 Google 雲端硬碟的連結）。</p>`;
+}
+async function docAsk(d){
+  const v=await ask(d?"修改文件":"新增文件",[{name:"name",label:"名稱（按鈕上的字）",value:d?d.name:"",ph:"例如：會議記錄範本"},{name:"url",label:"網址",value:d?d.url:"",ph:"https://…"}],
+    {note:"網址存在公開的資料檔，任何人都看得到；有權限設定的文件（例如 Google 雲端硬碟）照舊要有權限才打得開。",
+     validate:o=>!(o.name||"").trim()?"請填名稱":!(o.url||"").trim()?"請填網址":""});
+  return v&&v!=="alt"?{name:v.name.trim(),url:docURL(v.url)}:null;
+}
+document.addEventListener("click",async e=>{
+  const t=e.target;if(!t.closest||!CFG.follow)return;
+  if(t.closest("#addDoc")){if(!docsEd())return;const v=await docAsk(null);if(!v)return;state.docs.push({id:uid("d"),...v});dirty=true;render();return}
+  const row=t.closest("#docsList [data-doc]");if(!row||!docsEd())return;
+  const i=state.docs.findIndex(d=>d.id===row.dataset.doc);if(i<0)return;
+  if(t.closest("[data-docedit]")){const v=await docAsk(state.docs[i]);if(!v)return;Object.assign(state.docs[i],v);dirty=true;render();return}
+  const mv=t.closest("[data-docmove]");if(mv){const j=i+(+mv.dataset.docmove);if(j<0||j>=state.docs.length)return;const [x]=state.docs.splice(i,1);state.docs.splice(j,0,x);dirty=true;render();return}
+  if(t.closest("[data-docdel]")){const ok=await ask(`刪除「${state.docs[i].name}」`,[],{danger:"刪除",note:"只會拿掉這個按鈕，文件本身不會被刪除。"});if(ok!=="delete")return;state.docs.splice(i,1);dirty=true;render()}
+});

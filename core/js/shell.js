@@ -14,9 +14,15 @@ const SHELL_HTML=`<div class="pager" id="pager">
       </header>
       <div class="hero-rule"><span class="hero-info"><span class="sub sr-only" id="saveInfo" role="status"></span></span><span class="actions"><span class="hero-btns" id="actions"></span></span></div>
 
-      <section class="panel grant-panel" id="grantPanel" aria-labelledby="grH" hidden>
-        <div class="panel-head"><h2 id="grH">秘書處會議編輯<span class="en">GRANT</span></h2></div>
-        <div class="grant-row"><div class="grant-seg lseg" role="tablist" aria-label="秘書處會議編輯"><span class="lseg-lens" aria-hidden="true"></span><button type="button" role="tab" data-k="off" aria-selected="true">關閉</button><button type="button" role="tab" data-k="on" aria-selected="false">開放今天</button></div><p class="sub grant-st" id="grantSt"></p></div>
+      <!-- 會長室：文件連結（follow.js 的 renderDocs）。會長自己新增的超連結按鈕，點了用新分頁打開 -->
+      <section class="panel docs-panel" id="docsPanel" data-edbox="s:docs" aria-labelledby="dcH" hidden>
+        <div class="panel-head"><h2 id="dcH">文件<span class="en">DOCS</span></h2><button type="button" class="icon card-edit-btn" data-edit="s:docs">編輯</button></div>
+        <div class="docs" id="docsList" data-flip></div>
+        <button class="ghost edit-only add-row" id="addDoc">+ 新增文件</button>
+      </section>
+      <!-- 會長室：秘書處會議編輯的開關（2026-11-06 使用者：不用這麼大，小小一個開關） -->
+      <section class="panel grant-panel" id="grantPanel" hidden>
+        <div class="grant-row"><span class="grant-l" id="grH">秘書處會議編輯</span><button type="button" class="sw" id="grantSw" role="switch" aria-checked="false" aria-labelledby="grH"><i aria-hidden="true"></i></button><p class="sub grant-st" id="grantSt"></p></div>
       </section>
       <section class="panel act-panel" id="actPanel" aria-labelledby="acH" hidden>
         <div class="panel-head"><h2 id="acH">各部門編輯量<span class="en">ACTIVITY</span></h2><button type="button" class="icon" id="actRefresh">重新整理</button></div>
@@ -29,19 +35,21 @@ const SHELL_HTML=`<div class="pager" id="pager">
         <div class="follows" id="follows" data-flip></div>
         <button class="ghost edit-only add-row" id="addFollow">+ 追蹤項目</button>
       </section>
-      <section class="panel follow-panel meet-panel" id="meetPanel" aria-labelledby="mtH" hidden>
-        <div class="panel-head"><h2 id="mtH">會議報告事項<span class="en">MEETING</span></h2><button type="button" class="icon" data-mtrefresh>重新整理</button></div>
-        <div class="mt-depts" id="meetList" data-flip></div>
-      </section>
       <section class="panel follow-panel meet-panel wk-panel" id="wkPanel" aria-labelledby="wkH" hidden>
         <div class="panel-head"><h2 id="wkH">各部門週報<span class="en">WEEKLY</span></h2><button type="button" class="icon" data-mtrefresh>擷取最新</button></div>
         <div class="wk-depts" id="wkDepts" role="tablist" aria-label="部門"></div>
         <div class="wk-body" id="wkBody" data-flow></div>
       </section>
+      <!-- 秘書處：會議報告事項（2026-11-06 起「會議報告事項」與「會議編輯」合成這一張，meeting.js 的 renderMeet）。
+           上面一排部門（有報告事項的，後面是件數），一次看一個部門，下面上一個／下一個部門；會長室今天開放時這張有「編輯」，逐部門改；
+           最下面「匯出會議紀錄」：照寫回各部門時記下的修改，產生會議紀錄（report.js 的預覽，存成 PDF） -->
       <section class="panel follow-panel meet-panel meet-edit" id="meetEdPanel" data-edbox="s:meetedit" aria-labelledby="meH" hidden>
-        <div class="panel-head"><h2 id="meH">會議編輯<span class="en">EDIT</span></h2><button type="button" class="icon" data-mtrefresh>重新整理</button><button type="button" class="icon card-edit-btn" data-edit="s:meetedit" hidden>編輯</button></div>
+        <div class="panel-head"><h2 id="meH">會議報告事項<span class="en">MEETING</span></h2><button type="button" class="icon" data-mtrefresh>重新整理</button><button type="button" class="icon card-edit-btn" data-edit="s:meetedit" hidden>編輯</button></div>
         <p class="sub grant-st" id="meetEdSt"></p>
+        <div class="wk-depts mt-pick" id="meetPick" role="tablist" aria-label="部門"></div>
         <div class="mt-depts" id="meetEdList" data-flip></div>
+        <div class="mt-step" id="meetStep"></div>
+        <div class="mt-foot"><button type="button" class="icon" id="minutesBtn">匯出會議紀錄</button><span class="sub" id="minutesInfo"></span></div>
       </section>
       <div class="layout">
         <div class="sgroup" data-sec="live">
@@ -125,6 +133,12 @@ function suLogoColor(label){
   const c=CFG.colors||{},map={accentLight:"--accent-light",accentDark:"--accent-dark",ok:"--ok",neon:"--neon",okDot:"--ok-dot"};
   const vars=Object.keys(map).filter(k=>c[k]).map(k=>`${map[k]}:${c[k]}`).join(";");
   if(vars&&!document.getElementById("dept-theme")){const st=document.createElement("style");st.id="dept-theme";st.textContent=`:root{${vars}}`;document.head.append(st)}
+  /* 部門專用的分頁（CFG.ext）與完成紀錄併進即時回報（CFG.mergeDone），見 dept/config.js。
+     會長室、秘書處的面板原本疊在三個區塊上面（2026-11-06 使用者：太臃腫），搬進自己的分頁 */
+  const lay=document.querySelector(".layout");
+  if(lay&&CFG.mergeDone){const g=lay.querySelector('.sgroup[data-sec="done"]'),l=lay.querySelector('.sgroup[data-sec="live"]');if(g&&l){while(g.firstChild)l.append(g.firstChild);g.remove()}}
+  if(lay&&CFG.ext&&!lay.querySelector('.sgroup[data-sec="ext"]')){lay.insertAdjacentHTML("beforeend",'<div class="sgroup sgroup-ext" data-sec="ext"></div>');const x=lay.lastElementChild;
+    ["#docsPanel","#grantPanel","#followPanel","#actPanel","#meetEdPanel","#wkPanel"].forEach(q=>{const p=document.querySelector(q);if(p)x.append(p)})}
   /* 關閉的區塊 */
   Object.entries(CFG.sections).forEach(([k,on])=>document.body.classList.toggle("no-"+k,!on));
 })();

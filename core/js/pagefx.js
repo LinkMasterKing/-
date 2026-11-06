@@ -1,21 +1,20 @@
-/* 核心｜換頁動畫（2026-11-05 使用者指定；2026-11-06 第三版改成 Windows Phone 式的旋轉門，見 run 上面的說明）：
+/* 核心｜換頁動畫（2026-11-05 使用者指定；2026-11-06 第四版改成 Windows 10 Mobile 的做法，見 run 上面的說明）：
    每一種整頁切換都用這一套：總覽 ↔ 各部門看板（跨頁）、看板 ↔ 每週概述、打開／關閉設定、通知、編輯紀錄、工作報告、設定子頁。
-   - 舊頁的區塊一塊一塊往後翻開、淡掉（由上往下錯開）；新頁的區塊從另一側翻回來、浮現（一樣由上往下錯開）。沒有模糊（手機順暢優先）。
-   - 圖層前後照舊：疊層（設定、通知、編輯紀錄、工作報告、設定子頁；z-index 比較高的）打開時底下那頁不動，疊層很快變成不透明、裡面的區塊依序翻進來；
-     關閉時底下那頁也不動，疊層的區塊翻出去、疊層淡掉露出它（2026-11-05 使用者：打開設定不要閃現主頁）。同一層級之間（每週概述、跨頁）才是前後兩頁一起動：
+   - 前進：舊頁很快淡掉；新頁的區塊由下往上滑入、浮現（由上往下錯開）。返回：目前這頁往下滑、淡掉；上一頁的區塊在原位淡入。沒有模糊、沒有 3D。
+   - 圖層前後照舊：疊層（設定、通知、編輯紀錄、工作報告、設定子頁；z-index 比較高的）打開時底下那頁不動，疊層很快變成不透明、裡面的區塊依序滑上來；
+     關閉（返回）時疊層往下滑、淡掉，底下那頁的區塊淡入歸位（2026-11-05 使用者：打開設定不要閃現主頁）。同一層級之間（每週概述、跨頁）才是前後兩頁一起動：
      新頁等舊頁播到七成才出發。上一次換頁還沒播完的其他層，新的換頁一開始就停掉並藏起來。
    - 減少動態（prefers-reduced-motion）時直接換，不播動畫。
-   - 跨頁（總覽 ↔ 看板）：離開時整頁的區塊翻出去再換頁；到達時等整頁載入完、畫面穩定再翻進來。
+   - 跨頁（總覽 ↔ 看板）：離開時整頁淡掉再換頁；到達時等整頁載入完、畫面穩定再讓區塊滑上來。
    這個檔不依賴看板的其他程式（home.html 也載入它）。 */
 const PageFx=(()=>{
   const RM=()=>matchMedia("(prefers-reduced-motion: reduce)").matches;
-  /* 2026-11-06 第三版：Windows Phone 式的「旋轉門」（使用者：拿掉模糊後換頁變空虛；整頁的物件翻頁，下一畫面的物件浮上來）。
-     換頁時把畫面上看得到的區塊（pieces）各自以「畫面左邊」為軸翻動，由上往下錯開（越下面越晚）：
-       離開＝往後翻開（0 → 70°）並淡掉，越翻越快；進來＝從另一側（−60°）翻回原位並浮現，越來越慢。
-     只動 3D 旋轉與透明度，用 Web Animations（交給顯示卡，主執行緒忙也不會頓），沒有模糊。
-     元素本身（整頁或疊層）只動透明度：離開時最後淡掉、進來時一開始就淡入（疊層打開時更快變不透明，蓋住底下那頁） */
-  const OUT=260,IN=420,SPREAD_OUT=170,SPREAD_IN=190,OVER=.7,FADE_IN=.15,COVER_IN=.08;   /* 每塊翻出／翻進多久、上下錯開的總時間、新頁在舊頁播到幾成時出發、新頁在前幾成變成不透明 */
-  const EASE_OUT="cubic-bezier(.55,0,.85,.4)",EASE_IN="cubic-bezier(.12,.8,.28,1)",MAXP=18;
+  /* 2026-11-06 第四版：Windows 10 Mobile 的換頁（使用者：旋轉門是 WP7/8 的做法，比較喜歡 WP10 的新動畫）。只動位移與透明度：
+     前進：舊頁整頁很快淡掉（0.15 秒）；新頁的區塊（pieces）由下往上滑入（最多 120px）並浮現，依上下位置錯開，越來越慢（0.46 秒）。
+     返回：目前這頁整頁往下滑 80px 並淡掉（0.2 秒，越來越快）；上一頁的區塊在原位淡入、從上方 24px 略微往下歸位（0.38 秒）。
+     元素本身（整頁或疊層）：前進離開＝整頁淡掉；返回離開＝整頁往下滑並淡掉；進來＝一開始淡入（fadeIn＝0：本來就看得到，不動） */
+  const OUT=150,BOUT=200,IN=460,BIN=380,SPREAD_IN=130,SPREAD_BIN=70,OVER=.7,BACK_OVER=.55,FADE_IN=.12,COVER_IN=.06;
+  const EASE_OUT="cubic-bezier(.4,0,1,1)",EASE_IN="cubic-bezier(.1,.9,.2,1)",MAXP=14;
   let tok=0;const owner=new WeakMap();const live=new Set();   /* live：目前還在換頁動畫裡的元素；owner：每個元素目前歸哪一次換頁管：被新的換頁接手，舊的那段就停下 */
   const keep=new WeakMap(),anims=new WeakMap();
   function save(el){if(!keep.has(el))keep.set(el,{o:el.style.opacity,p:el.style.pointerEvents})}
@@ -35,22 +34,24 @@ const PageFx=(()=>{
     }};
     walk(el,0);return out;
   }
-  /* 一段動畫：dir＝"out"（翻出去）或 "in"（翻進來）；fadeIn＝新頁在前幾成變成不透明 */
-  function run(el,dir,my,fadeIn=FADE_IN){
+  /* 一段動畫：dir＝"out"（離開）或 "in"（進來）；back＝返回；fadeIn＝新頁在前幾成變成不透明；lag＝整段晚多久開始（期間區塊停在起始狀態） */
+  function run(el,dir,my,fadeIn=FADE_IN,back=false,lag=0){
     if(!el)return Promise.resolve();
     save(el);el.style.pointerEvents="none";(anims.get(el)||[]).forEach(a=>a.cancel());
-    const o=dir==="out",H=innerHeight||1,ps=pieces(el),list=[];
-    const dur=o?OUT:IN,spread=o?SPREAD_OUT:SPREAD_IN,total=dur+spread;
-    ps.forEach(({el:p,r,base})=>{
-      const delay=Math.round(Math.max(0,Math.min(1,r.top/H))*spread);
-      /* 區塊本身原本的變形（例如工具列用 translateX(-50%) 置中）要保留：翻動疊在它前面；轉軸扣掉原本的位移，才會剛好在畫面左邊 */
-      let tx=0;if(base){try{tx=new DOMMatrix(base).m41}catch(_){}}
-      const ax=`${Math.round(tx-r.left)}px ${Math.round(r.height/2)}px`,T=d=>`perspective(1100px) rotateY(${d}deg)${base?" "+base:""}`;
-      const kf=o?[{transform:T(0),opacity:1,transformOrigin:ax},{transform:T(70),opacity:0,transformOrigin:ax}]
-               :[{transform:T(-60),opacity:0,transformOrigin:ax},{opacity:1,offset:.45},{transform:T(0),opacity:1,transformOrigin:ax}];
-      list.push(p.animate(kf,{duration:dur,delay,easing:o?EASE_OUT:EASE_IN,fill:"both"}));
-    });
-    list.push(el.animate(o?[{opacity:1},{opacity:1,offset:.62},{opacity:0}]:[{opacity:0},{opacity:1,offset:Math.max(.02,fadeIn*IN/total)},{opacity:1}],{duration:total,easing:"linear",fill:"both"}));
+    const o=dir==="out",H=innerHeight||1,list=[];
+    if(o){
+      /* 離開：整個元素一起動（前進＝淡掉；返回＝往下滑並淡掉），不用拆塊 */
+      const base=getComputedStyle(el).transform,B=base&&base!=="none"?" "+base:"";
+      list.push(el.animate(back?[{transform:"translateY(0)"+B,opacity:1},{transform:"translateY(80px)"+B,opacity:0}]:[{opacity:1},{opacity:0}],
+        {duration:(back?BOUT:OUT)+lag,easing:EASE_OUT,fill:"both",delay:0}));
+    }else{
+      const ps=pieces(el),dur=back?BIN:IN,spread=back?SPREAD_BIN:SPREAD_IN,dy=back?-24:Math.min(120,Math.round(H*.14)),total=dur+spread+lag;
+      ps.forEach(({el:p,r,base})=>{
+        const delay=lag+Math.round(Math.max(0,Math.min(1,r.top/H))*spread),B=base?" "+base:"";   /* 區塊原本的變形（例如工具列置中的 translateX）接在後面保留 */
+        list.push(p.animate([{transform:`translateY(${dy}px)${B}`,opacity:0},{opacity:1,offset:.4},{transform:`translateY(0)${B}`,opacity:1}],{duration:dur,delay,easing:EASE_IN,fill:"both"}));
+      });
+      if(fadeIn>0)list.push(el.animate([{opacity:0},{opacity:1,offset:Math.max(.02,fadeIn*dur/total)},{opacity:1}],{duration:total,easing:"linear",fill:"both"}));
+    }
     anims.set(el,list);
     return Promise.all(list.map(a=>a.finished.catch(()=>{}))).then(()=>{});
   }
@@ -71,9 +72,9 @@ const PageFx=(()=>{
       /* 疊層蓋上來（打開設定、通知、編輯紀錄、工作報告、設定子頁）：底下那頁不動，疊層從後面浮上來、一開始就變不透明蓋住它（2026-11-05 使用者：不要閃現主頁） */
       owner.delete(from);live.delete(from);hold(to);M();await run(to,"in",my,COVER_IN);
     }else if(zf>zt){
-      /* 疊層退開（關閉）：底下那頁本來就在、不動，疊層往後退、淡掉露出它 */
-      owner.delete(to);live.delete(to);reset(to);M();await run(from,"out",my);
-    }else{hold(to);const pOut=run(from,"out",my);await wait((OUT+SPREAD_OUT)*OVER);M();await Promise.all([pOut,run(to,"in",my)])}
+      /* 疊層退開（關閉，返回）：疊層的區塊朝你翻走、疊層淡掉；播到 BACK_OVER 時底下那頁的區塊從被翻開的位置轉回來（底下那頁本身一直是不透明的） */
+      reset(to);M();await Promise.all([run(from,"out",my,FADE_IN,true),run(to,"in",my,0,true,Math.round(BOUT*BACK_OVER))]);
+    }else{hold(to);const pOut=run(from,"out",my);await wait(OUT*OVER);M();await Promise.all([pOut,run(to,"in",my)])}
     /* 中途被打斷也一樣把該做的做完（顯示新頁、藏起舊頁），只是還在別次換頁手上的元素不還原樣式 */
     M();done&&done();
     for(const el of new Set([from,to,...stale]))if(owner.get(el)===my){owner.delete(el);live.delete(el);reset(el)}
@@ -91,7 +92,7 @@ const PageFx=(()=>{
     const my=++tok;owner.set(document.body,my);run(document.body,"out",my).then(()=>{if(owner.get(document.body)===my)location.href=href});
   }
   /* 到達：等整頁載入完、再等兩格（看板第一次畫完、字型就位）才開始浮上來，動畫期間主執行緒比較閒，不會一頓一頓；
-     區塊翻進來（旋轉門，2026-11-06 第三版） */
+     區塊由下往上滑入（2026-11-06 第四版） */
   function arrive(){
     const h=document.documentElement;if(!h.classList.contains("pfx-arrive"))return;
     if(RM()){h.classList.remove("pfx-arrive");return}

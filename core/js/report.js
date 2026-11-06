@@ -1,7 +1,7 @@
 /* 核心｜工作報告：選期間 → 預覽（文字可直接修改；可加章節、文字／圖片／卡片圖塊）→ 列印成 PDF
    結構：封面、目錄、各章（預設：本期摘要〔數字＋期間甘特圖〕、議題處理情形〔逐案〕、工作檢討、下期規劃）
    預覽裡的字、上傳的圖片只用在這一份報告，不會存進看板、不會上傳。 */
-let rptOpen=false,rptRange=null;
+let rptOpen=false,rptRange=null,rptDoc=null;   /* rptDoc：預覽的不是工作報告時（秘書處的會議紀錄，meeting.js）＝{label,k,file,html} */
 
 /* ---------- 資料：期間內處理過的議題、即時回報、週報 ---------- */
 function rptData(from,to){
@@ -94,7 +94,7 @@ function rptSync(print){
   const vis=chs.filter(c=>!print||!c.classList.contains("is-blank")),R=n=>["I","II","III","IV","V","VI","VII","VIII","IX","X","XI","XII"][n]||String(n+1);
   vis.forEach((c,i)=>{c.querySelector(".rpt-ch-n").textContent=String(i+1).padStart(2,"0");
     c.querySelector(".rpt-tabs").innerHTML=vis.map((_,j)=>`<i class="${j===i?"on":""}">${R(j)}</i>`).join("")});
-  ov.querySelector(".toc-list").innerHTML=vis.map((c,i)=>`<li><span class="toc-n num">${String(i+1).padStart(2,"0")}</span><span class="toc-t"><b>${esc(c.querySelector("h2").textContent.trim()||"（未命名）")}</b><small class="num">${R(i)}</small></span></li>`).join("");
+  const tl=ov.querySelector(".toc-list");if(tl)tl.innerHTML=vis.map((c,i)=>`<li><span class="toc-n num">${String(i+1).padStart(2,"0")}</span><span class="toc-t"><b>${esc(c.querySelector("h2").textContent.trim()||"（未命名）")}</b><small class="num">${R(i)}</small></span></li>`).join("");
   if(!print)rptPaginateSoon();
 }
 /* ---------- 實際斷頁、一張一張的紙（2026-11-06 使用者：照真正的斷點分頁編輯，才知道怎麼排版） ----------
@@ -181,12 +181,12 @@ async function reportDialog(){
   if(!v)return;let a=v.from||pick,b=v.to||t;if(a>b)[a,b]=[b,a];
   openReport(a,b);
 }
-function openReport(from,to){
-  closeReport(true);rptRange={from,to};
-  document.body.insertAdjacentHTML("beforeend",`<div class="rpt-ov" id="rptOv" role="dialog" aria-modal="true" aria-label="工作報告預覽">
-    <div class="anim-top rpt-bar"><div class="anim-title"><span class="anim-k">REPORT</span><b>工作報告預覽</b><span class="sub rpt-hint">文字都可以直接點開修改・每一張紙就是 PDF 的一頁・空白的圖塊與章節不會印出來・不會存進看板</span><span class="rpt-pages num" id="rptPages" aria-live="polite"></span></div>
-      <div class="anim-ctl"><button type="button" id="rptAdd">＋ 章節</button><button type="button" class="primary" id="rptPrint">${ico("download")}存成 PDF</button><button type="button" id="rptClose" aria-label="關閉工作報告">${ico("close")}關閉</button></div></div>
-    <div class="rpt-scroll"><article class="rpt-paper" spellcheck="false">${rptHTML(rptData(from,to))}</article></div></div>`);
+function openReport(from,to,doc){
+  closeReport(true);rptRange={from,to};rptDoc=doc||null;const L=doc?doc.label:"工作報告";
+  document.body.insertAdjacentHTML("beforeend",`<div class="rpt-ov" id="rptOv" role="dialog" aria-modal="true" aria-label="${L}預覽">
+    <div class="anim-top rpt-bar"><div class="anim-title"><span class="anim-k">${doc?doc.k:"REPORT"}</span><b>${L}預覽</b><span class="sub rpt-hint">文字都可以直接點開修改・每一張紙就是 PDF 的一頁・空白的圖塊與章節不會印出來・不會存進看板</span><span class="rpt-pages num" id="rptPages" aria-live="polite"></span></div>
+      <div class="anim-ctl"><button type="button" id="rptAdd">＋ 章節</button><button type="button" class="primary" id="rptPrint">${ico("download")}存成 PDF</button><button type="button" id="rptClose" aria-label="關閉${L}">${ico("close")}關閉</button></div></div>
+    <div class="rpt-scroll"><article class="rpt-paper" spellcheck="false">${doc?doc.html:rptHTML(rptData(from,to))}</article></div></div>`);
   const ov=$("#rptOv");rptOpen=true;document.body.classList.add("rpt-open");
   $("#rptClose").onclick=()=>closeReport();Back.layers.report();$("#rptPrint").onclick=rptPrint;$("#rptAdd").onclick=rptAdd;
   rptBind(ov);rptSync();
@@ -324,7 +324,7 @@ function rptParaTool(ov){
 function rptPrint(){
   if(document.activeElement&&document.activeElement.blur)document.activeElement.blur();
   const t=document.title,r=rptRange||{from:"",to:""};
-  document.title=`${CFG.dept.name||""}工作報告_${r.from.replaceAll("-","")}-${r.to.replaceAll("-","")}`;
+  document.title=rptDoc?rptDoc.file:`${CFG.dept.name||""}工作報告_${r.from.replaceAll("-","")}-${r.to.replaceAll("-","")}`;
   rptSync(true);   /* 空白的章不印：章節號、目錄、索引先照要印的重排，印完再排回來 */
   clearTimeout(rptPgT);rptUnpage();   /* 預覽排成一張一張紙用的墊塊、空隙、每章最小高度先拿掉，列印照原本的內容流；印完再排回來 */
   const back=()=>{document.title=t;rptSync();rptPaginate();removeEventListener("afterprint",back)};addEventListener("afterprint",back);

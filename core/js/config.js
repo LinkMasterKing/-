@@ -12,11 +12,14 @@ const CFG=(()=>{
     data:{owner:"",repo:"",branch:"main",path:"data.json",page:"index.html"},
     notify:{url:""},
     week:{cutoff:2},
-    deptId:"",logo:true,follow:false,meeting:false,grant:false,
+    deptId:"",logo:true,follow:false,meeting:false,grant:false,ext:"",extIcon:"",mergeDone:false,
   };
   const u=window.BOARD_CONFIG||{},o={...D,...u};
   ["dept","colors","sections","term","data","notify","week"].forEach(k=>o[k]={...D[k],...(u[k]||{})});
   if(!Array.isArray(o.stageTags))o.stageTags=D.stageTags;
   return Object.freeze(o);
 })();
-const secOn=k=>k==="progress"?(CFG.sections.timeline||CFG.sections.cards):CFG.sections[k]!==false;
+const secOn=k=>k==="progress"?(CFG.sections.timeline||CFG.sections.cards):k==="ext"?!!CFG.ext:CFG.sections[k]!==false;
+/* 底部工具列的分頁（區塊）：完成紀錄併進即時回報的部門（mergeDone）不另外算一區；secOf＝某一區實際在哪個分頁裡 */
+const secTab=k=>secOn(k)&&!(k==="done"&&CFG.mergeDone);
+const secOf=k=>k==="done"&&CFG.mergeDone?"live":k;

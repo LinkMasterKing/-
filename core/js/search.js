@@ -39,7 +39,7 @@ function hsMark(i){HS.on=i;document.querySelectorAll("#boardRes .hr-item").forEa
 function hsGo(x){
   hsShow(false);$("#boardQ").blur();
   if(notiOpen)closeNoti(true);if(setOpen)closeSettings(true);
-  const sec=x.k==="issue"?"progress":x.k;if(typeof setSection==="function"&&secOn(sec))setSection(sec);
+  const sec=secOf(x.k==="issue"?"progress":x.k);if(typeof setSection==="function"&&secTab(sec))setSection(sec);
   setTimeout(()=>{
     const el=x.k==="issue"?document.querySelector(`#gantt [data-jump="${x.id}"]`):document.querySelector(x.k==="live"?`#events [data-ev="${x.id}"]`:`#donePanel [data-done="${x.id}"]`);
     if(!el){toast("在看板上找不到這一項");return}

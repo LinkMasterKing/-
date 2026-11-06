@@ -35,11 +35,13 @@ const BOARD_BASE = {
    logo:false＝頁首先用文字代替 logo；follow:true＝有「追蹤」面板（會長室）；meeting:true＝有「會議報告事項」與「會議編輯」面板（秘書處）；grant:true＝開放秘書處會議編輯的開關（會長室）
    test:true＝測試用部門（2026-11-06 水果部）：不出現在總覽、各部門彙整（window.BOARD_DEPTS 不含它），只能用網址 ?d=代號 進去；
      後台管理員可以在設定 → 網站管理「重置」它（回到剛開通的狀態，provision.js 的 pvReset）
+   ext:"名稱"＝多一個分頁放這個部門專用的功能（2026-11-06：會長室「會長室」＝文件、會議開關、追蹤、編輯量；秘書處「會議」＝逐部門編輯報告事項、會議紀錄、各部門週報）；
+   extIcon＝那個分頁的圖示；mergeDone:true＝完成紀錄併進「即時回報」那一頁（不另外佔一個分頁）
    --------------------------------------------------------- */
 const BOARD_DEPTS = [
   { id: "rights",      name: "權益部", path: "data.json", boardId: "board-main", logo: true },
-  { id: "president",   name: "會長室", follow: true, grant: true },
-  { id: "secretariat", name: "秘書處", meeting: true },
+  { id: "president",   name: "會長室", follow: true, grant: true, ext: "會長室", extIcon: "flag", mergeDone: true },
+  { id: "secretariat", name: "秘書處", meeting: true, ext: "會議", extIcon: "calendar", mergeDone: true },
   { id: "marketing",   name: "行銷部" },
   { id: "finance",     name: "財務部" },
   { id: "events",      name: "活動部" },
@@ -47,7 +49,7 @@ const BOARD_DEPTS = [
   { id: "pr",          name: "公關部" },
   { id: "works",       name: "工務部" },
   { id: "fruit",       name: "水果部", test: true },
-].map(d => ({ path: `data-${d.id}.json`, boardId: `board-${d.id}`, logo: false, follow: false, meeting: false, grant: false, test: false, ...d }));
+].map(d => ({ path: `data-${d.id}.json`, boardId: `board-${d.id}`, logo: false, follow: false, meeting: false, grant: false, test: false, ext: "", extIcon: "", mergeDone: false, ...d }));
 
 (() => {
   const q = new URLSearchParams(location.search).get("d") || "rights";
@@ -64,7 +66,8 @@ const BOARD_DEPTS = [
     logo: d.logo,
     follow: d.follow,
     meeting: d.meeting,
-    grant: d.grant,                           // true＝看板上有「開放秘書處會議編輯」開關（會長室）                       // true＝秘書處的「會議報告事項」面板（core/js/meeting.js）
+    grant: d.grant,
+    ext: d.ext, extIcon: d.extIcon, mergeDone: d.mergeDone,                           // true＝看板上有「開放秘書處會議編輯」開關（會長室）                       // true＝秘書處的「會議報告事項」面板（core/js/meeting.js）
     data: { ...BOARD_BASE.data, path: d.path },
   };
 })();
