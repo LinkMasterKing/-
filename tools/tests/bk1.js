@@ -3,7 +3,7 @@ const ctx=await b.newContext({viewport:{width:390,height:844},hasTouch:true,isMo
 await ctx.route('https://fonts.googleapis.com/**',r=>r.fulfill({contentType:'text/css',body:''}));await ctx.route('https://api.github.com/**',r=>r.fulfill({status:404,body:'{}'}));
 const p=await ctx.newPage();const e=[];p.on('pageerror',x=>e.push(x.message));
 await p.goto('http://127.0.0.1:8300/home.html');await p.waitForTimeout(1200);
-await p.click('.dept[href="index.html"]');await p.waitForTimeout(2000);console.log('on board',p.url());
+await p.evaluate(()=>document.querySelector('#srList a[href="index.html"]').click());   /* 2026-11-06：總覽頁的部門改成長按標誌選（hm1.js 測），這裡直接點隱藏的部門連結 */await p.waitForTimeout(2000);console.log('on board',p.url());
 const st=()=>p.evaluate(()=>({len:history.length,state:history.state,set:setOpen,week:document.querySelector('#pager').scrollLeft>40}));
 await p.click('#setBtn');await p.waitForTimeout(700);console.log('settings open',await st());
 await p.goBack();await p.waitForTimeout(700);console.log('after back',await st(),p.url());
