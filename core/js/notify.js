@@ -216,6 +216,15 @@ function todayMorph(ov,card,reverse){
   return inner.animate(ki,o).finished;
 }
 /* 卡片藏起來／換回來要「瞬間」：卡片本身的 opacity 有 CSS 過渡，直接改會慢慢淡入，今日層收掉後卡片晚一點才出現＝閃一下（2026-11-06 使用者回報） */
+/* 收回卡片的那一刻，卡片自己再彈一下（2026-11-06 使用者：彈回去時沒有彈一下的感覺，看起來像動畫突然中斷）：
+   從原尺寸接著收合的方向往內縮一點（最小約 .965）、彈回來稍微超過、再停在原尺寸（衰減的彈簧，0.62 秒）；
+   起點就是原尺寸，跟底板倒放停下來的位置接得上，不會跳一下 */
+function tdCardLand(card){
+  if(!card||reduceMotion())return;
+  const D=.62,N=48,kf=[];
+  for(let i=0;i<=N;i++){const t=i/N*D,s=1-.042*Math.exp(-6.2*t)*Math.sin(2*Math.PI*t/.36);kf.push({offset:i/N,transform:`scale(${s.toFixed(4)})`})}
+  kf[N].transform="scale(1)";card.animate(kf,{duration:D*1000,easing:"linear"});
+}
 function tdCardShow(card,on){if(!card)return;card.style.transition="none";card.style.opacity=on?"":"0";void card.offsetWidth;card.style.transition=""}
 function openToday(card){
   if(todayOpen)return;todayOpen=true;
@@ -232,7 +241,7 @@ function closeToday(instant){
   if(instant===true||reduceMotion()||!card){done();return}
   ov.getAnimations({subtree:true}).forEach(a=>a.cancel());ov.querySelector(".td-scroll").scrollTo({top:0});
   tdCardShow(card,false);   /* 倒放期間卡片藏著（底板縮回卡片的位置與圓角，播完換回卡片，看起來就是同一張） */
-  todayMorph(ov,card,true).then(done).catch(done);
+  todayMorph(ov,card,true).then(()=>{done();tdCardLand(card)}).catch(done);
 }
 function renderNoti(){
   const el=$("#notiOv .noti-inner");if(!el||!notiOpen)return;
