@@ -3,7 +3,7 @@
  "id": "board-main",
  "title": "權益部工作進度",
  "locked": false,
- "savedAt": "2026-11-07 04:38",
+ "savedAt": "2026-11-07 20:42",
  "range": {
   "start": "2026-09",
   "end": "2027-09"
@@ -277,6 +277,24 @@
    "labels": []
   },
   {
+   "id": "emvt1ohjjrkyg",
+   "name": "權益部網站線上化",
+   "desc": "申訴案件線上化考量 優先做\n法規公開\n衛生棉補給站站點地圖\n\n加入學代名單與系統\n(部門內)提案單產生器",
+   "createdAt": "2026-10-29",
+   "staff": [],
+   "touched": [
+    "2026-10-27",
+    "2026-11-05"
+   ],
+   "links": [],
+   "times": [],
+   "round": 2,
+   "report": true,
+   "touchedAt": "2026-11-05T16:52",
+   "roundAt": "2026-11-05T16:52",
+   "labels": []
+  },
+  {
    "id": "emvpd6qonvam7",
    "name": "社群內容排程",
    "desc": "交付行銷部五天前\n\n世新報導記錄各事件時間點 簡易說明事態變化 前因後果 最終導入簡易引導觀點\n\n青民協圖片請公關協助處裡授權問候\n",
@@ -348,24 +366,6 @@
    "touchedAt": "2026-11-05T16:44",
    "report": true,
    "roundAt": "2026-11-05T16:44",
-   "labels": []
-  },
-  {
-   "id": "emvt1ohjjrkyg",
-   "name": "權益部網站線上化",
-   "desc": "申訴案件線上化考量 優先做\n法規公開\n衛生棉補給站站點地圖\n\n加入學代名單與系統\n(部門內)提案單產生器",
-   "createdAt": "2026-10-29",
-   "staff": [],
-   "touched": [
-    "2026-10-27",
-    "2026-11-05"
-   ],
-   "links": [],
-   "times": [],
-   "round": 2,
-   "report": true,
-   "touchedAt": "2026-11-05T16:52",
-   "roundAt": "2026-11-05T16:52",
    "labels": []
   },
   {
@@ -1122,7 +1122,7 @@
   }
  },
  "pwKdf": "rQfwjiQjTGPRWifOAuO0bw==:vsYYW5+doH1lk3vytEhM89Wm9AuZDXTvwdShkCssLXs=",
- "schemaVersion": 10,
+ "schemaVersion": 13,
  "members": [
   {
    "id": "mmvx2r1i3ffnm",
@@ -1159,5 +1159,7 @@
   }
  ],
  "meetGrant": null,
- "semester": ""
+ "semester": "",
+ "docs": [],
+ "minutes": []
 }
