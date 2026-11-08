@@ -28,5 +28,12 @@
   "end": "2027-03"
  },
  "title": "活動部工作進度",
- "pwKdf": "PkZk6hjJbo+JZIU7XayIyQ==:55AbHJLqWGQm6tgNZOvtqiABSp0V/0D30E7UqAat5tA="
+ "pwKdf": "PkZk6hjJbo+JZIU7XayIyQ==:55AbHJLqWGQm6tgNZOvtqiABSp0V/0D30E7UqAat5tA=",
+ "sync": {
+  "tokenAll": {
+   "s": "7kKOgsvi3izzX+g0KY9VgA==",
+   "i": "+odaT9P3BYYzxLNq",
+   "c": "ieOkkzt2aSRhQlSzjM9OJET0sFxLETr3NNGDaIfH+xGo4lYhwk14PF59V2HUTnZu90Abh/xBZSw3hGYE/GCKd1naf22muRAbtnY2iytGjHq5CN/+sNWqhePYGsHRADrdqZfTA2Nce/bA8arz3A=="
+  }
+ }
 }
