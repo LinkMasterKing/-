@@ -1,0 +1,21 @@
+{
+ "schemaVersion": 13,
+ "id": "board-pr",
+ "title": "公關部工作進度",
+ "members": [],
+ "issues": [],
+ "events": [],
+ "weeks": [],
+ "savedAt": "2026-11-09 02:14",
+ "sync": {
+  "owner": "linkmasterking",
+  "repo": "-",
+  "branch": "main",
+  "path": "data-pr.json",
+  "tokenAll": {
+   "s": "7kKOgsvi3izzX+g0KY9VgA==",
+   "i": "+odaT9P3BYYzxLNq",
+   "c": "ieOkkzt2aSRhQlSzjM9OJET0sFxLETr3NNGDaIfH+xGo4lYhwk14PF59V2HUTnZu90Abh/xBZSw3hGYE/GCKd1naf22muRAbtnY2iytGjHq5CN/+sNWqhePYGsHRADrdqZfTA2Nce/bA8arz3A=="
+  }
+ }
+}
