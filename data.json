@@ -3,7 +3,7 @@
  "id": "board-main",
  "title": "權益部工作進度",
  "locked": false,
- "savedAt": "2026-11-10 19:05",
+ "savedAt": "2026-11-10 19:07",
  "range": {
   "start": "2026-09",
   "end": "2027-09"
@@ -696,15 +696,23 @@
    "desc": "流程修改\n\n第二步驟 決定幾人同意(預設2人)  /  需利益迴避\n\n\n第三步驟 補充非校方主理事宜無須與校方事前確認\n\n第四/六步驟 校方審核時機寫入第五步驟",
    "createdAt": "2026-11-03",
    "staff": [],
-   "links": [],
+   "links": [
+    {
+     "id": "lmwal5zucgc3s",
+     "name": "初版流程",
+     "url": "https://drive.google.com/file/d/1B0mLeHIdJXyk9DO6ouRxlYUXKpTRwSxD/view?usp=drive_link",
+     "color": "#6a4fd8"
+    }
+   ],
    "times": [],
    "round": 2,
    "touched": [
     "2026-11-03",
     "2026-11-05",
-    "2026-11-06"
+    "2026-11-06",
+    "2026-11-10"
    ],
-   "touchedAt": "2026-11-06T00:37",
+   "touchedAt": "2026-11-10T19:07",
    "report": true,
    "roundAt": "2026-11-05T17:06",
    "labels": []
