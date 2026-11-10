@@ -28,7 +28,14 @@
  "schemaVersion": 13,
  "id": "board-events",
  "follows": [],
- "weeks": [],
+ "weeks": [
+  {
+   "id": "wmwant1gfe8fl",
+   "date": "2026-11-10",
+   "text": "活動部 本週例行回報\n日期：【2026.11.10】\n\n一、即時回報\n❏ 師生座談會\n❏ 期中負責人會議\n❏ 交流\n❏ 社團評鑑\n❏ 校慶舞台安排\n❏ 期末負責人會議\n\n二、本週完成\n❏ 本週沒有完成項目",
+   "auto": true
+  }
+ ],
  "issues": [],
  "events": [
   {
@@ -44,7 +51,8 @@
     "2026-11-10"
    ],
    "touchedAt": "2026-11-10T20:15",
-   "labels": []
+   "labels": [],
+   "report": false
   },
   {
    "id": "emwanlphb17pu",
@@ -58,7 +66,8 @@
    "touched": [
     "2026-11-10"
    ],
-   "touchedAt": "2026-11-10T20:16"
+   "touchedAt": "2026-11-10T20:16",
+   "report": false
   },
   {
    "id": "emwanm4a88y46",
@@ -72,7 +81,8 @@
    "touched": [
     "2026-11-10"
    ],
-   "touchedAt": "2026-11-10T20:16"
+   "touchedAt": "2026-11-10T20:16",
+   "report": false
   },
   {
    "id": "emwanmvi8btmy",
@@ -86,7 +96,8 @@
    "touched": [
     "2026-11-10"
    ],
-   "touchedAt": "2026-11-10T20:16"
+   "touchedAt": "2026-11-10T20:16",
+   "report": false
   },
   {
    "id": "emwanqad907f9",
@@ -100,7 +111,8 @@
    "touched": [
     "2026-11-10"
    ],
-   "touchedAt": "2026-11-10T20:19"
+   "touchedAt": "2026-11-10T20:19",
+   "report": false
   },
   {
    "id": "emwanr5lyeshx",
@@ -114,10 +126,14 @@
    "touched": [
     "2026-11-10"
    ],
-   "touchedAt": "2026-11-10T20:20"
+   "touchedAt": "2026-11-10T20:20",
+   "report": false
   }
  ],
- "reportBase": null,
+ "reportBase": {
+  "date": "2026-11-10",
+  "issues": {}
+ },
  "yearLabel": "115學年",
  "termStart": "2026-09-07",
  "range": {
@@ -143,6 +159,6 @@
  "semester": "",
  "docs": [],
  "minutes": [],
- "savedAt": "2026-11-10 20:20",
+ "savedAt": "2026-11-10 20:21",
  "savedBy": "活動部地精"
 }
