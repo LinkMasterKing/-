@@ -101,6 +101,20 @@
     "2026-11-10"
    ],
    "touchedAt": "2026-11-10T20:19"
+  },
+  {
+   "id": "emwanr5lyeshx",
+   "name": "期末負責人會議",
+   "desc": "",
+   "createdAt": "2026-11-10",
+   "staff": [],
+   "links": [],
+   "times": [],
+   "round": 1,
+   "touched": [
+    "2026-11-10"
+   ],
+   "touchedAt": "2026-11-10T20:20"
   }
  ],
  "reportBase": null,
@@ -129,6 +143,6 @@
  "semester": "",
  "docs": [],
  "minutes": [],
- "savedAt": "2026-11-10 20:19",
+ "savedAt": "2026-11-10 20:20",
  "savedBy": "活動部地精"
 }
