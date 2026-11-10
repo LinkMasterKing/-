@@ -286,6 +286,61 @@
    "labels": []
   },
   {
+   "id": "emvz5bo0gi726",
+   "name": "車禍事件",
+   "desc": "關注事態發展\n聲明流程檢討\n\n交通建議統整\n\nDcard已出現連署聲音，目前關注較少，持續關注輿情\n\n\n\n社群平台已有民眾、同學自發性獻花行動，已至現場確認悼念位置，動線改善或另設區域\n\n道路改善管道\n1.國土署街道醫生\n2.參與式預算\n3.路權團體\n4.校方勘查",
+   "createdAt": "2026-11-02",
+   "staff": [],
+   "links": [
+    {
+     "id": "lmvz5djk8pm0w",
+     "name": "報導",
+     "url": "https://tw.news.yahoo.com/%E5%BF%AB%E8%A8%8A-%E5%8D%97%E5%8F%B0%E7%A7%91%E5%A4%A7%E6%96%B0%E7%94%9F%E8%B5%B0%E8%B7%AF%E9%81%AD%E6%92%9E%E6%AD%BB-%E9%A7%95%E9%A7%9B%E9%85%92%E9%A7%95%E8%82%87%E9%80%83%E6%8A%93%E5%88%B0%E4%BA%86-022100206.html",
+     "color": "#6b6b75"
+    },
+    {
+     "id": "lmvz5elbb8xec",
+     "name": "校方動態",
+     "url": "https://www.cdns.com.tw/articles/1483881",
+     "color": "#3d7fe0"
+    },
+    {
+     "id": "lmw0ln6sybrdj",
+     "name": "道路改善行動參考案例",
+     "url": "https://www.instagram.com/p/DYwDOZhmlll/?img_index=1",
+     "color": "#a24fc0"
+    }
+   ],
+   "times": [
+    {
+     "id": "tmw3cp9dlvinh",
+     "label": "初版評估",
+     "start": "2026-11-29",
+     "end": "",
+     "toIssue": false,
+     "place": ""
+    },
+    {
+     "id": "tmw3cq666wkce",
+     "label": "發布調查表單",
+     "start": "2026-11-23",
+     "end": "",
+     "toIssue": false,
+     "place": ""
+    }
+   ],
+   "round": 2,
+   "touched": [
+    "2026-11-02",
+    "2026-11-03",
+    "2026-11-05"
+   ],
+   "touchedAt": "2026-11-05T17:37",
+   "report": true,
+   "roundAt": "2026-11-05T17:37",
+   "labels": []
+  },
+  {
    "id": "emvteefflmm61",
    "name": "六宿女宿舍通道安全",
    "desc": "三樓安全門未關閉上鎖\n\n學務長聯絡",
@@ -307,36 +362,6 @@
    "roundAt": "2026-11-10T19:05",
    "labels": [],
    "doneAt": null
-  },
-  {
-   "id": "emvt1pwvqrhyw",
-   "name": "停車場冷氣機報廢後續",
-   "desc": "報廢要求被退回學務處\n\n與宿舍/生輔組確認",
-   "createdAt": "2026-10-29",
-   "staff": [],
-   "touched": [
-    "2026-10-27",
-    "2026-11-03",
-    "2026-11-05",
-    "2026-11-09"
-   ],
-   "links": [],
-   "times": [
-    {
-     "id": "tmw3b6j9am1v8",
-     "label": "安全場勘時間順代提出",
-     "start": "2026-11-09T16:00",
-     "end": "",
-     "toIssue": false,
-     "place": ""
-    }
-   ],
-   "round": 2,
-   "touchedAt": "2026-11-09T02:08",
-   "report": true,
-   "roundAt": "2026-11-05T16:54",
-   "labels": [],
-   "issueId": "imvpc3f0dcpi6"
   },
   {
    "id": "emvpd82rr1kit",
@@ -508,31 +533,34 @@
    "labels": []
   },
   {
-   "id": "emw0myswnrccf",
-   "name": "緊急公關聲明流程",
-   "desc": "流程修改\n\n第二步驟 決定幾人同意(預設2人)  /  需利益迴避\n\n\n第三步驟 補充非校方主理事宜無須與校方事前確認\n\n第四/六步驟 校方審核時機寫入第五步驟",
-   "createdAt": "2026-11-03",
+   "id": "emvt1pwvqrhyw",
+   "name": "停車場冷氣機報廢後續",
+   "desc": "報廢要求被退回學務處\n\n與宿舍/生輔組確認",
+   "createdAt": "2026-10-29",
    "staff": [],
-   "links": [
-    {
-     "id": "lmwal5zucgc3s",
-     "name": "初版流程",
-     "url": "https://drive.google.com/file/d/1B0mLeHIdJXyk9DO6ouRxlYUXKpTRwSxD/view?usp=drive_link",
-     "color": "#6a4fd8"
-    }
-   ],
-   "times": [],
-   "round": 2,
    "touched": [
+    "2026-10-27",
     "2026-11-03",
     "2026-11-05",
-    "2026-11-06",
-    "2026-11-10"
+    "2026-11-09"
    ],
-   "touchedAt": "2026-11-10T19:07",
+   "links": [],
+   "times": [
+    {
+     "id": "tmw3b6j9am1v8",
+     "label": "安全場勘時間順代提出",
+     "start": "2026-11-09T16:00",
+     "end": "",
+     "toIssue": false,
+     "place": ""
+    }
+   ],
+   "round": 2,
+   "touchedAt": "2026-11-09T02:08",
    "report": true,
-   "roundAt": "2026-11-05T17:06",
-   "labels": []
+   "roundAt": "2026-11-05T16:54",
+   "labels": [],
+   "issueId": "imvpc3f0dcpi6"
   },
   {
    "id": "emvqocysbhm9s",
@@ -606,6 +634,33 @@
    "doneAt": "2026-11-03",
    "touchedAt": "2026-11-03T20:39",
    "report": false,
+   "labels": []
+  },
+  {
+   "id": "emw0myswnrccf",
+   "name": "緊急公關聲明流程",
+   "desc": "流程修改\n\n第二步驟 決定幾人同意(預設2人)  /  需利益迴避\n\n\n第三步驟 補充非校方主理事宜無須與校方事前確認\n\n第四/六步驟 校方審核時機寫入第五步驟",
+   "createdAt": "2026-11-03",
+   "staff": [],
+   "links": [
+    {
+     "id": "lmwal5zucgc3s",
+     "name": "初版流程",
+     "url": "https://drive.google.com/file/d/1B0mLeHIdJXyk9DO6ouRxlYUXKpTRwSxD/view?usp=drive_link",
+     "color": "#6a4fd8"
+    }
+   ],
+   "times": [],
+   "round": 2,
+   "touched": [
+    "2026-11-03",
+    "2026-11-05",
+    "2026-11-06",
+    "2026-11-10"
+   ],
+   "touchedAt": "2026-11-10T19:07",
+   "report": true,
+   "roundAt": "2026-11-05T17:06",
    "labels": []
   },
   {
@@ -718,61 +773,6 @@
    "labels": []
   },
   {
-   "id": "emvz5bo0gi726",
-   "name": "車禍事件",
-   "desc": "關注事態發展\n聲明流程檢討\n\n交通建議統整\n\nDcard已出現連署聲音，目前關注較少，持續關注輿情\n\n\n\n社群平台已有民眾、同學自發性獻花行動，已至現場確認悼念位置，動線改善或另設區域\n\n道路改善管道\n1.國土署街道醫生\n2.參與式預算\n3.路權團體\n4.校方勘查",
-   "createdAt": "2026-11-02",
-   "staff": [],
-   "links": [
-    {
-     "id": "lmvz5djk8pm0w",
-     "name": "報導",
-     "url": "https://tw.news.yahoo.com/%E5%BF%AB%E8%A8%8A-%E5%8D%97%E5%8F%B0%E7%A7%91%E5%A4%A7%E6%96%B0%E7%94%9F%E8%B5%B0%E8%B7%AF%E9%81%AD%E6%92%9E%E6%AD%BB-%E9%A7%95%E9%A7%9B%E9%85%92%E9%A7%95%E8%82%87%E9%80%83%E6%8A%93%E5%88%B0%E4%BA%86-022100206.html",
-     "color": "#6b6b75"
-    },
-    {
-     "id": "lmvz5elbb8xec",
-     "name": "校方動態",
-     "url": "https://www.cdns.com.tw/articles/1483881",
-     "color": "#3d7fe0"
-    },
-    {
-     "id": "lmw0ln6sybrdj",
-     "name": "道路改善行動參考案例",
-     "url": "https://www.instagram.com/p/DYwDOZhmlll/?img_index=1",
-     "color": "#a24fc0"
-    }
-   ],
-   "times": [
-    {
-     "id": "tmw3cp9dlvinh",
-     "label": "初版評估",
-     "start": "2026-11-29",
-     "end": "",
-     "toIssue": false,
-     "place": ""
-    },
-    {
-     "id": "tmw3cq666wkce",
-     "label": "發布調查表單",
-     "start": "2026-11-23",
-     "end": "",
-     "toIssue": false,
-     "place": ""
-    }
-   ],
-   "round": 2,
-   "touched": [
-    "2026-11-02",
-    "2026-11-03",
-    "2026-11-05"
-   ],
-   "touchedAt": "2026-11-05T17:37",
-   "report": true,
-   "roundAt": "2026-11-05T17:37",
-   "labels": []
-  },
-  {
    "id": "emw0lb1djdnco",
    "name": "數位會務改革",
    "desc": "各部門功能統整簡化\n\n擬計畫提未來AI使用預算",
@@ -809,12 +809,14 @@
    "round": 2,
    "touched": [
     "2026-11-03",
-    "2026-11-06"
+    "2026-11-06",
+    "2026-11-10"
    ],
-   "touchedAt": "2026-11-06T00:35",
+   "touchedAt": "2026-11-10T19:32",
    "report": true,
    "labels": [],
-   "roundAt": "2026-11-06T00:35"
+   "roundAt": "2026-11-06T00:35",
+   "doneAt": "2026-11-10"
   },
   {
    "id": "emw0lqzfmw4dl",
