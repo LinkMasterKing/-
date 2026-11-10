@@ -59,6 +59,20 @@
     "2026-11-10"
    ],
    "touchedAt": "2026-11-10T20:16"
+  },
+  {
+   "id": "emwanm4a88y46",
+   "name": "交流",
+   "desc": "",
+   "createdAt": "2026-11-10",
+   "staff": [],
+   "links": [],
+   "times": [],
+   "round": 1,
+   "touched": [
+    "2026-11-10"
+   ],
+   "touchedAt": "2026-11-10T20:16"
   }
  ],
  "reportBase": null,
