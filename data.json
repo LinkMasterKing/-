@@ -3,7 +3,7 @@
  "id": "board-main",
  "title": "權益部工作進度",
  "locked": false,
- "savedAt": "2026-11-10 20:23",
+ "savedAt": "2026-11-10 21:54",
  "range": {
   "start": "2026-09",
   "end": "2027-09"
@@ -1154,12 +1154,21 @@
     "mmvx2r1i3ffnm"
    ],
    "links": [],
-   "times": [],
+   "times": [
+    {
+     "id": "tmwar4kufw2qe",
+     "label": "培訓當天",
+     "start": "2026-12-03",
+     "end": "",
+     "place": "",
+     "toIssue": false
+    }
+   ],
    "round": 1,
    "touched": [
     "2026-11-10"
    ],
-   "touchedAt": "2026-11-10T18:19",
+   "touchedAt": "2026-11-10T21:54",
    "labels": [],
    "report": false
   }
