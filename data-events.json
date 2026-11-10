@@ -30,7 +30,23 @@
  "follows": [],
  "weeks": [],
  "issues": [],
- "events": [],
+ "events": [
+  {
+   "id": "emwankxtatqpd",
+   "name": "師生座談會",
+   "desc": "",
+   "createdAt": "2026-11-10",
+   "staff": [],
+   "links": [],
+   "times": [],
+   "round": 1,
+   "touched": [
+    "2026-11-10"
+   ],
+   "touchedAt": "2026-11-10T20:15",
+   "labels": []
+  }
+ ],
  "reportBase": null,
  "yearLabel": "115學年",
  "termStart": "2026-09-07",
@@ -57,6 +73,6 @@
  "semester": "",
  "docs": [],
  "minutes": [],
- "savedAt": "2026-11-10 20:14",
+ "savedAt": "2026-11-10 20:15",
  "savedBy": "活動部地精"
 }
