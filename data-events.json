@@ -70,20 +70,6 @@
    "report": false
   },
   {
-   "id": "emwantm0hywbq",
-   "name": "活動部每週行政",
-   "desc": "",
-   "createdAt": "2026-11-10",
-   "staff": [],
-   "links": [],
-   "times": [],
-   "round": 1,
-   "touched": [
-    "2026-11-10"
-   ],
-   "touchedAt": "2026-11-10T20:22"
-  },
-  {
    "id": "emwanm4a88y46",
    "name": "交流",
    "desc": "",
@@ -97,6 +83,20 @@
    ],
    "touchedAt": "2026-11-10T20:16",
    "report": false
+  },
+  {
+   "id": "emwantm0hywbq",
+   "name": "活動部每週行政",
+   "desc": "",
+   "createdAt": "2026-11-10",
+   "staff": [],
+   "links": [],
+   "times": [],
+   "round": 1,
+   "touched": [
+    "2026-11-10"
+   ],
+   "touchedAt": "2026-11-10T20:22"
   },
   {
    "id": "emwanmvi8btmy",
