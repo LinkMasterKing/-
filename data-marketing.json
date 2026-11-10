@@ -4,21 +4,9 @@
  "title": "行銷部工作進度",
  "members": [
   {
-   "id": "mmwanwa7ugj2f",
-   "name": "誇張的人",
-   "role": "admin",
-   "kdf": "sqhSQMV+3eXoC0eAcMEaAQ==:TlpY4ulyTTUE29tm4XaxA5FdDs6nPQpzqP3NeLfFLbA=",
-   "createdAt": "2026-11-10 20:24",
-   "tok": {
-    "s": "WaVQ9LGE2Ekxv/Jrg+CWnQ==",
-    "i": "TmyK/n8TcGfpTQW4",
-    "c": "FWAtJNb6gXzKupdFNZ6gMoMYOFCdVxq/ExpWsopGmTxPXp/I0NnaCpWXVoPqdP+3WWdpva1kcT9ZAv7FwBm3sTcPhc/KE6uQQjMrNRdVmapBLOmrO3DB3b/LzNjOE+o1GbmwX4iBvtiBagrnlA=="
-   }
-  },
-  {
    "id": "mmwaoqx5gk35x",
    "name": "莊驗晴",
-   "role": "member",
+   "role": "admin",
    "kdf": "p6Iw9hFybmyvbnpJJfXq+A==:Pp8Ck7DSA3GHFFVKI8t+0vJsceWHK2GztXCvBuR+txM=",
    "createdAt": "2026-11-10 20:47",
    "tok": {
@@ -31,7 +19,7 @@
  "issues": [],
  "events": [],
  "weeks": [],
- "savedAt": "2026-11-09 02:13",
+ "savedAt": "2026-11-10 20:50",
  "sync": {
   "owner": "linkmasterking",
   "repo": "-",
