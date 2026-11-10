@@ -67,7 +67,8 @@
     "2026-11-10"
    ],
    "touchedAt": "2026-11-10T20:16",
-   "report": false
+   "report": false,
+   "labels": []
   },
   {
    "id": "emwanm4a88y46",
@@ -82,7 +83,8 @@
     "2026-11-10"
    ],
    "touchedAt": "2026-11-10T20:16",
-   "report": false
+   "report": false,
+   "labels": []
   },
   {
    "id": "emwanmvi8btmy",
@@ -97,7 +99,8 @@
     "2026-11-10"
    ],
    "touchedAt": "2026-11-10T20:16",
-   "report": false
+   "report": false,
+   "labels": []
   },
   {
    "id": "emwanqad907f9",
@@ -112,7 +115,8 @@
     "2026-11-10"
    ],
    "touchedAt": "2026-11-10T20:19",
-   "report": false
+   "report": false,
+   "labels": []
   },
   {
    "id": "emwanr5lyeshx",
@@ -127,7 +131,8 @@
     "2026-11-10"
    ],
    "touchedAt": "2026-11-10T20:20",
-   "report": false
+   "report": false,
+   "labels": []
   },
   {
    "id": "emwantm0hywbq",
@@ -141,7 +146,9 @@
    "touched": [
     "2026-11-10"
    ],
-   "touchedAt": "2026-11-10T20:22"
+   "touchedAt": "2026-11-10T20:22",
+   "labels": [],
+   "report": false
   }
  ],
  "reportBase": {
@@ -173,6 +180,6 @@
  "semester": "",
  "docs": [],
  "minutes": [],
- "savedAt": "2026-11-10 20:22",
+ "savedAt": "2026-11-10 20:51",
  "savedBy": "活動部地精"
 }
