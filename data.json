@@ -638,33 +638,6 @@
    "labels": []
   },
   {
-   "id": "emw0myswnrccf",
-   "name": "緊急公關聲明流程",
-   "desc": "流程修改\n\n第二步驟 決定幾人同意(預設2人)  /  需利益迴避\n\n\n第三步驟 補充非校方主理事宜無須與校方事前確認\n\n第四/六步驟 校方審核時機寫入第五步驟",
-   "createdAt": "2026-11-03",
-   "staff": [],
-   "links": [
-    {
-     "id": "lmwal5zucgc3s",
-     "name": "初版流程",
-     "url": "https://drive.google.com/file/d/1B0mLeHIdJXyk9DO6ouRxlYUXKpTRwSxD/view?usp=drive_link",
-     "color": "#6a4fd8"
-    }
-   ],
-   "times": [],
-   "round": 2,
-   "touched": [
-    "2026-11-03",
-    "2026-11-05",
-    "2026-11-06",
-    "2026-11-10"
-   ],
-   "touchedAt": "2026-11-10T19:07",
-   "report": false,
-   "roundAt": "2026-11-05T17:06",
-   "labels": []
-  },
-  {
    "id": "emvpd4765r0ch",
    "name": "數位校務改革",
    "desc": "等回覆 敲共同商議時間 或提出方案取得反饋",
@@ -800,6 +773,24 @@
    "labels": []
   },
   {
+   "id": "emwanenep6fe1",
+   "name": "衛生棉補給站點",
+   "desc": "目前補給盒已見底",
+   "createdAt": "2026-11-10",
+   "staff": [
+    "mmvz4b7d5emiy"
+   ],
+   "links": [],
+   "times": [],
+   "round": 1,
+   "touched": [
+    "2026-11-10"
+   ],
+   "touchedAt": "2026-11-10T20:11",
+   "issueId": "imvpc1cuefjii",
+   "report": true
+  },
+  {
    "id": "emw0mszjya8iv",
    "name": "交流簡報討論",
    "desc": "交付照片文字",
@@ -842,6 +833,33 @@
    "labels": []
   },
   {
+   "id": "emw0myswnrccf",
+   "name": "緊急公關聲明流程",
+   "desc": "流程修改\n\n第二步驟 決定幾人同意(預設2人)  /  需利益迴避\n\n\n第三步驟 補充非校方主理事宜無須與校方事前確認\n\n第四/六步驟 校方審核時機寫入第五步驟",
+   "createdAt": "2026-11-03",
+   "staff": [],
+   "links": [
+    {
+     "id": "lmwal5zucgc3s",
+     "name": "初版流程",
+     "url": "https://drive.google.com/file/d/1B0mLeHIdJXyk9DO6ouRxlYUXKpTRwSxD/view?usp=drive_link",
+     "color": "#6a4fd8"
+    }
+   ],
+   "times": [],
+   "round": 2,
+   "touched": [
+    "2026-11-03",
+    "2026-11-05",
+    "2026-11-06",
+    "2026-11-10"
+   ],
+   "touchedAt": "2026-11-10T19:07",
+   "report": false,
+   "roundAt": "2026-11-05T17:06",
+   "labels": []
+  },
+  {
    "id": "emvt1ohjjrkyg",
    "name": "權益部網站線上化",
    "desc": "申訴案件線上化考量 優先做\n法規公開\n衛生棉補給站站點地圖\n\n加入學代名單與系統\n(部門內)提案單產生器",
@@ -878,25 +896,6 @@
    "report": false,
    "roundAt": "2026-11-05T16:48",
    "labels": []
-  },
-  {
-   "id": "emw0pwllmeivk",
-   "name": "上傳NAS資料",
-   "desc": "NAS上傳",
-   "createdAt": "2026-11-03",
-   "staff": [],
-   "links": [],
-   "times": [],
-   "round": 2,
-   "touched": [
-    "2026-11-03",
-    "2026-11-06",
-    "2026-11-10"
-   ],
-   "touchedAt": "2026-11-10T19:08",
-   "report": false,
-   "labels": [],
-   "roundAt": "2026-11-06T00:35"
   },
   {
    "id": "emw3aujc3kz9f",
@@ -1105,22 +1104,23 @@
    "report": false
   },
   {
-   "id": "emwajg0p0vpej",
-   "name": "會內培訓內容規劃",
-   "desc": "尚在規劃ing",
-   "createdAt": "2026-11-10",
-   "staff": [
-    "mmvx2r1i3ffnm"
-   ],
+   "id": "emw0pwllmeivk",
+   "name": "上傳NAS資料",
+   "desc": "NAS上傳",
+   "createdAt": "2026-11-03",
+   "staff": [],
    "links": [],
    "times": [],
-   "round": 1,
+   "round": 2,
    "touched": [
+    "2026-11-03",
+    "2026-11-06",
     "2026-11-10"
    ],
-   "touchedAt": "2026-11-10T18:19",
+   "touchedAt": "2026-11-10T19:08",
+   "report": false,
    "labels": [],
-   "report": false
+   "roundAt": "2026-11-06T00:35"
   },
   {
    "id": "emwal3c95oe2w",
@@ -1146,12 +1146,12 @@
    "fromEv": "emvteefflmm61"
   },
   {
-   "id": "emwanenep6fe1",
-   "name": "衛生棉補給站點",
-   "desc": "目前補給盒已見底",
+   "id": "emwajg0p0vpej",
+   "name": "會內培訓內容規劃",
+   "desc": "尚在規劃ing",
    "createdAt": "2026-11-10",
    "staff": [
-    "mmvz4b7d5emiy"
+    "mmvx2r1i3ffnm"
    ],
    "links": [],
    "times": [],
@@ -1159,9 +1159,9 @@
    "touched": [
     "2026-11-10"
    ],
-   "touchedAt": "2026-11-10T20:11",
-   "issueId": "imvpc1cuefjii",
-   "report": true
+   "touchedAt": "2026-11-10T18:19",
+   "labels": [],
+   "report": false
   }
  ],
  "yearLabel": "115學年",
