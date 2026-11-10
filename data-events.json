@@ -11,10 +11,21 @@
     "i": "K7syLjRJ8HKL9W5l",
     "c": "fogU8/9A2MTeALjoL9zUeJwX/Eg6PB/4VPQQg/voQHQutz8pacCex+cWYSEF2bLlwlzqnV7Fy9Gn1M/GIq+9oE3R7rjJIgqvC2SrLswPmkrzJEEDroydGdLukENANPTKQUG8QlytK8XN+u/CNw=="
    }
+  },
+  {
+   "id": "mmwanjztek3yo",
+   "name": "活動部地精",
+   "role": "member",
+   "kdf": "hqedeWm8PuF3/pG5A3dgBg==:pTZD9vJ4R5a0JvIRoAE8Nv0GqYlJLIPXYBoDDECO88g=",
+   "createdAt": "2026-11-10 20:14",
+   "tok": {
+    "s": "UCQ4b6yTvRg1OQtTWDAlbQ==",
+    "i": "EDUs+mB/BLGjZfia",
+    "c": "3WwQMqJXYtzRNXHAj9Jl0TqWLOSBFzpRuxd88P2WxQ6W6Q3ixY1bmtRg7EHxOMG6AzKm+lYWYcMb4uLf/Us6A+XUomye9gp7sXJ07lRa1CBDC0093YdKvIySrPuxTWbTZmLfKoud0YwAb+D+og=="
+   }
   }
  ],
- "staff": [],
- "schemaVersion": 6,
+ "schemaVersion": 13,
  "id": "board-events",
  "follows": [],
  "weeks": [],
@@ -35,5 +46,10 @@
    "i": "aUDJplEkRp+3Zt/o",
    "c": "Z8VbFgJFvN1wRdXVy2+z4+w1KlRs9IfUySVPGC32HQdmHr4ozS4Kihr8dSau9q/gGSZLyO76iwn5zJO2+ltZmAZat7Yn/sNR/hupeytRWmy1vWw92u2wqaULsnQ5p4cn8UO89dTn2aAtyKkdOA=="
   }
- }
+ },
+ "labels": [],
+ "meetGrant": null,
+ "semester": "",
+ "docs": [],
+ "minutes": []
 }
