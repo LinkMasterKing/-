@@ -45,6 +45,20 @@
    ],
    "touchedAt": "2026-11-10T20:15",
    "labels": []
+  },
+  {
+   "id": "emwanlphb17pu",
+   "name": "期中負責人會議",
+   "desc": "",
+   "createdAt": "2026-11-10",
+   "staff": [],
+   "links": [],
+   "times": [],
+   "round": 1,
+   "touched": [
+    "2026-11-10"
+   ],
+   "touchedAt": "2026-11-10T20:16"
   }
  ],
  "reportBase": null,
@@ -73,6 +87,6 @@
  "semester": "",
  "docs": [],
  "minutes": [],
- "savedAt": "2026-11-10 20:15",
+ "savedAt": "2026-11-10 20:16",
  "savedBy": "活動部地精"
 }
