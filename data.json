@@ -3,7 +3,7 @@
  "id": "board-main",
  "title": "權益部工作進度",
  "locked": false,
- "savedAt": "2026-11-10 19:08",
+ "savedAt": "2026-11-10 19:31",
  "range": {
   "start": "2026-09",
   "end": "2027-09"
@@ -286,6 +286,36 @@
    "labels": []
   },
   {
+   "id": "emvt1pwvqrhyw",
+   "name": "停車場冷氣機報廢後續",
+   "desc": "報廢要求被退回學務處\n\n與宿舍/生輔組確認",
+   "createdAt": "2026-10-29",
+   "staff": [],
+   "touched": [
+    "2026-10-27",
+    "2026-11-03",
+    "2026-11-05",
+    "2026-11-09"
+   ],
+   "links": [],
+   "times": [
+    {
+     "id": "tmw3b6j9am1v8",
+     "label": "安全場勘時間順代提出",
+     "start": "2026-11-09T16:00",
+     "end": "",
+     "toIssue": false,
+     "place": ""
+    }
+   ],
+   "round": 2,
+   "touchedAt": "2026-11-09T02:08",
+   "report": true,
+   "roundAt": "2026-11-05T16:54",
+   "labels": [],
+   "issueId": "imvpc3f0dcpi6"
+  },
+  {
    "id": "emvpd6qonvam7",
    "name": "社群內容排程",
    "desc": "交付行銷部五天前\n\n世新報導記錄各事件時間點 簡易說明事態變化 前因後果 最終導入簡易引導觀點\n\n青民協圖片請公關協助處裡授權問候\n",
@@ -358,36 +388,6 @@
    "report": true,
    "roundAt": "2026-11-05T16:44",
    "labels": []
-  },
-  {
-   "id": "emvt1pwvqrhyw",
-   "name": "停車場冷氣機報廢後續",
-   "desc": "報廢要求被退回學務處\n\n與宿舍/生輔組確認",
-   "createdAt": "2026-10-29",
-   "staff": [],
-   "touched": [
-    "2026-10-27",
-    "2026-11-03",
-    "2026-11-05",
-    "2026-11-09"
-   ],
-   "links": [],
-   "times": [
-    {
-     "id": "tmw3b6j9am1v8",
-     "label": "安全場勘時間順代提出",
-     "start": "2026-11-09T16:00",
-     "end": "",
-     "toIssue": false,
-     "place": ""
-    }
-   ],
-   "round": 2,
-   "touchedAt": "2026-11-09T02:08",
-   "report": true,
-   "roundAt": "2026-11-05T16:54",
-   "labels": [],
-   "issueId": "imvpc3f0dcpi6"
   },
   {
    "id": "emvpd82rr1kit",
@@ -773,24 +773,6 @@
    "labels": []
   },
   {
-   "id": "emvt1ohjjrkyg",
-   "name": "權益部網站線上化",
-   "desc": "申訴案件線上化考量 優先做\n法規公開\n衛生棉補給站站點地圖\n\n加入學代名單與系統\n(部門內)提案單產生器",
-   "createdAt": "2026-10-29",
-   "staff": [],
-   "touched": [
-    "2026-10-27",
-    "2026-11-05"
-   ],
-   "links": [],
-   "times": [],
-   "round": 2,
-   "report": false,
-   "touchedAt": "2026-11-05T16:52",
-   "roundAt": "2026-11-05T16:52",
-   "labels": []
-  },
-  {
    "id": "emw0lb1djdnco",
    "name": "數位會務改革",
    "desc": "各部門功能統整簡化\n\n擬計畫提未來AI使用預算",
@@ -817,6 +799,24 @@
    "labels": []
   },
   {
+   "id": "emw0mszjya8iv",
+   "name": "交流簡報討論",
+   "desc": "交付照片文字",
+   "createdAt": "2026-11-03",
+   "staff": [],
+   "links": [],
+   "times": [],
+   "round": 2,
+   "touched": [
+    "2026-11-03",
+    "2026-11-06"
+   ],
+   "touchedAt": "2026-11-06T00:35",
+   "report": true,
+   "labels": [],
+   "roundAt": "2026-11-06T00:35"
+  },
+  {
    "id": "emw0lqzfmw4dl",
    "name": "數位校務改革",
    "desc": "權益部已將選課介面建議方案已備妥。",
@@ -839,22 +839,22 @@
    "labels": []
   },
   {
-   "id": "emw0mszjya8iv",
-   "name": "交流簡報討論",
-   "desc": "交付照片文字",
-   "createdAt": "2026-11-03",
+   "id": "emvt1ohjjrkyg",
+   "name": "權益部網站線上化",
+   "desc": "申訴案件線上化考量 優先做\n法規公開\n衛生棉補給站站點地圖\n\n加入學代名單與系統\n(部門內)提案單產生器",
+   "createdAt": "2026-10-29",
    "staff": [],
+   "touched": [
+    "2026-10-27",
+    "2026-11-05"
+   ],
    "links": [],
    "times": [],
    "round": 2,
-   "touched": [
-    "2026-11-03",
-    "2026-11-06"
-   ],
-   "touchedAt": "2026-11-06T00:35",
-   "report": true,
-   "labels": [],
-   "roundAt": "2026-11-06T00:35"
+   "report": false,
+   "touchedAt": "2026-11-05T16:52",
+   "roundAt": "2026-11-05T16:52",
+   "labels": []
   },
   {
    "id": "emvqlvpkgu9x6",
