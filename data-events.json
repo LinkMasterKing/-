@@ -38,18 +38,25 @@
   "start": "2026-10",
   "end": "2027-03"
  },
- "title": "活動部工作進度",
+ "title": "媽的活動部",
  "pwKdf": "PkZk6hjJbo+JZIU7XayIyQ==:55AbHJLqWGQm6tgNZOvtqiABSp0V/0D30E7UqAat5tA=",
  "sync": {
   "tokenAll": {
    "s": "W79GOIphyuvs7mvMnLGFbA==",
    "i": "aUDJplEkRp+3Zt/o",
    "c": "Z8VbFgJFvN1wRdXVy2+z4+w1KlRs9IfUySVPGC32HQdmHr4ozS4Kihr8dSau9q/gGSZLyO76iwn5zJO2+ltZmAZat7Yn/sNR/hupeytRWmy1vWw92u2wqaULsnQ5p4cn8UO89dTn2aAtyKkdOA=="
+  },
+  "tokenEnc": {
+   "s": "Ac+JDioswNP1szAy4OUqLg==",
+   "i": "GbyIcP3eeQfxE1UH",
+   "c": "o0juXd+EJ6pZibvd2TVnlASB6bIuMB3IasGI/qG9QMTFR1WV/gb7JH8rLKek85D377GYQiFI1YSt0P7vFH8dsDYvnzTsBvCm0CrklTfAxl5ICLdFnRX/Pl8XJDG+0bBfXlkT5DuGkhm4E/BWEg=="
   }
  },
  "labels": [],
  "meetGrant": null,
  "semester": "",
  "docs": [],
- "minutes": []
+ "minutes": [],
+ "savedAt": "2026-11-10 20:14",
+ "savedBy": "活動部地精"
 }
