@@ -18,7 +18,7 @@
   {
    "id": "mmwan36m4m79d",
    "name": "洪麒緯",
-   "role": "member",
+   "role": "admin",
    "kdf": "PES25SNAl075XJfms6iGNw==:UlwG5xkVKlhIM4cJpPoVGSRPUIzRynppUyTwokM9xf4=",
    "createdAt": "2026-11-10 20:01",
    "tok": {
@@ -31,7 +31,7 @@
  "issues": [],
  "events": [],
  "weeks": [],
- "savedAt": "2026-11-09 02:14",
+ "savedAt": "2026-11-10 20:02",
  "sync": {
   "owner": "linkmasterking",
   "repo": "-",
@@ -55,5 +55,6 @@
  "range": {
   "start": "2026-10",
   "end": "2027-03"
- }
+ },
+ "savedBy": "林宏綸"
 }
