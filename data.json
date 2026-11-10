@@ -3,7 +3,7 @@
  "id": "board-main",
  "title": "權益部工作進度",
  "locked": false,
- "savedAt": "2026-11-10 19:32",
+ "savedAt": "2026-11-10 19:33",
  "range": {
   "start": "2026-09",
   "end": "2027-09"
@@ -775,7 +775,7 @@
   {
    "id": "emw0lb1djdnco",
    "name": "數位會務改革",
-   "desc": "各部門功能統整簡化\n\n擬計畫提未來AI使用預算",
+   "desc": "各部門功能統整簡化中 導入Google帳號登入解決權限問題",
    "createdAt": "2026-11-03",
    "staff": [],
    "links": [],
@@ -794,7 +794,7 @@
     "2026-11-03",
     "2026-11-10"
    ],
-   "touchedAt": "2026-11-10T19:04",
+   "touchedAt": "2026-11-10T19:33",
    "report": true,
    "labels": []
   },
