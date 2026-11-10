@@ -3,7 +3,7 @@
  "id": "board-main",
  "title": "權益部工作進度",
  "locked": false,
- "savedAt": "2026-11-10 19:07",
+ "savedAt": "2026-11-10 19:08",
  "range": {
   "start": "2026-09",
   "end": "2027-09"
@@ -878,7 +878,7 @@
   },
   {
    "id": "emw0pwllmeivk",
-   "name": "上傳NAS與常會資料以及提案單追蹤",
+   "name": "上傳NAS資料",
    "desc": "NAS上傳",
    "createdAt": "2026-11-03",
    "staff": [],
@@ -887,9 +887,10 @@
    "round": 2,
    "touched": [
     "2026-11-03",
-    "2026-11-06"
+    "2026-11-06",
+    "2026-11-10"
    ],
-   "touchedAt": "2026-11-06T00:35",
+   "touchedAt": "2026-11-10T19:08",
    "report": false,
    "labels": [],
    "roundAt": "2026-11-06T00:35"
