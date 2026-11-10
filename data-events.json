@@ -73,21 +73,6 @@
     "2026-11-10"
    ],
    "touchedAt": "2026-11-10T20:16"
-  },
-  {
-   "id": "emwanmfc02oz0",
-   "name": "社團評鑑",
-   "desc": "",
-   "createdAt": "2026-11-10",
-   "staff": [],
-   "links": [],
-   "times": [],
-   "round": 1,
-   "touched": [
-    "2026-11-10"
-   ],
-   "touchedAt": "2026-11-10T20:16",
-   "doneAt": "2026-11-10"
   }
  ],
  "reportBase": null,
