@@ -316,77 +316,38 @@
    "issueId": "imvpc3f0dcpi6"
   },
   {
-   "id": "emvpd6qonvam7",
-   "name": "社群內容排程",
-   "desc": "交付行銷部五天前\n\n世新報導記錄各事件時間點 簡易說明事態變化 前因後果 最終導入簡易引導觀點\n\n青民協圖片請公關協助處裡授權問候\n",
+   "id": "emvpd4765r0ch",
+   "name": "數位校務改革",
+   "desc": "等回覆 敲共同商議時間 或提出方案取得反饋",
+   "links": [
+    {
+     "id": "lmvqlr6quzwgj",
+     "name": "建議方案",
+     "url": "https://drive.google.com/file/d/1qv76O5Or6Qs0bb6EMvLNNf5E5OvLV4qH/view?usp=drive_link",
+     "color": "#3d7fe0"
+    }
+   ],
    "doneAt": null,
    "staff": [],
    "touched": [
     "2026-10-27",
-    "2026-11-02",
     "2026-11-03",
     "2026-11-05"
    ],
-   "links": [
-    {
-     "id": "lmw3agkrnc6zn",
-     "name": "補給站用量",
-     "url": "https://docs.google.com/spreadsheets/d/1-q95CCEmAqFrlKYzwzbUyUPpTDbqkxK4uY222EobS5s/edit?gid=0#gid=0",
-     "color": "#6a4fd8"
-    },
-    {
-     "id": "lmw3aopf0h6ls",
-     "name": "青民協圖片",
-     "url": "https://www.instagram.com/p/De1b5FETn5D/",
-     "color": "#3d7fe0"
-    }
-   ],
    "times": [
     {
-     "id": "tmvz5n7vl55e7",
-     "label": "回家投票指南產出",
-     "start": "2026-11-09",
-     "end": "2026-11-14",
-     "toIssue": false,
-     "place": ""
-    },
-    {
-     "id": "tmvz5nt6rux6z",
-     "label": "回家投票指南發布",
-     "start": "2026-11-14",
+     "id": "tmw3bt7meduhn",
+     "label": "打招呼",
+     "start": "2026-11-11T14:00",
      "end": "",
-     "toIssue": false,
-     "place": ""
-    },
-    {
-     "id": "tmvz5p7lh03yi",
-     "label": "回家投票指南限動",
-     "start": "2026-11-27",
-     "end": "",
-     "toIssue": false,
-     "place": ""
-    },
-    {
-     "id": "tmvz5pobcf97a",
-     "label": "衛生棉補給站貼文 + 女權日限時動態產出",
-     "start": "2026-11-22",
-     "end": "2026-11-30",
-     "toIssue": false,
-     "place": ""
-    },
-    {
-     "id": "tmvz5qraybay3",
-     "label": "世新學運報導初版",
-     "start": "2026-11-20",
-     "end": "2026-12-09",
      "toIssue": false,
      "place": ""
     }
    ],
-   "round": 2,
-   "touchedAt": "2026-11-05T16:44",
+   "round": 3,
+   "touchedAt": "2026-11-05T17:12",
+   "roundAt": "2026-11-05T17:12",
    "report": true,
-   "roundAt": "2026-11-05T16:44",
    "labels": []
   },
   {
@@ -559,38 +520,77 @@
    "labels": []
   },
   {
-   "id": "emvpd4765r0ch",
-   "name": "數位校務改革",
-   "desc": "等回覆 敲共同商議時間 或提出方案取得反饋",
-   "links": [
-    {
-     "id": "lmvqlr6quzwgj",
-     "name": "建議方案",
-     "url": "https://drive.google.com/file/d/1qv76O5Or6Qs0bb6EMvLNNf5E5OvLV4qH/view?usp=drive_link",
-     "color": "#3d7fe0"
-    }
-   ],
+   "id": "emvpd6qonvam7",
+   "name": "社群內容排程",
+   "desc": "交付行銷部五天前\n\n世新報導記錄各事件時間點 簡易說明事態變化 前因後果 最終導入簡易引導觀點\n\n青民協圖片請公關協助處裡授權問候\n",
    "doneAt": null,
    "staff": [],
    "touched": [
     "2026-10-27",
+    "2026-11-02",
     "2026-11-03",
     "2026-11-05"
    ],
+   "links": [
+    {
+     "id": "lmw3agkrnc6zn",
+     "name": "補給站用量",
+     "url": "https://docs.google.com/spreadsheets/d/1-q95CCEmAqFrlKYzwzbUyUPpTDbqkxK4uY222EobS5s/edit?gid=0#gid=0",
+     "color": "#6a4fd8"
+    },
+    {
+     "id": "lmw3aopf0h6ls",
+     "name": "青民協圖片",
+     "url": "https://www.instagram.com/p/De1b5FETn5D/",
+     "color": "#3d7fe0"
+    }
+   ],
    "times": [
     {
-     "id": "tmw3bt7meduhn",
-     "label": "打招呼",
-     "start": "2026-11-11T14:00",
+     "id": "tmvz5n7vl55e7",
+     "label": "回家投票指南產出",
+     "start": "2026-11-09",
+     "end": "2026-11-14",
+     "toIssue": false,
+     "place": ""
+    },
+    {
+     "id": "tmvz5nt6rux6z",
+     "label": "回家投票指南發布",
+     "start": "2026-11-14",
      "end": "",
+     "toIssue": false,
+     "place": ""
+    },
+    {
+     "id": "tmvz5p7lh03yi",
+     "label": "回家投票指南限動",
+     "start": "2026-11-27",
+     "end": "",
+     "toIssue": false,
+     "place": ""
+    },
+    {
+     "id": "tmvz5pobcf97a",
+     "label": "衛生棉補給站貼文 + 女權日限時動態產出",
+     "start": "2026-11-22",
+     "end": "2026-11-30",
+     "toIssue": false,
+     "place": ""
+    },
+    {
+     "id": "tmvz5qraybay3",
+     "label": "世新學運報導初版",
+     "start": "2026-11-20",
+     "end": "2026-12-09",
      "toIssue": false,
      "place": ""
     }
    ],
-   "round": 3,
-   "touchedAt": "2026-11-05T17:12",
-   "roundAt": "2026-11-05T17:12",
+   "round": 2,
+   "touchedAt": "2026-11-05T16:44",
    "report": true,
+   "roundAt": "2026-11-05T16:44",
    "labels": []
   },
   {
