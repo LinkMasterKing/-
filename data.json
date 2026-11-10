@@ -3,7 +3,7 @@
  "id": "board-main",
  "title": "權益部工作進度",
  "locked": false,
- "savedAt": "2026-11-10 19:04",
+ "savedAt": "2026-11-10 19:05",
  "range": {
   "start": "2026-09",
   "end": "2027-09"
@@ -122,16 +122,6 @@
      "date": "2026-10-29"
     },
     {
-     "id": "mmw3b87zfikf7",
-     "evId": "emvteefflmm61",
-     "at": 26,
-     "stage": "待回覆",
-     "pos": "down",
-     "tmId": "tmw3b7vk5uwv7",
-     "text": "六宿女宿舍通道安全：安全場勘時間",
-     "date": "2026-11-09"
-    },
-    {
      "id": "mmw3b8jiqr73n",
      "evId": "emw3b8jiql70l",
      "at": 23,
@@ -139,6 +129,25 @@
      "pos": "up",
      "text": "六宿女宿舍通道安全（第 1 段）",
      "date": "2026-11-05"
+    },
+    {
+     "id": "mmwal3c95wijm",
+     "evId": "emwal3c95oe2w",
+     "at": 26,
+     "stage": "待回覆",
+     "pos": "up",
+     "text": "六宿女宿舍通道安全（第 2 段）",
+     "date": "2026-11-10"
+    },
+    {
+     "id": "mmwal3c95ds0s",
+     "evId": "emwal3c95oe2w",
+     "at": 26,
+     "stage": "待回覆",
+     "pos": "down",
+     "tmId": "tmw3b7vk5uwv7",
+     "text": "六宿女宿舍通道安全：安全場勘時間",
+     "date": "2026-11-09"
     }
    ],
    "links": [],
@@ -668,24 +677,16 @@
     "2026-10-27",
     "2026-11-03",
     "2026-11-05",
-    "2026-11-09"
+    "2026-11-09",
+    "2026-11-10"
    ],
    "links": [],
-   "times": [
-    {
-     "id": "tmw3b7vk5uwv7",
-     "label": "安全場勘時間",
-     "start": "2026-11-09T16:00",
-     "end": "",
-     "toIssue": true,
-     "place": ""
-    }
-   ],
-   "round": 2,
-   "touchedAt": "2026-11-09T18:20",
+   "times": [],
+   "round": 3,
+   "touchedAt": "2026-11-10T19:05",
    "report": true,
    "issueId": "imvpc3f0dcpi6",
-   "roundAt": "2026-11-05T16:55",
+   "roundAt": "2026-11-10T19:05",
    "labels": [],
    "doneAt": null
   },
@@ -1108,6 +1109,29 @@
    "touchedAt": "2026-11-10T18:19",
    "labels": [],
    "report": false
+  },
+  {
+   "id": "emwal3c95oe2w",
+   "name": "六宿女宿舍通道安全",
+   "desc": "現場場勘 後門有上所鎖 無治安死角疑慮 但是否作為逃生通道與男宿對齊待生輔組商榷",
+   "createdAt": "2026-10-29",
+   "doneAt": "2026-11-10",
+   "issueId": "imvpc3f0dcpi6",
+   "links": [],
+   "staff": [],
+   "labels": [],
+   "times": [
+    {
+     "id": "tmw3b7vk5uwv7",
+     "label": "安全場勘時間",
+     "start": "2026-11-09T16:00",
+     "end": "",
+     "toIssue": true,
+     "place": ""
+    }
+   ],
+   "round": 2,
+   "fromEv": "emvteefflmm61"
   }
  ],
  "yearLabel": "115學年",
