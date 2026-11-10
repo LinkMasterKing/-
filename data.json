@@ -3,7 +3,7 @@
  "id": "board-main",
  "title": "權益部工作進度",
  "locked": false,
- "savedAt": "2026-11-10 18:19",
+ "savedAt": "2026-11-10 19:03",
  "range": {
   "start": "2026-09",
   "end": "2027-09"
@@ -277,24 +277,6 @@
    "labels": []
   },
   {
-   "id": "emvt1ohjjrkyg",
-   "name": "權益部網站線上化",
-   "desc": "申訴案件線上化考量 優先做\n法規公開\n衛生棉補給站站點地圖\n\n加入學代名單與系統\n(部門內)提案單產生器",
-   "createdAt": "2026-10-29",
-   "staff": [],
-   "touched": [
-    "2026-10-27",
-    "2026-11-05"
-   ],
-   "links": [],
-   "times": [],
-   "round": 2,
-   "report": true,
-   "touchedAt": "2026-11-05T16:52",
-   "roundAt": "2026-11-05T16:52",
-   "labels": []
-  },
-  {
    "id": "emvpd6qonvam7",
    "name": "社群內容排程",
    "desc": "交付行銷部五天前\n\n世新報導記錄各事件時間點 簡易說明事態變化 前因後果 最終導入簡易引導觀點\n\n青民協圖片請公關協助處裡授權問候\n",
@@ -367,6 +349,36 @@
    "report": true,
    "roundAt": "2026-11-05T16:44",
    "labels": []
+  },
+  {
+   "id": "emvt1pwvqrhyw",
+   "name": "停車場冷氣機報廢後續",
+   "desc": "報廢要求被退回學務處\n\n與宿舍/生輔組確認",
+   "createdAt": "2026-10-29",
+   "staff": [],
+   "touched": [
+    "2026-10-27",
+    "2026-11-03",
+    "2026-11-05",
+    "2026-11-09"
+   ],
+   "links": [],
+   "times": [
+    {
+     "id": "tmw3b6j9am1v8",
+     "label": "安全場勘時間順代提出",
+     "start": "2026-11-09T16:00",
+     "end": "",
+     "toIssue": false,
+     "place": ""
+    }
+   ],
+   "round": 2,
+   "touchedAt": "2026-11-09T02:08",
+   "report": true,
+   "roundAt": "2026-11-05T16:54",
+   "labels": [],
+   "issueId": "imvpc3f0dcpi6"
   },
   {
    "id": "emvpd82rr1kit",
@@ -538,34 +550,39 @@
    "labels": []
   },
   {
-   "id": "emvt1pwvqrhyw",
-   "name": "停車場冷氣機報廢後續",
-   "desc": "報廢要求被退回學務處\n\n與宿舍/生輔組確認",
-   "createdAt": "2026-10-29",
+   "id": "emvpd4765r0ch",
+   "name": "數位校務改革",
+   "desc": "等回覆 敲共同商議時間 或提出方案取得反饋",
+   "links": [
+    {
+     "id": "lmvqlr6quzwgj",
+     "name": "建議方案",
+     "url": "https://drive.google.com/file/d/1qv76O5Or6Qs0bb6EMvLNNf5E5OvLV4qH/view?usp=drive_link",
+     "color": "#3d7fe0"
+    }
+   ],
+   "doneAt": null,
    "staff": [],
    "touched": [
     "2026-10-27",
     "2026-11-03",
-    "2026-11-05",
-    "2026-11-09"
+    "2026-11-05"
    ],
-   "links": [],
    "times": [
     {
-     "id": "tmw3b6j9am1v8",
-     "label": "安全場勘時間順代提出",
-     "start": "2026-11-09T16:00",
+     "id": "tmw3bt7meduhn",
+     "label": "打招呼",
+     "start": "2026-11-11T14:00",
      "end": "",
      "toIssue": false,
      "place": ""
     }
    ],
-   "round": 2,
-   "touchedAt": "2026-11-09T02:08",
+   "round": 3,
+   "touchedAt": "2026-11-05T17:12",
+   "roundAt": "2026-11-05T17:12",
    "report": true,
-   "roundAt": "2026-11-05T16:54",
-   "labels": [],
-   "issueId": "imvpc3f0dcpi6"
+   "labels": []
   },
   {
    "id": "emvqocysbhm9s",
@@ -639,41 +656,6 @@
    "doneAt": "2026-11-03",
    "touchedAt": "2026-11-03T20:39",
    "report": false,
-   "labels": []
-  },
-  {
-   "id": "emvpd4765r0ch",
-   "name": "數位校務改革",
-   "desc": "等回覆 敲共同商議時間 或提出方案取得反饋",
-   "links": [
-    {
-     "id": "lmvqlr6quzwgj",
-     "name": "建議方案",
-     "url": "https://drive.google.com/file/d/1qv76O5Or6Qs0bb6EMvLNNf5E5OvLV4qH/view?usp=drive_link",
-     "color": "#3d7fe0"
-    }
-   ],
-   "doneAt": null,
-   "staff": [],
-   "touched": [
-    "2026-10-27",
-    "2026-11-03",
-    "2026-11-05"
-   ],
-   "times": [
-    {
-     "id": "tmw3bt7meduhn",
-     "label": "打招呼",
-     "start": "2026-11-11T14:00",
-     "end": "",
-     "toIssue": false,
-     "place": ""
-    }
-   ],
-   "round": 3,
-   "touchedAt": "2026-11-05T17:12",
-   "roundAt": "2026-11-05T17:12",
-   "report": true,
    "labels": []
   },
   {
@@ -779,6 +761,24 @@
    "touchedAt": "2026-11-05T17:37",
    "report": true,
    "roundAt": "2026-11-05T17:37",
+   "labels": []
+  },
+  {
+   "id": "emvt1ohjjrkyg",
+   "name": "權益部網站線上化",
+   "desc": "申訴案件線上化考量 優先做\n法規公開\n衛生棉補給站站點地圖\n\n加入學代名單與系統\n(部門內)提案單產生器",
+   "createdAt": "2026-10-29",
+   "staff": [],
+   "touched": [
+    "2026-10-27",
+    "2026-11-05"
+   ],
+   "links": [],
+   "times": [],
+   "round": 2,
+   "report": true,
+   "touchedAt": "2026-11-05T16:52",
+   "roundAt": "2026-11-05T16:52",
    "labels": []
   },
   {
@@ -1104,7 +1104,9 @@
    "touched": [
     "2026-11-10"
    ],
-   "touchedAt": "2026-11-10T18:19"
+   "touchedAt": "2026-11-10T18:19",
+   "labels": [],
+   "report": false
   }
  ],
  "yearLabel": "115學年",
@@ -1174,7 +1176,7 @@
    }
   }
  ],
- "savedBy": "雜草",
+ "savedBy": "戴銨霆",
  "follows": [],
  "labels": [
   {
