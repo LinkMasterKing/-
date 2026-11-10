@@ -2,7 +2,20 @@
  "schemaVersion": 13,
  "id": "board-marketing",
  "title": "行銷部工作進度",
- "members": [],
+ "members": [
+  {
+   "id": "mmwanwa7ugj2f",
+   "name": "誇張的人",
+   "role": "admin",
+   "kdf": "sqhSQMV+3eXoC0eAcMEaAQ==:TlpY4ulyTTUE29tm4XaxA5FdDs6nPQpzqP3NeLfFLbA=",
+   "createdAt": "2026-11-10 20:24",
+   "tok": {
+    "s": "WaVQ9LGE2Ekxv/Jrg+CWnQ==",
+    "i": "TmyK/n8TcGfpTQW4",
+    "c": "FWAtJNb6gXzKupdFNZ6gMoMYOFCdVxq/ExpWsopGmTxPXp/I0NnaCpWXVoPqdP+3WWdpva1kcT9ZAv7FwBm3sTcPhc/KE6uQQjMrNRdVmapBLOmrO3DB3b/LzNjOE+o1GbmwX4iBvtiBagrnlA=="
+   }
+  }
+ ],
  "issues": [],
  "events": [],
  "weeks": [],
@@ -17,5 +30,18 @@
    "i": "aUDJplEkRp+3Zt/o",
    "c": "Z8VbFgJFvN1wRdXVy2+z4+w1KlRs9IfUySVPGC32HQdmHr4ozS4Kihr8dSau9q/gGSZLyO76iwn5zJO2+ltZmAZat7Yn/sNR/hupeytRWmy1vWw92u2wqaULsnQ5p4cn8UO89dTn2aAtyKkdOA=="
   }
+ },
+ "labels": [],
+ "docs": [],
+ "minutes": [],
+ "meetGrant": null,
+ "semester": "",
+ "follows": [],
+ "reportBase": null,
+ "yearLabel": "115學年",
+ "termStart": "2026-09-07",
+ "range": {
+  "start": "2026-10",
+  "end": "2027-03"
  }
 }
