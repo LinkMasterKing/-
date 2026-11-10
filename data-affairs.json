@@ -2,7 +2,20 @@
  "schemaVersion": 13,
  "id": "board-affairs",
  "title": "社務部工作進度",
- "members": [],
+ "members": [
+  {
+   "id": "mmwan0br8iqsy",
+   "name": "林宏綸",
+   "role": "admin",
+   "kdf": "ynteCJTD79etJUpdVVVKMA==:CiEcZAMlTcrf1H4w4RC9Un+PjjGSa11uwYLP5GoFzE8=",
+   "createdAt": "2026-11-10 19:59",
+   "tok": {
+    "s": "XRcjgDrJWrswZioH7ktbQA==",
+    "i": "xbg+1lVP5VUR/G9A",
+    "c": "u6eHmYedhGx55TteDhbQfhEC+QtnvJx9O7PwAC8CkcwnI1jeQQNkQMBfFNOMYv+HmgcNYT7O8mMw0bQJSsXXPMOxuQkHmBUSKI2JPGLX2YR3ZZ2CLUmBH6xmAHxhPCqCXOovb1cNDe9XREdNYA=="
+   }
+  }
+ ],
  "issues": [],
  "events": [],
  "weeks": [],
@@ -17,5 +30,18 @@
    "i": "aUDJplEkRp+3Zt/o",
    "c": "Z8VbFgJFvN1wRdXVy2+z4+w1KlRs9IfUySVPGC32HQdmHr4ozS4Kihr8dSau9q/gGSZLyO76iwn5zJO2+ltZmAZat7Yn/sNR/hupeytRWmy1vWw92u2wqaULsnQ5p4cn8UO89dTn2aAtyKkdOA=="
   }
+ },
+ "labels": [],
+ "docs": [],
+ "minutes": [],
+ "meetGrant": null,
+ "semester": "",
+ "follows": [],
+ "reportBase": null,
+ "yearLabel": "115學年",
+ "termStart": "2026-09-07",
+ "range": {
+  "start": "2026-10",
+  "end": "2027-03"
  }
 }
