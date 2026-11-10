@@ -3,7 +3,7 @@
  "id": "board-main",
  "title": "權益部工作進度",
  "locked": false,
- "savedAt": "2026-11-09 23:15",
+ "savedAt": "2026-11-10 18:19",
  "range": {
   "start": "2026-09",
   "end": "2027-09"
@@ -1089,6 +1089,22 @@
    "fromEv": "emw0pwllmeivk",
    "touched": [],
    "report": false
+  },
+  {
+   "id": "emwajg0p0vpej",
+   "name": "會內培訓內容規劃",
+   "desc": "尚在規劃ing",
+   "createdAt": "2026-11-10",
+   "staff": [
+    "mmvx2r1i3ffnm"
+   ],
+   "links": [],
+   "times": [],
+   "round": 1,
+   "touched": [
+    "2026-11-10"
+   ],
+   "touchedAt": "2026-11-10T18:19"
   }
  ],
  "yearLabel": "115學年",
@@ -1158,7 +1174,7 @@
    }
   }
  ],
- "savedBy": "戴銨霆",
+ "savedBy": "雜草",
  "follows": [],
  "labels": [
   {
