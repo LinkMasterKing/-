@@ -508,38 +508,30 @@
    "labels": []
   },
   {
-   "id": "emvpd4765r0ch",
-   "name": "數位校務改革",
-   "desc": "等回覆 敲共同商議時間 或提出方案取得反饋",
+   "id": "emw0myswnrccf",
+   "name": "緊急公關聲明流程",
+   "desc": "流程修改\n\n第二步驟 決定幾人同意(預設2人)  /  需利益迴避\n\n\n第三步驟 補充非校方主理事宜無須與校方事前確認\n\n第四/六步驟 校方審核時機寫入第五步驟",
+   "createdAt": "2026-11-03",
+   "staff": [],
    "links": [
     {
-     "id": "lmvqlr6quzwgj",
-     "name": "建議方案",
-     "url": "https://drive.google.com/file/d/1qv76O5Or6Qs0bb6EMvLNNf5E5OvLV4qH/view?usp=drive_link",
-     "color": "#3d7fe0"
+     "id": "lmwal5zucgc3s",
+     "name": "初版流程",
+     "url": "https://drive.google.com/file/d/1B0mLeHIdJXyk9DO6ouRxlYUXKpTRwSxD/view?usp=drive_link",
+     "color": "#6a4fd8"
     }
    ],
-   "doneAt": null,
-   "staff": [],
+   "times": [],
+   "round": 2,
    "touched": [
-    "2026-10-27",
     "2026-11-03",
-    "2026-11-05"
+    "2026-11-05",
+    "2026-11-06",
+    "2026-11-10"
    ],
-   "times": [
-    {
-     "id": "tmw3bt7meduhn",
-     "label": "打招呼",
-     "start": "2026-11-11T14:00",
-     "end": "",
-     "toIssue": false,
-     "place": ""
-    }
-   ],
-   "round": 3,
-   "touchedAt": "2026-11-05T17:12",
-   "roundAt": "2026-11-05T17:12",
+   "touchedAt": "2026-11-10T19:07",
    "report": true,
+   "roundAt": "2026-11-05T17:06",
    "labels": []
   },
   {
@@ -617,6 +609,41 @@
    "labels": []
   },
   {
+   "id": "emvpd4765r0ch",
+   "name": "數位校務改革",
+   "desc": "等回覆 敲共同商議時間 或提出方案取得反饋",
+   "links": [
+    {
+     "id": "lmvqlr6quzwgj",
+     "name": "建議方案",
+     "url": "https://drive.google.com/file/d/1qv76O5Or6Qs0bb6EMvLNNf5E5OvLV4qH/view?usp=drive_link",
+     "color": "#3d7fe0"
+    }
+   ],
+   "doneAt": null,
+   "staff": [],
+   "touched": [
+    "2026-10-27",
+    "2026-11-03",
+    "2026-11-05"
+   ],
+   "times": [
+    {
+     "id": "tmw3bt7meduhn",
+     "label": "打招呼",
+     "start": "2026-11-11T14:00",
+     "end": "",
+     "toIssue": false,
+     "place": ""
+    }
+   ],
+   "round": 3,
+   "touchedAt": "2026-11-05T17:12",
+   "roundAt": "2026-11-05T17:12",
+   "report": true,
+   "labels": []
+  },
+  {
    "id": "emvpd6qonvam7",
    "name": "社群內容排程",
    "desc": "交付行銷部五天前\n\n世新報導記錄各事件時間點 簡易說明事態變化 前因後果 最終導入簡易引導觀點\n\n青民協圖片請公關協助處裡授權問候\n",
@@ -688,33 +715,6 @@
    "touchedAt": "2026-11-05T16:44",
    "report": true,
    "roundAt": "2026-11-05T16:44",
-   "labels": []
-  },
-  {
-   "id": "emw0myswnrccf",
-   "name": "緊急公關聲明流程",
-   "desc": "流程修改\n\n第二步驟 決定幾人同意(預設2人)  /  需利益迴避\n\n\n第三步驟 補充非校方主理事宜無須與校方事前確認\n\n第四/六步驟 校方審核時機寫入第五步驟",
-   "createdAt": "2026-11-03",
-   "staff": [],
-   "links": [
-    {
-     "id": "lmwal5zucgc3s",
-     "name": "初版流程",
-     "url": "https://drive.google.com/file/d/1B0mLeHIdJXyk9DO6ouRxlYUXKpTRwSxD/view?usp=drive_link",
-     "color": "#6a4fd8"
-    }
-   ],
-   "times": [],
-   "round": 2,
-   "touched": [
-    "2026-11-03",
-    "2026-11-05",
-    "2026-11-06",
-    "2026-11-10"
-   ],
-   "touchedAt": "2026-11-10T19:07",
-   "report": true,
-   "roundAt": "2026-11-05T17:06",
    "labels": []
   },
   {
