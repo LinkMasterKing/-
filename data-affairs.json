@@ -1,7 +1,7 @@
 {
  "schemaVersion": 13,
  "id": "board-affairs",
- "title": "社務部工作進度",
+ "title": "彩虹小馬社務部工作進度",
  "members": [
   {
    "id": "mmwan0br8iqsy",
@@ -31,7 +31,7 @@
  "issues": [],
  "events": [],
  "weeks": [],
- "savedAt": "2026-11-10 20:02",
+ "savedAt": "2026-11-10 20:03",
  "sync": {
   "owner": "linkmasterking",
   "repo": "-",
