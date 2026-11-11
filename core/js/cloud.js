@@ -51,10 +51,17 @@ async function cloudPush(){
         cloud.sha=j0.sha}
     }catch(_){}
   }
-  const body={message:commitMessage(),content:b64enc(JSON.stringify(state,null,1)),branch:c.branch};
-  if(cloud.sha)body.sha=cloud.sha;
-  let r;try{r=await fetch(apiURL(c),{method:"PUT",headers:{Accept:"application/vnd.github+json",Authorization:"Bearer "+tk,"Content-Type":"application/json"},body:JSON.stringify(body)})}
-  catch(e){return {ok:false,msg:"連不上 GitHub，已先存在這台電腦"}}
+  /* 每次送出都重新組內容與權杖（恢復後 members[].tok 有更新、權杖換成新的） */
+  const put=()=>{const body={message:commitMessage(),content:b64enc(JSON.stringify(state,null,1)),branch:c.branch};if(cloud.sha)body.sha=cloud.sha;
+    return fetch(apiURL(c),{method:"PUT",headers:{Accept:"application/vnd.github+json",Authorization:"Bearer "+ghToken(),"Content-Type":"application/json"},body:JSON.stringify(body)})};
+  let r;try{r=await put()}catch(e){return {ok:false,msg:"連不上 GitHub，已先存在這台電腦"}}
+  /* 權杖作廢（401）：輸入全會密碼取得新權杖後自動重試一次（auth.js 的 tokenRecover；過渡用，02D 移除） */
+  if(r.status===401){
+    const k=await tokenRecover();
+    if(k==="cancel")return {ok:false,msg:"上傳權限沒有恢復，這次的修改先存在這台電腦"};
+    if(k==="same")return {ok:false,msg:"學生會還沒換上新的上傳權限，這次的修改先存在這台電腦，請稍後再存一次"};
+    if(k==="ok"){try{r=await put()}catch(e){return {ok:false,msg:"連不上 GitHub，已先存在這台電腦"}}}
+  }
   if(r.ok){const j=await r.json();setBaseline();cloud.sha=j.content&&j.content.sha;cloud.etag=null;cloud.status="ok";cloud.last=nowStr();return {ok:true}}
   if(r.status===409||r.status===422)return {ok:false,conflict:true,msg:"雲端已有別人存的新版本，沒有覆蓋。請重新整理後再修改"};
   if(r.status===401)return {ok:false,msg:"GitHub 權杖無效或過期，請到「雲端同步」重新設定"};

@@ -112,12 +112,10 @@ async function sharedPwFix(){
   if(!v)return;
   await setSharedPw(v.n1);await persist("已更換部門共用密碼");
 }
-/* 換共用密碼：重新加密上傳權限（這台裝置有權杖時），初始密碼的標記拿掉 */
+/* 換共用密碼：初始密碼的標記拿掉；共用密碼不再保管上傳權限（auth.js 的 dropSharedToken），舊的那份拿掉、不重新加密 */
 async function setSharedPw(pw){
   await setPw(pw);sharedPwSession=pw;
-  /* 這台裝置沒有權杖：先用自己身分那份（個人密碼加密）解開，不要把部門的上傳權限刪掉（2026-11-06：以前會刪，新成員就連不上雲端） */
-  const me=meMember();if(!ghToken()&&me&&me.tok&&sessionPw){try{localStorage.setItem(TOKEN_KEY,await decToken(me.tok,sessionPw))}catch(_){}}
-  if(ghToken())await rememberToken(ghToken(),pw);else if(state.sync)delete state.sync.tokenEnc;
+  dropSharedToken();
   if(state.sync)delete state.sync.initial;
 }
 /* 登入後這台裝置還是沒有連上雲端（部門還沒開通）：明白告訴使用者資料只會存在這台裝置 */
