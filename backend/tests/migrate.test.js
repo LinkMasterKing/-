@@ -35,8 +35,7 @@ describe('遷移', () => {
     assert.equal(v2.hash, v1.hash);
     assert.deepEqual(v2.counts, v1.counts);
   });
-  it('V7 讀取分級：未登入只看得到部門與公開活動；一般帳號讀不到看板；檢視者讀得到、讀不到 L2～L4', async () => {
-    await seedRole(t, 'viewer1', { viewer: true });
+  it('V7 讀取分級（02A）：未登入只看得到部門與公開活動；任何登入帳號讀得到看板、讀不到 L3～L4', async () => {
     const card = 'cards/rights__' + src.files[0].state.events[0].id;
     await assertSucceeds(anon(t).collection('departments').get());
     await assertSucceeds(anon(t).doc('org/config').get());
@@ -44,9 +43,7 @@ describe('遷移', () => {
     await assertFails(anon(t).collection('deptSettings').get());
     await assertFails(anon(t).collection('events').get());
     await assertSucceeds(anon(t).collection('events').where('visibility', '==', 'public').get());
-    await assertFails(google(t, 'nobody').doc(card).get());
-    await assertFails(google(t, 'nobody').collection('legacyIdentities').get());
-    const v = google(t, 'viewer1');
+    const v = google(t, 'nobody');                                                  // 沒有 roles 文件的一般登入者
     await assertSucceeds(v.doc(card).get());
     await assertSucceeds(v.collection('cards').where('deptId', '==', 'rights').where('state', 'in', ['open', 'done']).get());
     await assertSucceeds(v.collection('legacyIdentities').where('deptId', '==', 'rights').get());

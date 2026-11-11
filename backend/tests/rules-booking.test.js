@@ -19,7 +19,7 @@ beforeEach(async () => {
     await d.doc('openWindows/wv').set({ ownerId: 'vice', start: TS.fromMillis(base * SLOT), end: TS.fromMillis((base + 400) * SLOT) });
   });
   for (const u of ['a1', 'a2', 'a3', 'a4', 'a5', 'a6', 'mgr', 'mgr2']) await seedRole(t, u, { depts: { rights: 'editor' } });
-  await seedRole(t, 'vw', { viewer: true });
+  await seedRole(t, 'vw', {});                                  // 一般登入者（02A：讀得到看板，沒有部門角色）
 });
 
 async function commit(x, w) { const b = x.batch(); for (const [p, v] of w) v === null ? b.delete(x.doc(p)) : b.set(x.doc(p), v); return b.commit(); }

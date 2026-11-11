@@ -25,7 +25,7 @@ if (args.includes('--emulator')) {
   const t = await initializeTestEnvironment({ projectId: 'demo-stustsa-board', firestore: { host, port: +port, rules: readFileSync(new URL('../firestore.rules', import.meta.url), 'utf8') } });
   const uid = 'emulator-super';
   await t.withSecurityRulesDisabled(async c => {            // 等同主控台建立第一位總管理員（invitations-roles-audit.md 第 7 節）
-    await c.firestore().doc(`roles/${uid}`).set({ super: true, viewer: false, depts: {}, rev: 1, lastVia: 'manual', lastRef: 'bootstrap', updatedBy: uid, updatedAt: firebase.firestore.Timestamp.now() });
+    await c.firestore().doc(`roles/${uid}`).set({ super: true, depts: {}, rev: 1, lastVia: 'manual', lastRef: 'bootstrap', updatedBy: uid, updatedAt: firebase.firestore.Timestamp.now() });
   });
   const db = t.authenticatedContext(uid, { email: 'super@example.test', email_verified: true, firebase: { sign_in_provider: 'google.com' } }).firestore();
   const FV = firebase.firestore.FieldValue, TS = firebase.firestore.Timestamp, batch = 'emu-' + Date.now();

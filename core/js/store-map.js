@@ -100,7 +100,7 @@
         add("events", `events/${nid(dept, t.id)}`, {
           deptId: dept, cardId: id, blockId: null, label: t.label || "", start: ts(st.ms), end: ts(Math.max(en.ms, st.ms)),
           startRaw: t.start || "", endRaw: t.end || "", allDay: st.allDay, place: t.place || "", toIssue: !!t.toIssue,
-          cardDeleted: false, scope: "dept", visibility: "internal", rev: 1, importBatch: B, ...stamp });
+          scope: "dept", visibility: "internal", rev: 1, importBatch: B, ...stamp });
       });
     });
 
@@ -147,7 +147,7 @@
     s.weeks = (src.weeks || []).slice().sort((a, b) => (a.date < b.date ? 1 : -1)).map(w => clean({ id: oid(dept, w.id), date: w.date, text: w.text, auto: w.auto || undefined }));
     const evByCard = {};
     (src.events || []).forEach(e => { if (e.cardId) (evByCard[e.cardId] = evByCard[e.cardId] || []).push(e); });
-    s.events = (src.cards || []).filter(c => c.state !== "deleted").sort(byOrder).map(c => {
+    s.events = (src.cards || []).filter(c => c.state === "open" || c.state === "done").sort(byOrder).map(c => {
       const ev = evByCard[c.id] || [], order = c.timeIds || [];
       ev.sort((a, b) => order.indexOf(a.id) - order.indexOf(b.id));
       return clean({ id: oid(dept, c.id), name: c.title, desc: (c.blocks || []).map(b => b.text).join("\n"),
