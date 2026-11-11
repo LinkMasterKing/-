@@ -2,7 +2,8 @@
 import { describe, it, before, after } from 'node:test';
 import assert from 'node:assert/strict';
 import { env, google, anon, seed, seedRole, assertFails, assertSucceeds, FV, TS } from './helpers.js';
-import { loadSources, runImport, finishImport, verify, fromFirestore, MAP } from '../migrate/run.js';
+import { loadSources, runImport, finishImport, rollbackImport, setMigrationStatus, verify, fromFirestore, MAP } from '../migrate/run.js';
+import { editCard, readDoc } from './helpers.js';
 
 let t, src, first, v1;
 const SU = 'mig-super', B = 'test-batch-1';
@@ -77,21 +78,68 @@ describe('遷移', () => {
       await b.commit();
     })());
   });
-  it('回復：刪掉一個部門的匯入（含遷移產生的第 1 版）後，可以用新批次重新匯入', async () => {
+});
+
+describe('遷移失敗回復（R1）', () => {
+  const R1 = 'rb-batch-1', R2 = 'rb-batch-2';
+  let total, edited;
+  before(async () => {
+    await t.clearFirestore();
+    await seedRole(t, SU, { super: true });
+    await seedRole(t, 'ed', { depts: { rights: 'editor' } });
+    const r = await runImport(sdb(), FV, TS, src, { batch: R1, uid: SU });
+    total = r.written.cards;
+    edited = 'cards/rights__' + src.files[0].state.events[0].id;
+    // 匯入後有人改過一張卡片（版本 2）：回復時必須保留
+    const cur = await readDoc(t, edited);
+    await editCard(google(t, 'ed'), 'ed', edited.split('/')[1], cur, { title: cur.title + '（已修改）' });
+  });
+  it('批次不是 rollingBack 時，總管理員一般的卡片硬刪不能連帶刪掉版本歷史', async () => {
+    const db = sdb(), p = 'cards/affairs__' + src.files.find(f => f.dept === 'affairs').state.events[0].id;
+    const b = db.batch(); b.delete(db.doc(p)); b.delete(db.doc(p + '/versions/1'));
+    await assertFails(b.commit());
+    await assertFails(db.doc(p + '/versions/1').delete());
+  });
+  it('已完成（done）的批次不能進入回復', async () => {
+    await seed(t, d => d.doc('migrations/done-1').set({ status: 'done', rev: 1, startedBy: SU, startedAt: TS.now(), updatedAt: TS.now(), updatedBy: SU }));
+    await assertFails(setMigrationStatus(sdb(), FV, 'done-1', SU, 'rollingBack'));
+    await assert.rejects(rollbackImport(sdb(), FV, 'done-1', SU), /只有 running／failed 能回復/);   // 程式也先擋
+  });
+  it('回復：只刪這個批次、匯入後沒改過的資料；改過的卡片與它的版本全部保留；狀態轉換有稽核', async () => {
+    const r = await rollbackImport(sdb(), FV, R1, SU);
+    assert.equal(r.deleted.cards, total - 1);
+    assert.deepEqual(r.kept, [edited]);
+    assert.ok(await readDoc(t, edited + '/versions/1'));
+    assert.ok(await readDoc(t, edited + '/versions/2'));
+    const m = await readDoc(t, `migrations/${R1}`);
+    assert.equal(m.status, 'rolledBack');
+    for (const [rev, st] of [[2, 'rollingBack'], [3, 'rolledBack']]) assert.equal((await readDoc(t, `auditLogs/migrations_${R1}_${rev}`)).after.status, st);
+    // 回復結束後，保留下來的版本仍然不能刪（含遷移產生的第 1 版）
+    const db = sdb(), b = db.batch(); b.delete(db.doc(edited)); b.delete(db.doc(edited + '/versions/1'));
+    await assertFails(b.commit());
+    await assertFails(db.doc(edited + '/versions/2').delete());
+    await assertFails(setMigrationStatus(sdb(), FV, R1, SU, 'running'));       // rolledBack 不能再回到 running
+  });
+  it('重新匯入（新批次）可以安全重跑：沒有重複資料、沒有版本衝突', async () => {
+    const r = await runImport(sdb(), FV, TS, src, { batch: R2, uid: SU });
+    assert.equal(r.written.cards, total - 1);
+    assert.deepEqual(r.conflicts, [edited]);                                     // 改過的那張不覆寫，列為衝突
+    const again = await runImport(sdb(), FV, TS, src, { batch: R2, uid: SU });
+    assert.equal(Object.keys(again.written).length, 0);
     const db = sdb();
-    const dept = 'affairs';
-    const cards = (await db.collection('cards').where('deptId', '==', dept).get()).docs;
-    assert.ok(cards.length > 0);
-    // 一般版本不能刪；遷移產生的第 1 版只有在母卡片同批刪除時才能刪
-    await assertFails(db.doc(cards[0].ref.path + '/versions/1').delete());
-    for (const c of cards) { const b = db.batch(); b.delete(c.ref); b.delete(db.doc(c.ref.path + '/versions/1')); await b.commit(); }
-    const evs = (await db.collection('events').where('deptId', '==', dept).get()).docs;
-    for (const e of evs) await e.ref.delete();
-    const r = await runImport(db, FV, TS, src, { batch: 'test-batch-2', uid: SU });
-    assert.equal(r.written.cards, cards.length);
-    assert.equal(r.conflicts.length, 0);
-    const v = await verify(db, src, r.plan);
+    assert.equal((await db.collection('cards').get()).size, total);
+    const vs = (await db.collectionGroup('versions').get()).docs;
+    assert.equal(vs.length, total + 1);                                          // 每張一個第 1 版，改過的那張多一個第 2 版
+    assert.equal(new Set(vs.map(v => v.ref.path)).size, vs.length);
+    for (const v of vs) if (v.id === '1') assert.equal(v.data().importBatch, v.ref.path === edited + '/versions/1' ? R1 : R2);
+  });
+  it('模擬器演練優先用「重置＋重新匯入」：清空後再匯入，筆數與驗證結果相同', async () => {
+    await t.clearFirestore();
+    await seedRole(t, SU, { super: true });
+    const r = await runImport(sdb(), FV, TS, src, { batch: 'reset-1', uid: SU });
+    const v = await verify(sdb(), src, r.plan);
     for (const i of v.items) assert.ok(i.ok, `${i.id}：${i.msg}`);
+    assert.deepEqual(v.counts, v1.counts);
   });
 });
 

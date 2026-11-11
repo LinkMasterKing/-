@@ -330,7 +330,7 @@ service cloud.firestore {
         function cardAfter() { return getAfter(doc('cards', id)).data; }
         function nv()        { return request.resource.data; }
         function sameAsCard() {
-          return nv().keys().hasOnly(['cardId', 'deptId', 'version', 'title', 'blocks', 'times', 'state', 'by', 'at', 'imported'])
+          return nv().keys().hasOnly(['cardId', 'deptId', 'version', 'title', 'blocks', 'times', 'state', 'by', 'at', 'imported', 'importBatch'])
             && nv().cardId == id && v == string(nv().version)
             && cardAfter().version == nv().version
             && nv().deptId == cardAfter().deptId
@@ -343,17 +343,27 @@ service cloud.firestore {
         // 遷移產生的第 1 版：總管理員、卡片在同一批以 running 批次新建
         function importVersion() {
           return nv().imported == true && nv().version == 1 && isSuper() && !exists(doc('cards', id))
-            && cardAfter().get('importBatch', null) is string
+            && cardAfter().get('importBatch', null) is string && nv().get('importBatch', null) == cardAfter().importBatch
             && get(doc('migrations', cardAfter().importBatch)).data.status == 'running';
         }
         allow get, list: if isSuper()
           || (internalReader() && exists(doc('cards', id))
               && (card().state != 'deleted' || isEditor(card().deptId)));
-        allow create: if signedIn() && sameAsCard() && (nv().imported == false || importVersion());
+        allow create: if signedIn() && sameAsCard()
+          && ((nv().imported == false && !nv().keys().hasAny(['importBatch'])) || importVersion());
         allow update: if false;
-        // 例外（01B）：遷移回復時，總管理員可以刪掉「遷移產生、母卡片已不存在」的第 1 版，
-        // 否則回復後無法用同一個文件 ID 重新匯入（C-12 要求版本必須同批新建）。一般版本任何人都不能刪。
-        allow delete: if isSuper() && resource.data.imported == true && !existsAfter(doc('cards', id));
+        // 版本歷史不能修改、不能刪除（含總管理員、含一般的卡片硬刪）。
+        // 唯一例外是遷移失敗回復（R1，使用者 2026-11-11 決定）：只限
+        //   ① 遷移產生的第 1 版（imported == true）且標記了批次 importBatch；
+        //   ② 那個批次已經由總管理員改成 rollingBack（有稽核紀錄；只有 running／failed 的批次能進入回復）；
+        //   ③ 母卡片也是同一個批次匯入、匯入後沒被改過（version == 1），而且在同一批被刪掉。
+        // 被使用者改過的卡片（版本 ≥ 2）、一般版本、正常業務資料都不適用。
+        allow delete: if isSuper() && resource.data.imported == true
+          && resource.data.get('importBatch', null) is string
+          && get(doc('migrations', resource.data.importBatch)).data.status == 'rollingBack'
+          && exists(doc('cards', id)) && card().get('importBatch', null) == resource.data.importBatch
+          && card().version == 1
+          && !existsAfter(doc('cards', id));
       }
     }
 
@@ -485,8 +495,12 @@ service cloud.firestore {
         && d().status == 'running' && d().rev == 1
         && d().startedBy == me() && d().startedAt == request.time && stamped()
         && auditAfter('migrations', batch, 1);
-      allow update: if isSuper() && resource.data.status == 'running'                // done／failed 之後不能再用來寫入
-        && d().status in ['running', 'done', 'failed']
+      // 狀態：running →（running｜done｜failed｜rollingBack）；failed → rollingBack；rollingBack → rolledBack。
+      // done 之後不能再寫入、也不能回復；只有 running 能用來寫入（importing()），只有 rollingBack 能刪遷移版本。
+      allow update: if isSuper()
+        && ( (resource.data.status == 'running' && d().status in ['running', 'done', 'failed', 'rollingBack'])
+          || (resource.data.status == 'failed' && d().status == 'rollingBack')
+          || (resource.data.status == 'rollingBack' && d().status == 'rolledBack') )
         && unchanged(['startedBy', 'startedAt']) && revNext() && stamped()
         && auditAfter('migrations', batch, d().rev);
       allow delete: if false;

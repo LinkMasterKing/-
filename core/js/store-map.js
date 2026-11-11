@@ -93,7 +93,7 @@
       const times = (e.times || []).map(t => ({ id: nid(dept, t.id), label: t.label || "", startRaw: t.start || "", endRaw: t.end || "" }));
       add("cards", `cards/${id}`, card);
       add("versions", `cards/${id}/versions/1`, { cardId: id, deptId: dept, version: 1, title: card.title, blocks: copy(blocks),
-        times: times, state: card.state, by: U, at: NOW, imported: true });
+        times: times, state: card.state, by: U, at: NOW, imported: true, importBatch: B });
       (e.times || []).forEach(t => {
         const st = parseTaipei(t.start), en = parseTaipei(t.end) || st;
         if (!st) { report.badTimes.push({ what: "time.start", id: t.id, value: t.start }); return; }

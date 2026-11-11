@@ -5,9 +5,9 @@
   "type": "module",
   "scripts": {
     "emulators": "firebase emulators:start --only firestore,auth --project demo-stustsa-board",
-    "test": "firebase emulators:exec --only firestore --project demo-stustsa-board \"node --test tests/\"",
-    "test:rules": "firebase emulators:exec --only firestore --project demo-stustsa-board \"node --test tests/rules-*.test.js\"",
-    "test:migrate": "firebase emulators:exec --only firestore --project demo-stustsa-board \"node --test tests/migrate-*.test.js\"",
+    "test": "firebase emulators:exec --only firestore --project demo-stustsa-board \"node --test --test-concurrency=1 tests/*.test.js\"",
+    "test:rules": "firebase emulators:exec --only firestore --project demo-stustsa-board \"node --test --test-concurrency=1 tests/rules-*.test.js\"",
+    "test:migrate": "firebase emulators:exec --only firestore --project demo-stustsa-board \"node --test tests/migrate.test.js\"",
     "migrate:dry": "node migrate/cli.js --dry-run",
     "migrate:emulator": "firebase emulators:exec --only firestore --project demo-stustsa-board \"node migrate/cli.js --emulator\"",
     "test:web": "firebase emulators:exec --only firestore --project demo-stustsa-board \"node ../tools/tests/fs1.js\""

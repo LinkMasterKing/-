@@ -141,14 +141,46 @@ export async function runImport(db, FV, TS, src, { batch, uid, log = () => {} })
   return { plan: p, counts, written, skipped, conflicts, batches: batches.length, mrev };
 }
 
-export async function finishImport(db, FV, batch, uid, status, summary) {
+// 批次狀態轉換（規則：running → done／failed／rollingBack；failed → rollingBack；rollingBack → rolledBack），每次都有稽核紀錄
+export async function setMigrationStatus(db, FV, batch, uid, status, summary = {}) {
   const ref = db.doc(`migrations/${batch}`), cur = (await ref.get()).data();
   const b = db.batch();
-  b.set(ref, { ...cur, status, counts: summary.counts || {}, report: JSON.stringify(summary).slice(0, 50000),
-    finishedAt: FV.serverTimestamp(), rev: cur.rev + 1, updatedAt: FV.serverTimestamp(), updatedBy: uid });
+  const next = { ...cur, status, rev: cur.rev + 1, updatedAt: FV.serverTimestamp(), updatedBy: uid };
+  if (summary.counts) next.counts = summary.counts;
+  if (Object.keys(summary).length) next.report = JSON.stringify(summary).slice(0, 50000);
+  if (['done', 'failed', 'rolledBack'].includes(status)) next.finishedAt = FV.serverTimestamp();
+  b.set(ref, next);
   b.set(db.doc(`auditLogs/migrations_${batch}_${cur.rev + 1}`), { col: 'migrations', docId: batch, rev: cur.rev + 1, action: status, actor: uid,
     at: FV.serverTimestamp(), before: { status: cur.status }, after: { status }, ref: '' });
   await b.commit();
+}
+export const finishImport = (db, FV, batch, uid, status, summary) => setMigrationStatus(db, FV, batch, uid, status, summary);
+
+// 遷移失敗回復（R1）：只刪這個批次匯入、而且匯入後沒被改過的資料。
+// - 卡片：version == 1 才刪，連同遷移產生的第 1 版同批刪（規則只在批次是 rollingBack 時允許刪這種版本）
+// - 時間事件、議題：rev == 1；週報、標籤：updatedBy 是匯入的人
+// - 有稽核鏈的文件（舊身分、部門設定、授權）與部門、學年設定不刪：重新匯入時內容相同就跳過，不會重複
+// 被改過的一律保留並列在報告裡。重新匯入用新的批次號；文件 ID 是決定性的，所以不會產生重複資料。
+export async function rollbackImport(db, FV, batch, uid, { log = () => {} } = {}) {
+  const m = (await db.doc(`migrations/${batch}`).get()).data();
+  if (!m || !['running', 'failed'].includes(m.status)) throw new Error(`批次 ${batch} 的狀態是 ${m && m.status}，只有 running／failed 能回復`);
+  await setMigrationStatus(db, FV, batch, uid, 'rollingBack');
+  const deleted = {}, kept = [];
+  const of = async c => (await db.collection(c).where('importBatch', '==', batch).get()).docs;
+  for (const c of await of('cards')) {
+    if (c.data().version !== 1) { kept.push(c.ref.path); continue; }
+    const b = db.batch(); b.delete(c.ref); b.delete(db.doc(c.ref.path + '/versions/1')); await b.commit();
+    deleted.cards = (deleted.cards || 0) + 1;
+  }
+  for (const [col, untouched] of [['events', d => d.rev === 1], ['issues', d => d.rev === 1], ['weeks', d => d.updatedBy === m.startedBy], ['labels', d => d.updatedBy === m.startedBy]]) {
+    for (const x of await of(col)) {
+      if (!untouched(x.data())) { kept.push(x.ref.path); continue; }
+      await x.ref.delete(); deleted[col] = (deleted[col] || 0) + 1;
+    }
+  }
+  await setMigrationStatus(db, FV, batch, uid, 'rolledBack', { deleted, kept });
+  log(`回復完成：刪除 ${JSON.stringify(deleted)}，保留（匯入後被改過）${kept.length} 筆`);
+  return { deleted, kept };
 }
 
 // ---------- 驗證 V1～V6（V7 在測試裡用不同身分讀；V8 是現有 Playwright 測試） ----------
