@@ -83,7 +83,7 @@ async function cloudSettings(){
     if(!v)return false;
     state.sync={owner:v.owner,repo:v.repo,branch:v.branch||"main",path:v.path||"data.json"};dirty=true;
     try{const nt=(v.token||"").trim();if(nt){localStorage.setItem(TOKEN_KEY,nt);siteAdminMark()}else if(v.tokact==="clear")localStorage.removeItem(TOKEN_KEY)}catch(_){}
-    {const nt=(v.token||"").trim(),me=meMember();if(nt&&me&&(sessionPw||await needPw()))me.tok=await encToken(nt,sessionPw);if(nt&&sharedPwSession)await rememberToken(nt,sharedPwSession)}
+    {const nt=(v.token||"").trim(),me=meMember();if(nt&&me&&(sessionPw||await needPw()))me.tok=await encToken(nt,sessionPw)}
     cloud={sha:null,etag:null,status:"",last:""};
     let res=await cloudPull({force:true});
     if(res==="pending"&&cloud.pending){const ok=await ask("雲端已經有看板資料，要載入雲端的內容嗎？",[],{danger:"載入雲端內容"});
@@ -114,7 +114,7 @@ async function prepareSave(){
   let weak=false;
   const me=meMember();
   if(ghToken()&&me&&!me.tok&&sessionPw)me.tok=await encToken(ghToken(),sessionPw);
-  if(ghToken()&&sharedPwSession&&!(state.sync&&state.sync.tokenEnc)){const r=await rememberToken(ghToken(),sharedPwSession);weak=r==="weak"}
+  if(ghToken()&&sharedPwSession&&!(state.sync&&state.sync.tokenEnc))weak=sharedPwSession.length<8;   /* 共用密碼太短的提醒照舊；不再寫 tokenEnc（auth.js 的 dropSharedToken） */
   return {weak};
 }
 async function saveFlow(){
