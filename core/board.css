@@ -129,13 +129,18 @@ a.logo-box:focus-visible{outline:2px solid var(--ink);outline-offset:4px}
 .hero{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:18px 12px;max-width:760px;margin:0 auto;padding-top:6px;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
 .logo-box{grid-column:1/-1;justify-self:center;height:64px;display:flex;align-items:center;transition:transform .22s var(--ease),opacity .2s;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
 .logo{display:block;height:46px;width:auto;color:var(--ink)}
-.logo .logo-gap{fill:none;stroke:var(--bg);stroke-width:4;stroke-linejoin:round;display:none}   /* 學生會 logo：淺色用原檔彩色（path 的 fill）；深色全部填文字色，黃藍兩塊之間描一圈底色當分隔縫（shell.js 的 suLogoMono） */
+/* 學生會 logo（shell.js 的 suLogoMono）：淺色用原檔彩色（.logo-color 與字的 fill）；深色是單色：標誌換成單色線稿（.logo-line，左邊小人線框、右邊小人實心，2026-11-11 使用者），字填文字色。
+   線稿的線在頁首大小只有約 0.4px，另外描一圈不隨縮放變粗的細線（.75px），小尺寸才看得清楚 */
+.logo .logo-line{display:none}
+.logo .logo-line path{stroke:currentColor;stroke-width:.75px;stroke-linejoin:round;vector-effect:non-scaling-stroke}
 @media (prefers-color-scheme:dark){
-  :root:not([data-theme="light"]) .logo path:not(.logo-gap){fill:currentColor}
-  :root:not([data-theme="light"]) .logo .logo-gap{display:inline}
+  :root:not([data-theme="light"]) .logo path{fill:currentColor}
+  :root:not([data-theme="light"]) .logo .logo-color{display:none}
+  :root:not([data-theme="light"]) .logo .logo-line{display:inline}
 }
-:root[data-theme="dark"] .logo path:not(.logo-gap){fill:currentColor}
-:root[data-theme="dark"] .logo .logo-gap{display:inline}
+:root[data-theme="dark"] .logo path{fill:currentColor}
+:root[data-theme="dark"] .logo .logo-color{display:none}
+:root[data-theme="dark"] .logo .logo-line{display:inline}
 /* 搜尋欄：跟底部工具列同一種毛玻璃（.glass，search.js 用 glassify 加上去）；小小淺字「搜尋權益部」 */
 .hero-find{position:relative;min-width:0}
 .hero-search{display:flex;align-items:center;gap:9px;height:44px;padding:0 6px 0 16px;border-radius:999px;cursor:text;transition:transform var(--mo-slow) var(--mo-spring),box-shadow var(--mo-base) var(--mo-out)}
