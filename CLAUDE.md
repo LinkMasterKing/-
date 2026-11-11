@@ -38,7 +38,7 @@
 - 準備：把整個 repo 複製到暫存資料夾，放一份 `tools/tests/data_test.json`（或 `data_v5.json`）改名成 `data.json`，在那裡開 `python3 -m http.server 8300`。伺服器要在同一個指令裡開（背景執行容易在指令之間被關掉，可用 `setsid nohup ... &`）。
 - 在 `tools/tests/` 執行 `node xxx.js`（Playwright＋Chromium）。各測試的用途見 `docs/交接說明.md` 第七節與各節的「測試」。
 - Google Fonts、GitHub API 在測試裡用 route 模擬，不要真的連 GitHub 寫資料。
-- Firestore 與登入用 Firebase Emulator Suite；不連正式專案。規則測試放在 `backend/tests/`。
+- Firestore 與登入用 Firebase Emulator Suite；不連正式專案。規則測試放在 `backend/tests/`：`cd backend && npm install && npm test`（規則＋遷移）、`npm run test:web`（網頁的資料來源開關）。
 - 只跑跟這次修改有關的測試；視覺效果由使用者自己看。
 - 測試產生的截圖、PDF、報告檔不要 commit（`.gitignore` 已排除）。
 

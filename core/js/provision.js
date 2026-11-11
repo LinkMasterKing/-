@@ -26,6 +26,7 @@ async function pvStatus(d){
   }catch(_){return {d,st:"err"}}
 }
 async function pvPut(d,data,sha,what){
+  if(deptSourceOf(d.id)!=="github")return "搬家中，暫停寫入";   /* 凍結或已搬家的部門不寫資料檔（store.js） */
   const c={...cloudCfg(),path:d.path},h={Accept:"application/vnd.github+json",Authorization:"Bearer "+ghToken(),"Content-Type":"application/json"};
   const who=meName()||"學生會管理員";
   const body={message:`〔${who}〕設定｜${what}\n\n全會密碼自動開通（provision.js）。\n\nBoard-Log: 1`,content:b64enc(JSON.stringify(data,null,1)),branch:c.branch};

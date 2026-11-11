@@ -29,7 +29,7 @@ let cardEdit="";
 const cardEd=(t,id)=>editing&&cardEdit===`${t}:${id}`;
 const secEd=k=>editing&&cardEdit==="s:"+k;
 const canEdit=()=>loggedIn()&&!readOnly();
-const editBtnHTML=key=>state.locked?"":`<button type="button" class="icon card-edit-btn" data-edit="${key}">${ico("edit")}編輯</button>`;
+const editBtnHTML=key=>boardLocked()?"":`<button type="button" class="icon card-edit-btn" data-edit="${key}">${ico("edit")}編輯</button>`;
 const editBarHTML=()=>`<div class="card-edbar"><button type="button" data-edcancel>取消</button><button type="button" class="primary" data-edsave>${cloudOn()?"儲存並同步":"儲存"}</button></div>`;
 /* 開始編輯 key 那一張：then＝開始後馬上要做的事（例如新增一筆空白的、打開名稱欄） */
 async function startEdit(key,then){
@@ -58,7 +58,7 @@ function render(){
   const flip=Anim.capture();   /* 動畫規則 2：data-flip 容器裡的項目，render 前後比對位置（anim.js） */
   try{
     document.body.classList.toggle("edit",editing);
-    document.body.classList.toggle("locked",!!state.locked);
+    document.body.classList.toggle("locked",boardLocked());
     renderHeader();renderTabbar();renderSections();renderSecEdit();renderWeeks();renderGantt();renderEvents();renderCards();renderDone();renderActivity();renderFollows();renderDocs();renderMeet();renderGrant();layoutAll();flowWatch();
   }finally{rendering=false}
   Anim.play(flip);Anim.syncPings();

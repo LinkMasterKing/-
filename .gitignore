@@ -2,3 +2,8 @@
 tools/tests/*.png
 tools/tests/*.pdf
 tools/tests/*_report.txt
+
+# 開發工具（backend/）：套件與模擬器紀錄不進 repo
+backend/node_modules/
+backend/*.log
+backend/migrate/out/

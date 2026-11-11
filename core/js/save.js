@@ -6,6 +6,7 @@ function selfDoc(){
   return `<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>${reset}</style></head><body>${body}</body></html>`;
 }
 async function persist(msg){
+  if(storeLocked()){toast(STORE_NOTE[storeSource()]);return false}   /* 搬家中或已搬到新資料庫：不寫資料檔（store.js） */
   if(artifactNS){
     try{await artifactNS.publish(selfDoc());toast(msg||"已發布，所有人都會看到最新版");return true}
     catch(e){
@@ -28,7 +29,7 @@ function save(){
   editing=false;dirty=false;render();
   persist().then(()=>{if(CFG.meeting)mtPushAll()});   /* 秘書處：改過的其他部門各自寫回 */
 }
-/* 匯出單一 HTML：把拆開的 CSS / JS / 設定檔全部打包回同一個檔案 */
+/* 匯出備份：JSON（只有資料，用「匯入備份」還原） */
 async function exportBackup(){
   const s=JSON.parse(JSON.stringify(state));s.locked=false;if(!s.savedAt)s.savedAt=nowStr();
   /* 備份 = JSON（只有資料，用「匯入備份」還原） */

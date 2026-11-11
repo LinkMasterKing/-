@@ -100,7 +100,7 @@
 
 ### `cards/{cardId}/versions/{version}`：跟母卡片同一個讀取條件；只能新增
 （01A-R：從頂層 `cardVersions/{cardId}_{version}` 改成子集合，讓「已刪除卡片只有部門看得到」也適用於歷史內容，見 [permissions.md](permissions.md) 第 5.1 節。）
-`cardId`、`deptId`、`version`、`title`、`blocks`、`times`（當時的時間值快照）、`state`、`by`、`at`、`imported`（遷移產生的第 1 版為 true）。`title`、`blocks`、`state`、`deptId`、`by`、`at` 由規則比對批次後的卡片。
+`cardId`、`deptId`、`version`、`title`、`blocks`、`times`（當時的時間值快照）、`state`、`by`、`at`、`imported`（遷移產生的第 1 版為 true）、`importBatch`（只有遷移產生的第 1 版有，等於母卡片的批次；01B R1）。`title`、`blocks`、`state`、`deptId`、`by`、`at` 由規則比對批次後的卡片。
 
 ### `issues/{id}`：母議題
 `deptId`、`title`、`cur`（目前階段）、`start`、`end`（原字串＋時間）、`note`、`tags`、`labels`、`links`、`staff`、`markers`（陣列，保留舊結構，`evId`／`tmId` 改新 ID）、`doneAt`、`order`、`rev`、`updatedAt`、`updatedBy`。
@@ -144,7 +144,7 @@
 
 ## 6. 遷移管理
 
-`migrations/{batchId}`：L4。`status`（`running`｜`done`｜`failed`）、`sourceCommit`、`fileHashes`、`counts`、`startedBy`、`startedAt`、`finishedAt`、`report`（摘要）。正在跑的批次讓總管理員可以寫入帶舊時間的文件，見 [migration.md](migration.md) 第 3 節。
+`migrations/{batchId}`：L4。`status`（`running`｜`done`｜`failed`｜`rollingBack`｜`rolledBack`，01B R1）、`sourceCommit`、`fileHashes`、`counts`、`startedBy`、`startedAt`、`finishedAt`、`report`（摘要）。正在跑的批次讓總管理員可以寫入帶舊時間的文件，見 [migration.md](migration.md) 第 3 節。
 
 ## 7. 讀取量估算〔推論〕
 
