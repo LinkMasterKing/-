@@ -14,10 +14,10 @@
 | Q2 | 總覽、全會行事曆（未登入） | `events` where `visibility == 'public'` and `start >= 月初` and `start < 月底` | `visibility ASC, start ASC` | L0 只開放 `public` |
 | Q3 | 部門看板：進行中 | `cards` where `deptId == X` and `state == 'open'` order by `order` | `deptId ASC, state ASC, order ASC` | L1 |
 | Q4 | 部門看板：已完成（分頁） | `cards` where `deptId == X` and `state == 'done'` order by `doneAt DESC` limit 20 | `deptId ASC, state ASC, doneAt DESC` | L1 |
-| Q5 | 部門看板：最近刪除 | `cards` where `deptId == X` and `state == 'deleted'` order by `deletedAt DESC` | `deptId ASC, state ASC, deletedAt DESC` | L2 才能查 |
+| Q5 | 接續未完成的永久刪除（02A 修正：沒有「最近刪除」了） | `cards` where `deptId == X` and `state == 'purging'` | 兩個等號條件，免複合索引（02A 拿掉 `deptId, state, deletedAt` 索引；`events` 的兩個 `cardDeleted` 索引也一起拿掉） | 部門編輯者以上 |
 | Q6 | 秘書處會議報告事項 | `cards` where `report == true` and `state == 'open'` | `report ASC, state ASC, deptId ASC` | L1 |
 | Q7 | 母議題底下的卡片 | `cards` where `issueId == X` and `state in ['open','done']` | `issueId ASC, state ASC` | L1 |
-| Q8 | 卡片版本歷史 | `cards/X/versions` order by `version DESC`（01A-R 改成子集合） | 單一欄位，免複合索引 | 卡片可讀時（已刪除卡片只有 L2） |
+| Q8 | 卡片版本歷史 | `cards/X/versions` order by `version DESC`（01A-R 改成子集合） | 單一欄位，免複合索引 | 卡片可讀時（刪除中的卡片只有 L2，用來由新往舊清除） |
 | Q9 | 會長室各部門編輯量 | collection group `versions` where `deptId == X` and `at >= 起` | collection group：`deptId ASC, at ASC` | 總管理員或該部門編輯者（01A-R） |
 | Q10 | 母議題 | `issues` where `deptId == X` order by `order` | `deptId ASC, order ASC` | L1 |
 | Q11 | 週報 | `weeks` where `deptId == X` order by `date DESC` | `deptId ASC, date DESC` | L1 |

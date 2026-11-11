@@ -20,20 +20,22 @@
 | 步驟 | 誰 | 寫入（同一批，原子） |
 |---|---|---|
 | 建立 | 總管理員（D3：也可開放部門管理員邀自己部門的編輯者） | `invitations/{h}`（`rev: 1`, `status: 'active'`）＋`auditLogs/invitations_{h}_1` |
-| 掃描預覽 | 登入的任何人 | 讀 `invitations/{h}`（只有 `active` 的讀得到），顯示「你將加入活動部，身分：編輯者，剩下 mm:ss」；`role: 'viewer'` 的邀請顯示「你將取得檢視資格（唯讀）」 |
+| 掃描預覽 | 登入的任何人 | 讀 `invitations/{h}`（只有 `active` 的讀得到），顯示「你將加入活動部，身分：編輯者，剩下 mm:ss」（02A：沒有 `viewer` 邀請了，登入就能讀） |
 | 核銷 | 掃碼者本人 | `invitations/{h}` → `used`（`rev: 2`）＋`roles/{me}` 新增該部門角色（`rev + 1`）＋`auditLogs/invitations_{h}_2`＋`auditLogs/roles_{me}_{rev}`；有 `legacyRef` 時再加 `legacyIdentities/{ref}.claimedBy = me`＋其稽核 |
 | 撤銷 | 總管理員 | `invitations/{h}` → `revoked`（`rev: 2`）＋`auditLogs/invitations_{h}_2` |
+| 重新產生（02A 新增） | 總管理員 | 同一批：舊邀請 → `revoked`（稽核 `ref` 寫新邀請的雜湊）＋新邀請（新權杖、新雜湊、新的 10 分鐘，稽核 `ref` 寫舊邀請的雜湊）。同一張邀請的期限不能延長（N-09），所以「再給 10 分鐘」一律是重新產生 |
 | 過期 | 不用寫 | 規則把 `expiresAt <= request.time` 的邀請當作無效；清單上標「已過期」 |
 
 ### 權杖與 QR
 
 - 權杖：瀏覽器 `crypto.getRandomValues` 產生 32 位元組（256 位元），base64url 編碼。
 - 文件 ID：`h = SHA-256(權杖)` 的小寫十六進位（64 字）。資料庫裡只存雜湊；**看得到邀請清單的人（總管理員、匯出的備份）也拿不到可以核銷的權杖。**
-- QR 內容：`https://linkmasterking.github.io/-/#join=<權杖>`。放在 `#` 後面，不會送到 GitHub Pages 的伺服器、也不會出現在 Referer〔文件：瀏覽器不傳送網址片段〕。
+- QR 內容：`https://<網站網址>/#join=<權杖>`（02A：repo 在 02B 前移轉到學生會 Organization，網址以移轉後的為準，見 [github-ownership-migration.md](github-ownership-migration.md) 第 9 節；程式用 `location` 組網址，不寫死）。放在 `#` 後面，不會送到 GitHub Pages 的伺服器、也不會出現在 Referer〔文件：瀏覽器不傳送網址片段〕。
 - 核銷時把原始權杖寫進邀請文件的 `token` 欄位，規則用 `hashing.sha256(token).toHexString().lower() == h` 驗證〔已驗證 P4：`toHexString()` 回傳**大寫**，所以一定要 `.lower()`〕。權杖在用過之後才寫進資料庫，用過的權杖沒有作用。
-- **有效期（01A-R 修正）**：預設 10 分鐘，規則上限也是 10 分鐘（`expiresAt <= request.time + 10 分鐘`，以伺服器時間計）。QR 畫面顯示倒數，到期後畫面提示「請重新產生」。不在場的人改走申請（D13 定案）。
+- **有效期（01A-R 修正，02A 定案）**：預設 10 分鐘，規則上限也是 10 分鐘（`expiresAt <= request.time + 10 分鐘`，以伺服器時間計）。QR 畫面顯示倒數，到期後畫面提示「請重新產生」。不在場的人改走申請（D13 定案）。
 - **撤銷**：總管理員隨時可以把 `active` 的邀請改成 `revoked`（含尚未到期、已過期但還沒用過的），撤銷後任何人都不能核銷。撤銷與核銷同時發生時只有一筆成功（兩者都要求批次前 `status == 'active'`，同一份文件依序生效）。
 - **一次性核銷**維持不變（第 6 節）。
+- **可重新產生**（02A 定案）：見上表「重新產生」。舊 QR 立刻失效（已撤銷），新 QR 從頭倒數 10 分鐘（N-10）。
 - 可選擇綁定信箱（`boundEmail`）：綁定時只有那個 Google 帳號能核銷，建議發「部門管理員」邀請時使用。
 
 ## 3. 稽核紀錄鏈（版本號鏈）
@@ -67,9 +69,8 @@ match /invitations/{h} {
   allow list: if isSuper();
   allow delete: if false;
 
-  function roleOk() {                                           // 01A-R：viewer 邀請沒有部門
-    return (d().role in ['admin', 'editor'] && exists(doc('departments', d().deptId)))
-        || (d().role == 'viewer' && d().deptId == null);
+  function roleOk() {                                           // 02A：拿掉 viewer 邀請
+    return d().role in ['admin', 'editor'] && exists(doc('departments', d().deptId));
   }
   allow create: if isSuper()                                     // D3 開放時：|| (isAdmin(d().deptId) && d().role == 'editor')
     && h.matches('^[0-9a-f]{64}$')
@@ -115,9 +116,8 @@ match /roles/{uid} {
   allow list: if isSuper();
   allow delete: if false;
 
-  function roleKeys() { return ['super', 'viewer', 'depts', 'rev', 'lastVia', 'lastRef', 'updatedAt', 'updatedBy']; }
+  function roleKeys() { return ['super', 'depts', 'rev', 'lastVia', 'lastRef', 'updatedAt', 'updatedBy']; }   // 02A：拿掉 viewer
   function oldSuper()  { return resource == null ? false : resource.data.get('super', false); }
-  function oldViewer() { return resource == null ? false : resource.data.get('viewer', false); }
   function oldDepts()  { return resource == null ? {} : resource.data.depts; }
   // 「除了這一項，其他權限都沒變」：用來保證 invite／request／revoke 的寫入跟它宣稱的來源一致
   function deptsDelta() { return d().depts.diff(oldDepts()); }
@@ -128,7 +128,6 @@ match /roles/{uid} {
   function onlyDeptSet(dept, r) {                                                 // 核准申請：新增或改成申請的角色
     return deptsDelta().affectedKeys() == [dept].toSet() && d().depts[dept] == r;
   }
-  function flagsSame() { return d().get('super', false) == oldSuper() && d().get('viewer', false) == oldViewer(); }
 
   allow create: if d().rev == 1 && auditAfter('roles', uid, 1) && d().keys().hasOnly(roleKeys())
     && (viaInvite() && inviteGrant() || superWrite());
@@ -137,9 +136,7 @@ match /roles/{uid} {
 
   function inviteGrant() {                                                        // 已驗證 P6：計算鍵的 map 字面值可用
     return d().get('super', false) == oldSuper()
-      && ( (inv().role == 'viewer' && d().depts == oldDepts() && d().viewer == true && oldViewer() == false)
-        || (inv().role != 'viewer' && d().get('viewer', false) == oldViewer()
-            && onlyDeptAdded(inv().deptId, inv().role)) );                        // 已在該部門有角色就不能核銷（避免降級或重複）
+      && onlyDeptAdded(inv().deptId, inv().role);                        // 已在該部門有角色就不能核銷（避免降級或重複）
   }
 
   function superWrite() {
@@ -158,14 +155,12 @@ match /roles/{uid} {
     return rb.status == 'pending' && reqAfter().status == 'approved' && reqAfter().decidedBy == me()
       && rb.uid == uid
       && d().get('super', false) == oldSuper()
-      && ( (rb.role == 'viewer' && d().viewer == true && d().depts == oldDepts())
-        || (rb.role != 'viewer' && d().get('viewer', false) == oldViewer() && onlyDeptSet(rb.deptId, rb.role)) );
+      && onlyDeptSet(rb.deptId, rb.role);
   }
-  // 01A-R：撤權只能拿掉部門或把 super／viewer 改成 false，不能新增、不能改值（降級 admin → editor 走 'manual'）
+  // 01A-R：撤權只能拿掉部門或把 super 改成 false，不能新增、不能改值（降級 admin → editor 走 'manual'）
   function onlyRemoves() {
     return deptsDelta().addedKeys().size() == 0 && deptsDelta().changedKeys().size() == 0
-      && (d().get('super', false) == false || oldSuper() == true)
-      && (d().get('viewer', false) == false || oldViewer() == true);
+      && (d().get('super', false) == false || oldSuper() == true);
   }
 }
 
@@ -175,8 +170,7 @@ match /roleRequests/{id} {
   allow list: if isSuper() || (signedIn() && resource.data.uid == me());
   allow create: if signedIn() && d().uid == me() && d().status == 'pending' && d().rev == 1
     && d().keys().hasOnly(['uid', 'deptId', 'role', 'note', 'legacyRef', 'status', 'rev', 'createdAt', 'updatedAt', 'updatedBy'])
-    && ( (d().role in ['admin', 'editor'] && exists(doc('departments', d().deptId)))
-      || (d().role == 'viewer' && d().deptId == null) )                         // 01A-R：申請檢視資格
+    && d().role in ['admin', 'editor'] && exists(doc('departments', d().deptId))   // 02A：不再申請檢視資格
     && d().createdAt == request.time && stamped() && auditAfter('roleRequests', id, 1);
   allow update: if revNext() && auditAfter('roleRequests', id, d().rev) && stamped() && (
       (resource.data.uid == me() && resource.data.status == 'pending' && d().status == 'cancelled'
@@ -200,10 +194,9 @@ match /auditLogs/{aid} {
   function a()        { return request.resource.data; }
   function target()   { return getAfter(doc(a().col, a().docId)).data; }
   function rolesOk() {
-    return a().after == { 'super': target().get('super', false), 'viewer': target().get('viewer', false), 'depts': target().depts }
+    return a().after == { 'super': target().get('super', false), 'depts': target().depts }
       && (a().rev == 1 ? a().before == {}
                        : a().before == { 'super':  get(doc('roles', a().docId)).data.get('super', false),
-                                         'viewer': get(doc('roles', a().docId)).data.get('viewer', false),
                                          'depts':  get(doc('roles', a().docId)).data.depts });
   }
   allow get, list: if isSuper();
@@ -262,8 +255,8 @@ match /legacyIdentities/{ref} {
 
 - 總管理員把 `roles/{uid}.depts` 拿掉那個部門（`lastVia: 'revoke'`）＋稽核紀錄。
 - 規則每次請求都讀 `roles`，所以下一次寫入就被拒〔文件；待驗證 I-24〕。
-- 已經開著的即時監聽：Firestore 在規則相關資料變動後會重新評估監聽，讀取權限也會被收回〔推論，待驗證〕。內部讀取只要求登入（L1），撤部門權限不影響閱讀。
-- 要讓某個帳號完全不能讀：已授權檢視者（[permissions.md](permissions.md) 第 2.1 節，D1 定案）下，把 `viewer` 改成 `false` 並拿掉所有部門角色，下一次讀取就被拒。
+- 讀取不受撤權影響（02A 修正）：內部看板登入就能讀，撤權只收回寫入；已開的監聽照常收到更新（C-19、N-06）。01A-R「把 `viewer` 改成 `false` 讓帳號完全不能讀」的做法隨檢視者一起取消；要擋特定帳號閱讀需要另做封鎖名單（待決定）。
+- 撤權的畫面流程見第 9.4 節。
 
 ## 6. 為什麼核銷在併發下只會成功一次
 
@@ -319,7 +312,7 @@ match /legacyIdentities/{ref} {
 | I-29 | 一般帳號讀 `roles`、`auditLogs`、`invitations`（list）、`users`（別人的） | 拒絕 | |
 | I-30 | 正常流程：建立 → 預覽 → 核銷 → 稽核鏈從 1 連號；申請 → 核准；撤權 | 成功 | P6f 的成功路徑 |
 
-01A-R 新增（QR 有效期與撤銷、申請核准與角色變更的一致性、檢視者）：
+01A-R 新增（QR 有效期與撤銷、申請核准與角色變更的一致性；檢視者的 I-46～I-49 在 02A 依新決策改寫）：
 
 | # | 攻擊 | 預期 |
 |---|---|---|
@@ -333,12 +326,81 @@ match /legacyIdentities/{ref} {
 | I-38 | 總管理員用一筆**早就核准過**的申請當 `lastRef` 再寫一次角色（重放） | 拒絕（批次前申請必須是 `pending`） |
 | I-39 | 以 `lastVia: 'request'` 核准時，順便多加一個部門、改另一個部門、或設 `super: true` | 拒絕 |
 | I-40 | 核准 A 的申請，卻把角色寫到 B 的 `roles` | 拒絕 |
-| I-41 | 以 `lastVia: 'revoke'` 寫入時新增部門、改任何部門的角色值、或把 `viewer`／`super` 從 false 改成 true | 拒絕 |
+| I-41 | 以 `lastVia: 'revoke'` 寫入時新增部門、改任何部門的角色值、把 `super` 從 false 改成 true、或寫入已取消的 `viewer` 欄位 | 拒絕 |
 | I-42 | 角色的稽核紀錄 `action` 跟 `roles.lastVia` 不同、或 `ref` 跟 `lastRef` 不同 | 拒絕 |
 | I-43 | 申請、邀請、預約的稽核紀錄 `after.status`／`before.status` 跟實際不符 | 拒絕 |
 | I-44 | 申請人取消與總管理員核准同時發生 | 恰好一筆成功；失敗的那筆整批（含 `roles`）沒有寫入 |
 | I-45 | `roles` 寫入白名單以外的欄位；部門角色值不是 `admin`／`editor` | 拒絕 |
-| I-46 | 申請 `role: 'super'`；申請 `viewer` 卻帶 `deptId`；申請不存在的部門 | 拒絕 |
-| I-47 | 檢視者申請核准 → `roles.viewer == true`，`depts` 不變；之後讀 L1 成功、寫卡片拒絕 | 如述 |
-| I-48 | `viewer` 邀請核銷時順便寫部門角色；部門邀請核銷時順便寫 `viewer: true` | 拒絕 |
-| I-49 | 沒有角色的登入者送出檢視申請後，在核准前讀卡片 | 拒絕 |
+| I-46（02A 修正） | 申請 `role: 'super'`；申請 `viewer`（不論有沒有 `deptId`）；申請不存在的部門；替別人申請 | 拒絕 |
+| I-47（02A 修正） | 一般登入者不用申請就讀卡片；寫卡片；總管理員寫入 `viewer` 欄位 | 讀允許；寫與 `viewer` 拒絕 |
+| I-48（02A 修正） | 建立 `viewer` 邀請；部門邀請核銷時順便寫 `viewer: true` | 拒絕 |
+| I-49（02A 修正） | 一般登入者送出部門申請後：讀卡片、讀自己的申請、讀別人的申請 | 前兩者允許、最後拒絕 |
+
+02A 另外的負面測試（QR 竄改、重放、過期、重新產生、撤權後寫入）見 [permissions.md](permissions.md) 第 5.1b 節 N-06～N-10。
+
+## 9. 02B 實作規格（02A 補齊的缺口）
+
+02B（Google 登入、權限、QR 邀請）開工前，把 01A／01A-R 文件只寫了規則、沒寫清楚的畫面與流程補上。每一項標明「新增」（原文件沒有）或「修正」（原文件有，但跟 02A 定案不一致）。規則與資料結構以前面各節與 `backend/firestore.rules` 為準，這裡不重新設計。
+
+### 9.1 Google 登入流程（新增）
+
+| # | 步驟 | 內容 |
+|---|---|---|
+| G-1 | 未登入 | 讀得到 L0（部門名稱、公開活動）。部門看板顯示「登入後可以看看板內容」與「用 Google 登入」按鈕；不顯示任何內部資料的骨架數字 |
+| G-2 | 登入方式 | Firebase Authentication 的 Google 登入，`signInWithPopup` 為主；彈出視窗被擋（`auth/popup-blocked`）時改用 `signInWithRedirect`。只開 Google 一種登入方式（規則也只接受 `google.com` 且信箱已驗證） |
+| G-3 | App 內建瀏覽器 | LINE、Instagram、Facebook 的內建瀏覽器 Google 會擋登入：偵測到時不嘗試登入，改顯示「請用瀏覽器開啟」與「複製網址」按鈕；網址保留 `?d=`、`#join=` |
+| G-4 | 登入後第一次 | 同一批：`users/{uid}`（信箱＝登入信箱）＋`profiles/{uid}`（顯示名稱預設取 Google 名稱，超過 40 字截斷，之後本人可改）。之後每次登入只更新 `users.lastLoginAt` |
+| G-5 | 決定畫面權限 | 監聽自己的 `roles/{uid}`：沒有文件或 `depts` 為空＝一般登入者（唯讀＋申請入口）；有部門角色＝那些部門可編輯；`super`＝多一個「會長室管理」。角色被改或撤掉時畫面即時切換，不用重新整理 |
+| G-6 | 帳號範圍 | 任何 Google 帳號都能登入、都能讀內部看板（02A 定案，等於階段 00 決策 8-7 選「任何 Google 帳號」） |
+| G-7 | 登入狀態 | 預設保存在這台裝置（`browserLocalPersistence`）；「登出」清掉登入狀態與本機草稿以外的快取 |
+| G-8 | 錯誤 | 關掉視窗：不提示；`auth/unauthorized-domain`：「這個網址還沒開放登入，請改用 `<正式網址>`」；網路錯誤：「沒有連上網路，稍後再試」。錯誤訊息不顯示信箱以外的帳號資料 |
+| G-9 | 授權網域 | 只有移轉後的正式網域（[github-ownership-migration.md](github-ownership-migration.md) 第 9 節 F1）與本機測試用的 `localhost` |
+| G-10 | 測試 | 前端測試用 Auth 模擬器（`firebase emulators` 加上 `auth`），不連真的專案 |
+
+### 9.2 角色與授權（修正：拿掉檢視者，對齊四種身分）
+
+| 身分 | 資料 | 讀 | 寫 | 怎麼取得 | 畫面上多出來的東西 |
+|---|---|---|---|---|---|
+| 一般登入者 | 沒有 `roles`，或 `depts` 空、`super` 不是 true | L0、L1 | 只有自己的 `users`、`profiles`、`roleRequests` | 用 Google 登入 | 「申請編輯權限」：選部門、選角色（編輯者／管理員）、備註、可選「我是舊身分 X」 |
+| 部門編輯者 | `depts.{部門} == 'editor'` | 同上＋該部門刪除中的卡片 | 該部門的卡片、議題、週報、標籤、時間事件；永久刪除該部門卡片 | QR 邀請，或申請經會長室核准 | 該部門看板的編輯、刪除 |
+| 部門管理員 | `depts.{部門} == 'admin'` | 同上 | 編輯者的全部＋該部門 `deptSettings` | 同上 | 部門設定 |
+| 會長室（總管理員） | `super == true` | 全部（私人行程除外，那是行事曆管理者的） | 全部（角色、邀請、申請審核、遷移）；刪卡片也走永久刪除流程 | 第一位由主控台建立（第 7 節）；之後由現任總管理員授予 | 「會長室管理」：人員與角色、待審申請、QR 邀請、稽核紀錄 |
+
+- 「會長室」身分＝總管理員 `super`；會長室這個**部門**的看板編輯權（`depts.president`）是另一回事，兩者分開授予。
+- 一個人可以同時有好幾個部門的角色；同一部門只有一個角色。
+- 部門管理員不能發邀請、不能審申請（D3 不變）。
+
+### 9.3 QR 邀請的產生與核銷（新增：畫面流程；有效期等規則見第 2 節）
+
+產生（會長室管理 → QR 邀請）：
+
+1. 選部門、角色（編輯者／管理員）；可選「綁定信箱」（發管理員邀請時建議綁）、「給舊身分 X」。
+2. 瀏覽器產生 32 位元組權杖 → 算 SHA-256 → 同一批寫 `invitations/{h}`（`expiresAt`＝現在＋10 分鐘）＋稽核。權杖只留在這個畫面的記憶體裡，不寫進 localStorage、不印到 console。
+3. 顯示 QR、部門與角色、倒數 mm:ss、「重新產生」「撤銷」兩個按鈕。到期後 QR 變灰、只剩「重新產生」。
+4. 「重新產生」＝同一批撤銷舊的＋建立新的（第 2 節表格）；「撤銷」要確認一次。
+5. 邀請清單（Q24）列出進行中的邀請：部門、角色、剩餘時間、建立者；已用掉的顯示核銷者與時間。清單上永遠看不到權杖（只存雜湊）。
+6. QR 圖的產生方式：不能加 npm 套件，要放一支單檔 QR 程式進 repo 或自己寫（階段 00 決策 8-8，待你決定）。
+
+核銷（掃碼的人）：
+
+1. 打開 `…/#join=<權杖>`：程式**一讀到就用 `history.replaceState` 把 `#join=` 從網址列拿掉**，權杖暫存在 `sessionStorage`（關掉分頁就沒了），避免留在瀏覽紀錄或被截圖。
+2. 沒登入：先走 9.1 登入，登入完回到這個流程。
+3. 預覽：用雜湊讀邀請（只有 `active` 的讀得到）。讀不到一律顯示「這張邀請已失效（已使用、已撤銷或超過 10 分鐘），請向會長室要新的 QR」，不區分原因。讀得到就顯示部門、角色、剩餘時間與「加入」按鈕。
+4. 按「加入」：交易內重讀邀請與自己的 `roles`，同一批寫邀請（`used`＋權杖）、`roles`、兩筆稽核（有舊身分再加認領）。成功後清掉 `sessionStorage` 的權杖，畫面切到那個部門的看板並提示「已加入 X 部（編輯者）」。
+5. 失敗的對應訊息：已經在那個部門有角色 →「你已經是 X 部的 Y」；綁定信箱不符 →「這張邀請只限指定的帳號使用」；交易重試後邀請已用掉 → 同第 3 步的失效訊息。
+
+### 9.4 撤權（新增：畫面流程）
+
+1. 會長室管理 → 人員：列出全部 `roles`（Q21），每人顯示名稱、部門角色、是否總管理員。
+2. 對一個人可以：拿掉某個部門（`lastVia: 'revoke'`）、把管理員降成編輯者或反過來（`manual`）、授予或取消總管理員（不能對自己取消）。都用交易：讀最新 `roles` → `rev + 1` → 同一批寫稽核。
+3. 確認對話框寫清楚後果：「撤掉後他仍然看得到看板（登入就能讀），但不能再編輯 X 部」。
+4. 被撤權的人：畫面透過 `roles` 監聽即時切回唯讀；正在編輯的內容存檔被拒時保留草稿，提示「你在 X 部的編輯權限已被收回」。
+5. 讀取收不回（02A 定案的後果）。要完全擋掉某個帳號閱讀需要另做封鎖名單（待你決定，見 [README.md](README.md) 待辦）。
+
+### 9.5 稽核紀錄（新增：畫面；規則見第 3、4 節）
+
+1. 會長室管理 → 紀錄：最近 50 筆（Q26），可翻頁；可以篩「某人的權限歷史」（Q25）與「某人做過什麼」（Q27）。
+2. 每筆顯示：時間、操作者（`profiles` 名稱）、動作（建立邀請、核銷、撤銷、重新產生、申請、核准、拒絕、撤權、手動調整、部門設定、會議授權、遷移）、對象、前後差異（角色顯示部門與角色的增減）。
+3. 「檢查連號」：對一份受保護的文件從第 1 號讀到目前的 `rev`，缺號就標紅（規則保證不會缺，這是給你事後確認的工具）。
+4. 稽核紀錄只能新增，任何人都不能改或刪（I-14）；備份照 D11 一起匯出。
+5. 卡片的編輯紀錄不在這裡（是卡片的版本歷史）；卡片永久刪除後它的版本也一起消失，所以「誰刪了哪張卡片」目前沒有留下紀錄（待你決定要不要加，見 [README.md](README.md) 待辦）。

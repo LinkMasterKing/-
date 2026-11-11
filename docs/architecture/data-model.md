@@ -1,6 +1,6 @@
 # 資料模型
 
-全部是 Cloud Firestore（Native mode）頂層集合，資料庫位置建議 `asia-east1`（台灣，建立後不能改）。分級代號見 [permissions.md](permissions.md)：L0 公開、L1 內部（01A-R：已授權檢視者以上）、L2 部門、L3 秘書處授權、L4 會長室；「本人」＝文件屬於登入者自己。
+全部是 Cloud Firestore（Native mode）頂層集合，資料庫位置建議 `asia-east1`（台灣，建立後不能改）。分級代號見 [permissions.md](permissions.md)：L0 公開、L1 內部（02A：任何已登入的 Google 帳號）、L2 部門、L3 秘書處授權、L4 會長室；「本人」＝文件屬於登入者自己。
 
 ## 1. 共用約定
 
@@ -12,7 +12,7 @@
 | 操作者 | `createdBy`、`updatedBy` 存 UID，規則要求 `== request.auth.uid`。畫面上的名字從 `profiles` 查，不在每份文件重複存信箱 |
 | 版本號 | 受保護的文件有 `rev`（整數，每次寫入加 1），與稽核紀錄鏈結，見 [invitations-roles-audit.md](invitations-roles-audit.md) 第 3 節 |
 | 部門代號 | 沿用 `dept/config.js` 的代號：`rights`（權益部，舊檔 `data.json`）、`events`、`affairs`、`president`、`secretariat`、`marketing`、`pr`、`finance`、`works`、`fruit`（已對照 `dept/config.js`） |
-| 刪除 | 一般資料不硬刪，用 `state: 'deleted'`；硬刪只有總管理員 |
+| 刪除 | 02A 修正：卡片的刪除是**永久刪除**，連同版本與時間事件一起移除，沒有軟刪除、不能復原（流程見 [permissions.md](permissions.md) 第 5.1 節）。其他一般資料的刪除照各集合的規則 |
 | 欄位白名單 | 每個集合的可寫欄位在規則裡用 `keys().hasOnly([...])` 限制〔待驗證〕 |
 
 ## 2. 組織、部門、使用者
@@ -54,19 +54,18 @@
 | 欄位 | 型別 | 說明 |
 |---|---|---|
 | `super` | bool | 會長室總管理員 |
-| `viewer` | bool | 已授權檢視者（01A-R 定案〔啟用前核准〕；讀 L1，唯讀） |
 | `depts` | map | `{deptId: 'admin' \| 'editor'}` |
 | `rev` | int | 版本號（稽核鏈） |
 | `lastVia` | string | `invite` \| `request` \| `manual` \| `revoke` |
 | `lastRef` | string | 邀請雜湊或申請 ID |
 | `updatedAt`、`updatedBy` | | |
-沒有 `roles` 文件、或 `super`／`viewer` 都不是 true 且 `depts` 為空的登入者＝一般使用者：只能讀 L0 並提出申請（D1 定案）。
+沒有 `roles` 文件、或 `super` 不是 true 且 `depts` 為空的登入者＝一般登入者：讀得到 L0、L1，不能寫，可以申請部門角色（02A 定案；01A-R 的 `viewer` 欄位取消，規則不接受這個欄位）。
 
 ### `roleRequests/{id}`：本人與 L4
-`uid`、`deptId`（申請 `viewer` 時為 null）、`role`（`admin`｜`editor`｜`viewer`）、`note`、`legacyRef`（選填，要認領的舊身分）、`status`（`pending`｜`approved`｜`rejected`｜`cancelled`）、`createdAt`、`decidedBy`、`decidedAt`、`rev`。
+`uid`、`deptId`、`role`（`admin`｜`editor`；02A 拿掉 `viewer`）、`note`、`legacyRef`（選填，要認領的舊身分）、`status`（`pending`｜`approved`｜`rejected`｜`cancelled`）、`createdAt`、`decidedBy`、`decidedAt`、`rev`。
 
 ### `invitations/{sha256(token) 小寫十六進位}`：L4 讀寫；核銷者只能 `get`
-`deptId`（`viewer` 邀請為 null）、`role`（`admin`｜`editor`｜`viewer`）、`legacyRef`、`boundEmail`（選填）、`note`、`status`（`active`｜`used`｜`revoked`）、`createdBy`、`createdAt`、`expiresAt`（預設與上限都是建立後 10 分鐘，01A-R）、`usedBy`、`usedAt`、`token`（核銷時才寫入）、`revokedBy`、`revokedAt`、`rev`。詳見 [invitations-roles-audit.md](invitations-roles-audit.md)。
+`deptId`、`role`（`admin`｜`editor`；02A 拿掉 `viewer`）、`legacyRef`、`boundEmail`（選填）、`note`、`status`（`active`｜`used`｜`revoked`）、`createdBy`、`createdAt`、`expiresAt`（預設與上限都是建立後 10 分鐘，01A-R）、`usedBy`、`usedAt`、`token`（核銷時才寫入）、`revokedBy`、`revokedAt`、`rev`。詳見 [invitations-roles-audit.md](invitations-roles-audit.md)。
 
 ### `legacyIdentities/{deptId}__{舊身分ID}`：L1 讀、L4 寫（核銷時本人可認領）
 `deptId`、`name`、`oldRole`（`admin`｜`member`）、`createdAt`（原字串）、`claimedBy`（UID 或 null）、`claimedAt`、`rev`。**不搬** `kdf`、`tok`。
@@ -82,14 +81,14 @@
 | `deptId` | 建立後不能改 |
 | `title` | 名稱（`name`） |
 | `blocks` | 逐行內容 `[{id, text, check: null \| {done, doneAt, doneBy}, timeId: null \| string}]`（由 `desc` 依換行切開；03 才用到核取方塊） |
-| `timeIds` | 卡片層級的時間標記（`times[]` 搬到 `events` 後的 ID） |
+| `timeIds` | 這張卡片的**全部**時間事件 ID（`times[]` 搬到 `events` 後的 ID；行層級的也列在這裡，`blocks[].timeId` 指向其中一個）。02A：規則要求屬於卡片的時間事件一定列在這裡，永久刪除靠它確認全部刪光 |
 | `issueId` | 母議題（`issueId`，改新 ID） |
 | `staff` | 負責人：UID 或 `legacy:{deptId}__{舊身分ID}`（`staff[]`） |
 | `labels` | 標籤 ID（`labels[]`，改新 ID） |
 | `links` | 連結（`links[]`） |
 | `report` | 會議要報告（`report`） |
-| `state` | `open` \| `done` \| `deleted` |
-| `doneAt`、`deletedAt`、`deletedBy` | （`doneAt`） |
+| `state` | `open` \| `done` \| `purging`（02A：永久刪除進行中，不可逆；拿掉 `deleted`） |
+| `doneAt`、`deletedAt`、`deletedBy` | （`doneAt`）；`deletedAt`、`deletedBy`＝開始永久刪除的時間與人 |
 | `order` | 排序值 |
 | `round`、`roundAt`、`touched`、`touchedAt`、`fromEv` | 燈號與舊分段紀錄，原樣保留 |
 | `version` | 每次內容修改加 1，與 `cards/{id}/versions/{version}` 對應 |
@@ -98,8 +97,8 @@
 | `importBatch` | 遷移批次 ID（只有遷移資料有） |
 單一文件上限 1 MiB〔文件〕；以目前最長的說明估算遠低於上限〔推論〕。
 
-### `cards/{cardId}/versions/{version}`：跟母卡片同一個讀取條件；只能新增
-（01A-R：從頂層 `cardVersions/{cardId}_{version}` 改成子集合，讓「已刪除卡片只有部門看得到」也適用於歷史內容，見 [permissions.md](permissions.md) 第 5.1 節。）
+### `cards/{cardId}/versions/{version}`：跟母卡片同一個讀取條件；只能新增，只能隨永久刪除刪掉
+（01A-R：從頂層 `cardVersions/{cardId}_{version}` 改成子集合，讀取條件跟著母卡片。02A：永久刪除時由新往舊一起刪掉，見 [permissions.md](permissions.md) 第 5.1 節。）
 `cardId`、`deptId`、`version`、`title`、`blocks`、`times`（當時的時間值快照）、`state`、`by`、`at`、`imported`（遷移產生的第 1 版為 true）、`importBatch`（只有遷移產生的第 1 版有，等於母卡片的批次；01B R1）。`title`、`blocks`、`state`、`deptId`、`by`、`at` 由規則比對批次後的卡片。
 
 ### `issues/{id}`：母議題
@@ -115,13 +114,12 @@
 | 欄位 | 說明（舊欄位） |
 |---|---|
 | `deptId` | |
-| `cardId`、`blockId` | 來源卡片與行（舊資料只有 `cardId`） |
+| `cardId`、`blockId` | 來源卡片與行（舊資料只有 `cardId`）。02A：有 `cardId` 時必須列在那張卡片的 `timeIds`、跟卡片同部門；`cardId` 建立後不能改 |
 | `label` | 標記名稱（`times[].label`） |
 | `start`、`end` | Timestamp；`startRaw`、`endRaw` 原字串 |
 | `allDay` | 只有日期 |
 | `place` | 地點（`times[].place`） |
 | `toIssue` | 也顯示在母議題（`times[].toIssue`） |
-| `cardDeleted` | 母卡片已刪除（決策 D14）；true 時只有部門編輯者與總管理員讀得到 |
 | `scope` | `dept` \| `all-activity`（全會活動，只有活動部能設）\| `all-meeting`（全會會議，只有秘書處能設） |
 | `visibility` | `internal` \| `public`（公開活動，L0 可讀） |
 | `title`、`summary` | 只有 `public` 時使用：對外顯示的標題與簡介 |
