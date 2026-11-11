@@ -5,7 +5,7 @@
 | 等級 | 誰能讀 | 內容 |
 |---|---|---|
 | L0 公開 | 任何人，不用登入 | `departments`（部門名稱與外觀）、`org/config`、`events` 中 `visibility == 'public'` 的公開活動 |
-| L1 內部 | 已授權的檢視者、有任何部門角色的人、總管理員（01A-R 規劃，見第 2.1 節〔待核准〕） | 看板內容：`deptSettings`、`cards`（未刪除）、`cards/{id}/versions`（只限未刪除的卡片）、`issues`、`weeks`、`labels`、`events`（全部非私人）、`profiles`、`legacyIdentities`、`grants`、`calendars`、`openWindows`、`slots`（只有忙／閒） |
+| L1 內部 | 已授權的檢視者、有任何部門角色的人、總管理員（01A-R 定案，見第 2.1 節〔啟用前核准〕） | 看板內容：`deptSettings`、`cards`（未刪除）、`cards/{id}/versions`（只限未刪除的卡片）、`issues`、`weeks`、`labels`、`events`（全部非私人）、`profiles`、`legacyIdentities`、`grants`、`calendars`、`openWindows`、`slots`（只有忙／閒） |
 | 本人 | 登入者自己 | `users/{自己}`、`roles/{自己}`、自己的 `roleRequests`、自己的 `bookings`、`bookingQuota` |
 | L2 部門 | 該部門管理員／編輯者 | 該部門已刪除的卡片（`state == 'deleted'`）**與它的版本歷史** |
 | L3 秘書處授權 | 秘書處管理員／編輯者、總管理員 | `meetingMinutes`、`attendance*` |
@@ -36,9 +36,9 @@
 | 秘書處編輯者 | 把時間事件標成 `scope: 'all-meeting'`；讀寫 L3 |
 | 活動部編輯者 | 把任何部門的時間事件標成 `scope: 'all-activity'`；發布公開活動（見決策 D4） |
 
-### 2.1 已授權檢視者（01A-R 規劃〔待核准〕）
+### 2.1 已授權檢視者（01A-R 定案〔啟用前核准〕）
 
-取代 01A 的 `internalReader() = signedIn()`（決策 D1 的選項 A）。**正式採用前要你核准**；核准前 01B 不寫進正式規則。
+取代 01A 的 `internalReader() = signedIn()`（決策 D1 的選項 A）。01B 照這個實作與測試；**02 在真的專案啟用前要你核准**。
 
 - 資料：`roles/{uid}.viewer: true`。沿用 `roles` 的版本號鏈與稽核（[invitations-roles-audit.md](invitations-roles-audit.md) 第 3 節），不另開集合，`internalReader()` 每次請求只多讀 0 次（`role()` 本來就會讀）。
 - 取得：使用者在網站上送出 `roleRequests`（`role: 'viewer'`、`deptId: null`），總管理員核准；或總管理員發 `role: 'viewer'` 的 QR 邀請。
@@ -93,7 +93,7 @@ service cloud.firestore {
     function role()         { return get(doc('roles', me())).data; }
     // L1 的定義集中在這一個函式。
     // 01A（選項 A）：return signedIn();
-    // 01A-R 規劃（選項 B，已授權檢視者）〔待核准〕：
+    // 01A-R 定案（選項 B，已授權檢視者）〔啟用前核准〕：
     function internalReader() { return hasRole() && ( role().get('viewer', false) == true
                                                    || role().get('super', false) == true
                                                    || role().get('depts', {}).size() > 0 ); }
@@ -184,7 +184,7 @@ match /{path=**}/versions/{v} {
 
 - 卡片與版本互相檢查：卡片規則要求同一批**新建**了對應版本號的版本文件（`verAfter`）；版本規則要求內容（`title`、`blocks`、`state`、`deptId`）、作者、時間都等於批次後的卡片。兩邊都只看批次後的狀態，所以不會有「卡片改了、版本沒寫」或「版本寫的跟卡片不一樣」。
 - `times`（當時的時間值快照）來自 `events`，長度不固定，規則沒辦法逐筆比對，**由前端負責**；它只用在歷史顯示，不影響權限〔待驗證：01B 用前端測試覆蓋〕。
-- 已知殘留：已刪除卡片在 `events` 裡的時間標記（名稱、地點、時間）仍是 L1 可讀。規則沒辦法在查詢時逐筆讀母卡片。01B 的做法：卡片改成 `deleted` 時，前端同一批把它的時間事件標 `cardDeleted: true`，`events` 的讀取規則排除 `cardDeleted == true`（部門編輯者除外），`events` 的寫入規則檢查 `cardDeleted == (getAfter(卡片).state == 'deleted')`。規則能保證「標了的一定正確」，但不能保證「每一筆都標了」（卡片的時間事件數量不固定）；漏標的後果是時間標記仍可讀、卡片內文不會外流。要不要接受見決策 D14。
+- 已知殘留：已刪除卡片在 `events` 裡的時間標記（名稱、地點、時間）仍是 L1 可讀。規則沒辦法在查詢時逐筆讀母卡片。01B 的做法：卡片改成 `deleted` 時，前端同一批把它的時間事件標 `cardDeleted: true`，`events` 的讀取規則排除 `cardDeleted == true`（部門編輯者除外），`events` 的寫入規則檢查 `cardDeleted == (getAfter(卡片).state == 'deleted')`。規則能保證「標了的一定正確」，但不能保證「每一筆都標了」（卡片的時間事件數量不固定）；漏標的後果是時間標記仍可讀、卡片內文不會外流。已定案採用（D14）。
 - 每次內容修改都產生一筆版本（寫入次數 ×2）。「勾選一個核取方塊算不算一個版本」是 04 的設計問題（階段 00 的 8-9）；01B 先全部算版本，04 再決定要不要放寬成「只改 `check` 不加版本」。
 - 併發：前端一律用交易，「讀最新 → 改 → 寫回並帶 `version + 1`」。兩人同時改同一張卡片時，後提交的交易會因為讀過的文件已變更而重試，重試時拿到新版本再套用自己的修改〔文件：交易的樂觀併發〕。規則的 `version == 舊 + 1` 保證不會有兩個人寫出同一個版本號〔待驗證〕。
 
@@ -208,10 +208,10 @@ match /{path=**}/versions/{v} {
 | C-14 | 版本寫 `imported: true`（非遷移路徑） | 拒絕 |
 | C-15 | 兩個編輯者同時改同一張卡片 | 各自產生連續版本號，沒有重號；後提交的交易重試 |
 | C-16 | 秘書處在 `meetingEdit` 到期後修改報告卡片；修改沒標 `report` 的卡片 | 拒絕 |
-| C-17 | 沒有角色的登入者（未核准檢視）讀 `cards`、`issues`、`events`（非公開）、`profiles`、`slots` | 拒絕〔D1 選 B 時〕 |
+| C-17 | 沒有角色的登入者（未核准檢視）讀 `cards`、`issues`、`events`（非公開）、`profiles`、`slots` | 拒絕 |
 | C-18 | 已授權檢視者寫任何看板內容（卡片、議題、週報、標籤、時間事件、`deptSettings`） | 拒絕 |
 | C-19 | 撤掉檢視者（`viewer: false`、沒有部門角色）後下一次讀取；已開的監聽 | 讀取拒絕；監聽行為記錄在 verification.md |
-| C-20 | 時間事件寫 `cardDeleted` 跟批次後母卡片的狀態不一致 | 拒絕（D14 採用時） |
+| C-20 | 時間事件寫 `cardDeleted` 跟批次後母卡片的狀態不一致 | 拒絕 |
 
 ### 5.2 時間事件
 

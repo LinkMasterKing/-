@@ -2,20 +2,21 @@
 
 - 產出日期：2026-11-11。疊在 01A（`claude/cool-ramanujan-qg4y8o`）之上。
 - 範圍：只更新設計文件、開發規範（`CLAUDE.md`）與測試規格。**沒有實作功能、沒有改 `data*.json` 與 `archive/`、沒有建立或連線任何 Firebase 專案、沒有部署、沒有移轉 repository。**
-- 依據：既有 `docs/architecture/`、`docs/upgrade-plan.md`、`CLAUDE.md`，沒有重新掃描整個專案。新設計都是〔待驗證〕（01B 用模擬器）；檢視者機制另外是〔待核准〕。
+- 依據：既有 `docs/architecture/`、`docs/upgrade-plan.md`、`CLAUDE.md`，沒有重新掃描整個專案。新設計都是〔待驗證〕（01B 用模擬器）；檢視者機制另外是〔啟用前核准〕。
+- **01A-R 是最後一次獨立架構修訂。** 決策已全部定案（[README.md](README.md)「決策定案」），01B 起照已核准的架構實作，不再重新設計；非阻斷的問題記在待辦或在當階段修正。
 
 ## 1. 審查意見的處理
 
 | # | 審查意見 | 處理 | 文件 |
 |---|---|---|---|
 | 1 | 管理者單獨刪鎖會讓既有預約失去互斥保護；私人忙碌建立時沒有強制鎖住全部時段 | 刪鎖的規則改成只看「擁有者在批次後是否已釋放」：預約必須是 `rejected`／`cancelled`、私人忙碌必須是 `released`，而擁有者的狀態轉換又要求同批刪掉全部的鎖。管理者不再有單獨刪鎖的權限（只剩擁有者不存在的孤兒鎖）。私人忙碌新增 `status`、`rev`，建立時用 `claimsAll()` 逐格檢查、最多 4 格、對齊格線、不能硬刪、不能改時間。補 B-24～B-40 | [booking.md](booking.md) 第 1～6 節 |
-| 2 | 已刪除卡片的版本歷史一般使用者讀得到 | 版本從頂層 `cardVersions` 改成子集合 `cards/{id}/versions/{version}`，讀取條件跟母卡片相同；跨卡片查詢（collection group）只開放給總管理員與該部門編輯者。另外列出同類殘留：已刪除卡片的時間標記（`events`），提出 `cardDeleted` 做法（D14）。補 C-01～C-07 | [permissions.md](permissions.md) 第 5.1、5.1a 節；[data-model.md](data-model.md)；[indexes.md](indexes.md) Q8、Q9；[migration.md](migration.md) |
-| 3 | `internalReader()` 改成需授權的檢視者 | 規劃 `roles.viewer`：申請（`roleRequests` 的 `role: 'viewer'`）或 QR 邀請取得，仍然唯讀；有部門角色或 `super` 的人自動是檢視者。沿用 `roles` 的稽核鏈。**標成〔待核准〕，你核准前 01B 不寫進正式規則** | [permissions.md](permissions.md) 第 2.1、4 節；[invitations-roles-audit.md](invitations-roles-audit.md) |
-| 4 | QR 預設 10 分鐘、總管理員可撤銷、一次性核銷 | 預設與規則上限都改成 10 分鐘（伺服器時間）；撤銷涵蓋未到期與已過期但未使用的邀請；撤銷與核銷同時發生只有一筆成功；一次性核銷不變。要不要開放更長期限見 D13。補 I-31～I-36 | [invitations-roles-audit.md](invitations-roles-audit.md) 第 2、4、8 節 |
+| 2 | 已刪除卡片的版本歷史一般使用者讀得到 | 版本從頂層 `cardVersions` 改成子集合 `cards/{id}/versions/{version}`，讀取條件跟母卡片相同；跨卡片查詢（collection group）只開放給總管理員與該部門編輯者。另外列出同類殘留：已刪除卡片的時間標記（`events`），採用 `cardDeleted` 做法（D14 定案）。補 C-01～C-07 | [permissions.md](permissions.md) 第 5.1、5.1a 節；[data-model.md](data-model.md)；[indexes.md](indexes.md) Q8、Q9；[migration.md](migration.md) |
+| 3 | `internalReader()` 改成需授權的檢視者 | 規劃 `roles.viewer`：申請（`roleRequests` 的 `role: 'viewer'`）或 QR 邀請取得，仍然唯讀；有部門角色或 `super` 的人自動是檢視者。沿用 `roles` 的稽核鏈。定案（D1），01B 照此實作；02 在真的專案啟用前要你核准 | [permissions.md](permissions.md) 第 2.1、4 節；[invitations-roles-audit.md](invitations-roles-audit.md) |
+| 4 | QR 預設 10 分鐘、總管理員可撤銷、一次性核銷 | 預設與規則上限都改成 10 分鐘（伺服器時間）；撤銷涵蓋未到期與已過期但未使用的邀請；撤銷與核銷同時發生只有一筆成功；一次性核銷不變。不放寬（D13 定案）。補 I-31～I-36 | [invitations-roles-audit.md](invitations-roles-audit.md) 第 2、4、8 節 |
 | 5 | `CLAUDE.md` 仍禁止新增資料庫 | 確認第 4 條「不要新增伺服器、資料庫、付費服務或建置工具」與已核准的 Firebase 架構衝突。依階段 00 第 9.1 節草案改寫：允許 Firebase，不允許其他後端與付費功能；開發工具只放 `backend/`。保留並加強：正式資料（`data*.json`、`archive/`、正式 Firebase 專案）不可動、機密不可經手、不直接推 main；新增「不擅自部署或改正式設定、不移轉 repository」 | `CLAUDE.md`「這是什麼」「絕對不要做的事」「程式結構」「開發規則」「測試」 |
 | 6 | 每階段技術債清理 | `CLAUDE.md` 新增「技術債清理」一節：五類檢查、只移除確定無引用且無相容需求的程式、過時測試要先確認、清理與功能分開 commit、清理報告格式 | `CLAUDE.md` |
 | 7 | 原始 `stustsa-change-spec` 規格可讀性 | **讀不到**，見第 2 節 | |
-| 8 | 02D、09、10、11 納入開發計畫 | 原「正式切換」關卡改名為 02D；09 重新定義為 UI/UX 統整（含開場動畫與視覺校正），原 09 的「回歸、整理過時測試」移到 10；新增 10 資安與程式品質總驗收、11 Organization 移轉與正式啟用；附 09／10 分工表。11 排在最後等於移轉文件的時機 B，與該文件原本建議的時機 A 不同，列為 D15 | [../upgrade-plan.md](../upgrade-plan.md) 第 7.2、7.3、10 節；[github-ownership-migration.md](github-ownership-migration.md) 第 0 節 |
+| 8 | 02D、09、10、11 納入開發計畫 | 原「正式切換」關卡改名為 02D；09 重新定義為 UI/UX 統整（含開場動畫與視覺校正），原 09 的「回歸、整理過時測試」移到 10；新增 10 資安與程式品質總驗收、11 Organization 移轉與正式啟用；附 09／10 分工表。11 排在最後等於移轉文件的時機 B，與該文件原本建議的時機 A 不同，D15 定案採時機 B | [../upgrade-plan.md](../upgrade-plan.md) 第 7.2、7.3、10 節；[github-ownership-migration.md](github-ownership-migration.md) 第 0 節 |
 | 9 | 申請核准、角色變更、卡片版本的一致性驗證 | 見第 3 節 | |
 
 ## 2. 規格檔核對（審查意見 7）
@@ -31,7 +32,7 @@
 | 規格項目（依 `upgrade-plan.md` 的轉述） | 架構文件是否涵蓋 | 備註 |
 |---|---|---|
 | 02：未登入與一般帳號無法寫入、QR 只能核銷一次、撤權後不能寫、會長室看得到申請與授權紀錄 | 有 | I-01～I-49、`auditLogs` |
-| 02：角色只有「唯讀／部門管理員／會長室總管理員」 | 有，另外多了 `editor`（D2）與 `viewer`（〔待核准〕） | 跟規格字面不同，要你確認 |
+| 02：角色只有「唯讀／部門管理員／會長室總管理員」 | 有，另外多了 `editor`（D2）與 `viewer`（D1） | 跟規格字面不同；兩者都定案保留 |
 | 03：逐行內容（核取方塊、時間） | 有，`cards.blocks` | 欄位細節 03 定稿 |
 | 04：版本歷史、拖曳完成／刪除、全會標記 | 有，版本子集合、`state`、`events.scope` | 8-9 尚未決定 |
 | 05：行事曆五類 | **只涵蓋三種範圍**（`dept`、`all-activity`、`all-meeting`）＋公開活動＋預約 | 五類的確切定義在規格裡，需要原文確認 |
@@ -40,7 +41,7 @@
 | 08／08B：首頁 | 與資料層無關 | |
 | 09：開場分鏡 REF_01 | 不在架構範圍 | 已排入新的 09 |
 
-- **請你把規格放進 repo（例如 `docs/spec/`，只放文字與分鏡圖）或直接貼給我**。拿到後我會逐條比對，差異補在本文件。
+- 01B 先以 `upgrade-plan.md` 與本資料夾為準。規格之後提供時（例如放進 `docs/spec/`）再逐條比對，差異在當時的實作階段處理，不另開階段。
 
 ## 3. 一致性驗證的檢查結果與修正（審查意見 9）
 
@@ -63,17 +64,14 @@
 | 拒絕／取消預約、建立與釋放私人忙碌的整批讀取次數 ≤ 20（B-40） | 01B | 估算約 17，離上限很近；超過時有退路但要你同意（`slots.ref` 帶種類前綴會洩漏「預約」或「私人忙碌」） |
 | 子集合 `list` 規則用 `get(母卡片)` 能通過查詢檢查；collection group 與一般路徑規則並存 | 01B | 依官方文件的規則行為推論 |
 | `map.diff().affectedKeys()`、`map.values().hasOnly()` 等寫法 | 01B | 探針沒測過 |
-| 已刪除卡片的時間標記（D14） | 你決定後 01B | 規則保證不了「每筆都標到」 |
-| `roles.viewer` 檢視者機制 | 你核准後 01B | 〔待核准〕 |
+| 已刪除卡片的時間標記「每筆都標到」 | 01B 前端測試 | 規則只能保證標記正確 |
+| `roles.viewer` 檢視者機制在真的專案啟用 | 02 | 〔啟用前核准〕 |
 | 10 分鐘有效期在手機上的實際操作時間夠不夠（掃碼、外部瀏覽器開啟、Google 登入） | 02 實機 | LINE 內建瀏覽器要先跳出去登入，可能接近 10 分鐘 |
 | 併發測試在開發專案重跑（B-01、B-05、B-33、I-02、I-36、I-44） | 02、06、10 | 模擬器併發與正式環境不同 |
 | 規格原文逐條核對 | 拿到規格後 | 第 2 節 |
 
 ## 5. 01B 的實作前置條件
 
-1. **你核准 01A＋01A-R**（本 PR 合併）。合併後 `CLAUDE.md` 的新條文才生效，01B 才能新增 `backend/`。
-2. **決定 D1**：採用已授權檢視者（B），或維持 A／改 C。這決定 `internalReader()` 與 C-17、I-47～I-49 要不要寫。
-3. **決定 D13、D14**（有預設值：10 分鐘不放寬、接受 `cardDeleted` 做法）；D5、D6 若不回覆就照 01A 的建議（30 分鐘一格、最長 4 格、送出就佔位；有部門角色才能申請、每人 3 筆待審）。
-4. **提供 `stustsa-change-spec`**，或明確同意 01B 先以 `upgrade-plan.md` 與本資料夾為準。
-5. 確認 01B 的工作環境可以安裝開發用工具（`firebase-tools`、`@firebase/rules-unit-testing`，只放 `backend/`，不被網頁載入）並跑 Java 的 Firestore 模擬器。01A 已在這個雲端環境實際跑過。
-6. 01B 不需要：Firebase 專案、任何權杖或金鑰、Organization。D9、D10、D15 可以之後再定，但 D10（權杖 T1～T5）建議不要拖。
+1. **本 PR 合併**（連同 #52、#53）。`CLAUDE.md` 的新條文合併後才生效，01B 才能新增 `backend/`。
+2. 01B 的工作環境能安裝開發用工具（`firebase-tools`、`@firebase/rules-unit-testing`，只放 `backend/`）並跑 Firestore 模擬器。01A 已在這個雲端環境實際跑過。
+3. 不需要：Firebase 專案、任何權杖或金鑰、Organization、規格原文。決策已全部定案，沒有擋 01B 的事項。

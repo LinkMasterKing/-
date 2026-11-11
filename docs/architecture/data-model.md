@@ -54,13 +54,13 @@
 | 欄位 | 型別 | 說明 |
 |---|---|---|
 | `super` | bool | 會長室總管理員 |
-| `viewer` | bool | 已授權檢視者（01A-R 規劃〔待核准〕；讀 L1，唯讀） |
+| `viewer` | bool | 已授權檢視者（01A-R 定案〔啟用前核准〕；讀 L1，唯讀） |
 | `depts` | map | `{deptId: 'admin' \| 'editor'}` |
 | `rev` | int | 版本號（稽核鏈） |
 | `lastVia` | string | `invite` \| `request` \| `manual` \| `revoke` |
 | `lastRef` | string | 邀請雜湊或申請 ID |
 | `updatedAt`、`updatedBy` | | |
-沒有 `roles` 文件、或 `super`／`viewer` 都不是 true 且 `depts` 為空的登入者＝一般使用者：01A-R 規劃下只能讀 L0 並提出申請（〔待核准〕；維持 01A 選項 A 時可讀 L1）。
+沒有 `roles` 文件、或 `super`／`viewer` 都不是 true 且 `depts` 為空的登入者＝一般使用者：只能讀 L0 並提出申請（D1 定案）。
 
 ### `roleRequests/{id}`：本人與 L4
 `uid`、`deptId`（申請 `viewer` 時為 null）、`role`（`admin`｜`editor`｜`viewer`）、`note`、`legacyRef`（選填，要認領的舊身分）、`status`（`pending`｜`approved`｜`rejected`｜`cancelled`）、`createdAt`、`decidedBy`、`decidedAt`、`rev`。
@@ -121,7 +121,7 @@
 | `allDay` | 只有日期 |
 | `place` | 地點（`times[].place`） |
 | `toIssue` | 也顯示在母議題（`times[].toIssue`） |
-| `cardDeleted` | 母卡片已刪除（決策 D14，01A-R 規劃）；true 時只有部門編輯者與總管理員讀得到 |
+| `cardDeleted` | 母卡片已刪除（決策 D14）；true 時只有部門編輯者與總管理員讀得到 |
 | `scope` | `dept` \| `all-activity`（全會活動，只有活動部能設）\| `all-meeting`（全會會議，只有秘書處能設） |
 | `visibility` | `internal` \| `public`（公開活動，L0 可讀） |
 | `title`、`summary` | 只有 `public` 時使用：對外顯示的標題與簡介 |
