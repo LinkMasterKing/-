@@ -105,6 +105,7 @@ async function mtPushAll(){
   if(!g||g.date!==today()){dirty.forEach(m=>{m.data=JSON.parse(JSON.stringify(m.base));m.dirty=false});render();toast("會長室的授權已經關閉或過期，其他部門的修改沒有寫回");return}
   const fails=[],rec=[];
   for(const m of dirty){
+    if(deptSourceOf(m.id)!=="github"){fails.push(m.name+"（搬家中，暫停編輯）");continue}   /* 凍結或已搬家的部門不寫資料檔（store.js） */
     const items=mtDiff(m);
     const d=fwDept(m.id);m.data.savedAt=nowStr();m.data.savedBy=who;
     const body={message:commitMessage(m.base,m.data,who),content:b64enc(JSON.stringify(m.data,null,1)),branch:cc.branch};if(m.sha)body.sha=m.sha;

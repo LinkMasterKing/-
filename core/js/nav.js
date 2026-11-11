@@ -180,8 +180,8 @@ const weekSub=()=>state.weeks.length?`最新一份 ${fmt([...state.weeks].map(w=
 /* 設定清單（2026-11-06 整理）：不寫小標題，用間距分成幾塊；同類的功能合成一列（點了進合併頁，見下面 SET_HUBS），部長用不到的不列。
    登入前只有「每週概述」（週報本來就公開看）＋鎖頭 */
 function settingsInner(){
-  if(!loggedIn())return setSec(setRow("week","doc","每週概述",weekSub()+" · 生成週報、歷史週報"))+(state.locked
-    ?`<div class="set-gate"><b>這是唯讀版</b><p class="sub">定型版沒有設定可以調整。</p></div>`
+  if(!loggedIn())return setSec(setRow("week","doc","每週概述",weekSub()+" · 生成週報、歷史週報"))+(boardLocked()
+    ?(storeLocked()?`<div class="set-gate"><b>暫停編輯</b><p class="sub">${STORE_NOTE[storeSource()]}</p></div>`:`<div class="set-gate"><b>這是唯讀版</b><p class="sub">定型版沒有設定可以調整。</p></div>`)
     :`<div class="set-gate"><button type="button" class="set-gate-ico" data-set-login aria-label="登入">${GATE_LOCK}</button><b>登入後才能使用設定</b><p class="sub">選擇身分、輸入個人密碼</p><button type="button" class="primary" data-set-login>登入</button></div>`);
   if(readOnly())return setSec(setRow("week","doc","每週概述",weekSub()+" · 生成週報、歷史週報")+setRow("log","history","編輯紀錄","誰在什麼時候改了什麼"));
   const rem=remRead(),remName=rem&&(state.members.find(m=>m.id===rem.id)||{}).name,t=termCfg();

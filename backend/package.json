@@ -1,0 +1,20 @@
+{
+  "name": "stustsa-board-backend",
+  "private": true,
+  "description": "開發用：Firestore 規則、模擬器、規則測試、遷移程式。網頁不載入這個資料夾。",
+  "type": "module",
+  "scripts": {
+    "emulators": "firebase emulators:start --only firestore,auth --project demo-stustsa-board",
+    "test": "firebase emulators:exec --only firestore --project demo-stustsa-board \"node --test tests/\"",
+    "test:rules": "firebase emulators:exec --only firestore --project demo-stustsa-board \"node --test tests/rules-*.test.js\"",
+    "test:migrate": "firebase emulators:exec --only firestore --project demo-stustsa-board \"node --test tests/migrate-*.test.js\"",
+    "migrate:dry": "node migrate/cli.js --dry-run",
+    "migrate:emulator": "firebase emulators:exec --only firestore --project demo-stustsa-board \"node migrate/cli.js --emulator\"",
+    "test:web": "firebase emulators:exec --only firestore --project demo-stustsa-board \"node ../tools/tests/fs1.js\""
+  },
+  "devDependencies": {
+    "@firebase/rules-unit-testing": "^4.0.1",
+    "firebase": "^11.10.0",
+    "firebase-tools": "^13.35.1"
+  }
+}

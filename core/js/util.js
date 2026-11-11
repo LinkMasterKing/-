@@ -2,7 +2,7 @@
 let TEMPLATE="",BODY_SRC="";   /* 在 boot.js 擷取（扣除執行期產生的骨架）*/
 const HOSTED=!!(window.claude&&window.claude.use);
 let artifactNS=null,canWrite=!HOSTED;
-const readOnly=()=>!!state.locked||(HOSTED&&!canWrite)||(isOffline()&&!editing);
+const readOnly=()=>boardLocked()||(HOSTED&&!canWrite)||(isOffline()&&!editing);
 const COLORS=["#6a4fd8","#3d7fe0","#a24fc0","#d84f92","#2f8f84","#c26a12","#6b6b75","#111114"];
 const MARK_COLORS=["#8a6cf2","#6ea2f2","#b993f2","#f39ac8","#7fd0c8","#111114"];
 const $=s=>document.querySelector(s);

@@ -16,11 +16,15 @@
 const INTRO_SEL=".fill,.tk i,.card,.ev,.g-row";
 const boardSplashOut=()=>splashOut(()=>{document.querySelectorAll(INTRO_SEL).forEach(e=>e.setAttribute("data-intro",""));document.body.classList.add("intro");
   setTimeout(()=>{document.body.classList.remove("intro");document.querySelectorAll("[data-intro]").forEach(e=>e.removeAttribute("data-intro"))},1400)},()=>tbContrastSoon());
-/* 拆檔版：資料放在 data.json（與網頁同一個 repo），開頁時先讀它 */
-const dataReady=SEEDED&&location.protocol!=="file:"?fetch(CFG.data.path,{cache:"no-cache"}).then(r=>r.ok?r.json():null).then(d=>{
+/* 拆檔版：資料放在 data.json（與網頁同一個 repo），開頁時先讀它；
+   部門設成 source:"firestore" 時改讀新資料庫（store.js），讀到的就是最新的，不跟本機暫存比 savedAt，也不存進本機暫存 */
+let storeFsErr=null;
+const dataReady=!(SEEDED&&location.protocol!=="file:")?Promise.resolve()
+:storeSource()==="firestore"?storeFsLoad().then(d=>{netFail=false;state=normalize(d)}).catch(e=>{netFail=!(e&&e.code==="permission-denied");storeFsErr=e})
+:fetch(CFG.data.path,{cache:"no-cache"}).then(r=>r.ok?r.json():null).then(d=>{
   netFail=false;
   if(d&&(d.savedAt||"")>=(state.savedAt||"")){const keep=state.sync;state=normalize(d);if(!state.sync&&keep)state.sync=keep;try{localStorage.setItem(KEY,JSON.stringify(state))}catch(_){}}
-}).catch(()=>{netFail=true}):Promise.resolve();
+}).catch(()=>{netFail=true});
 /* 這台裝置記住了身分：開頁就直接登入，卡片上的「編輯」一進來就看得到（2026-11-06 使用者：要進設定再回來才出現）。
    有雲端時等雲端資料讀完才比對（本機舊資料的密碼指紋可能過期，比對失敗會清掉記住的身分） */
 const remBoot=async()=>{if(!loggedIn()&&remRead()&&await remLogin())render()};
@@ -46,5 +50,6 @@ if(HOSTED)(async()=>{
   render();
 })();
 boardSplashOut();
+if(storeLocked())setTimeout(()=>toast(storeFsErr&&storeFsErr.code==="permission-denied"?"這個部門要登入才能看（登入在下一階段開放）":STORE_NOTE[storeSource()]),1200);
 if(MIGRATE_NOTE.staffDropped)setTimeout(()=>toast(`專員改成引用帳號：有 ${MIGRATE_NOTE.staffDropped} 筆專員標記找不到同名帳號，已拿掉（儲存後生效）`),4200);
 });
