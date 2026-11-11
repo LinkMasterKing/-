@@ -107,18 +107,18 @@ const SHELL_HTML=`<div class="pager" id="pager">
 <dialog id="dlg"><form method="dialog" id="dlgForm"></form></dialog>
 <div class="toast" id="toast" role="status"></div>
 `;
-/* 頁首學生會 logo：同一份 SU_LOGO 路徑。淺色模式用原檔的彩色（2026-11-06 使用者）；深色模式全部填文字色（board.css「頁首」段蓋掉 fill）。
-   深色時標誌黃藍兩塊同色會黏成一團，所以藍色那塊的外框先描一圈底色（--bg）當分隔縫（.logo-gap，只在深色顯示），再疊上藍色本體；
-   描邊只描外框那一段路徑（不含眼睛的洞），眼睛才不會被描大；
-   描邊是整圈（2026-11-06 使用者：只描黃色範圍裡的半圈會在邊緣變細收尾，要就整圈）；外圍那段跟底色同色，看不見 */
+/* 頁首學生會 logo：同一份 SU_LOGO 路徑。淺色模式用原檔的彩色（2026-11-06 使用者）；深色模式是單色（跟著文字色，board.css「頁首」段）。
+   深色的標誌用使用者提供的單色線稿（2026-11-11 使用者：所有黑白模式的 logo 都換成線稿；splash.js 的 SU_LINE，跟開場動畫同一份：左邊小人線框、右邊小人實心），
+   線稿用 SU_LINE.t 疊在彩色標誌的同一個位置，兩組只顯示一組（.logo-color／.logo-line）；字照舊填文字色。
+   以前「兩塊都填文字色＋描一圈底色當分隔縫（.logo-gap）」的做法已拿掉 */
 function suLogoMono(label){
-  const [VX,VY,VW,VH]=SU_LOGO.box,[,,,,[[cy,dy],[cb,db]]]=SU_LOGO.emb,outer=db.slice(0,db.indexOf("Z")+1);
+  const [VX,VY,VW,VH]=SU_LOGO.box,[,,,,[[cy,dy],[cb,db]]]=SU_LOGO.emb;
   return `<svg class="logo" xmlns="http://www.w3.org/2000/svg" viewBox="${VX} ${VY} ${VW} ${VH}" role="img" aria-label="${label}"><g>
-    <path fill="${cy}" d="${dy}"/><path class="logo-gap" d="${outer}"/><path fill="${cb}" d="${db}"/>${SU_LOGO.g.map(g=>`<path fill="${g[4]}" d="${g[5]}"/>`).join("")}</g></svg>`;
+    <g class="logo-color"><path fill="${cy}" d="${dy}"/><path fill="${cb}" d="${db}"/></g><g class="logo-line" transform="${SU_LINE.t}">${SU_LINE.d.map(d=>`<path d="${d}"/>`).join("")}</g>${SU_LOGO.g.map(g=>`<path fill="${g[4]}" d="${g[5]}"/>`).join("")}</g></svg>`;
 }
 /* 文件（工作報告）上的學生會 logo：一律原檔彩色、不跟深淺色（2026-11-06 使用者：logo 在文件上都用彩色）。
    class 不是 .logo，所以深色模式把 .logo 改成單色的規則不會套到；也不需要切割線（兩塊顏色本來就不同）。
-   黑白列印用的單色線稿另外放在 assets/學生會logo-單色線稿.svg（使用者提供，目前沒有用到） */
+   單色線稿（assets/學生會logo-單色線稿.svg）用在深色模式的頁首、設定頁、總覽與開場，見 suLogoMono */
 function suLogoColor(label){
   const [VX,VY,VW,VH]=SU_LOGO.box,[,,,,[[cy,dy],[cb,db]]]=SU_LOGO.emb;
   return `<svg class="su-logo-c" xmlns="http://www.w3.org/2000/svg" viewBox="${VX} ${VY} ${VW} ${VH}" role="img" aria-label="${label}"><path fill="${cy}" d="${dy}"/><path fill="${cb}" d="${db}"/>${SU_LOGO.g.map(g=>`<path fill="${g[4]}" d="${g[5]}"/>`).join("")}</svg>`;
@@ -126,7 +126,7 @@ function suLogoColor(label){
 (function mountShell(){
   if(!document.getElementById("pager"))document.body.insertAdjacentHTML("afterbegin",SHELL_HTML);
   mountSplash();   /* 開頁的學生會進場畫面（core/js/splash.js，總覽頁也用同一份） */
-  /* 頁首 logo：所有部門都放學生會 logo（標誌＋STUSTSA＋南臺科大學生會，見 suLogoMono），淺色彩色、深色單色跟著文字色 */
+  /* 頁首 logo：所有部門都放學生會 logo（標誌＋STUSTSA＋南臺科大學生會，見 suLogoMono），淺色彩色、深色單色線稿跟著文字色 */
   const box=document.querySelector(".logo-box");
   if(box&&!box.firstElementChild)box.innerHTML=suLogoMono(CFG.brand||"南臺科大學生會");
   /* 部門主色 → CSS 變數（只覆寫設定檔有給的值） */
