@@ -70,8 +70,8 @@ R＝讀、C＝新增、U＝修改、D＝硬刪；「部門」＝文件的 `deptI
 | `meetingMinutes` | | | 秘書處 RCU | 秘書處 RCU | RCUD | |
 | `attendance*` | | | 秘書處 RCU | 秘書處 RCU | RCUD | 07 定稿 |
 | `calendars`、`openWindows` | | R | R | R | RCU | 管理者 CU |
-| `slots` | | R；隨自己的預約 C；預約批次後已拒絕／取消時 D | 同左 | 同左 | R | 管理者隨私人忙碌 C；**任何人都不能單獨刪除有效預約或私人忙碌的鎖**；任何人都不能 U（[booking.md](booking.md) 第 4 節） |
-| `bookings` | | 本人 RC、本人取消 | 同左 | 同左 | R | 管理者 RU |
+| `slots` | | R（02A 修正：一般登入者不能申請預約，所以沒有 C、D） | R；隨自己的預約 C；預約批次後已拒絕／取消時 D | 同左 | R | 管理者隨私人忙碌 C；**任何人都不能單獨刪除有效預約或私人忙碌的鎖**；任何人都不能 U（[booking.md](booking.md) 第 4 節） |
+| `bookings` | | —（D6：有部門角色才能申請） | 本人 RC、本人取消 | 同左 | 不是管理者就讀不到（02A 修正：原本誤寫 R；規則與 N-12 都是讀不到） | 管理者 RU；會長私人行程不在 L1 開放範圍 |
 | `busyBlocks` | | | | | | 只有管理者 RCU；不能硬刪，釋放＝`released`＋同批刪鎖 |
 | `migrations` | | | | | RCU | |
 
