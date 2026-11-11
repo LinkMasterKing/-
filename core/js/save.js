@@ -29,7 +29,7 @@ function save(){
   editing=false;dirty=false;render();
   persist().then(()=>{if(CFG.meeting)mtPushAll()});   /* 秘書處：改過的其他部門各自寫回 */
 }
-/* 匯出單一 HTML：把拆開的 CSS / JS / 設定檔全部打包回同一個檔案 */
+/* 匯出備份：JSON（只有資料，用「匯入備份」還原） */
 async function exportBackup(){
   const s=JSON.parse(JSON.stringify(state));s.locked=false;if(!s.savedAt)s.savedAt=nowStr();
   /* 備份 = JSON（只有資料，用「匯入備份」還原） */

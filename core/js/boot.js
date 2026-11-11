@@ -6,7 +6,7 @@
   SHELL_IDS.forEach(id=>root.querySelector("#"+id)?.remove());
   root.querySelector("#dept-theme")?.remove();
   root.querySelector("body").removeAttribute("class");
-  TEMPLATE="<!doctype html>\n"+root.outerHTML;BODY_SRC=root.querySelector("body").innerHTML;
+  BODY_SRC=root.querySelector("body").innerHTML;
 })();
 
 /* 進場畫面：等 logo 的動畫真的播完（getAnimations 的 finished）、資料與字型也好了才收；最多等 3.5 秒。

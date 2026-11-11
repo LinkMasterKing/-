@@ -1,5 +1,5 @@
 /* 核心｜共用小工具（日期、跳脫、toast） */
-let TEMPLATE="",BODY_SRC="";   /* 在 boot.js 擷取（扣除執行期產生的骨架）*/
+let BODY_SRC="";   /* 在 boot.js 擷取（扣除執行期產生的骨架）*/
 const HOSTED=!!(window.claude&&window.claude.use);
 let artifactNS=null,canWrite=!HOSTED;
 const readOnly=()=>boardLocked()||(HOSTED&&!canWrite)||(isOffline()&&!editing);
