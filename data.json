@@ -3,7 +3,7 @@
  "id": "board-main",
  "title": "權益部工作進度",
  "locked": false,
- "savedAt": "2026-11-10 21:54",
+ "savedAt": "2026-11-12 03:01",
  "range": {
   "start": "2026-09",
   "end": "2027-09"
@@ -288,7 +288,7 @@
   {
    "id": "emvz5bo0gi726",
    "name": "車禍事件",
-   "desc": "昨日勘查現場已無花束\n\n盤點校地周邊區域交通安全死角",
+   "desc": "昨日勘查現場已無花束\n\n盤點校地周邊區域交通安全死角\n\n123",
    "createdAt": "2026-11-02",
    "staff": [],
    "links": [
@@ -334,9 +334,10 @@
     "2026-11-02",
     "2026-11-03",
     "2026-11-05",
-    "2026-11-10"
+    "2026-11-10",
+    "2026-11-12"
    ],
-   "touchedAt": "2026-11-10T20:10",
+   "touchedAt": "2026-11-12T03:01",
    "report": true,
    "roundAt": "2026-11-05T17:37",
    "labels": []
@@ -788,7 +789,8 @@
    ],
    "touchedAt": "2026-11-10T20:23",
    "issueId": "imvpc1cuefjii",
-   "report": true
+   "report": true,
+   "labels": []
   },
   {
    "id": "emw0mszjya8iv",
@@ -1143,7 +1145,9 @@
     }
    ],
    "round": 2,
-   "fromEv": "emvteefflmm61"
+   "fromEv": "emvteefflmm61",
+   "touched": [],
+   "report": false
   },
   {
    "id": "emwajg0p0vpej",
