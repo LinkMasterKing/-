@@ -20,7 +20,7 @@
 | 步驟 | 誰 | 寫入（同一批，原子） |
 |---|---|---|
 | 建立 | 總管理員（D3：也可開放部門管理員邀自己部門的編輯者） | `invitations/{h}`（`rev: 1`, `status: 'active'`）＋`auditLogs/invitations_{h}_1` |
-| 掃描預覽 | 登入的任何人 | 讀 `invitations/{h}`（只有 `active` 的讀得到），顯示「你將加入活動部，身分：編輯者，到期時間」 |
+| 掃描預覽 | 登入的任何人 | 讀 `invitations/{h}`（只有 `active` 的讀得到），顯示「你將加入活動部，身分：編輯者，剩下 mm:ss」；`role: 'viewer'` 的邀請顯示「你將取得檢視資格（唯讀）」 |
 | 核銷 | 掃碼者本人 | `invitations/{h}` → `used`（`rev: 2`）＋`roles/{me}` 新增該部門角色（`rev + 1`）＋`auditLogs/invitations_{h}_2`＋`auditLogs/roles_{me}_{rev}`；有 `legacyRef` 時再加 `legacyIdentities/{ref}.claimedBy = me`＋其稽核 |
 | 撤銷 | 總管理員 | `invitations/{h}` → `revoked`（`rev: 2`）＋`auditLogs/invitations_{h}_2` |
 | 過期 | 不用寫 | 規則把 `expiresAt <= request.time` 的邀請當作無效；清單上標「已過期」 |
@@ -31,7 +31,10 @@
 - 文件 ID：`h = SHA-256(權杖)` 的小寫十六進位（64 字）。資料庫裡只存雜湊；**看得到邀請清單的人（總管理員、匯出的備份）也拿不到可以核銷的權杖。**
 - QR 內容：`https://linkmasterking.github.io/-/#join=<權杖>`。放在 `#` 後面，不會送到 GitHub Pages 的伺服器、也不會出現在 Referer〔文件：瀏覽器不傳送網址片段〕。
 - 核銷時把原始權杖寫進邀請文件的 `token` 欄位，規則用 `hashing.sha256(token).toHexString().lower() == h` 驗證〔已驗證 P4：`toHexString()` 回傳**大寫**，所以一定要 `.lower()`〕。權杖在用過之後才寫進資料庫，用過的權杖沒有作用。
-- 預設 24 小時到期，規則上限 7 天。可選擇綁定信箱（`boundEmail`）：綁定時只有那個 Google 帳號能核銷，建議發「部門管理員」邀請時使用。
+- **有效期（01A-R 修正）**：預設 10 分鐘，規則上限也是 10 分鐘（`expiresAt <= request.time + 10 分鐘`，以伺服器時間計）。QR 畫面顯示倒數，到期後畫面提示「請重新產生」。要不要允許總管理員發較長期限的邀請（例如給不在場的人）見決策 D13；決定前規則不放寬。
+- **撤銷**：總管理員隨時可以把 `active` 的邀請改成 `revoked`（含尚未到期、已過期但還沒用過的），撤銷後任何人都不能核銷。撤銷與核銷同時發生時只有一筆成功（兩者都要求批次前 `status == 'active'`，同一份文件依序生效）。
+- **一次性核銷**維持不變（第 6 節）。
+- 可選擇綁定信箱（`boundEmail`）：綁定時只有那個 Google 帳號能核銷，建議發「部門管理員」邀請時使用。
 
 ## 3. 稽核紀錄鏈（版本號鏈）
 
@@ -64,15 +67,18 @@ match /invitations/{h} {
   allow list: if isSuper();
   allow delete: if false;
 
+  function roleOk() {                                           // 01A-R：viewer 邀請沒有部門
+    return (d().role in ['admin', 'editor'] && exists(doc('departments', d().deptId)))
+        || (d().role == 'viewer' && d().deptId == null);
+  }
   allow create: if isSuper()                                     // D3 開放時：|| (isAdmin(d().deptId) && d().role == 'editor')
     && h.matches('^[0-9a-f]{64}$')
     && d().keys().hasOnly(['deptId', 'role', 'legacyRef', 'boundEmail', 'note', 'status', 'rev',
                            'createdBy', 'createdAt', 'expiresAt', 'updatedAt', 'updatedBy'])
     && d().status == 'active' && d().rev == 1
-    && d().role in ['admin', 'editor']
-    && exists(doc('departments', d().deptId))
+    && roleOk()
     && d().createdBy == me() && d().createdAt == request.time && stamped()
-    && d().expiresAt > request.time && d().expiresAt <= request.time + duration.value(7, 'd')
+    && d().expiresAt > request.time && d().expiresAt <= request.time + duration.value(10, 'm')   // 01A-R：10 分鐘（D13）
     && auditAfter('invitations', h, 1);
 
   allow update: if revNext() && auditAfter('invitations', h, d().rev) && (redeem() || revoke());
@@ -109,30 +115,57 @@ match /roles/{uid} {
   allow list: if isSuper();
   allow delete: if false;
 
-  allow create: if d().rev == 1 && auditAfter('roles', uid, 1) && (
-      ( viaInvite()
-        && d().keys().hasOnly(['depts', 'rev', 'lastVia', 'lastRef', 'updatedAt', 'updatedBy'])
-        && d().depts == { (inv().deptId): inv().role } )                         // 已驗證 P6：計算鍵的 map 字面值可用
-   || superWrite() );
+  function roleKeys() { return ['super', 'viewer', 'depts', 'rev', 'lastVia', 'lastRef', 'updatedAt', 'updatedBy']; }
+  function oldSuper()  { return resource == null ? false : resource.data.get('super', false); }
+  function oldViewer() { return resource == null ? false : resource.data.get('viewer', false); }
+  function oldDepts()  { return resource == null ? {} : resource.data.depts; }
+  // 「除了這一項，其他權限都沒變」：用來保證 invite／request／revoke 的寫入跟它宣稱的來源一致
+  function deptsDelta() { return d().depts.diff(oldDepts()); }
+  function onlyDeptAdded(dept, r) {
+    return deptsDelta().addedKeys() == [dept].toSet() && deptsDelta().changedKeys().size() == 0
+        && deptsDelta().removedKeys().size() == 0 && d().depts[dept] == r;
+  }
+  function onlyDeptSet(dept, r) {                                                 // 核准申請：新增或改成申請的角色
+    return deptsDelta().affectedKeys() == [dept].toSet() && d().depts[dept] == r;
+  }
+  function flagsSame() { return d().get('super', false) == oldSuper() && d().get('viewer', false) == oldViewer(); }
 
-  allow update: if revNext() && auditAfter('roles', uid, d().rev) && (
-      ( viaInvite()
-        && onlyChanged(['depts', 'rev', 'lastVia', 'lastRef', 'updatedAt', 'updatedBy'])
-        && d().depts.diff(resource.data.depts).addedKeys() == [inv().deptId].toSet()
-        && d().depts.diff(resource.data.depts).changedKeys().size() == 0
-        && d().depts.diff(resource.data.depts).removedKeys().size() == 0
-        && d().depts[inv().deptId] == inv().role )                                // 已在該部門有角色就不能核銷（避免降級或重複）
-   || superWrite() );
+  allow create: if d().rev == 1 && auditAfter('roles', uid, 1) && d().keys().hasOnly(roleKeys())
+    && (viaInvite() && inviteGrant() || superWrite());
+  allow update: if revNext() && auditAfter('roles', uid, d().rev) && d().keys().hasOnly(roleKeys())
+    && (viaInvite() && inviteGrant() || superWrite());
+
+  function inviteGrant() {                                                        // 已驗證 P6：計算鍵的 map 字面值可用
+    return d().get('super', false) == oldSuper()
+      && ( (inv().role == 'viewer' && d().depts == oldDepts() && d().viewer == true && oldViewer() == false)
+        || (inv().role != 'viewer' && d().get('viewer', false) == oldViewer()
+            && onlyDeptAdded(inv().deptId, inv().role)) );                        // 已在該部門有角色就不能核銷（避免降級或重複）
+  }
 
   function superWrite() {
     return isSuper() && stamped()
       && d().lastVia in ['request', 'manual', 'revoke']
-      && (uid != me() || d().get('super', false) == (resource == null ? false : resource.data.get('super', false)))  // 不能動自己的 super
+      && (uid != me() || d().get('super', false) == oldSuper())                  // 不能動自己的 super
       && d().depts.keys().hasOnly(['rights', 'president', 'secretariat', 'marketing', 'finance',
                                    'events', 'affairs', 'pr', 'works', 'fruit'])
-      && (d().lastVia != 'request'
-          || (reqAfter().status == 'approved' && reqAfter().uid == uid
-              && d().depts.get(reqAfter().deptId, null) == reqAfter().role));
+      && d().depts.values().hasOnly(['admin', 'editor'])
+      && (d().lastVia != 'request' || viaRequest())
+      && (d().lastVia != 'revoke'  || onlyRemoves());
+  }
+  // 01A-R：核准申請＝同一批把申請從 pending 改成 approved，而且角色變更只包含申請的那一項
+  function viaRequest() {
+    let rb = get(doc('roleRequests', d().lastRef)).data;                          // 批次前
+    return rb.status == 'pending' && reqAfter().status == 'approved' && reqAfter().decidedBy == me()
+      && rb.uid == uid
+      && d().get('super', false) == oldSuper()
+      && ( (rb.role == 'viewer' && d().viewer == true && d().depts == oldDepts())
+        || (rb.role != 'viewer' && d().get('viewer', false) == oldViewer() && onlyDeptSet(rb.deptId, rb.role)) );
+  }
+  // 01A-R：撤權只能拿掉部門或把 super／viewer 改成 false，不能新增、不能改值（降級 admin → editor 走 'manual'）
+  function onlyRemoves() {
+    return deptsDelta().addedKeys().size() == 0 && deptsDelta().changedKeys().size() == 0
+      && (d().get('super', false) == false || oldSuper() == true)
+      && (d().get('viewer', false) == false || oldViewer() == true);
   }
 }
 
@@ -141,14 +174,24 @@ match /roleRequests/{id} {
   allow get:  if signedIn() && (resource.data.uid == me() || isSuper());
   allow list: if isSuper() || (signedIn() && resource.data.uid == me());
   allow create: if signedIn() && d().uid == me() && d().status == 'pending' && d().rev == 1
-    && d().role in ['admin', 'editor'] && exists(doc('departments', d().deptId))
+    && d().keys().hasOnly(['uid', 'deptId', 'role', 'note', 'legacyRef', 'status', 'rev', 'createdAt', 'updatedAt', 'updatedBy'])
+    && ( (d().role in ['admin', 'editor'] && exists(doc('departments', d().deptId)))
+      || (d().role == 'viewer' && d().deptId == null) )                         // 01A-R：申請檢視資格
     && d().createdAt == request.time && stamped() && auditAfter('roleRequests', id, 1);
   allow update: if revNext() && auditAfter('roleRequests', id, d().rev) && stamped() && (
       (resource.data.uid == me() && resource.data.status == 'pending' && d().status == 'cancelled'
          && onlyChanged(['status', 'rev', 'updatedAt', 'updatedBy']))
-   || (isSuper() && resource.data.status == 'pending' && d().status in ['approved', 'rejected']
+   || (isSuper() && resource.data.status == 'pending' && d().status == 'rejected'
          && d().decidedBy == me() && d().decidedAt == request.time
-         && onlyChanged(['status', 'decidedBy', 'decidedAt', 'rev', 'updatedAt', 'updatedBy'])) );
+         && onlyChanged(['status', 'decidedBy', 'decidedAt', 'rev', 'updatedAt', 'updatedBy']))
+   // 01A-R：核准一定要同一批把角色寫進 roles，而且 roles 的來源指向這筆申請。
+   // 避免「申請標成已核准但沒有角色」，也避免同一筆已核准的申請被拿來當之後角色寫入的依據（重放）。
+   || (isSuper() && resource.data.status == 'pending' && d().status == 'approved'
+         && d().decidedBy == me() && d().decidedAt == request.time
+         && onlyChanged(['status', 'decidedBy', 'decidedAt', 'rev', 'updatedAt', 'updatedBy'])
+         && getAfter(doc('roles', resource.data.uid)).data.lastVia == 'request'
+         && getAfter(doc('roles', resource.data.uid)).data.lastRef == id
+         && getAfter(doc('roles', resource.data.uid)).data.updatedAt == request.time) );
   allow delete: if false;
 }
 
@@ -157,13 +200,19 @@ match /auditLogs/{aid} {
   function a()        { return request.resource.data; }
   function target()   { return getAfter(doc(a().col, a().docId)).data; }
   function rolesOk() {
-    return a().after == { 'super': target().get('super', false), 'depts': target().depts }
+    return a().after == { 'super': target().get('super', false), 'viewer': target().get('viewer', false), 'depts': target().depts }
       && (a().rev == 1 ? a().before == {}
-                       : a().before == { 'super': get(doc('roles', a().docId)).data.get('super', false),
-                                         'depts': get(doc('roles', a().docId)).data.depts });
+                       : a().before == { 'super':  get(doc('roles', a().docId)).data.get('super', false),
+                                         'viewer': get(doc('roles', a().docId)).data.get('viewer', false),
+                                         'depts':  get(doc('roles', a().docId)).data.depts });
   }
   allow get, list: if isSuper();
   allow update, delete: if false;
+  // 01A-R：稽核紀錄的「動作」與「依據」也要等於文件本身，不只版本號
+  function statusOk() {                                     // 有 status 的集合：after.status＝批次後的狀態
+    return a().after.status == target().status
+      && (a().rev == 1 ? a().before == {} : a().before.status == get(doc(a().col, a().docId)).data.status);
+  }
   allow create: if signedIn()
     && a().keys().hasOnly(['col', 'docId', 'rev', 'action', 'actor', 'at', 'before', 'after', 'ref'])
     && a().col in ['roles', 'invitations', 'roleRequests', 'grants', 'legacyIdentities',
@@ -171,7 +220,8 @@ match /auditLogs/{aid} {
     && aid == a().col + '_' + a().docId + '_' + string(a().rev)
     && a().actor == me() && a().at == request.time
     && target().rev == a().rev && target().updatedBy == me()
-    && (a().col != 'roles' || rolesOk());
+    && (a().col != 'roles' || (rolesOk() && a().action == target().lastVia && a().ref == target().lastRef))
+    && (!(a().col in ['invitations', 'roleRequests', 'bookings', 'migrations']) || statusOk());
 }
 
 // ---------- 舊身分認領 ----------
@@ -199,6 +249,13 @@ match /legacyIdentities/{ref} {
 | `legacyIdentities` 更新＋其稽核 | `getAfter` roles 1、`getAfter` 邀請 1、`existsAfter` 1；稽核 `getAfter` 1 → 4 |
 | 合計 | 最多 15，低於整批 20、每個操作都低於 10〔文件〕 |
 
+| 核准申請批次（01A-R） | 讀取 |
+|---|---|
+| `roleRequests` 更新（`isSuper` 2、稽核 1、`getAfter` roles 1） | 4 |
+| `roles` 新增／更新（`isSuper` 2、稽核 1、`get`／`getAfter` 申請 2；`create` 時 `resource == null`） | 5 |
+| `auditLogs` roles（`getAfter` roles 1、`get` roles 1）＋ `auditLogs` roleRequests（`getAfter` 申請 1、`get` 申請 1） | 4 |
+| 合計 | 約 13（`isSuper` 讀的是同一份 `roles/{me}`，可能被快取，但不依賴） |
+
 如果模擬器實測超過上限，退路是把「認領舊身分」拆成核銷之後的第二批寫入（規則改成檢查 `roles.lastRef` 指向一張已被自己用掉、帶這個 `legacyRef` 的邀請）。
 
 ## 5. 撤權
@@ -206,7 +263,7 @@ match /legacyIdentities/{ref} {
 - 總管理員把 `roles/{uid}.depts` 拿掉那個部門（`lastVia: 'revoke'`）＋稽核紀錄。
 - 規則每次請求都讀 `roles`，所以下一次寫入就被拒〔文件；待驗證 I-24〕。
 - 已經開著的即時監聽：Firestore 在規則相關資料變動後會重新評估監聽，讀取權限也會被收回〔推論，待驗證〕。內部讀取只要求登入（L1），撤部門權限不影響閱讀。
-- 要讓某個帳號完全不能讀：決策 D1 選 B（需要核准的檢視者）時才有意義；選 A 時任何 Google 帳號都能讀 L1。
+- 要讓某個帳號完全不能讀：01A-R 規劃的已授權檢視者（[permissions.md](permissions.md) 第 2.1 節〔待核准〕）採用後，把 `viewer` 改成 `false` 並拿掉所有部門角色，下一次讀取就被拒。維持 01A 的選項 A 時任何 Google 帳號都能讀 L1。
 
 ## 6. 為什麼核銷在併發下只會成功一次
 
@@ -261,3 +318,27 @@ match /legacyIdentities/{ref} {
 | I-28 | 總管理員撤權與使用者核銷同時發生在同一份 `roles` | 兩筆都成功或一筆重試後成功；`rev` 連號、稽核紀錄兩筆 | |
 | I-29 | 一般帳號讀 `roles`、`auditLogs`、`invitations`（list）、`users`（別人的） | 拒絕 | |
 | I-30 | 正常流程：建立 → 預覽 → 核銷 → 稽核鏈從 1 連號；申請 → 核准；撤權 | 成功 | P6f 的成功路徑 |
+
+01A-R 新增（QR 有效期與撤銷、申請核准與角色變更的一致性、檢視者）：
+
+| # | 攻擊 | 預期 |
+|---|---|---|
+| I-31 | 建立 `expiresAt` 超過現在＋10 分鐘的邀請（11 分鐘、24 小時、7 天） | 拒絕 |
+| I-32 | 建立後第 9 分 59 秒核銷 | 成功 |
+| I-33 | 第 10 分鐘之後核銷（以伺服器時間；用戶端把時鐘調慢也一樣） | 拒絕 |
+| I-34 | 非總管理員撤銷邀請 | 拒絕 |
+| I-35 | 撤銷已使用的邀請；把 `revoked` 改回 `active` | 拒絕 |
+| I-36 | 總管理員撤銷與使用者核銷同時發生 | 恰好一筆成功；狀態與稽核鏈一致 |
+| I-37 | 總管理員把申請改成 `approved`，但同一批沒有寫 `roles` | 拒絕 |
+| I-38 | 總管理員用一筆**早就核准過**的申請當 `lastRef` 再寫一次角色（重放） | 拒絕（批次前申請必須是 `pending`） |
+| I-39 | 以 `lastVia: 'request'` 核准時，順便多加一個部門、改另一個部門、或設 `super: true` | 拒絕 |
+| I-40 | 核准 A 的申請，卻把角色寫到 B 的 `roles` | 拒絕 |
+| I-41 | 以 `lastVia: 'revoke'` 寫入時新增部門、改任何部門的角色值、或把 `viewer`／`super` 從 false 改成 true | 拒絕 |
+| I-42 | 角色的稽核紀錄 `action` 跟 `roles.lastVia` 不同、或 `ref` 跟 `lastRef` 不同 | 拒絕 |
+| I-43 | 申請、邀請、預約的稽核紀錄 `after.status`／`before.status` 跟實際不符 | 拒絕 |
+| I-44 | 申請人取消與總管理員核准同時發生 | 恰好一筆成功；失敗的那筆整批（含 `roles`）沒有寫入 |
+| I-45 | `roles` 寫入白名單以外的欄位；部門角色值不是 `admin`／`editor` | 拒絕 |
+| I-46 | 申請 `role: 'super'`；申請 `viewer` 卻帶 `deptId`；申請不存在的部門 | 拒絕 |
+| I-47 | 檢視者申請核准 → `roles.viewer == true`，`depts` 不變；之後讀 L1 成功、寫卡片拒絕 | 如述 |
+| I-48 | `viewer` 邀請核銷時順便寫部門角色；部門邀請核銷時順便寫 `viewer: true` | 拒絕 |
+| I-49 | 沒有角色的登入者送出檢視申請後，在核准前讀卡片 | 拒絕〔D1 選 B 時〕 |

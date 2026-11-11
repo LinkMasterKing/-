@@ -11,15 +11,17 @@
 3. 一筆預約佔 `[startSlot, startSlot + slotCount)`，必須在**同一批寫入**裡建立它涵蓋的每一份時段鎖。
 4. 時段鎖**只能新增，不能修改**。文件已經存在時，寫入會被當成「修改」並被拒絕〔已驗證 P1〕。
 5. 一批寫入是原子的：任何一格被拒，整筆預約（含其他格）都不會寫入〔文件；已驗證 P2b〕。
+6. 時段鎖**只能隨它的擁有者（預約或私人忙碌）一起釋放**：刪除一格時，同一批寫入後那筆預約必須已經是 `rejected`／`cancelled`，或那筆私人忙碌必須已經是 `released`。任何人（包括管理者、總管理員透過網站）都不能單獨刪掉一筆仍有效的預約或私人忙碌的鎖（01A-R 修正，見第 4 節）。
 
 ### 為什麼這樣就不會重複
 
 兩段整數區間 `[a, a+n)` 與 `[b, b+m)` 重疊，若且唯若 `a < b+m` 且 `b < a+n`。這時 `max(a, b)` 同時落在兩段裡，也就是兩筆預約一定要建立同一份 `slots/{owner}_{max(a,b)}`。同一份文件只能被建立一次，所以**兩筆有重疊的預約不可能都提交成功**，不管時長多少、從哪裡開始重疊、誰先誰後。頭尾相接（`a+n == b`）沒有共同格，兩筆都能成功。
 
-規則在這裡只負責兩件事：
+規則在這裡只負責三件事：
 
 - **時段鎖不能被改寫**（`allow update: if false`）。
-- **預約一定要鎖住它涵蓋的每一格**：預約文件的規則逐格檢查 `getAfter(slots/...).data.ref == 這筆預約`。少鎖一格、鎖錯格、完全不鎖，預約都寫不進去〔已驗證 P3b、P3c〕。
+- **預約與私人忙碌一定要鎖住它涵蓋的每一格**：兩者的建立規則都逐格檢查 `getAfter(slots/...).data.ref == 自己`。少鎖一格、鎖錯格、完全不鎖，都寫不進去〔預約已驗證 P3b、P3c；私人忙碌待驗證 B-28～B-30〕。
+- **時段鎖不能脫離擁有者的狀態被刪除**：刪鎖的規則看的是「批次後」擁有者的狀態，而擁有者的狀態轉換（拒絕、取消、釋放）又要求同一批刪掉全部的鎖。兩邊互相要求，所以「有效的預約」與「它的鎖」只能一起存在、一起消失。
 
 真正保證「同一份文件只會被建立一次」的是 Firestore 的原子提交，不是規則邏輯本身。
 
@@ -31,7 +33,7 @@
 | `openWindows/{id}` | L1 | 管理者 | `ownerId`、`start`、`end`（都在格線上）。由管理者的畫面依「每週固定時段」自動產生未來幾週的文件 |
 | `slots/{ownerId}_{idx}` | L1 | 見規則 | `ownerId`、`idx`、`ref`（預約或私人忙碌的隨機 ID）。**沒有標題、沒有申請人**，只代表「這格不能約」 |
 | `bookings/{id}` | 申請人本人、管理者 | 見規則 | `ownerId`、`requester`、`windowId`、`startSlot`、`slotCount`、`start`、`end`、`topic`、`note`、`status`（`pending`｜`approved`｜`rejected`｜`cancelled`）、`rev`、`createdAt`、`updatedAt`、`updatedBy`、`decidedBy` |
-| `busyBlocks/{id}` | 管理者 | 管理者 | `ownerId`、`title`、`start`、`end`、`startSlot`、`slotCount`（私人行程，標題只有管理者看得到） |
+| `busyBlocks/{id}` | 管理者 | 管理者（見規則；**不能硬刪**） | `ownerId`、`title`、`start`、`end`、`startSlot`、`slotCount`（1～4）、`status`（`active`｜`released`）、`rev`、`createdAt`、`updatedAt`、`updatedBy`（私人行程，標題只有管理者看得到） |
 | `bookingQuota/{ownerId}_{uid}` | 本人、管理者 | 見規則 | `pending`（目前待審件數） |
 
 `slots.ref` 是隨機 ID，預約與私人忙碌共用同一個欄位，所以一般人從時段鎖分辨不出「有人預約」還是「會長私人有事」。
@@ -43,9 +45,12 @@
 | 申請 | 有 L1 的登入者（誰可以申請見決策 D6） | `bookings/{id}`（`pending`, `rev: 1`）＋涵蓋的每一份 `slots`＋`bookingQuota` 加 1＋`auditLogs/bookings_{id}_1` |
 | 核准 | 管理者 | `bookings` → `approved`（`rev + 1`）＋稽核；時段鎖不動 |
 | 拒絕／取消 | 管理者；或申請人取消自己的 | `bookings` → `rejected`／`cancelled`＋刪除它的所有 `slots`＋`bookingQuota` 減 1＋稽核 |
-| 私人忙碌 | 管理者 | `busyBlocks/{id}`＋涵蓋的每一份 `slots` |
+| 私人忙碌 | 管理者 | `busyBlocks/{id}`（`active`, `rev: 1`）＋涵蓋的**每一份** `slots`；任何一格已被佔（含待審預約）整批失敗，畫面列出衝突的預約，管理者要先拒絕那筆預約再重試 |
+| 取消私人忙碌 | 管理者 | `busyBlocks` → `released`（`rev + 1`）＋刪除它的所有 `slots` |
+| 清除孤兒鎖 | 管理者 | 只有在鎖指向的預約與私人忙碌都**不存在**時才能單獨刪（只會因為主控台誤操作出現，見第 6 節） |
 | 改期 | 申請人 | 先取消、再申請（兩次提交）。第一版不做原子改期，畫面提醒「改期期間時段可能被別人約走」 |
 
+- **私人忙碌一次最多 4 格（2 小時）**：理由同預約的讀取預算（第 4 節）。更長的不在場（整天、出國）不用私人忙碌，而是把那段 `openWindows` 刪掉或縮短；已經成立的預約不受開放時段變動影響，要管理者逐筆拒絕。
 - **申請就佔位**（待審也鎖住時段）：避免兩個人都申請同一時段、會長核准時才發現衝突。代價是有人可以佔著不放，所以有每人待審上限（`bookingQuota`，D6）與管理者拒絕。
 - 前端用交易：先讀涵蓋的每一格，有任何一格已存在就直接顯示「這段時間已經被預約」，不送出；交易提交時若別人搶先，交易重試、讀到已存在的格，同樣顯示已被預約〔已驗證 P2'〕。
 - 交易在離線時會直接失敗，不會先顯示成功再被退回〔文件〕；畫面要在伺服器確認後才顯示「已送出」。
@@ -73,13 +78,58 @@ match /slots/{sid} {
   }
   function busyCovers() {
     let x = getAfter(doc('busyBlocks', s().ref)).data;
-    return isManager(s().ownerId) && x.ownerId == s().ownerId
+    return isManager(s().ownerId) && x.ownerId == s().ownerId && x.status == 'active'
         && s().idx >= x.startSlot && s().idx < x.startSlot + x.slotCount;
   }
-  allow delete: if signedIn() && (
-      isManager(resource.data.ownerId)
-   || ( getAfter(doc('bookings', resource.data.ref)).data.requester == me()
-        && getAfter(doc('bookings', resource.data.ref)).data.status == 'cancelled' ) );
+  // 01A-R：刪鎖不看「誰在刪」，只看「擁有者在批次後是否已經釋放」。
+  // 管理者單獨刪鎖（擁有者仍是 pending／approved／active）一律拒絕。
+  function r() { return resource.data; }
+  function covers(x) { return x.ownerId == r().ownerId && r().idx >= x.startSlot && r().idx < x.startSlot + x.slotCount; }
+  function bookingReleased() {                              // 讀 2 次
+    return existsAfter(doc('bookings', r().ref))
+        && covers(getAfter(doc('bookings', r().ref)).data)
+        && getAfter(doc('bookings', r().ref)).data.status in ['rejected', 'cancelled'];
+  }
+  function busyReleased() {                                 // 讀 3 次（前一項的 existsAfter 為 false 才走到這裡）
+    return !existsAfter(doc('bookings', r().ref))
+        && existsAfter(doc('busyBlocks', r().ref))
+        && covers(getAfter(doc('busyBlocks', r().ref)).data)
+        && getAfter(doc('busyBlocks', r().ref)).data.status == 'released';
+  }
+  function orphan() {                                       // 預約與私人忙碌都不能硬刪，所以兩者都不存在＝主控台造成的孤兒
+    return isManager(r().ownerId)
+        && !existsAfter(doc('bookings', r().ref)) && !existsAfter(doc('busyBlocks', r().ref));
+  }
+  allow delete: if signedIn() && (bookingReleased() || busyReleased() || orphan());
+}
+
+match /busyBlocks/{xid} {
+  function x() { return request.resource.data; }
+  function claimed(i) { return getAfter(slotDoc(x().ownerId, i)).data.ref == xid; }
+  function claimsAll() {
+    let s = x().startSlot; let n = x().slotCount;
+    return claimed(s) && (n < 2 || claimed(s + 1)) && (n < 3 || claimed(s + 2)) && (n < 4 || claimed(s + 3));
+  }
+  function released() {
+    let s = resource.data.startSlot; let n = resource.data.slotCount; let o = resource.data.ownerId;
+    return !existsAfter(slotDoc(o, s)) && (n < 2 || !existsAfter(slotDoc(o, s + 1)))
+        && (n < 3 || !existsAfter(slotDoc(o, s + 2))) && (n < 4 || !existsAfter(slotDoc(o, s + 3)));
+  }
+  allow get, list: if isManager(resource.data.ownerId);
+  allow delete: if false;                                    // 不能硬刪：釋放一定走 status → released
+  allow create: if isManager(x().ownerId)
+    && x().keys().hasOnly(['ownerId', 'title', 'start', 'end', 'startSlot', 'slotCount', 'status', 'rev',
+                           'createdAt', 'updatedAt', 'updatedBy'])
+    && x().status == 'active' && x().rev == 1
+    && x().slotCount is int && x().slotCount >= 1 && x().slotCount <= 4
+    && x().start.toMillis() == x().startSlot * 1800000
+    && x().end.toMillis()   == (x().startSlot + x().slotCount) * 1800000
+    && x().createdAt == request.time && stamped()
+    && claimsAll();                                          // 原子鎖住每一格；任何一格已存在則整批失敗
+  allow update: if isManager(resource.data.ownerId) && revNext() && stamped()
+    && unchanged(['ownerId', 'start', 'end', 'startSlot', 'slotCount', 'createdAt'])   // 改時間＝釋放後重建
+    && ( (resource.data.status == 'active' && x().status == 'active' && onlyChanged(['title', 'rev', 'updatedAt', 'updatedBy']))
+      || (resource.data.status == 'active' && x().status == 'released' && released()) );
 }
 
 match /bookings/{bid} {
@@ -138,6 +188,14 @@ match /bookingQuota/{qid} {
 | `auditLogs` | `getAfter` 預約 1 |
 | 合計 | 約 14，低於整批 20；單一操作最多 7，低於 10〔文件；10 次上限已驗證 P7〕 |
 
+| 其他批次（01A-R 新增） | 讀取 |
+|---|---|
+| 拒絕／取消預約：`bookings` 更新（`isManager` 1、`released` 4、稽核 1）＋4 份 `slots` 刪除（每份 `bookingReleased` 2）＋`bookingQuota` 約 2＋稽核 1 | 約 17 |
+| 建立私人忙碌：`busyBlocks` 新增（`isManager` 1、`claimsAll` 4）＋4 份 `slots` 新增（每份 `getAfter` 預約 1、`getAfter` 私人忙碌 1、`isManager` 1；`bookingCovers` 先失敗才走 `busyCovers`） | 約 17 |
+| 釋放私人忙碌：`busyBlocks` 更新（`isManager` 1、`released` 4）＋4 份 `slots` 刪除（每份 `busyReleased` 3） | 約 17 |
+
+三種都低於整批 20，但已經接近上限。01B 要用模擬器量實際讀取次數；如果超過，退路是「一批只處理 3 格」或把 `slots.ref` 改成帶種類前綴（代價是一般人能從鎖分辨出「預約」與「私人忙碌」，要你同意）。
+
 這就是**最長 2 小時（4 格）的原因**：如果要 15 分鐘格線、最長 2 小時（8 格），單一預約操作要讀 8＋3＝11 份文件，超過每個操作 10 次的上限。要更長的預約，只能加大格線或改用 Functions（第 6 節）。
 
 ## 5. 攻擊與併發測試清單（01B 寫成模擬器測試）
@@ -168,6 +226,28 @@ match /bookingQuota/{qid} {
 | B-22 | 管理者核准、同時申請人取消同一筆 | 一筆成功、一筆因 `rev` 衝突失敗或重試；最終狀態與稽核鏈一致 | |
 | B-23 | 改期（取消＋新申請）期間別人搶走 | 新申請拒絕，畫面顯示已被預約 | |
 
+01A-R 新增（時段鎖刪除權限、私人忙碌原子鎖）：
+
+| # | 情境 | 預期 |
+|---|---|---|
+| B-24 | 管理者單獨刪除一筆 `pending` 預約的時段鎖 | 拒絕 |
+| B-25 | 管理者單獨刪除一筆 `approved` 預約的時段鎖，再用自己的私人忙碌或別人的預約佔走 | 刪除拒絕，後續建立也因格已存在拒絕 |
+| B-26 | 管理者把預約改成 `rejected` 並刪鎖，但少刪一格 | 整批拒絕（`released()` 不成立） |
+| B-27 | 申請人把自己的預約改成 `cancelled`，但不刪鎖；之後單獨刪鎖 | 前者拒絕；後者因批次後預約仍是原狀態而拒絕 |
+| B-28 | 管理者建立 3 格的私人忙碌，只鎖 2 格 | 拒絕 |
+| B-29 | 管理者建立私人忙碌，完全不建立時段鎖 | 拒絕 |
+| B-30 | 私人忙碌的時段鎖指向另一個行事曆、或指向不涵蓋這格的私人忙碌 | 拒絕 |
+| B-31 | 私人忙碌與一筆已存在的待審預約部分重疊 | 整批拒絕；`busyBlocks` 沒有寫入；那筆預約與它的鎖不變 |
+| B-32 | 私人忙碌起點不在格線、超過 4 格、`status` 不是 `active` | 拒絕 |
+| B-33 | 管理者與一般帳號同時搶同一格（私人忙碌對預約） | 恰好 1 筆成功 |
+| B-34 | 單獨刪除一筆 `active` 私人忙碌的時段鎖（管理者、一般帳號都試） | 拒絕 |
+| B-35 | 硬刪 `busyBlocks`；修改 `active` 私人忙碌的 `startSlot`／`slotCount` | 拒絕 |
+| B-36 | 把私人忙碌改成 `released` 但少刪一格 | 拒絕 |
+| B-37 | 私人忙碌釋放後，任何帳號刪除剩下的鎖；別人立刻申請同一時段 | 成功 |
+| B-38 | 孤兒鎖（主控台刪掉預約文件後留下的鎖）：管理者刪除成功；一般帳號、別的行事曆管理者刪除拒絕 | 如述 |
+| B-39 | 非管理者讀 `busyBlocks`、或從 `slots` 讀到 `title` | 拒絕；`slots` 沒有 `title` 欄位 |
+| B-40 | 拒絕／取消預約、建立與釋放私人忙碌（各 4 格）的整批實際讀取次數 | 都 ≤ 20（量測值回填 [verification.md](verification.md)） |
+
 ## 6. 規則做不到的部分（明確列出）
 
 | 情況 | 這套設計怎麼處理 | 要完全自動化需要 |
@@ -178,7 +258,8 @@ match /bookingQuota/{qid} {
 | 通知會長有新申請、通知申請人結果 | 不做；登入後看到待辦 | Functions 寄信／推播 |
 | 原子改期 | 取消＋重新申請兩步 | 可以用規則做（時段鎖「轉移」），但會增加規則複雜度；有需要再加 |
 | 同一時段要同時約會長與副會長 | 不支援（每個行事曆各自獨立） | 兩個行事曆的格放在同一批即可做到，06 再評估 |
-| 時段鎖因程式錯誤沒被刪掉（孤兒鎖） | 只會造成「多擋」，**不會造成重複預約**；管理者可以刪孤兒鎖 | |
+| 時段鎖因程式錯誤沒被刪掉（孤兒鎖） | 規則下不會發生（擁有者的狀態轉換要求同批刪鎖）；只有主控台誤刪預約文件才會出現。只會造成「多擋」，**不會造成重複預約**；管理者只能刪「擁有者不存在」的鎖 | |
+| 管理者要清掉一段已有預約的時間 | 先逐筆拒絕那些預約（有稽核、申請人看得到結果），再建立私人忙碌；不能直接刪鎖 | |
 
 設計刻意讓所有錯誤都偏向「多擋一格」而不是「多約一筆」。
 

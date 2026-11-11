@@ -1,6 +1,6 @@
 # 資料模型
 
-全部是 Cloud Firestore（Native mode）頂層集合，資料庫位置建議 `asia-east1`（台灣，建立後不能改）。分級代號見 [permissions.md](permissions.md)：L0 公開、L1 登入、L2 部門、L3 秘書處授權、L4 會長室；「本人」＝文件屬於登入者自己。
+全部是 Cloud Firestore（Native mode）頂層集合，資料庫位置建議 `asia-east1`（台灣，建立後不能改）。分級代號見 [permissions.md](permissions.md)：L0 公開、L1 內部（01A-R：已授權檢視者以上）、L2 部門、L3 秘書處授權、L4 會長室；「本人」＝文件屬於登入者自己。
 
 ## 1. 共用約定
 
@@ -54,18 +54,19 @@
 | 欄位 | 型別 | 說明 |
 |---|---|---|
 | `super` | bool | 會長室總管理員 |
+| `viewer` | bool | 已授權檢視者（01A-R 規劃〔待核准〕；讀 L1，唯讀） |
 | `depts` | map | `{deptId: 'admin' \| 'editor'}` |
 | `rev` | int | 版本號（稽核鏈） |
 | `lastVia` | string | `invite` \| `request` \| `manual` \| `revoke` |
 | `lastRef` | string | 邀請雜湊或申請 ID |
 | `updatedAt`、`updatedBy` | | |
-沒有 `roles` 文件的登入者＝一般使用者（L1 唯讀）。
+沒有 `roles` 文件、或 `super`／`viewer` 都不是 true 且 `depts` 為空的登入者＝一般使用者：01A-R 規劃下只能讀 L0 並提出申請（〔待核准〕；維持 01A 選項 A 時可讀 L1）。
 
 ### `roleRequests/{id}`：本人與 L4
-`uid`、`deptId`、`role`、`note`、`legacyRef`（選填，要認領的舊身分）、`status`（`pending`｜`approved`｜`rejected`｜`cancelled`）、`createdAt`、`decidedBy`、`decidedAt`、`rev`。
+`uid`、`deptId`（申請 `viewer` 時為 null）、`role`（`admin`｜`editor`｜`viewer`）、`note`、`legacyRef`（選填，要認領的舊身分）、`status`（`pending`｜`approved`｜`rejected`｜`cancelled`）、`createdAt`、`decidedBy`、`decidedAt`、`rev`。
 
 ### `invitations/{sha256(token) 小寫十六進位}`：L4 讀寫；核銷者只能 `get`
-`deptId`、`role`、`legacyRef`、`boundEmail`（選填）、`note`、`status`（`active`｜`used`｜`revoked`）、`createdBy`、`createdAt`、`expiresAt`、`usedBy`、`usedAt`、`token`（核銷時才寫入）、`revokedBy`、`revokedAt`、`rev`。詳見 [invitations-roles-audit.md](invitations-roles-audit.md)。
+`deptId`（`viewer` 邀請為 null）、`role`（`admin`｜`editor`｜`viewer`）、`legacyRef`、`boundEmail`（選填）、`note`、`status`（`active`｜`used`｜`revoked`）、`createdBy`、`createdAt`、`expiresAt`（預設與上限都是建立後 10 分鐘，01A-R）、`usedBy`、`usedAt`、`token`（核銷時才寫入）、`revokedBy`、`revokedAt`、`rev`。詳見 [invitations-roles-audit.md](invitations-roles-audit.md)。
 
 ### `legacyIdentities/{deptId}__{舊身分ID}`：L1 讀、L4 寫（核銷時本人可認領）
 `deptId`、`name`、`oldRole`（`admin`｜`member`）、`createdAt`（原字串）、`claimedBy`（UID 或 null）、`claimedAt`、`rev`。**不搬** `kdf`、`tok`。
@@ -91,14 +92,15 @@
 | `doneAt`、`deletedAt`、`deletedBy` | （`doneAt`） |
 | `order` | 排序值 |
 | `round`、`roundAt`、`touched`、`touchedAt`、`fromEv` | 燈號與舊分段紀錄，原樣保留 |
-| `version` | 每次內容修改加 1，與 `cardVersions` 對應 |
+| `version` | 每次內容修改加 1，與 `cards/{id}/versions/{version}` 對應 |
 | `createdAt`、`createdBy`、`updatedAt`、`updatedBy` | （`createdAt` 舊字串轉時間） |
 | `legacyDesc` | 遷移時的原始說明全文（回復與比對用；03 之後不再寫入） |
 | `importBatch` | 遷移批次 ID（只有遷移資料有） |
 單一文件上限 1 MiB〔文件〕；以目前最長的說明估算遠低於上限〔推論〕。
 
-### `cardVersions/{cardId}_{version}`：L1 讀；只能新增
-`cardId`、`deptId`、`version`、`title`、`blocks`、`times`（當時的時間值快照）、`state`、`by`、`at`、`imported`（遷移產生的第 1 版為 true）。
+### `cards/{cardId}/versions/{version}`：跟母卡片同一個讀取條件；只能新增
+（01A-R：從頂層 `cardVersions/{cardId}_{version}` 改成子集合，讓「已刪除卡片只有部門看得到」也適用於歷史內容，見 [permissions.md](permissions.md) 第 5.1 節。）
+`cardId`、`deptId`、`version`、`title`、`blocks`、`times`（當時的時間值快照）、`state`、`by`、`at`、`imported`（遷移產生的第 1 版為 true）。`title`、`blocks`、`state`、`deptId`、`by`、`at` 由規則比對批次後的卡片。
 
 ### `issues/{id}`：母議題
 `deptId`、`title`、`cur`（目前階段）、`start`、`end`（原字串＋時間）、`note`、`tags`、`labels`、`links`、`staff`、`markers`（陣列，保留舊結構，`evId`／`tmId` 改新 ID）、`doneAt`、`order`、`rev`、`updatedAt`、`updatedBy`。
@@ -119,6 +121,7 @@
 | `allDay` | 只有日期 |
 | `place` | 地點（`times[].place`） |
 | `toIssue` | 也顯示在母議題（`times[].toIssue`） |
+| `cardDeleted` | 母卡片已刪除（決策 D14，01A-R 規劃）；true 時只有部門編輯者與總管理員讀得到 |
 | `scope` | `dept` \| `all-activity`（全會活動，只有活動部能設）\| `all-meeting`（全會會議，只有秘書處能設） |
 | `visibility` | `internal` \| `public`（公開活動，L0 可讀） |
 | `title`、`summary` | 只有 `public` 時使用：對外顯示的標題與簡介 |
@@ -133,7 +136,7 @@
 
 ## 4. 預約（06）
 
-見 [booking.md](booking.md)。集合：`calendars/{ownerId}`（L1 讀設定、管理者寫）、`openWindows/{id}`（L1）、`slots/{ownerId}_{格號}`（L1，只有忙／閒）、`bookings/{id}`（申請人本人與管理者）、`busyBlocks/{id}`（只有管理者）、`bookingQuota/{ownerId}_{uid}`（本人與管理者）。
+見 [booking.md](booking.md)。集合：`calendars/{ownerId}`（L1 讀設定、管理者寫）、`openWindows/{id}`（L1）、`slots/{ownerId}_{格號}`（L1，只有忙／閒）、`bookings/{id}`（申請人本人與管理者）、`busyBlocks/{id}`（只有管理者；有 `status`、`rev`，不能硬刪）、`bookingQuota/{ownerId}_{uid}`（本人與管理者）。
 
 ## 5. 點名（07）
 

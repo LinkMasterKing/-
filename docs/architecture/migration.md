@@ -44,7 +44,7 @@
 | `fromEv` | `fromEv` | 改新 ID；這 12 筆舊分段紀錄原樣保留，不轉成版本 |
 | `round`、`roundAt`、`touched`、`touchedAt` | 同名 | 原樣 |
 | （陣列順序） | `order` | 以原本在陣列中的位置 ×1000 |
-| | `version: 1`、`importBatch` | 同時建立 `cardVersions/{id}_1`（`imported: true`） |
+| | `version: 1`、`importBatch` | 同時建立 `cards/{id}/versions/1`（`imported: true`；01A-R 改成子集合） |
 
 ### 1.3 時間標記 `events[].times[]` → `events/{dept}__{timeId}`
 
@@ -75,7 +75,7 @@
 | 項目 | 數量 |
 |---|---|
 | `cards` | 50（權益部 42、活動部 7、社務部 1） |
-| `cardVersions` | 50 |
+| `cards/*/versions`（collection group） | 50 |
 | `issues` | 4 |
 | `weeks` | 11 |
 | `labels` | 1 |
@@ -99,6 +99,7 @@ function importing() {
     && get(doc('migrations', request.resource.data.importBatch)).data.status == 'running';
 }
 // 例：match /cards/{id} { allow create, update: if importing() || ...一般規則... }
+// 版本子集合的匯入分支另外要求 imported == true、version == 1，且同批的卡片也是 importing()（01A-R）
 ```
 
 - 流程：總管理員建立 `migrations/{batch}`（`status: 'running'`，有稽核）→ 匯入 → 驗證 → 改成 `done`（之後這個批次號就不能再用來寫入）。

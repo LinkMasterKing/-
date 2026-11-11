@@ -12,6 +12,7 @@
    - 10 個資料檔中有 7 個把 `sync.owner` 寫死成 `linkmasterking`，而 `cloudCfg()` 只要 `sync.owner` 有值就不再從網址判斷〔已確認：`core/js/cloud.js` 第 4～6 行；權益部、社務部、財務部、水果部、行銷部、公關部、工務部〕。
    - 細粒度權杖的範圍綁「資源擁有者」；repo 改由 Organization 持有後，以個人帳號為擁有者的權杖**應該**就碰不到它〔推論，待演練〕。
 4. **建議時機：在階段 02（Firebase 登入）之前移轉**，並把 [github-token-retirement.md](github-token-retirement.md) 的 T2（重發有到期日的權杖）合併在移轉當天做。這樣 Firebase 從第一天起就只認新網域，使用者只需要經歷一次網址變更，之後也不必搬 Firebase 授權網域。比較見第 1.1 節。
+5. **01A-R 更新**：開發計畫（`docs/upgrade-plan.md` 7.2）依你的指示把移轉排成最後的**階段 11**，等於下表的**時機 B**。本文件以時機 A 寫的步驟仍然適用，差別是：跳過權杖步驟 S7～S9（權杖已在 02D 作廢），改做第 3.4 節的 Firebase 授權網域搬移。要不要改回時機 A 見決策 D15（[README.md](README.md)）。
 
 ## 1. 操作順序
 

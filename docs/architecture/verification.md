@@ -51,7 +51,12 @@
 |---|---|---|
 | 正式規則全文（本資料夾的設計稿）能編譯、符合權限矩陣 | 01B | [permissions.md](permissions.md) |
 | 邀請／角色／稽核攻擊測試 I-01～I-30 | 01B | [invitations-roles-audit.md](invitations-roles-audit.md) 第 8 節 |
+| 邀請／角色／稽核攻擊測試 I-31～I-49（01A-R：QR 10 分鐘、撤銷、申請核准一致性、檢視者） | 01B | [invitations-roles-audit.md](invitations-roles-audit.md) 第 8 節 |
 | 預約攻擊與併發測試 B-01～B-23 | 01B 寫好；06 驗收時再跑 | [booking.md](booking.md) 第 5 節 |
+| 時段鎖刪除與私人忙碌測試 B-24～B-40（01A-R）；三種批次實際讀取次數 ≤ 20 | 01B | [booking.md](booking.md) 第 4、5 節 |
+| 卡片／版本可見性與一致性測試 C-01～C-20（01A-R） | 01B | [permissions.md](permissions.md) 第 5.1a 節 |
+| 子集合 `cards/{id}/versions` 的 `list` 規則用 `get(母卡片)` 能通過查詢檢查；collection group 規則與一般路徑規則同時存在時的行為 | 01B | [permissions.md](permissions.md) 第 5.1 節 |
+| `map.diff().affectedKeys() == [k].toSet()`、`map.values().hasOnly()` 在規則裡可用 | 01B | [invitations-roles-audit.md](invitations-roles-audit.md) 第 4 節 |
 | 核銷批次實際讀取次數 ≤ 20（含舊身分認領） | 01B | [invitations-roles-audit.md](invitations-roles-audit.md) 第 4 節 |
 | 規則裡 `x || y` 遇到錯誤（例如 `get` 不存在的文件）時的行為；設計目前都先 `exists` 再 `get` | 01B | |
 | 撤權後下一次寫入立即被拒；已開的監聽是否被收回 | 01B | |
@@ -64,10 +69,10 @@
 
 ## 5. 01B 工作清單（核准 01A 後才開始）
 
-1. 新增 `backend/`：`firestore.rules`（依本資料夾設計稿）、`firestore.indexes.json`、`firebase.json`（只有模擬器設定）、`package.json`（開發工具，不被網頁載入）、`tests/`（規則測試：權限矩陣、I-01～I-30、B-01～B-23）。
+1. 新增 `backend/`：`firestore.rules`（依本資料夾設計稿）、`firestore.indexes.json`、`firebase.json`（只有模擬器設定）、`package.json`（開發工具，不被網頁載入）、`tests/`（規則測試：權限矩陣、I-01～I-49、B-01～B-40、C-01～C-20）。
 2. 遷移程式（只讀資料檔）＋模擬器演練＋報告；驗收 V1～V8。
 3. 資料層轉接（`core/js/store-*.js`）與 `dept/config.js` 的 `source` 開關，預設全部 `github`，畫面不變。
 4. 更新 `docs/交接說明.md`、本資料夾（實測結果回填第 2 節）。
 5. 不建立 Firebase 專案、不連任何真的專案、不碰 `data*.json`。
 
-`CLAUDE.md` 的「不新增資料庫、建置工具」那一條要先依階段 00 第 9.1 節的草案修訂（你核准後才改），01B 才能新增 `backend/`。
+`CLAUDE.md` 的「不新增資料庫、建置工具」那一條已在 01A-R 依階段 00 第 9.1 節的草案修訂（跟本 PR 一起合併後生效）。01B 的其他前置條件見 [review-01A-R.md](review-01A-R.md) 第 5 節。

@@ -17,8 +17,8 @@
 | Q5 | 部門看板：最近刪除 | `cards` where `deptId == X` and `state == 'deleted'` order by `deletedAt DESC` | `deptId ASC, state ASC, deletedAt DESC` | L2 才能查 |
 | Q6 | 秘書處會議報告事項 | `cards` where `report == true` and `state == 'open'` | `report ASC, state ASC, deptId ASC` | L1 |
 | Q7 | 母議題底下的卡片 | `cards` where `issueId == X` and `state in ['open','done']` | `issueId ASC, state ASC` | L1 |
-| Q8 | 卡片版本歷史 | `cardVersions` where `cardId == X` order by `version DESC` | `cardId ASC, version DESC` | L1 |
-| Q9 | 會長室各部門編輯量 | `cardVersions` where `deptId == X` and `at >= 起` | `deptId ASC, at ASC` | L1 |
+| Q8 | 卡片版本歷史 | `cards/X/versions` order by `version DESC`（01A-R 改成子集合） | 單一欄位，免複合索引 | 卡片可讀時（已刪除卡片只有 L2） |
+| Q9 | 會長室各部門編輯量 | collection group `versions` where `deptId == X` and `at >= 起` | collection group：`deptId ASC, at ASC` | 總管理員或該部門編輯者（01A-R） |
 | Q10 | 母議題 | `issues` where `deptId == X` order by `order` | `deptId ASC, order ASC` | L1 |
 | Q11 | 週報 | `weeks` where `deptId == X` order by `date DESC` | `deptId ASC, date DESC` | L1 |
 | Q12 | 本部門行事曆 | `events` where `deptId == X` and `start` 範圍 | `deptId ASC, start ASC` | L1 |
@@ -45,7 +45,7 @@
 | 集合 | 欄位 | 原因 |
 |---|---|---|
 | `cards` | `blocks`、`legacyDesc`、`links`、`touched` | 大段文字或陣列，不拿來查詢 |
-| `cardVersions` | `blocks`、`times`、`title` | 快照內容 |
+| `versions`（collection group） | `blocks`、`times`、`title` | 快照內容 |
 | `issues` | `markers`、`note`、`links` | |
 | `weeks` | `text` | |
 | `meetingMinutes` | `items` | |
