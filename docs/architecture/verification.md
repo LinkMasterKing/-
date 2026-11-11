@@ -79,14 +79,14 @@
 
 ## 6. 01B 實測結果（2026-11-11，Firestore 模擬器，正式規則 `backend/firestore.rules`）
 
-執行：`cd backend && npm install && npm test`（規則＋遷移）、`npm run test:web`（網頁的資料來源開關）。全部只連本機模擬器（專案 ID `demo-stustsa-board`）。
+執行：`cd backend && npm install && npm test`（規則＋遷移，共 103 項，依序執行）、`npm run test:web`（網頁的資料來源開關）。全部只連本機模擬器（專案 ID `demo-stustsa-board`）。
 
 | 測試檔 | 內容 | 結果 |
 |---|---|---|
 | `tests/rules-cards.test.js` | 權限矩陣抽樣（每個集合）、時間事件、C-01～C-20 | 29 項通過 |
 | `tests/rules-invites.test.js` | I-01～I-49（含 I-02 四人同時核銷、I-36 撤銷對核銷、I-44 取消對核准，各重複 5 輪） | 38 項通過 |
 | `tests/rules-booking.test.js` | B-01～B-40（B-05 隨機併發 30 輪、B-33 管理者對一般帳號 10 輪）、預約的 I-43 | 26 項通過 |
-| `tests/migrate.test.js` | V1～V7、重跑、回復後重新匯入、非總管理員／已結束批次不能匯入、讀回來＝原始資料 | 6 項通過 |
+| `tests/migrate.test.js` | V1～V7、重跑、非總管理員／已結束批次不能匯入、讀回來＝原始資料；R1 回復（一般硬刪不能帶走版本、done 不能回復、只刪沒改過的、回復後版本仍不能刪、新批次重新匯入兩次不重複）、重置＋重新匯入 | 10 項通過 |
 | `tools/tests/fs1.js` | github／firestore／frozen 三種模式（活動部、權益部、會長室、秘書處） | 全部通過 |
 
 設計稿的待驗證項目，實測結論：
