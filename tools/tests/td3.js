@@ -6,9 +6,9 @@
    5. 後台管理員重置水果部：身分清空、留著 tokenAll、有 resetAt
    固定 8300 埠；本機不是 github.io，水果部的頁面先在瀏覽器放一份只有雲端位置的空白看板（線上會自動判斷） */
 const c=require('./common');(async()=>{const {b,mk,login,st,remote}=await c.setup();
-const API='https://api.github.com/repos/linkmasterking/-/contents/',ALLPW='fruit-test-password-2026';
+const API=c.API,ALLPW='fruit-test-password-2026';
 const fruitFile=()=>st.puts[API+'data-fruit.json'];
-const seedFruit=async p=>{await p.evaluate(()=>{localStorage.setItem('workboard:board-fruit',JSON.stringify({id:'board-fruit',issues:[],events:[],members:[],weeks:[],savedAt:'2000-01-01 00:00',sync:{owner:'linkmasterking',repo:'-',branch:'main',path:'data-fruit.json'}}))});await p.goto('http://127.0.0.1:8300/index.html?d=fruit');await p.waitForTimeout(2500)};
+const seedFruit=async p=>{await p.evaluate(([o,r])=>{localStorage.setItem('workboard:board-fruit',JSON.stringify({id:'board-fruit',issues:[],events:[],members:[],weeks:[],savedAt:'2000-01-01 00:00',sync:{owner:o,repo:r,branch:'main',path:'data-fruit.json'}}))},API.split('/repos/')[1].split('/').slice(0,2).map(decodeURIComponent));await p.goto('http://127.0.0.1:8300/index.html?d=fruit');await p.waitForTimeout(2500)};
 const dlg=p=>p.evaluate(()=>{const d=document.querySelector('#dlg[open]');return d?{t:(d.querySelector('#dlgForm>b')||{}).textContent,err:(d.querySelector('.dlg-err,.err')||{}).textContent||'',fields:[...d.querySelectorAll('input')].map(i=>i.name)}:null});
 /* 1 */
 const A=await mk(1300,900,'light',false);await A.evaluate(()=>localStorage.setItem('workboard:siteadmin','1'));await login(A);
