@@ -3,7 +3,7 @@
  "id": "board-main",
  "title": "權益部工作進度",
  "locked": false,
- "savedAt": "2026-11-12 17:00",
+ "savedAt": "2026-11-12 17:01",
  "range": {
   "start": "2026-09",
   "end": "2027-09"
@@ -1227,9 +1227,9 @@
    "kdf": "Dv2iWmbagR5nvbqObzHDSA==:+22LBOrErm7cKwpYBKULTNMjRzP32Rs2Daq95c8LWkw=",
    "createdAt": "2026-11-01 08:11",
    "tok": {
-    "s": "RX4xJ6RXesdX2hr5uC718g==",
-    "i": "N4thr2iHns+3W0T8",
-    "c": "Ay70qejViV0MPXBBqelTmbPvaxit5vJZQ6HzmtpKw5cnoA4Zbz4SQv0qjPpJ0AVdaZB9NH2/GScEQfKhMC/P+x22yyudxJLpjyoTJt3fPQlM8yOlrFc7c37+XA/O0FPr6jyJ8/05g1yqCODNkA=="
+    "s": "WAEGN3YWpYkX/Y4iUqv8jQ==",
+    "i": "CasvY+1Xa3Zh+bPK",
+    "c": "6cBQQgQaMc19S27fQQj6536b3z73lQ9TUFuG6uAauHK+r/p6F/QGP0xzUNrhnLOnLPlr+8eQ4s575sKg5N2qMMWGb2PgkbLLZn9iW9+IiUNA60lFListl8bTRW8OTRLYJaDnVDGxpXFeap8nlA=="
    }
   },
   {
