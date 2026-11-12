@@ -44,7 +44,7 @@
 | `fromEv` | `fromEv` | 改新 ID；這 12 筆舊分段紀錄原樣保留，不轉成版本 |
 | `round`、`roundAt`、`touched`、`touchedAt` | 同名 | 原樣 |
 | （陣列順序） | `order` | 以原本在陣列中的位置 ×1000 |
-| | `version: 1`、`importBatch` | 同時建立 `cardVersions/{id}_1`（`imported: true`） |
+| | `version: 1`、`importBatch` | 同時建立 `cards/{id}/versions/1`（`imported: true`；01A-R 改成子集合） |
 
 ### 1.3 時間標記 `events[].times[]` → `events/{dept}__{timeId}`
 
@@ -75,7 +75,7 @@
 | 項目 | 數量 |
 |---|---|
 | `cards` | 50（權益部 42、活動部 7、社務部 1） |
-| `cardVersions` | 50 |
+| `cards/*/versions`（collection group） | 50 |
 | `issues` | 4 |
 | `weeks` | 11 |
 | `labels` | 1 |
@@ -99,6 +99,7 @@ function importing() {
     && get(doc('migrations', request.resource.data.importBatch)).data.status == 'running';
 }
 // 例：match /cards/{id} { allow create, update: if importing() || ...一般規則... }
+// 版本子集合的匯入分支另外要求 imported == true、version == 1，且同批的卡片也是 importing()（01A-R）
 ```
 
 - 流程：總管理員建立 `migrations/{batch}`（`status: 'running'`，有稽核）→ 匯入 → 驗證 → 改成 `done`（之後這個批次號就不能再用來寫入）。
@@ -147,7 +148,8 @@ function importing() {
 | 時間點 | 回復方式 | 會不會掉資料 |
 |---|---|---|
 | 切換前 | 不合併或 revert | 不會 |
-| 某部門 `frozen` 中、匯入失敗 | 把 `source` 改回 `github`，刪掉那個批次匯入的文件（用 `importBatch` 找） | 不會，凍結期間沒有人寫 |
+| 某部門 `frozen` 中、匯入失敗 | 把 `source` 改回 `github`；批次改成 `rollingBack`，用 `rollbackImport` 刪掉那個批次匯入**而且沒被改過**的文件（卡片連同遷移產生的第 1 版、時間事件、議題、週報、標籤），完成後批次改成 `rolledBack`。有稽核鏈的文件（舊身分、部門設定、授權）不刪，重新匯入時內容相同就跳過。重新匯入用新的批次號，文件 ID 是決定性的，不會重複（01B R1，規則與測試見 `backend/`） | 不會，凍結期間沒有人寫；被改過的資料一律保留並列在報告 |
+| 模擬器演練 | 直接清空模擬器再匯入（不需要回復流程） | 不會 |
 | 某部門已切換、權杖還沒作廢 | `source` 改回 `github`；切換後的新修改用「匯出成 schemaVersion 13 的 JSON」，由你用看板的匯入備份寫回 | 不會（03 之前結構能一對一對回去） |
 | 權杖已作廢 | 從 Firestore 匯出備份還原到 Firestore；真的要回到 GitHub 寫入，再發一把新權杖 | 不會 |
 | 03 上線後退回 JSON | 逐行核取狀態會被攤平成文字 | 失去核取與行層級時間關聯，文字不會掉 |

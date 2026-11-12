@@ -52,7 +52,7 @@ T2、T3 會經過看板自己的「網站管理」流程寫入資料檔，那是
 |---|---|
 | C1 | 10 個部門都已切到 Firestore，而且至少連續 3 個工作天沒有任何部門切回 GitHub |
 | C2 | 至少做過一次 Firestore「匯出全部資料」，並在模擬器上還原成功 |
-| C3 | 會長室編輯量、編輯紀錄已改讀新來源（`cardVersions`、`auditLogs`），不再依賴 commit |
+| C3 | 會長室編輯量、編輯紀錄已改讀新來源（`cards/*/versions`、`auditLogs`），不再依賴 commit |
 | C4 | 回復方案已改成「從 Firestore 匯出還原」；確認作廢後還需要 GitHub 寫入時，是「再發一把新權杖」而不是沿用舊的 |
 
 作廢由你在 GitHub 上親自操作。作廢後：
