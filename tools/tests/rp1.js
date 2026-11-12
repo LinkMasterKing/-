@@ -2,6 +2,7 @@
 const {chromium}=require('playwright');const fs=require('fs');
 const FIX=new Date('2026-11-01T10:00:00+08:00').getTime();
 const URL=process.env.URL||'http://127.0.0.1:8300/index.html';
+const A=(ok,m)=>{if(!ok){console.log('FAIL:',m);process.exitCode=1}};   /* 2026-11-11：關鍵結果逐項判斷 */
 (async()=>{const b=await chromium.launch();
 let remote=JSON.parse(fs.readFileSync('data_test.json','utf8')),sha='s0',commits=[];
 for(const [w,h,sc,tag] of [[1300,860,'dark','d'],[412,915,'light','m']]){
@@ -23,19 +24,26 @@ for(const [w,h,sc,tag] of [[1300,860,'dark','d'],[412,915,'light','m']]){
   if(tag==='d'){await p.fill('#dlgForm input[name=pw]','0000');await ok();await p.waitForTimeout(500);
     await p.fill('#dlgForm input[name=name]','王小明');await p.fill('#dlgForm input[name=p1]','wang-password-1');await p.fill('#dlgForm input[name=p2]','wang-password-1');await ok();await p.waitForTimeout(2500);await (async()=>{for(let i=0;i<4;i++){await p.waitForTimeout(500);const t=await p.$eval('#dlg[open] #dlgForm>b',b=>b.textContent).catch(()=>'');if(/共用密碼太短|沒有連上雲端/.test(t))await p.click('#dlgForm [data-act=cancel]').catch(()=>{})}})();}   /* 2026-11-05：建立第一個身分後，共用密碼 0000 會請管理員換（team.js 的 sharedPwFix），測試先取消 */
   else{await p.fill('#dlgForm input[name=pw]','wang-password-1');await ok();await p.waitForTimeout(1500)}
+  /* 建立第一個身分、存完約 2.6 秒後才跳「部門共用密碼太短」（team.js 的 sharedPwFix）：等到它出現再取消，不要誤把它當成報告的對話框 */
+  for(let i=0;i<8;i++){const t=await p.$eval('#dlg[open] #dlgForm>b',b=>b.textContent).catch(()=>'');if(/共用密碼太短|沒有連上雲端/.test(t)){await p.click('#dlgForm [data-act=cancel]').catch(()=>{});await p.waitForTimeout(600)}else await p.waitForTimeout(500)}
+  A(await p.evaluate(()=>loggedIn()),tag+' logged in');
   await p.$eval('#setOv [data-set=report]',e=>e.scrollIntoView({block:'center'}));await p.waitForTimeout(150);
-  console.log(tag,'row:',await p.$eval('#setOv [data-set=report]',e=>e.textContent+'|'+e.getAttribute('aria-disabled')));
-  await p.click('#setOv [data-set=report]');await p.waitForTimeout(700);
-  console.log(tag,'dialog:',await p.evaluate(()=>[$('#dlgForm b').textContent,...[...document.querySelectorAll('#dlgForm input')].map(i=>i.name+'='+i.value)]));
+  const row=await p.$eval('#setOv [data-set=report]',e=>e.textContent+'|'+e.getAttribute('aria-disabled'));console.log(tag,'row:',row);A(/工作報告/.test(row)&&/\|null$/.test(row),tag+' report row');
+  /* 2026-11-06：「報告」是合併頁（nav.js 的 SET_HUBS.report：每週概述、工作報告），工作報告在裡面 */
+  await p.click('#setOv [data-set=report]');await p.waitForTimeout(900);
+  await p.click('.set-hub [data-hub=report]');await p.waitForTimeout(800);
+  const dl=await p.evaluate(()=>[$('#dlgForm b').textContent,...[...document.querySelectorAll('#dlgForm input')].map(i=>i.name+'='+i.value)]);console.log(tag,'dialog:',dl);A(/工作報告/.test(dl[0]),tag+' report dialog');
   await ok();await p.waitForTimeout(900);
-  console.log(tag,'report:',await p.evaluate(()=>({open:rptOpen,secs:[...document.querySelectorAll('.rpt-ch')].map(c=>c.querySelector('.rpt-ch-n').textContent+c.querySelector('h2').textContent),pages:[...document.querySelectorAll('.rpt-page')].map(x=>x.classList[1]).join(','),toc:[...document.querySelectorAll('.toc-list b')].map(x=>x.textContent).join('/'),issues:document.querySelectorAll('.rpt-issue').length,gantt:!!document.querySelector('.rpt-gantt svg'),stats:[...document.querySelectorAll('.rpt-stats b')].map(b=>b.textContent)})));
+  const rp=await p.evaluate(()=>({open:rptOpen,secs:[...document.querySelectorAll('.rpt-ch')].map(c=>c.querySelector('.rpt-ch-n').textContent+c.querySelector('h2').textContent),pages:[...document.querySelectorAll('.rpt-page')].map(x=>x.classList[1]).join(','),toc:[...document.querySelectorAll('.toc-list b')].map(x=>x.textContent).join('/'),issues:document.querySelectorAll('.rpt-issue').length,gantt:!!document.querySelector('.rpt-gantt svg'),stats:[...document.querySelectorAll('.rpt-stats b')].map(b=>b.textContent)}));console.log(tag,'report:',rp);
+  A(rp.open&&rp.secs.length===4&&/^rpt-cover,rpt-toc(,rpt-sec){4}$/.test(rp.pages)&&rp.toc.length>0,tag+' report pages: cover, toc, four chapters');
   await p.screenshot({path:`rp_${tag}_1.png`});
   // 改字、新增章節、移除章節（2026-11-06 改版：封面、目錄、各章）
   await p.click('.rpt-ch[data-k=free] .rpt-text');await p.keyboard.type('本期完成六宿停車場公告清理，與總務處建立固定回報窗口。');
   await p.click('#rptAdd');await p.waitForTimeout(500);await p.keyboard.type('附件與感謝');await p.keyboard.press('Tab');
   await p.evaluate(()=>{const t=[...document.querySelectorAll('.rpt-sec')].pop().querySelector('.rpt-text');t.focus()});await p.keyboard.type('感謝各位專員的協助。');
   await p.evaluate(()=>[...document.querySelectorAll('.rpt-sec')].find(s=>s.querySelector('h2').textContent==='下期規劃').querySelector('[data-chx]').click());await p.waitForTimeout(400);
-  console.log(tag,'after edit:',await p.evaluate(()=>[...document.querySelectorAll('.rpt-ch')].map(c=>c.querySelector('.rpt-ch-n').textContent+c.querySelector('h2').textContent)));
+  const ae=await p.evaluate(()=>[...document.querySelectorAll('.rpt-ch')].map(c=>c.querySelector('.rpt-ch-n').textContent+c.querySelector('h2').textContent));console.log(tag,'after edit:',ae);
+  A(ae.length===rp.secs.length&&ae.some(x=>/附件與感謝$/.test(x))&&!ae.some(x=>/下期規劃$/.test(x))&&ae.every((x,i)=>x.startsWith(String(i+1).padStart(2,'0'))),tag+' add/remove chapter');
   await p.screenshot({path:`rp_${tag}_2.png`,fullPage:false});
   if(tag==='d'){
     await p.evaluate(()=>document.activeElement&&document.activeElement.blur());await p.emulateMedia({media:'print'});
@@ -44,8 +52,8 @@ for(const [w,h,sc,tag] of [[1300,860,'dark','d'],[412,915,'light','m']]){
   }
   // 列印時 document.title 換成報告名稱、印完換回
   await p.evaluate(()=>{window.print=()=>{window.__pt=document.title;dispatchEvent(new Event('afterprint'))}});await p.click('#rptPrint');
-  console.log(tag,'print title:',await p.evaluate(()=>[window.__pt,document.title]));
-  await p.click('#rptClose');await p.waitForTimeout(500);
-  console.log(tag,'closed:',await p.evaluate(()=>({open:rptOpen,ov:!!document.querySelector('#rptOv'),cls:document.body.classList.contains('rpt-open'),set:setOpen})),'errs',errs);
+  const pt=await p.evaluate(()=>[window.__pt,document.title]);console.log(tag,'print title:',pt);A(pt[0]&&pt[0]!==pt[1],tag+' print title swapped and restored');
+  await p.click('#rptClose');await p.waitForFunction(()=>!document.querySelector('#rptOv'),null,{timeout:4000}).catch(()=>{});await p.waitForTimeout(200);   /* 關閉是換頁動畫（pagefx.js，2026-11-06 放慢），播完才移除 */
+  const cl=await p.evaluate(()=>({open:rptOpen,ov:!!document.querySelector('#rptOv'),cls:document.body.classList.contains('rpt-open'),set:setOpen}));console.log(tag,'closed:',cl,'errs',errs);A(!cl.open&&!cl.ov&&!cl.cls,tag+' closed');A(!errs.length,tag+' errors');
   await ctx.close();}
 await b.close()})();

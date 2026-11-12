@@ -1,12 +1,14 @@
 // 權限矩陣（抽樣每個集合）＋卡片／版本可見性與一致性 C-01～C-20（permissions.md 第 3、5.1a 節）
+// 02A：任何已登入的 Google 帳號都能讀內部看板（vw、nb 都是沒有任何權限的一般登入者）；刪除改成永久刪除（purging → 刪光）。
 import { describe, it, before, after, beforeEach } from 'node:test';
 import assert from 'node:assert/strict';
 import { env, google, anon, seed, seedRole, seedDepts, assertSucceeds, assertFails, NOW, TS,
-         createCard, editCard, cardData, verData, readDoc, audit, auditId } from './helpers.js';
+         createCard, editCard, cardData, verData, readDoc, audit, auditId,
+         purgeCard, purgeStartData, createCardWithEvents, eventData } from './helpers.js';
 
 let t;
 const U = { boss: { super: true }, ed: { depts: { rights: 'editor' } }, adm: { depts: { rights: 'admin' } },
-            ev: { depts: { events: 'editor' } }, sec: { depts: { secretariat: 'editor' } }, vw: { viewer: true } };
+            ev: { depts: { events: 'editor' } }, sec: { depts: { secretariat: 'editor' } }, vw: {} };
 before(async () => { t = await env(); });
 after(async () => { await t.cleanup(); });
 beforeEach(async () => {
@@ -32,7 +34,7 @@ describe('權限矩陣', () => {
   it('deptSettings：L1 讀；該部門管理員改（要 rev＋稽核）；編輯者、別部門不能', async () => {
     await seed(t, d => d.doc('deptSettings/rights').set({ title: 'A', rev: 1, updatedAt: TS.now(), updatedBy: 'boss' }));
     await assertFails(anon(t).doc('deptSettings/rights').get());
-    await assertFails(db('nb').doc('deptSettings/rights').get());
+    await assertSucceeds(db('nb').doc('deptSettings/rights').get());
     await assertSucceeds(db('vw').doc('deptSettings/rights').get());
     const w = (u, withAudit = true) => { const x = db(u), b = x.batch();
       b.set(x.doc('deptSettings/rights'), { title: 'B', rev: 2, updatedAt: NOW(), updatedBy: u });
@@ -50,7 +52,7 @@ describe('權限矩陣', () => {
     await assertFails(db('ed').doc('users/nb').get());
     await assertSucceeds(db('boss').doc('users/nb').get());
   });
-  it('profiles：本人寫 1～40 字；L1 讀；一般帳號只讀得到自己', async () => {
+  it('profiles：本人寫 1～40 字；任何登入者讀；未登入讀不到', async () => {
     await assertFails(db('nb').doc('profiles/nb').set({ displayName: '', updatedAt: NOW() }));
     await assertFails(db('nb').doc('profiles/nb').set({ displayName: 'x'.repeat(41), updatedAt: NOW() }));
     await assertSucceeds(db('nb').doc('profiles/nb').set({ displayName: '小明', updatedAt: NOW() }));
@@ -58,7 +60,8 @@ describe('權限矩陣', () => {
     await assertSucceeds(db('nb').doc('profiles/nb').get());
     await assertSucceeds(db('vw').doc('profiles/nb').get());
     await seed(t, d => d.doc('profiles/ed').set({ displayName: 'ed', updatedAt: TS.now() }));
-    await assertFails(db('nb').doc('profiles/ed').get());
+    await assertSucceeds(db('nb').doc('profiles/ed').get());
+    await assertFails(anon(t).doc('profiles/ed').get());
   });
   it('issues／weeks／labels：L1 讀、部門編輯者寫、deptId 不能改', async () => {
     const iss = u => ({ deptId: 'rights', title: '議題', rev: 1, updatedAt: NOW(), updatedBy: u });
@@ -66,7 +69,8 @@ describe('權限矩陣', () => {
     await assertFails(db('ev').doc('issues/i1').set(iss('ev')));
     await assertSucceeds(db('ed').doc('issues/i1').set(iss('ed')));
     await assertSucceeds(db('vw').doc('issues/i1').get());
-    await assertFails(db('nb').doc('issues/i1').get());
+    await assertSucceeds(db('nb').doc('issues/i1').get());
+    await assertFails(anon(t).doc('issues/i1').get());
     await assertFails(db('ed').doc('issues/i1').set({ ...iss('ed'), deptId: 'events', rev: 2 }));
     await assertSucceeds(db('ed').doc('issues/i1').set({ ...iss('ed'), title: '改', rev: 2 }));
     await assertSucceeds(db('ed').doc('weeks/w1').set({ deptId: 'rights', date: '2026-11-11', text: 'x', auto: false, createdAt: NOW(), updatedAt: NOW(), updatedBy: 'ed' }));
@@ -92,7 +96,8 @@ describe('權限矩陣', () => {
     await assertFails(w('boss', 8));
     await assertSucceeds(w('boss', 1));
     await assertSucceeds(db('vw').doc('grants/meetingEdit').get());
-    await assertFails(db('nb').doc('grants/meetingEdit').get());
+    await assertSucceeds(db('nb').doc('grants/meetingEdit').get());
+    await assertFails(anon(t).doc('grants/meetingEdit').get());
   });
   it('migrations、未列出的集合：一般人全部拒絕', async () => {
     await assertFails(db('adm').doc('migrations/b1').get());
@@ -104,11 +109,11 @@ describe('權限矩陣', () => {
 describe('時間事件', () => {
   const ev = (u, o = {}) => ({ deptId: 'rights', cardId: null, blockId: null, label: '開會', start: TS.fromMillis(Date.UTC(2026, 10, 20)),
     end: TS.fromMillis(Date.UTC(2026, 10, 20)), startRaw: '2026-11-20', endRaw: '2026-11-20', allDay: true, place: '', toIssue: false,
-    cardDeleted: false, scope: 'dept', visibility: 'internal', rev: 1, updatedAt: NOW(), updatedBy: u, ...o });
+    scope: 'dept', visibility: 'internal', rev: 1, updatedAt: NOW(), updatedBy: u, ...o });
   it('公開活動 L0 可讀、內部的不行；公開只有活動部與總管理員能發、而且只能有公開欄位', async () => {
     await assertFails(db('ed').doc('events/p1').set(ev('ed', { visibility: 'public', title: 't' })));
     const pub = u => ({ deptId: 'events', title: '迎新', summary: '', start: TS.fromMillis(Date.UTC(2026, 10, 20)), end: TS.fromMillis(Date.UTC(2026, 10, 20)),
-      allDay: true, place: '', scope: 'dept', visibility: 'public', cardDeleted: false, rev: 1, updatedAt: NOW(), updatedBy: u });
+      allDay: true, place: '', scope: 'dept', visibility: 'public', rev: 1, updatedAt: NOW(), updatedBy: u });
     await assertSucceeds(db('ev').doc('events/p1').set(pub('ev')));
     await assertFails(db('ev').doc('events/p2').set({ ...pub('ev'), label: '內文', cardId: 'c' }));
     await assertSucceeds(db('ed').doc('events/i1').set(ev('ed')));
@@ -128,13 +133,15 @@ describe('時間事件', () => {
 });
 
 describe('卡片與版本 C-01～C-20', () => {
-  async function deletedCard() {
+  // 02A：已刪除（state: 'deleted'）不存在了。永久刪除進行中的卡片是 purging，只有部門編輯者以上與總管理員讀得到
+  async function purgingCard() {
     await createCard(db('ed'), 'ed', 'c1');
     const cur = await readDoc(t, 'cards/c1');
-    await editCard(db('ed'), 'ed', 'c1', cur, { state: 'deleted', deletedAt: NOW(), deletedBy: 'ed' });
+    await editCard(db('ed'), 'ed', 'c1', cur, { title: '第二版' });
+    await db('ed').doc('cards/c1').set(purgeStartData(await readDoc(t, 'cards/c1'), 'ed', []));
   }
-  it('C-01～C-04 檢視者讀不到已刪除卡片與其版本（get、list、collection group）', async () => {
-    await deletedCard();
+  it('C-01～C-04 一般登入者讀不到刪除中的卡片與其版本（get、list、collection group）', async () => {
+    await purgingCard();
     await assertFails(db('vw').doc('cards/c1').get());                                   // C-01
     await assertFails(db('vw').doc('cards/c1/versions/1').get());                        // C-02
     await assertFails(db('vw').doc('cards/c1/versions/2').get());
@@ -145,27 +152,29 @@ describe('卡片與版本 C-01～C-20', () => {
     await assertFails(db('vw').collection('cards').where('deptId', '==', 'rights').get()); // 沒帶 state 條件
     await assertSucceeds(db('vw').collection('cards').where('deptId', '==', 'rights').where('state', 'in', ['open', 'done']).get());
   });
-  it('C-05 同部門編輯者讀已刪除卡片與版本；總管理員讀硬刪後留下的版本', async () => {
-    await deletedCard();
+  it('C-05 同部門編輯者讀得到刪除中的卡片與版本（接續清除用）；清除完任何人（含總管理員）都讀不到殘留', async () => {
+    await purgingCard();
     await assertSucceeds(db('ed').doc('cards/c1').get());
     await assertSucceeds(db('ed').doc('cards/c1/versions/2').get());
     await assertSucceeds(db('ed').collection('cards/c1/versions').get());
-    await assertSucceeds(db('ed').collectionGroup('versions').where('deptId', '==', 'rights').get());
-    await assertSucceeds(db('boss').doc('cards/c1').delete());
-    await assertSucceeds(db('boss').doc('cards/c1/versions/1').get());
-    await assertFails(db('ed').doc('cards/c1/versions/1').get());
+    await assertSucceeds(db('ed').collection('cards').where('deptId', '==', 'rights').where('state', '==', 'purging').get());
+    await purgeCard(db('ed'), 'ed', 'c1');
+    for (const p of ['cards/c1', 'cards/c1/versions/1', 'cards/c1/versions/2']) assert.equal(await readDoc(t, p), undefined, p + ' 不應殘留');
   });
-  it('C-06 別部門編輯者讀已刪除卡片的版本：拒絕', async () => {
-    await deletedCard();
+  it('C-06 別部門編輯者讀刪除中的卡片與版本：拒絕', async () => {
+    await purgingCard();
     await assertFails(db('ev').doc('cards/c1/versions/1').get());
     await assertFails(db('ev').doc('cards/c1').get());
   });
-  it('C-07 復原後檢視者讀得到版本', async () => {
-    await deletedCard();
+  it('C-07（02A 修正）刪除不能復原：purging 改回 open／done、或在刪除中再寫新版本：拒絕', async () => {
+    await purgingCard();
     const cur = await readDoc(t, 'cards/c1');
-    await assertSucceeds(editCard(db('ed'), 'ed', 'c1', cur, { state: 'open', deletedAt: null, deletedBy: null }));
-    await assertSucceeds(db('vw').doc('cards/c1/versions/2').get());
-    await assertSucceeds(db('vw').collection('cards/c1/versions').get());
+    await assertFails(editCard(db('ed'), 'ed', 'c1', cur, { state: 'open', deletedAt: null, deletedBy: null }));
+    await assertFails(editCard(db('adm'), 'adm', 'c1', cur, { state: 'open', deletedAt: null, deletedBy: null }));
+    await assertFails(editCard(db('boss'), 'boss', 'c1', cur, { state: 'done', doneAt: NOW(), deletedAt: null, deletedBy: null }));
+    await assertFails(editCard(db('ed'), 'ed', 'c1', cur, { title: '偷改' }));
+    await assertFails(db('ed').doc('cards/c1').update({ state: 'open', updatedAt: NOW(), updatedBy: 'ed' }));
+    await assertFails(db('ed').doc('cards/c1').update({ order: 9, updatedAt: NOW(), updatedBy: 'ed' }));
   });
   it('C-08 改內容不寫版本：拒絕', async () => {
     await createCard(db('ed'), 'ed', 'c1');
@@ -192,11 +201,15 @@ describe('卡片與版本 C-01～C-20', () => {
     await assertFails(db('ed').doc('cards/c1/versions/2').set(verData('ed', 'c1', { ...cur, version: 2 })));
     await assertFails(db('ed').doc('cards/c1/versions/1').set(verData('ed', 'c1', cur)));
   });
-  it('C-12 硬刪後同 ID 重建、沿用留下的 versions/1：拒絕', async () => {
+  it('C-12 版本必須同批新建：總管理員不能直接刪卡片留下版本；有殘留版本時用同 ID 重建：拒絕；永久刪除後重建：成功', async () => {
     await createCard(db('ed'), 'ed', 'c1');
-    await db('boss').doc('cards/c1').delete();
+    await assertFails(db('boss').doc('cards/c1').delete());                              // 02A：沒有「只刪卡片」的硬刪
+    await seed(t, async d => { await d.doc('cards/c1').delete(); });                     // 等同主控台誤刪，留下 versions/1
     await assertFails(db('ed').doc('cards/c1').set(cardData('ed')));
     await assertFails(createCard(db('ed'), 'ed', 'c1'));
+    await createCard(db('ed'), 'ed', 'c2');
+    await purgeCard(db('ed'), 'ed', 'c2');
+    await assertSucceeds(createCard(db('ed'), 'ed', 'c2'));
   });
   it('C-13 修改或刪除版本（含總管理員）：拒絕', async () => {
     await createCard(db('ed'), 'ed', 'c1');
@@ -246,72 +259,75 @@ describe('卡片與版本 C-01～C-20', () => {
     cur = await readDoc(t, 'cards/r1');
     await assertFails(editCard(db('sec'), 'sec', 'r1', cur, { report: false }));          // 只能改內容
   });
-  it('C-17 沒有角色的登入者讀看板內容：拒絕', async () => {
+  it('C-17（02A 修正）沒有角色的登入者讀得到看板內容；未登入讀不到', async () => {
     await createCard(db('ed'), 'ed', 'c1');
     await seed(t, async d => { await d.doc('issues/i1').set({ deptId: 'rights', title: 'x', rev: 1 });
       await d.doc('slots/p_1').set({ ownerId: 'p', idx: 1, ref: 'r' }); await d.doc('profiles/ed').set({ displayName: 'ed' });
-      await d.doc('events/e1').set({ deptId: 'rights', visibility: 'internal', cardDeleted: false }); });
-    for (const p of ['cards/c1', 'issues/i1', 'events/e1', 'profiles/ed', 'slots/p_1', 'cards/c1/versions/1'])
-      await assertFails(db('nb').doc(p).get());
-    await assertFails(db('nb').collection('cards').where('state', 'in', ['open', 'done']).get());
+      await d.doc('events/e1').set({ deptId: 'rights', visibility: 'internal' }); });
+    for (const p of ['cards/c1', 'issues/i1', 'events/e1', 'profiles/ed', 'slots/p_1', 'cards/c1/versions/1']) {
+      await assertSucceeds(db('nb').doc(p).get());
+      await assertFails(anon(t).doc(p).get());
+    }
+    await assertSucceeds(db('nb').collection('cards').where('state', 'in', ['open', 'done']).get());
+    await assertFails(anon(t).collection('cards').where('state', 'in', ['open', 'done']).get());
   });
-  it('C-18 檢視者寫任何看板內容：拒絕', async () => {
+  it('C-18 一般登入者寫任何看板內容：拒絕', async () => {
     await assertFails(createCard(db('vw'), 'vw', 'c1'));
     await assertFails(db('vw').doc('issues/i1').set({ deptId: 'rights', title: 'x', rev: 1, updatedAt: NOW(), updatedBy: 'vw' }));
     await assertFails(db('vw').doc('weeks/w1').set({ deptId: 'rights', date: '', text: 'x', auto: false, createdAt: NOW(), updatedAt: NOW(), updatedBy: 'vw' }));
     await assertFails(db('vw').doc('labels/l1').set({ deptId: 'rights', kind: '人', name: 'x', updatedAt: NOW(), updatedBy: 'vw' }));
-    await assertFails(db('vw').doc('events/e1').set({ deptId: 'rights', start: TS.now(), end: TS.now(), allDay: false, cardDeleted: false, scope: 'dept', visibility: 'internal', rev: 1, updatedAt: NOW(), updatedBy: 'vw' }));
+    await assertFails(db('vw').doc('events/e1').set({ deptId: 'rights', start: TS.now(), end: TS.now(), allDay: false, scope: 'dept', visibility: 'internal', rev: 1, updatedAt: NOW(), updatedBy: 'vw' }));
     await seed(t, d => d.doc('deptSettings/rights').set({ title: 'A', rev: 1 }));
     const x = db('vw'), b = x.batch();
     b.set(x.doc('deptSettings/rights'), { title: 'B', rev: 2, updatedAt: NOW(), updatedBy: 'vw' });
     b.set(x.doc(auditId('deptSettings', 'rights', 2)), audit('deptSettings', 'rights', 2, 'vw'));
     await assertFails(b.commit());
   });
-  it('C-19 撤掉檢視者後下一次讀取被拒；已開的監聽也收到錯誤', async () => {
-    await createCard(db('ed'), 'ed', 'c1');
-    await assertSucceeds(db('vw').doc('cards/c1').get());
-    const q = db('vw').collection('cards').where('state', 'in', ['open', 'done']);
+  it('C-19（02A 修正）撤掉部門角色後：仍然讀得到（登入就能讀）、下一次寫入被拒；已開的監聽繼續收到更新', async () => {
+    await seedRole(t, 'ex', { depts: { rights: 'editor' } });
+    await createCard(db('ex'), 'ex', 'c1');
+    const q = db('ex').collection('cards').where('state', 'in', ['open', 'done']);
     const events = [];
     const unsub = q.onSnapshot(s => events.push('snap:' + s.size), e => events.push('error:' + e.code));
     await new Promise(r => setTimeout(r, 500));
-    await seedRole(t, 'vw', { viewer: false, rev: 2, lastVia: 'revoke' });
-    await assertFails(db('vw').doc('cards/c1').get());
-    // 觸發監聽重新評估：卡片有變動
+    await seedRole(t, 'ex', { depts: {}, rev: 2, lastVia: 'revoke' });
+    await assertSucceeds(db('ex').doc('cards/c1').get());
     const cur = await readDoc(t, 'cards/c1');
-    await editCard(db('ed'), 'ed', 'c1', cur, { title: '撤權後的修改' });
+    await assertFails(editCard(db('ex'), 'ex', 'c1', cur, { title: '撤權後的修改' }));
+    await assertSucceeds(editCard(db('ed'), 'ed', 'c1', cur, { title: '別人的修改' }));
     await new Promise(r => setTimeout(r, 1500));
     unsub();
     console.log('C-19 監聽紀錄：', events.join(', '));
-    assert.equal(events[0], 'snap:1');
-    assert.ok(events.includes('error:permission-denied'), '監聽應該被收回');
-    assert.equal(events.filter(e => e.startsWith('snap')).length, 1, '撤權後不應再收到新快照');
+    assert.ok(!events.some(e => e.startsWith('error')), '讀取沒有被收回');
   });
-  it('C-20 時間事件的 cardDeleted 必須等於批次後母卡片狀態', async () => {
+  it('C-20（02A 修正）時間事件要列在批次後母卡片的 timeIds、跟卡片同部門、卡片不在刪除中；cardId 不能改', async () => {
     await createCard(db('ed'), 'ed', 'c1');
-    const ev = (u, del) => ({ deptId: 'rights', cardId: 'c1', blockId: null, label: 'x', start: TS.now(), end: TS.now(), startRaw: '', endRaw: '',
-      allDay: false, place: '', toIssue: false, cardDeleted: del, scope: 'dept', visibility: 'internal', rev: 1, updatedAt: NOW(), updatedBy: u });
-    await assertFails(db('ed').doc('events/e1').set(ev('ed', true)));
-    await assertSucceeds(db('ed').doc('events/e1').set(ev('ed', false)));
-    // 刪除卡片時同一批把時間事件標 cardDeleted
-    const cur = await readDoc(t, 'cards/c1'), x = db('ed');
-    const c = { ...cur, state: 'deleted', deletedAt: NOW(), deletedBy: 'ed', version: 2, updatedAt: NOW(), updatedBy: 'ed' };
+    await assertFails(db('ed').doc('events/e1').set(eventData('ed', 'c1')));             // 卡片沒列
+    await assertFails(db('ed').doc('events/e1').set(eventData('ed', 'nope')));           // 卡片不存在
+    const x = db('ed'); let cur = await readDoc(t, 'cards/c1');
+    const c = { ...cur, timeIds: ['e1'], version: 2, updatedAt: NOW(), updatedBy: 'ed' };
     let b = x.batch();
     b.set(x.doc('cards/c1'), c); b.set(x.doc('cards/c1/versions/2'), verData('ed', 'c1', c));
-    b.set(x.doc('events/e1'), { ...ev('ed', false), rev: 2 });                               // 沒標
+    b.set(x.doc('events/e1'), eventData('ed', 'c1', { deptId: 'events' }));              // 別部門
     await assertFails(b.commit());
     b = x.batch();
     b.set(x.doc('cards/c1'), c); b.set(x.doc('cards/c1/versions/2'), verData('ed', 'c1', c));
-    b.set(x.doc('events/e1'), { ...ev('ed', true), rev: 2 });
+    b.set(x.doc('events/e1'), eventData('ed', 'c1'));
     await assertSucceeds(b.commit());
-    await assertFails(db('vw').doc('events/e1').get());
-    await assertSucceeds(db('ed').doc('events/e1').get());
-    await assertSucceeds(db('vw').collection('events').where('deptId', '==', 'rights').where('cardDeleted', '==', false).get());
+    await assertFails(x.doc('events/e1').update({ cardId: 'c9', rev: 2, updatedAt: NOW(), updatedBy: 'ed' }));
+    await assertFails(x.doc('events/e1').update({ cardId: null, rev: 2, updatedAt: NOW(), updatedBy: 'ed' }));
+    await assertSucceeds(db('vw').collection('events').where('deptId', '==', 'rights').get());
+    // 刪除中的卡片不能再掛時間事件
+    cur = await readDoc(t, 'cards/c1');
+    await assertSucceeds(x.doc('cards/c1').set(purgeStartData(cur, 'ed', ['e1', 'e2'].slice(0, 1))));
+    await assertFails(x.doc('events/e2').set(eventData('ed', 'c1')));
   });
   it('狀態轉換：完成要 doneAt＝現在；刪除要 deletedBy＝自己', async () => {
     await createCard(db('ed'), 'ed', 'c1');
     const cur = await readDoc(t, 'cards/c1');
     await assertFails(editCard(db('ed'), 'ed', 'c1', cur, { state: 'done', doneAt: TS.fromMillis(0) }));
-    await assertFails(editCard(db('ed'), 'ed', 'c1', cur, { state: 'deleted', deletedAt: NOW(), deletedBy: 'adm' }));
+    await assertFails(db('ed').doc('cards/c1').set(purgeStartData(cur, 'adm', [])));            // 開始刪除要 deletedBy＝自己
+    await assertFails(editCard(db('ed'), 'ed', 'c1', cur, { state: 'deleted', deletedAt: NOW(), deletedBy: 'ed' }));   // 02A：沒有 deleted 狀態
     await assertSucceeds(editCard(db('ed'), 'ed', 'c1', cur, { state: 'done', doneAt: NOW() }));
     await assertFails(db('ed').doc('cards/c1').update({ order: 5, title: 'x', updatedAt: NOW(), updatedBy: 'ed' }));
     await assertSucceeds(db('ed').doc('cards/c1').update({ order: 5, updatedAt: NOW(), updatedBy: 'ed' }));

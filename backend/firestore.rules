@@ -1,8 +1,8 @@
 rules_version = '2';
-// 南臺科大學生會工作看板：Cloud Firestore Security Rules（階段 01B）
+// 南臺科大學生會工作看板：Cloud Firestore Security Rules（階段 01B，02A 修正）
 // 設計依據：docs/architecture/permissions.md、invitations-roles-audit.md、booking.md、migration.md。
 // 原則：預設拒絕；授權一律在這裡判斷（前端只負責顯示）；角色每次請求都從 roles/{uid} 讀（撤權立刻生效）。
-// 測試：backend/tests/（權限矩陣、C-01～C-20、I-01～I-49、B-01～B-40、遷移）。
+// 測試：backend/tests/（權限矩陣、C-01～C-20、I-01～I-49、B-01～B-40、N-01～N-17、遷移）。
 service cloud.firestore {
   match /databases/{database}/documents {
 
@@ -15,10 +15,9 @@ service cloud.firestore {
     function me()           { return request.auth.uid; }
     function hasRole()      { return signedIn() && exists(doc('roles', me())); }
     function role()         { return get(doc('roles', me())).data; }
-    // L1（已授權檢視者以上，D1 定案〔啟用前核准〕）：viewer、super、或任何部門角色
-    function internalReader() { return hasRole() && ( role().get('viewer', false) == true
-                                                   || role().get('super', false) == true
-                                                   || role().get('depts', {}).size() > 0 ); }
+    // L1 內部看板（02A 定案，取代 01A-R 的已授權檢視者）：任何已登入的 Google 帳號都能唯讀，不需審核。
+    // 秘書處點名名單（attendance*、meetingMinutes）與會長私人行程（busyBlocks、bookings）不適用，各自另有限制。
+    function internalReader() { return signedIn(); }
     function isSuper()      { return hasRole() && role().get('super', false) == true; }
     function deptRole(d)    { return hasRole() ? role().get('depts', {}).get(d, null) : null; }
     function isEditor(d)    { return d is string && deptRole(d) in ['admin', 'editor']; }
@@ -79,10 +78,9 @@ service cloud.firestore {
       allow list: if isSuper();
       allow delete: if false;
 
-      function roleOk() {                                                        // viewer 邀請沒有部門
-        return (d().role == 'viewer' && d().deptId == null)
-            || (d().role in ['admin', 'editor'] && d().deptId is string && d().deptId in deptIds()
-                && exists(doc('departments', d().deptId)));
+      function roleOk() {                                                        // 02A：沒有 viewer 邀請（登入就能讀）
+        return d().role in ['admin', 'editor'] && d().deptId is string && d().deptId in deptIds()
+            && exists(doc('departments', d().deptId));
       }
       allow create: if isSuper()                                                  // D3：只有會長室發邀請
         && h.matches('^[0-9a-f]{64}$')
@@ -118,9 +116,8 @@ service cloud.firestore {
 
     // ===================== 角色 =====================
     match /roles/{uid} {
-      function roleKeys()  { return ['super', 'viewer', 'depts', 'rev', 'lastVia', 'lastRef', 'updatedAt', 'updatedBy']; }
+      function roleKeys()  { return ['super', 'depts', 'rev', 'lastVia', 'lastRef', 'updatedAt', 'updatedBy']; }
       function oldSuper()  { return resource == null ? false : resource.data.get('super', false); }
-      function oldViewer() { return resource == null ? false : resource.data.get('viewer', false); }
       function oldDepts()  { return resource == null ? {} : resource.data.get('depts', {}); }
       function deptsDelta() { return d().depts.diff(oldDepts()); }
       function onlyDeptAdded(dept, r) {
@@ -133,7 +130,7 @@ service cloud.firestore {
       function baseShape() {
         return d().keys().hasOnly(roleKeys()) && d().depts is map
           && d().depts.keys().hasOnly(deptIds()) && d().depts.values().hasOnly(['admin', 'editor'])
-          && d().get('super', false) is bool && d().get('viewer', false) is bool
+          && d().get('super', false) is bool
           && d().lastRef is string;
       }
 
@@ -146,9 +143,7 @@ service cloud.firestore {
       }
       function inviteGrant() {
         return d().get('super', false) == oldSuper()
-          && ( (inv().role == 'viewer' && d().depts == oldDepts() && d().viewer == true && oldViewer() == false)
-            || (inv().role != 'viewer' && d().get('viewer', false) == oldViewer()
-                && onlyDeptAdded(inv().deptId, inv().role)) );                    // 已在該部門有角色就不能核銷
+          && onlyDeptAdded(inv().deptId, inv().role);                             // 已在該部門有角色就不能核銷
       }
 
       // ---- 總管理員：manual／request／revoke ----
@@ -166,14 +161,12 @@ service cloud.firestore {
         return rb.status == 'pending' && ra.status == 'approved' && ra.decidedBy == me()
           && rb.uid == uid
           && d().get('super', false) == oldSuper()
-          && ( (rb.role == 'viewer' && d().viewer == true && d().depts == oldDepts())
-            || (rb.role != 'viewer' && d().get('viewer', false) == oldViewer() && onlyDeptSet(rb.deptId, rb.role)) );
+          && onlyDeptSet(rb.deptId, rb.role);
       }
-      // 撤權只能拿掉部門或把 super／viewer 改成 false；降級 admin → editor 走 manual
+      // 撤權只能拿掉部門或把 super 改成 false；降級 admin → editor 走 manual
       function onlyRemoves() {
         return deptsDelta().addedKeys().size() == 0 && deptsDelta().changedKeys().size() == 0
-          && (d().get('super', false) == false || oldSuper() == true)
-          && (d().get('viewer', false) == false || oldViewer() == true);
+          && (d().get('super', false) == false || oldSuper() == true);
       }
 
       allow get:  if signedIn() && (uid == me() || isSuper());
@@ -191,9 +184,8 @@ service cloud.firestore {
       allow list: if isSuper() || (signedIn() && resource.data.uid == me());
       allow create: if signedIn() && d().uid == me() && d().status == 'pending' && d().rev == 1
         && d().keys().hasOnly(['uid', 'deptId', 'role', 'note', 'legacyRef', 'status', 'rev', 'createdAt', 'updatedAt', 'updatedBy'])
-        && ( (d().role == 'viewer' && d().deptId == null)
-          || (d().role in ['admin', 'editor'] && d().deptId is string && d().deptId in deptIds()
-              && exists(doc('departments', d().deptId))) )
+        && d().role in ['admin', 'editor'] && d().deptId is string && d().deptId in deptIds()   // 02A：不再申請檢視資格
+        && exists(doc('departments', d().deptId))
         && d().createdAt == request.time && stamped() && auditAfter('roleRequests', id, 1);
       allow update: if revNext() && auditAfter('roleRequests', id, d().rev) && stamped() && (
           (resource.data.uid == me() && resource.data.status == 'pending' && d().status == 'cancelled'
@@ -217,10 +209,9 @@ service cloud.firestore {
       function target() { return getAfter(doc(a().col, a().docId)).data; }
       function before() { return get(doc(a().col, a().docId)).data; }
       function rolesOk() {
-        return a().after == { 'super': target().get('super', false), 'viewer': target().get('viewer', false), 'depts': target().depts }
+        return a().after == { 'super': target().get('super', false), 'depts': target().depts }
           && (a().rev == 1 ? a().before == {}
                            : a().before == { 'super': before().get('super', false),
-                                             'viewer': before().get('viewer', false),
                                              'depts': before().get('depts', {}) });
       }
       function statusOk() {                                                       // 有 status 的集合
@@ -272,6 +263,13 @@ service cloud.firestore {
     }
 
     // ===================== 即時回報卡片（permissions.md 第 5.1 節） =====================
+    // 02A：刪除＝永久刪除，卡片連同全部版本與時間事件一起移除；不做軟刪除、不能復原。
+    // 規則沒有迴圈、整批讀取有上限，所以永久刪除分成三步（一張卡片版本少時可以全部放同一批）：
+    //   ① 開始：open／done → purging。不可逆；之後只有部門編輯者以上與總管理員讀得到（給前端接續清除）。
+    //   ② 清除（可以多批）：時間事件——卡片的 timeIds 列出它全部的時間事件（建立事件時規則要求列在裡面），
+    //      從 timeIds 拿掉一個 ID 時，那份事件必須同一批刪掉；版本——由新往舊刪（刪第 v 版時第 v+1 版必須已經不在），
+    //      所以剩下的版本永遠是 1～k。
+    //   ③ 刪卡片：timeIds 必須是空的、第 1 版必須已經不在 ⇒ 版本與時間事件都沒有殘留。
     match /cards/{id} {
       function cardKeys() {
         return ['deptId', 'title', 'blocks', 'timeIds', 'issueId', 'staff', 'labels', 'links', 'report',
@@ -282,30 +280,55 @@ service cloud.firestore {
         return d().keys().hasOnly(cardKeys())
           && d().keys().hasAll(['deptId', 'title', 'blocks', 'state', 'version', 'report', 'updatedAt', 'updatedBy'])
           && d().deptId in deptIds() && d().title is string && d().title.size() <= 500
-          && d().blocks is list && d().state in ['open', 'done', 'deleted']
-          && d().version is int && d().report is bool;
+          && d().blocks is list && d().state in ['open', 'done', 'purging']
+          && d().version is int && d().report is bool
+          && d().get('timeIds', []) is list;
       }
       function verDoc()   { return /databases/$(database)/documents/cards/$(id)/versions/$(string(d().version)); }
+      function verGone(n) { return !existsAfter(/databases/$(database)/documents/cards/$(id)/versions/$(string(n))); }
       // 版本一定要「在這一批新建」，不接受已存在的舊版本（C-12）
       function verAfter() { return !exists(verDoc()) && existsAfter(verDoc()); }
+      function live()     { return resource.data.state in ['open', 'done']; }
       function stateMove() {
         let o = resource.data.state;
         let n = d().state;
         return (o == n && unchanged(['doneAt', 'deletedAt', 'deletedBy']))
           || (o == 'open' && n == 'done' && d().doneAt == request.time)
-          || (o == 'done' && n == 'open' && d().doneAt == null)
-          || (o in ['open', 'done'] && n == 'deleted' && d().deletedAt == request.time && d().deletedBy == me())
-          || (o == 'deleted' && n == 'open' && d().deletedAt == null && d().deletedBy == null);
+          || (o == 'done' && n == 'open' && d().doneAt == null);
       }
-      function editorEdit()  { return deptWriter(resource.data.deptId) && stamped()
-                                 && d().version == resource.data.version + 1 && verAfter() && stateMove(); }
+      // 從 timeIds 拿掉的時間事件必須同一批刪掉（不留沒有卡片追蹤的事件）。規則沒有迴圈：一批最多拿掉 3 個
+      function evDoc(x)    { return doc('events', x); }
+      function dropped()   { return resource.data.get('timeIds', []).removeAll(d().get('timeIds', [])); }
+      function droppedGone() {
+        let x = dropped();
+        return x.size() == 0
+          || (x.size() <= 3 && !existsAfter(evDoc(x[0]))
+              && (x.size() < 2 || !existsAfter(evDoc(x[1]))) && (x.size() < 3 || !existsAfter(evDoc(x[2]))));
+      }
+      function onlyShrinks() { return resource.data.get('timeIds', []).hasAll(d().get('timeIds', [])) && droppedGone(); }
+
+      function editorEdit()  { return live() && deptWriter(resource.data.deptId) && stamped()
+                                 && d().version == resource.data.version + 1 && verAfter() && stateMove() && droppedGone(); }
       // 秘書處會議編輯：報告事項、授權未到期、只改內容
-      function meetingEdit() { return isEditor('secretariat') && resource.data.report == true
+      function meetingEdit() { return live() && isEditor('secretariat') && resource.data.report == true
                                  && get(doc('grants', 'meetingEdit')).data.until > request.time
                                  && onlyChanged(['title', 'blocks', 'timeIds', 'version', 'updatedAt', 'updatedBy'])
-                                 && stamped() && d().version == resource.data.version + 1 && verAfter(); }
-      function reorder()     { return deptWriter(resource.data.deptId)
+                                 && stamped() && d().version == resource.data.version + 1 && verAfter() && droppedGone(); }
+      function reorder()     { return live() && deptWriter(resource.data.deptId)
                                  && onlyChanged(['order', 'updatedAt', 'updatedBy']) && stamped(); }
+      // 永久刪除 ①：開始（可以同一批先刪掉最多 3 個時間事件）。刪除權限＝該部門編輯者以上、總管理員
+      function purgeStart()  { return live() && deptWriter(resource.data.deptId) && d().state == 'purging'
+                                 && onlyChanged(['state', 'deletedAt', 'deletedBy', 'timeIds', 'updatedAt', 'updatedBy'])
+                                 && d().deletedAt == request.time && d().deletedBy == me() && stamped() && onlyShrinks(); }
+      // 永久刪除 ②：清除時間事件（版本的清除在 versions 的 delete 規則）
+      function purgeSweep()  { return resource.data.state == 'purging' && d().state == 'purging' && deptWriter(resource.data.deptId)
+                                 && onlyChanged(['timeIds', 'updatedAt', 'updatedBy']) && stamped() && onlyShrinks(); }
+      // 永久刪除 ③：沒有任何時間事件與版本留下才能刪卡片
+      function purgeFinish() { return resource.data.state == 'purging' && deptWriter(resource.data.deptId)
+                                 && resource.data.get('timeIds', []).size() == 0 && verGone(1); }
+      // 遷移失敗回復（01B R1）：批次 rollingBack、匯入後沒被改過、第 1 版同批刪；它的時間事件由總管理員接著刪
+      function rollbackDelete() { return isSuper() && resource.data.get('importBatch', null) is string && resource.data.version == 1
+                                    && get(doc('migrations', resource.data.importBatch)).data.status == 'rollingBack' && verGone(1); }
       function normalCreate() {
         return deptWriter(d().deptId) && !d().keys().hasAny(['importBatch', 'legacyDesc'])
           && d().state == 'open' && d().version == 1
@@ -317,21 +340,23 @@ service cloud.firestore {
           && stamped();
       }
 
-      allow get:  if internalReader() && (resource.data.state != 'deleted' || deptWriter(resource.data.deptId));
+      allow get:  if internalReader() && (resource.data.state != 'purging' || deptWriter(resource.data.deptId));
       allow list: if internalReader() && (resource.data.state in ['open', 'done'] || deptWriter(resource.data.deptId));
       allow create: if cardShape() && (normalCreate() || importCreate()) && verAfter();
       allow update: if cardShape() && unchanged(['deptId', 'createdAt', 'createdBy', 'importBatch', 'legacyDesc'])
-        && (editorEdit() || meetingEdit() || reorder());
-      allow delete: if isSuper();
+        && (editorEdit() || meetingEdit() || reorder() || purgeStart() || purgeSweep());
+      allow delete: if purgeFinish() || rollbackDelete();
 
-      // 版本歷史：子集合，讀取條件跟母卡片相同；只能隨卡片新增
+      // 版本歷史：子集合，讀取條件跟母卡片相同；只能隨卡片新增；只能隨永久刪除由新往舊刪
       match /versions/{v} {
-        function card()      { return get(doc('cards', id)).data; }
-        function cardAfter() { return getAfter(doc('cards', id)).data; }
+        function cardRef()   { return doc('cards', id); }
+        function card()      { return get(cardRef()).data; }
+        function cardAfter() { return getAfter(cardRef()).data; }
         function nv()        { return request.resource.data; }
         function sameAsCard() {
           return nv().keys().hasOnly(['cardId', 'deptId', 'version', 'title', 'blocks', 'times', 'state', 'by', 'at', 'imported', 'importBatch'])
             && nv().cardId == id && v == string(nv().version)
+            && cardAfter().state in ['open', 'done']
             && cardAfter().version == nv().version
             && nv().deptId == cardAfter().deptId
             && nv().title  == cardAfter().title
@@ -342,28 +367,22 @@ service cloud.firestore {
         }
         // 遷移產生的第 1 版：總管理員、卡片在同一批以 running 批次新建
         function importVersion() {
-          return nv().imported == true && nv().version == 1 && isSuper() && !exists(doc('cards', id))
+          return nv().imported == true && nv().version == 1 && isSuper() && !exists(cardRef())
             && cardAfter().get('importBatch', null) is string && nv().get('importBatch', null) == cardAfter().importBatch
             && get(doc('migrations', cardAfter().importBatch)).data.status == 'running';
         }
         allow get, list: if isSuper()
-          || (internalReader() && exists(doc('cards', id))
-              && (card().state != 'deleted' || isEditor(card().deptId)));
+          || (internalReader() && exists(cardRef())
+              && (card().state != 'purging' || isEditor(card().deptId)));
         allow create: if signedIn() && sameAsCard()
           && ((nv().imported == false && !nv().keys().hasAny(['importBatch'])) || importVersion());
         allow update: if false;
-        // 版本歷史不能修改、不能刪除（含總管理員、含一般的卡片硬刪）。
-        // 唯一例外是遷移失敗回復（R1，使用者 2026-11-11 決定）：只限
-        //   ① 遷移產生的第 1 版（imported == true）且標記了批次 importBatch；
-        //   ② 那個批次已經由總管理員改成 rollingBack（有稽核紀錄；只有 running／failed 的批次能進入回復）；
-        //   ③ 母卡片也是同一個批次匯入、匯入後沒被改過（version == 1），而且在同一批被刪掉。
-        // 被使用者改過的卡片（版本 ≥ 2）、一般版本、正常業務資料都不適用。
-        allow delete: if isSuper() && resource.data.imported == true
-          && resource.data.get('importBatch', null) is string
-          && get(doc('migrations', resource.data.importBatch)).data.status == 'rollingBack'
-          && exists(doc('cards', id)) && card().get('importBatch', null) == resource.data.importBatch
-          && card().version == 1
-          && !existsAfter(doc('cards', id));
+        // 版本不能修改；不能單獨刪除（含總管理員）。只有母卡片在批次後是 purging、或在這一批被刪掉時才能刪
+        // （卡片規則保證只有 purging 的卡片或遷移失敗回復能刪），刪的人要有該部門的刪除權限，
+        // 而且由新往舊刪：第 v+1 版在批次後必須不存在。
+        allow delete: if deptWriter(resource.data.deptId)
+          && (existsAfter(cardRef()) ? cardAfter().state == 'purging' : exists(cardRef()))
+          && !existsAfter(/databases/$(database)/documents/cards/$(id)/versions/$(string(int(v) + 1)));
       }
     }
 
@@ -409,20 +428,20 @@ service cloud.firestore {
     match /events/{id} {
       function eventKeys() {
         return ['deptId', 'cardId', 'blockId', 'label', 'start', 'end', 'startRaw', 'endRaw', 'allDay', 'place',
-                'toIssue', 'cardDeleted', 'scope', 'visibility', 'title', 'summary', 'rev', 'updatedAt', 'updatedBy', 'importBatch'];
+                'toIssue', 'scope', 'visibility', 'title', 'summary', 'rev', 'updatedAt', 'updatedBy', 'importBatch'];
       }
       function eventShape() {
         return d().keys().hasOnly(eventKeys())
-          && d().keys().hasAll(['deptId', 'start', 'end', 'allDay', 'cardDeleted', 'scope', 'visibility', 'rev', 'updatedAt', 'updatedBy'])
+          && d().keys().hasAll(['deptId', 'start', 'end', 'allDay', 'scope', 'visibility', 'rev', 'updatedAt', 'updatedBy'])
           && d().deptId in deptIds() && d().start is timestamp && d().end is timestamp && d().end >= d().start
-          && d().allDay is bool && d().cardDeleted is bool
+          && d().allDay is bool
           && d().scope in ['dept', 'all-activity', 'all-meeting'] && d().visibility in ['internal', 'public'];
       }
       // 公開事件整份對外公開：只能有公開欄位，不放卡片內文
       function publicShape() {
         return d().keys().hasOnly(['deptId', 'title', 'summary', 'start', 'end', 'allDay', 'place', 'scope', 'visibility',
-                                   'cardDeleted', 'rev', 'updatedAt', 'updatedBy'])
-          && d().title is string && d().cardDeleted == false;
+                                   'rev', 'updatedAt', 'updatedBy'])
+          && d().title is string;
       }
       function scopeOk() { return d().scope == (resource == null ? 'dept' : resource.data.scope)
                                || d().scope == 'dept'
@@ -431,30 +450,41 @@ service cloud.firestore {
                                || isSuper(); }
       function visOk()   { return d().visibility == 'internal'
                                || ((isEditor('events') || isSuper()) && publicShape()); }   // D4
-      // D14：cardDeleted 必須等於批次後母卡片是否已刪除
+      // 02A：屬於卡片的時間事件一定要列在批次後母卡片的 timeIds（永久刪除時靠它確認全部刪光）、
+      // 跟卡片同部門、卡片不在刪除中
+      function cardRef() { return doc('cards', d().cardId); }
       function cardOk()  { return d().get('cardId', null) == null
-                               || !existsAfter(doc('cards', d().cardId))
-                               || d().cardDeleted == (getAfter(doc('cards', d().cardId)).data.state == 'deleted'); }
+                               || (d().cardId is string && existsAfter(cardRef())
+                                   && getAfter(cardRef()).data.deptId == d().deptId
+                                   && getAfter(cardRef()).data.state in ['open', 'done']
+                                   && id in getAfter(cardRef()).data.get('timeIds', [])); }
       function meetingEditOfReportedCard() {
         return isEditor('secretariat') && resource.data.get('cardId', null) is string
           && get(doc('cards', resource.data.cardId)).data.report == true
           && get(doc('grants', 'meetingEdit')).data.until > request.time
           && onlyChanged(['label', 'start', 'end', 'startRaw', 'endRaw', 'allDay', 'place', 'toIssue', 'rev', 'updatedAt', 'updatedBy']);
       }
+      // 刪除（該部門編輯者以上）：屬於卡片的事件只能 (a) 隨永久刪除（母卡片批次後是 purging，或在這一批被刪掉），
+      // 或 (b) 編輯卡片時同批從 timeIds 拿掉；不屬於卡片的事件只有總管理員能刪（03 再定）。
+      function evCard()   { return doc('cards', resource.data.cardId); }
+      function withCard() {
+        return resource.data.get('cardId', null) is string && deptWriter(resource.data.deptId)
+          && (existsAfter(evCard())
+                ? (getAfter(evCard()).data.state == 'purging' || !(id in getAfter(evCard()).data.get('timeIds', [])))
+                : exists(evCard()));
+      }
 
-      allow get, list: if resource.data.visibility == 'public'
-        || (internalReader() && (resource.data.get('cardDeleted', false) == false
-                                 || deptWriter(resource.data.deptId)));
+      allow get, list: if resource.data.visibility == 'public' || internalReader();
       allow create: if deptWriter(d().deptId) && eventShape() && scopeOk() && visOk() && cardOk()
         && d().rev == 1 && stamped();
-      allow update: if eventShape() && unchanged(['deptId', 'importBatch']) && stamped() && revNext() && (
+      allow update: if eventShape() && unchanged(['deptId', 'cardId', 'importBatch']) && stamped() && revNext() && (
              (deptWriter(resource.data.deptId) && scopeOk() && visOk() && cardOk())
           || (isEditor('events')      && onlyChanged(['scope', 'rev', 'updatedAt', 'updatedBy'])
                                       && d().scope in ['dept', 'all-activity'])
           || (isEditor('secretariat') && onlyChanged(['scope', 'rev', 'updatedAt', 'updatedBy'])
                                       && d().scope in ['dept', 'all-meeting'])
           || meetingEditOfReportedCard() );
-      allow delete: if isSuper();
+      allow delete: if isSuper() || withCard();
     }
 
     // ===================== 秘書處會議編輯授權 =====================

@@ -2,7 +2,7 @@
    1. github 模式（預設）跟改動前一樣能讀、能進編輯（現有測試另外跑）
    2. firestore 模式：從 Firestore 模擬器讀回來的內容＝github 模式讀資料檔的內容；整個看板唯讀
    3. frozen 模式：照樣讀資料檔，但唯讀，persist／秘書處寫回／自動開通都不寫
-   4. 沒有檢視資格的帳號：讀不到，畫面提示要登入
+   4. 未登入：讀不到，畫面提示要登入；任何已登入的 Google 帳號（沒有任何角色）：讀得到（02A 定案）
    執行（會自己開模擬器與網站）：cd backend && npm run test:web
    只連本機 Firestore 模擬器；Firebase SDK 從 backend/node_modules 供應（route 掉 gstatic），不連外。 */
 const {chromium}=require('playwright');const fs=require('fs');const path=require('path');const http=require('http');
@@ -24,8 +24,7 @@ let fails=0;const ok=(c,m)=>{console.log((c?'通過 ':'失敗 ')+m);if(!c)fails+
   await t.clearFirestore();
   const tok=(uid)=>({sub:uid,user_id:uid,email:uid+'@example.test',email_verified:true,firebase:{sign_in_provider:'google.com',identities:{}}});
   await t.withSecurityRulesDisabled(async c=>{const d=c.firestore();
-    await d.doc('roles/su').set({super:true,viewer:false,depts:{},rev:1,lastVia:'manual',lastRef:'bootstrap',updatedBy:'su',updatedAt:firebase.firestore.Timestamp.now()});
-    await d.doc('roles/vw').set({super:false,viewer:true,depts:{},rev:1,lastVia:'manual',lastRef:'bootstrap',updatedBy:'su',updatedAt:firebase.firestore.Timestamp.now()})});
+    await d.doc('roles/su').set({super:true,depts:{},rev:1,lastVia:'manual',lastRef:'bootstrap',updatedBy:'su',updatedAt:firebase.firestore.Timestamp.now()});});   /* vw 沒有 roles 文件：一般登入者 */
   const mig=await import(path.join(ROOT,'backend/migrate/run.js'));
   const sdb=t.authenticatedContext('su',tok('su')).firestore();
   const src=mig.loadSources();
@@ -40,7 +39,7 @@ let fails=0;const ok=(c,m)=>{console.log((c?'通過 ':'失敗 ')+m);if(!c)fails+
     await ctx.route(`http://127.0.0.1:${PORT}/dept/config.js*`,r=>{let s=cfgSrc;
       if(source!=='github')s=s.replace(new RegExp(`(\\{ id: "${dept}",[^\\n]*?)( \\},?\\n)`),`$1, source: "${source}"$2`);
       s=s.replace('firebase: { apiKey: "", authDomain: "", projectId: "", appId: "" }',
-        `firebase: { apiKey: "demo", authDomain: "", projectId: "demo-stustsa-board", appId: "", emulator: { host: "${h}", port: ${pt}, mockUserToken: ${JSON.stringify(tok(user||'vw'))} } }`);
+        `firebase: { apiKey: "demo", authDomain: "", projectId: "demo-stustsa-board", appId: "", emulator: { host: "${h}", port: ${pt}, mockUserToken: ${user===null?'null':JSON.stringify(tok(user||'vw'))} } }`);
       r.fulfill({contentType:'text/javascript',body:s})});
     const p=await ctx.newPage();p.errs=[];p.toasts=[];p.puts=puts;p.on('pageerror',e=>p.errs.push(e.message));
     await p.exposeFunction('__toast',m=>p.toasts.push(m));
@@ -73,9 +72,9 @@ let fails=0;const ok=(c,m)=>{console.log((c?'通過 ':'失敗 ')+m);if(!c)fails+
   ok(z.toasts.some(x=>x.includes('搬到新資料庫，暫停編輯')),'frozen：提示暫停編輯');
   ok(await z.evaluate(()=>deptSourceOf('rights')==='github'&&deptSourceOf('secretariat')==='frozen'),'frozen：只影響設定的那個部門');
   await z.ctx.close();
-  /* 沒有檢視資格的帳號 */
-  const n=await open('events','firestore','nobody');
-  ok(n.snap.data.includes('"ev":[]')&&n.toasts.some(x=>x.includes('要登入才能看')),'沒有檢視資格：讀不到內容、提示要登入');
+  /* 未登入：讀不到、提示要登入（上面的 firestore 模式都是用沒有任何角色的一般登入帳號 vw 讀的） */
+  const n=await open('events','firestore',null);
+  ok(n.snap.data.includes('"ev":[]')&&n.toasts.some(x=>x.includes('要登入才能看')),'未登入：讀不到內容、提示要登入');
   await n.ctx.close();
   await b.close();await t.cleanup();srv.close();
   console.log(fails?`失敗 ${fails} 項`:'全部通過');process.exit(fails?1:0);

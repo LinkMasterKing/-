@@ -1,40 +1,43 @@
-/* se1：編輯的分區規則（2026-11-05 改）。權益部看板：即時回報、進度、完成紀錄都是「點欄位直接改」，頁首「編輯」後三區的編輯工具一起出現，
-   看板上沒有任何「編輯這區」；取消後全部回檢視、再進編輯時又一起出現。（會長室「追蹤」的「編輯這區」由 mt1.js 涵蓋）
-   桌面 1300 與手機 412。固定 8300 埠 */
-const {chromium}=require('playwright');const fs=require('fs');
-(async()=>{const b=await chromium.launch();
-let remote=JSON.parse(fs.readFileSync('data_v5.json','utf8')),sha='s0';
+/* se1：編輯的範圍規則。2026-11-06 起是「單卡編輯」（render.js 的 cardEdit）：頁首沒有「編輯」、看板上沒有「編輯這區」；
+   沒登入看不到任何編輯工具；登入後按一張卡片自己的「編輯」→ 只有那一張出現逐欄編輯工具（其他區、其他張都沒有，其他「編輯」鈕藏起來）；
+   甘特圖時間軸是整區編輯（"s:gantt"）；取消後全部回檢視、再按「編輯」又只在那一張出現。
+   （2026-11-11 從「按頁首編輯後三區一起出現」改寫成現在的規則；會長室「追蹤」由 mt1.js 涵蓋）桌面 1300 與手機 412。固定 8300 埠 */
+const c=require('./common');
+(async()=>{let bad=0;
 for(const [w,h,tag] of [[1300,900,'d'],[412,900,'m']]){
-remote=JSON.parse(fs.readFileSync('data_v5.json','utf8'));sha='s0';
-const ctx=await b.newContext({viewport:{width:w,height:h},colorScheme:'dark',serviceWorkers:'block'});
-await ctx.route('https://fonts.googleapis.com/**',r=>r.fulfill({contentType:'text/css',body:''}));
-await ctx.route('https://api.github.com/**',async r=>{const q=r.request(),u=q.url();if(u.includes('/commits?'))return r.fulfill({status:200,contentType:'application/json',body:'[]'});
- if(q.method()==='GET')return r.fulfill({status:200,contentType:'application/json',body:JSON.stringify({sha,content:Buffer.from(JSON.stringify(remote)).toString('base64')})});
- const bd=JSON.parse(q.postData());remote=JSON.parse(Buffer.from(bd.content,'base64').toString());sha='s'+Date.now();return r.fulfill({status:200,contentType:'application/json',body:JSON.stringify({content:{sha}})})});
-const p=await ctx.newPage();const errs=[];p.on('pageerror',e=>errs.push(e.message));
-await p.goto('http://127.0.0.1:8300/index.html');await p.waitForTimeout(1800);
+const {b,mk,login}=await c.setup(__dirname+'/data_v5.json');
+const p=await mk(w,h,'dark',tag==='m');await p.waitForFunction(()=>!document.getElementById('splash'),null,{timeout:8000}).catch(()=>{});
 await p.evaluate(()=>localStorage.setItem('workboard:ghtoken','T'));
-const st=()=>p.evaluate(()=>{const vis=s=>[...document.querySelectorAll(s)].filter(x=>x.offsetParent!==null).length;
-  return {editing,secs:[...secEdit].join(','),btns:vis('[data-secedit]'),btnTxt:[...document.querySelectorAll('[data-secedit]')].map(x=>x.dataset.secedit+':'+x.textContent+':'+x.getAttribute('aria-pressed')).join(' '),
-   evDel:vis('#events .ev-del'),pens:document.querySelectorAll('#events [data-evpen]').length,addEv:vis('#addEvent'),evTools:document.querySelectorAll('#events .ev-tools').length,range:vis('.range'),addIssue:vis('#addIssue'),doneDel:vis('#doneList .ev-del')}});
-let bad=0;const ok=(c,m)=>{console.log((c?'OK  ':'FAIL')+' '+tag+' '+m);if(!c)bad++};
-const tools=s=>s.evDel>0&&s.pens>0&&s.range>0&&s.addIssue>0;
-let s0=await st();ok(!s0.editing&&s0.evDel===0&&s0.pens===0&&s0.addIssue===0,'檢視中沒有編輯工具');
-await p.click('#editBtn');await p.waitForTimeout(400);
-await p.fill('#dlgForm input[name=pw]','0000').catch(()=>{});await p.click('#dlgForm [data-act=ok]');await p.waitForTimeout(500);
-await p.fill('#dlgForm input[name=name]','王').catch(()=>{});await p.fill('#dlgForm input[name=p1]','password-long-1').catch(()=>{});await p.fill('#dlgForm input[name=p2]','password-long-1').catch(()=>{});await p.click('#dlgForm [data-act=ok]').catch(()=>{});await p.waitForTimeout(1500);await (async()=>{for(let i=0;i<4;i++){await p.waitForTimeout(500);const t=await p.$eval('#dlg[open] #dlgForm>b',b=>b.textContent).catch(()=>'');if(/共用密碼太短|沒有連上雲端/.test(t))await p.click('#dlgForm [data-act=cancel]').catch(()=>{})}})();   /* 2026-11-05：建立第一個身分後，共用密碼 0000 會請管理員換（team.js 的 sharedPwFix），測試先取消 */
-/* 手機一次只顯示一區：range、addIssue 在進度區，先各看一次 */
-const all=async()=>{const a=await st();if(tag!=='m')return a;await p.evaluate(()=>setSection('progress',{instant:true}));await p.waitForTimeout(400);const b2=await st();
-  await p.evaluate(()=>setSection('done',{instant:true}));await p.waitForTimeout(400);const c=await st();await p.evaluate(()=>setSection('live',{instant:true}));await p.waitForTimeout(400);
-  return {...a,range:b2.range,addIssue:b2.addIssue,doneDel:c.doneDel}};
-let s1=await all();
-ok(s1.editing&&tools(s1)&&s1.doneDel>0,'按「編輯」後三區的編輯工具一起出現 '+JSON.stringify(s1));
-ok(s1.btns===0,'權益部看板沒有「編輯這區」');
-await p.click('#cancelBtn');await p.waitForTimeout(800);
-let s2=await st();ok(!s2.editing&&s2.evDel===0&&s2.pens===0,'取消後回檢視');
-await p.click('#editBtn');await p.waitForTimeout(800);if(await p.$('#dlg[open]')){await p.fill('#dlgForm input[type=password]','password-long-1').catch(()=>{});await p.click('#dlgForm [data-act=ok]').catch(()=>{});await p.waitForTimeout(900)}
-let s3=await all();ok(s3.editing&&tools(s3),'再進編輯時又一起出現');
-ok(!errs.length,'沒有錯誤 '+errs.join(' | '));
+const ok=(c,m)=>{console.log((c?'OK  ':'FAIL')+' '+tag+' '+m);if(!c)bad++};
+const sec=async k=>{await p.evaluate(k=>{setSection(k,{instant:true});if(k==='progress')progShow(null)},k);await p.waitForTimeout(500)};
+/* box：正在編輯的那張（data-edbox）；手機一次只顯示一區，進度區的工具切過去再看 */
+const st=async box=>{const r=await p.evaluate(box=>{const V=x=>x.checkVisibility({visibilityProperty:true}),vis=s=>[...document.querySelectorAll(s)].filter(V).length;
+  const inBox=x=>box&&(x.closest(`[data-edbox="${box}"]`)||x.closest('#evDetail.sec-edit,#evDetail .sec-edit'));
+  return {editing,cardEdit,secBtns:document.querySelectorAll('[data-secedit]').length,headerEdit:!!document.getElementById('editBtn'),
+   pens:[...document.querySelectorAll('[data-evpen],[data-ifpen]')].filter(V).length,pensOut:[...document.querySelectorAll('[data-evpen],[data-ifpen]')].filter(x=>V(x)&&!inBox(x)).length,
+   evDel:vis('#events [data-evdel],#evDetail [data-evdel]'),editBtns:vis('.card-edit-btn'),addEv:vis('#addEvent'),bars:vis('.card-edbar')}},box);
+  if(tag==='m'){const cur=await p.evaluate(()=>curSec);await sec('progress');const r2=await p.evaluate(()=>{const V=x=>x.checkVisibility({visibilityProperty:true});return {range:[...document.querySelectorAll('.range')].filter(V).length,addIssue:[...document.querySelectorAll('#addIssue')].filter(V).length,ganttBtn:[...document.querySelectorAll('#ganttEdBtn')].filter(V).length}});await sec(cur);return {...r,...r2}}
+  return {...r,...await p.evaluate(()=>{const V=x=>x.checkVisibility({visibilityProperty:true});return {range:[...document.querySelectorAll('.range')].filter(V).length,addIssue:[...document.querySelectorAll('#addIssue')].filter(V).length,ganttBtn:[...document.querySelectorAll('#ganttEdBtn')].filter(V).length}})}};
+let s0=await st();ok(!s0.editing&&!s0.headerEdit&&s0.pens===0&&s0.evDel===0&&s0.editBtns===0&&s0.addIssue===0&&s0.range===0,'沒登入：沒有任何編輯工具、頁首沒有「編輯」 '+JSON.stringify(s0));
+await login(p);
+await sec('live');
+const id=await p.evaluate(()=>liveOrder()[0].id);
+let s1=await st();ok(!s1.editing&&s1.pens===0&&s1.addIssue>0&&s1.ganttBtn>0&&s1.secBtns===0,'登入後：還沒有編輯中的卡片，新增鈕與卡片「編輯」出現，沒有「編輯這區」 '+JSON.stringify(s1));
+const startEv=async()=>{await p.click(`.ev[data-ev="${id}"]>summary`);await p.waitForTimeout(800);await p.click(w<1000?`.ev[data-ev="${id}"] .card-edit-btn`:'#evDetail .card-edit-btn');await p.waitForTimeout(800)};
+await startEv();
+let s2=await st('e:'+id);ok(s2.editing&&s2.cardEdit==='e:'+id&&s2.pens>0&&s2.pensOut===0&&s2.evDel===1&&s2.bars===1,'按一張即時回報的「編輯」：只有那一張出現編輯工具 '+JSON.stringify(s2));
+ok(s2.editBtns===0&&s2.addEv===0&&s2.addIssue===0&&s2.range===0&&s2.ganttBtn===0,'編輯中：其他「編輯」、新增鈕藏起來，甘特圖時間軸不在編輯');
+await p.click('.card-edbar [data-edcancel]');await p.waitForTimeout(800);
+let s3=await st();ok(!s3.editing&&s3.pens===0&&s3.evDel===0&&s3.bars===0,'取消後回檢視 '+JSON.stringify(s3));
+/* 甘特圖時間軸：整區編輯 */
+await sec('progress');await p.click('#ganttEdBtn');await p.waitForTimeout(700);
+let s4=await st('s:gantt');ok(s4.editing&&s4.cardEdit==='s:gantt'&&s4.range>0&&s4.evDel===0&&s4.pensOut===0,'甘特圖「編輯」：只有時間軸那一區 '+JSON.stringify(s4));
+await p.click('#pvGantt [data-edcancel]');await p.waitForTimeout(700);
+await sec('live');await p.evaluate(()=>{openEv.clear();selEv=null;render()});await p.waitForTimeout(400);
+await startEv();
+let s5=await st('e:'+id);ok(s5.editing&&s5.cardEdit==='e:'+id&&s5.pens>0&&s5.pensOut===0,'再按「編輯」時又只在那一張出現 '+JSON.stringify(s5));
+await p.click('.card-edbar [data-edcancel]');await p.waitForTimeout(600);
+ok(!p.errs.length,'沒有錯誤 '+p.errs.join(' | '));
+await b.close()}
 if(bad)process.exitCode=1;
-await ctx.close()}
-await b.close()})();
+})();

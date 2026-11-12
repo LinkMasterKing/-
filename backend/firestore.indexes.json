@@ -69,24 +69,6 @@
       "queryScope": "COLLECTION",
       "fields": [
         {
-          "fieldPath": "deptId",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "state",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "deletedAt",
-          "order": "DESCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "cards",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
           "fieldPath": "report",
           "order": "ASCENDING"
         },
@@ -162,38 +144,6 @@
       "fields": [
         {
           "fieldPath": "deptId",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "start",
-          "order": "ASCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "events",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "deptId",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "cardDeleted",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "start",
-          "order": "ASCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "events",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "cardDeleted",
           "order": "ASCENDING"
         },
         {
