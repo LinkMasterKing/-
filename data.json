@@ -3,7 +3,7 @@
  "id": "board-main",
  "title": "權益部工作進度",
  "locked": false,
- "savedAt": "2026-11-12 17:02",
+ "savedAt": "2026-11-13 12:24",
  "range": {
   "start": "2026-09",
   "end": "2027-09"
@@ -776,7 +776,7 @@
   {
    "id": "emwanenep6fe1",
    "name": "衛生棉補給站點",
-   "desc": "目前補給盒已見底\n\n11/12前往衛保組確認\n\n123455567890",
+   "desc": "目前補給盒已見底\n\n11/12前往衛保組確認",
    "createdAt": "2026-11-10",
    "staff": [
     "mmvz4b7d5emiy"
@@ -786,9 +786,10 @@
    "round": 1,
    "touched": [
     "2026-11-10",
-    "2026-11-12"
+    "2026-11-12",
+    "2026-11-13"
    ],
-   "touchedAt": "2026-11-12T17:02",
+   "touchedAt": "2026-11-13T12:22",
    "issueId": "imvpc1cuefjii",
    "report": true,
    "labels": []
@@ -1176,6 +1177,39 @@
    "touchedAt": "2026-11-10T21:54",
    "labels": [],
    "report": false
+  },
+  {
+   "id": "emweeyqztkjhd",
+   "name": "第 1 組 馬英九還我牛",
+   "desc": "覽趴",
+   "createdAt": "2026-11-13",
+   "staff": [
+    "mmvx2r1i3ffnm",
+    "mmvz4b7d5emiy"
+   ],
+   "links": [],
+   "times": [],
+   "round": 1,
+   "touched": [
+    "2026-11-13"
+   ],
+   "touchedAt": "2026-11-13T11:25",
+   "labels": [],
+   "report": false
+  },
+  {
+   "id": "emweh3lc3kjoh",
+   "name": "55555555555",
+   "desc": "55",
+   "createdAt": "2026-11-13",
+   "staff": [],
+   "links": [],
+   "times": [],
+   "round": 1,
+   "touched": [
+    "2026-11-13"
+   ],
+   "touchedAt": "2026-11-13T12:24"
   }
  ],
  "yearLabel": "115學年",
@@ -1212,9 +1246,9 @@
    "c": "8Hh4DyZJ+lqHEKTPZX1pPl1EggomqyDXqqla6zDffsw5Zd8L/Tv6fcK/MP76qHj1QzsHnKmgcUW2d/v40pNpJGWIZJf/EaK/n98RE0YIc+oewnJuoWO8/pyctfShmmf0YAXfVcYN7HaHpEM55Q=="
   },
   "tokenAll": {
-   "s": "vsgueMzNUwvvzQHfRE47SA==",
-   "i": "wLDcQOxst2LJ0iBq",
-   "c": "bGsYuK7a4Ec/DKPSyTcCl4/cSOa0jmz7+ahBTEY+fYLvzfT5wfM1zazjK6Ym4U0l/B2tQyN8GvFLePLKajF4PZFXJhpwQzEySInNLhUHgRaVXobMY5oj2SE/slybn+wABkj0yZExkusp0/L+8g=="
+   "s": "Dt0dxgLoR2ZWHOD4XA/jmg==",
+   "i": "O2Kev3fyzYV0N7C7",
+   "c": "aN2uc+MrRSeLAx6OmD6FxQRVtbxQap15uH+/7IuBBWF5wBCp0pB+eP97mjNih4iaU/RZIvdA0hSLmNorwfw+yIXYWcbPX3FZAmkDIJoN8vwAiCO5sTsn9DfMIn4Qj5TOpGrfJQKdW9cQX7lapA=="
   }
  },
  "pwKdf": "rQfwjiQjTGPRWifOAuO0bw==:vsYYW5+doH1lk3vytEhM89Wm9AuZDXTvwdShkCssLXs=",

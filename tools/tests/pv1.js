@@ -1,5 +1,5 @@
 /* pv1：開通部門（provision.js）與新的登入提示、錯誤視窗。固定 8300 埠。
-   網站用 https://linkmasterking.github.io/-/ 這個網址打開（route 轉到本機 8300），這樣沒有資料檔的新部門也會照正式網站的方式連雲端；
+   網站用 github.io 網址打開（預設 https://linkmasterking.github.io/-/，可用環境變數 SITE 換，例如 SITE=https://stustsa.github.io/council/；route 轉到本機 8300），這樣沒有資料檔的新部門也會照正式網站的方式連雲端；
    GitHub API 用一個假的檔案庫模擬（GET 回檔案或 404、PUT 檢查 sha）。
    A：有權杖的管理員在權益部開通行銷部（新建）與活動部（重設）；初始密碼太短時視窗裡出現紅字、不關。
    B：沒有權杖的新裝置打開行銷部 → 初始密碼（錯的有紅字）→ 建立身分（第一位管理員）→ 自動連上雲端 → 換成部門自己的共用密碼 → 存回雲端。
@@ -11,11 +11,12 @@ const {chromium}=require('playwright');const fs=require('fs');
 const store={'data.json':JSON.parse(fs.readFileSync(__dirname+'/data_test.json','utf8')),'data-events.json':{schemaVersion:9,id:'board-events',title:'活動部工作進度',members:[{id:'mx',name:'法屎',role:'admin',kdf:'a:b',createdAt:''}],issues:[],events:[],weeks:[]}};
 delete store['data.json'].sync;
 const sha={};let n=0;Object.keys(store).forEach(k=>sha[k]='s'+(n++));const commits=[];
-const SITE='https://linkmasterking.github.io/-/';
+const SITE=process.env.SITE||'https://linkmasterking.github.io/-/';
+const REPO=(u=>{const x=new URL(u);return x.hostname.split('.')[0]+'/'+x.pathname.split('/').filter(Boolean)[0]})(SITE),apiHits=[];
 const mk=async(w)=>{const ctx=await b.newContext({viewport:{width:w,height:900},serviceWorkers:'block'});
   await ctx.route('https://fonts.googleapis.com/**',r=>r.fulfill({contentType:'text/css',body:''}));
   await ctx.route(SITE+'**',async r=>{const u=r.request().url().replace(SITE,'http://127.0.0.1:8300/');const res=await r.fetch({url:u});return r.fulfill({response:res})});
-  await ctx.route('https://api.github.com/**',async r=>{const q=r.request(),u=q.url();if(u.includes('/commits'))return r.fulfill({status:200,contentType:'application/json',body:'[]'});
+  await ctx.route('https://api.github.com/**',async r=>{const q=r.request(),u=q.url();apiHits.push(u);if(u.includes('/commits'))return r.fulfill({status:200,contentType:'application/json',body:'[]'});
     const path=decodeURIComponent(u.split('/contents/')[1].split('?')[0]);
     if(q.method()==='GET'){if(!store[path])return r.fulfill({status:404,body:'{}'});return r.fulfill({status:200,contentType:'application/json',body:JSON.stringify({sha:sha[path],content:Buffer.from(JSON.stringify(store[path])).toString('base64')})})}
     const bd=JSON.parse(q.postData());if(store[path]&&bd.sha!==sha[path])return r.fulfill({status:409,body:'{}'});
@@ -102,5 +103,6 @@ await p.click('#saveBtn');await W();d=await dlg(p);ok(d&&/還沒開通雲端/.te
 await okBtn(p);await W();d=await dlg(p);ok(d&&/只存在這台裝置/.test(d.err),'D 沒貼權杖按確定：紅字提示');
 ok(!store['data-finance.json'],'D 財務部沒有寫進雲端');
 ok(!p.errs.length,'D 沒有錯誤 '+p.errs.join('|'));
+ok(apiHits.length&&apiHits.every(u=>u.startsWith('https://api.github.com/repos/'+REPO+'/')),'GitHub API 都打到 '+REPO+'（'+apiHits.length+' 次）');
 console.log('commits:',commits.join(' / '));
 await b.close();process.exit(bad?1:0)})();

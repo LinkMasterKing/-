@@ -1,10 +1,18 @@
 /* 核心｜GitHub 雲端同步（讀寫 data.json） */
 /* ---------- GitHub 雲端同步 (data.json in the repo) ---------- */
 const TOKEN_KEY="workboard:ghtoken";
+/* 資料在哪個 repo（2026-11-12，repo 移轉準備）：在 *.github.io 上一律以網址判斷——帳號＝子網域、repo＝路徑第一段
+   （例如 stustsa.github.io/council/ → stustsa/council）；資料檔裡的 sync.owner／sync.repo 只在其他網域（本機測試、自訂網域）使用。
+   這樣 repo 換帳號或改名後，資料檔裡寫死的舊帳號不用改。分支與資料檔路徑照舊看 sync／dept/config.js。 */
+function pagesRepo(){
+  if(!/\.github\.io$/i.test(location.hostname))return null;
+  const host=location.hostname.toLowerCase(),seg=location.pathname.split("/").filter(Boolean)[0];
+  let repo=host;if(seg&&!/\.html?$/i.test(seg)){try{repo=decodeURIComponent(seg)}catch(_){repo=seg}}
+  return {owner:host.split(".")[0],repo};
+}
 function cloudCfg(){
-  const c=Object.assign({},CFG.data,state.sync||{});let owner=c.owner||"",repo=c.repo||"";
-  if(!owner&&/\.github\.io$/i.test(location.hostname)){owner=location.hostname.split(".")[0];const seg=location.pathname.split("/").filter(Boolean)[0];repo=seg&&!/\.html?$/i.test(seg)?seg:location.hostname}
-  return {owner,repo,branch:c.branch||"main",path:c.path||"data.json"};
+  const c=Object.assign({},CFG.data,state.sync||{}),pg=pagesRepo();
+  return {owner:pg?pg.owner:c.owner||"",repo:pg?pg.repo:c.repo||"",branch:c.branch||"main",path:c.path||"data.json"};
 }
 const cloudOn=()=>{const c=cloudCfg();return !!(c.owner&&c.repo)&&!HOSTED};
 const ghToken=()=>{try{return localStorage.getItem(TOKEN_KEY)||""}catch(_){return ""}};
