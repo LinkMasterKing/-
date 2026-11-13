@@ -3,7 +3,7 @@
  "id": "board-main",
  "title": "權益部工作進度",
  "locked": false,
- "savedAt": "2026-11-13 11:25",
+ "savedAt": "2026-11-13 12:22",
  "range": {
   "start": "2026-09",
   "end": "2027-09"
@@ -776,7 +776,7 @@
   {
    "id": "emwanenep6fe1",
    "name": "衛生棉補給站點",
-   "desc": "目前補給盒已見底\n\n11/12前往衛保組確認\n\n123455567890",
+   "desc": "目前補給盒已見底\n\n11/12前往衛保組確認",
    "createdAt": "2026-11-10",
    "staff": [
     "mmvz4b7d5emiy"
@@ -786,9 +786,10 @@
    "round": 1,
    "touched": [
     "2026-11-10",
-    "2026-11-12"
+    "2026-11-12",
+    "2026-11-13"
    ],
-   "touchedAt": "2026-11-12T17:02",
+   "touchedAt": "2026-11-13T12:22",
    "issueId": "imvpc1cuefjii",
    "report": true,
    "labels": []
@@ -1192,7 +1193,9 @@
    "touched": [
     "2026-11-13"
    ],
-   "touchedAt": "2026-11-13T11:25"
+   "touchedAt": "2026-11-13T11:25",
+   "labels": [],
+   "report": false
   }
  ],
  "yearLabel": "115學年",
