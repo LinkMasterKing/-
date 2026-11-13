@@ -1,0 +1,18 @@
+{
+  "id": "./",
+  "name": "學生會工作看板（已搬家）",
+  "short_name": "學生會看板",
+  "description": "學生會工作看板已搬到 https://stustsa.github.io/council/ ，請在新網址重新加入主畫面。",
+  "lang": "zh-Hant",
+  "start_url": "home.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#000000",
+  "icons": [
+    { "src": "https://stustsa.github.io/council/dept/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "https://stustsa.github.io/council/dept/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "https://stustsa.github.io/council/dept/icons/icon-maskable-192.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable" },
+    { "src": "https://stustsa.github.io/council/dept/icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

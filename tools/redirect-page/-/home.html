@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>工作看板已搬家</title>
+<meta name="robots" content="noindex">
+<link rel="canonical" href="https://stustsa.github.io/council/">
+<link rel="manifest" href="/-/manifest.webmanifest">
+<script>
+/* 舊網址轉址頁（repo 移轉：linkmasterking/- → stustsa/council）
+   放在 linkmasterking.github.io 這個 repo：-/index.html、-/home.html，以及根目錄的 404.html（三個檔案內容相同）。
+   https://linkmasterking.github.io/-/後段?查詢#片段 → https://stustsa.github.io/council/後段?查詢#片段（保留路徑後段、查詢字串與 # 片段）。
+   不收集、不送出任何資料，也不讀寫這台裝置的瀏覽器儲存區；只做導向，並順手解除舊看板的離線 Service Worker。 */
+(function(){
+  var OLD="/-",NEW="https://stustsa.github.io/council";
+  var p=location.pathname,rest=null;
+  if(p===OLD)rest="/";else if(p.indexOf(OLD+"/")===0)rest=p.slice(OLD.length);
+  /* 還沒部署、留在看板 repo 的 tools/redirect-page/ 裡時不動作 */
+  if(/\/tools\/redirect-page\//.test(p))rest=null;
+  window.__target=rest===null?null:NEW+rest+location.search+location.hash;
+  if(window.__target){
+    try{if(navigator.serviceWorker&&navigator.serviceWorker.getRegistrations)navigator.serviceWorker.getRegistrations().then(function(rs){rs.forEach(function(r){if(new URL(r.scope).pathname.indexOf(OLD+"/")===0)r.unregister()})}).catch(function(){})}catch(e){}
+    location.replace(window.__target);
+  }
+})();
+</script>
+<noscript><meta http-equiv="refresh" content="0; url=https://stustsa.github.io/council/"></noscript>
+<style>
+:root{--bg:#ffffff;--fg:#111111;--sub:#5c5c5c;--line:#e3e3e3;--accent:#e0342a;--accent-fg:#ffffff}
+@media (prefers-color-scheme:dark){:root{--bg:#000000;--fg:#f2f2f2;--sub:#a3a3a3;--line:#2a2a2a;--accent:#ff5a4e;--accent-fg:#000000}}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--fg)}
+body{min-height:100vh;min-height:100dvh;display:grid;place-items:center;padding:24px 16px;
+  font-family:"Noto Sans TC","PingFang TC","Microsoft JhengHei",system-ui,sans-serif;line-height:1.6}
+main{width:100%;max-width:420px}
+h1{font-size:1.5rem;margin:0 0 .5rem}
+p{margin:0 0 1rem;color:var(--sub)}
+.url{display:block;word-break:break-all;color:var(--fg);font-weight:600;margin:0 0 1.25rem}
+.go{display:inline-block;padding:.75rem 1.25rem;border-radius:999px;background:var(--accent);color:var(--accent-fg);text-decoration:none;font-weight:700;transition:transform .15s ease,opacity .15s ease}
+.go:active{transform:scale(.96);opacity:.85}
+ol{margin:1.5rem 0 0;padding:1rem 0 0 1.25rem;border-top:1px solid var(--line);color:var(--sub);font-size:.9rem}
+li{margin:0 0 .35rem}
+</style>
+</head>
+<body>
+<main>
+  <h1 id="ttl">學生會工作看板已搬家</h1>
+  <p id="msg">新網址如下，這個頁面會自動帶你過去。</p>
+  <span class="url">https://stustsa.github.io/council/</span>
+  <a class="go" id="go" href="https://stustsa.github.io/council/">前往新網址</a>
+  <ol>
+    <li>在新網址第一次編輯時，要重新輸入一次密碼解鎖。</li>
+    <li>已經加入主畫面的人：刪掉舊圖示，在新網址重新加入。</li>
+    <li>在舊網址還沒儲存的修改不會出現在新網址。</li>
+  </ol>
+</main>
+<script>
+(function(){
+  var go=document.getElementById("go");
+  if(window.__target){go.href=window.__target;return}
+  /* 不是 /-/ 底下的網址（根目錄 404.html 接到的其他路徑）：只說找不到，不自動轉 */
+  if(!/\/tools\/redirect-page\//.test(location.pathname)){
+    document.title="找不到這個頁面";
+    document.getElementById("ttl").textContent="找不到這個頁面";
+    document.getElementById("msg").textContent="如果你要找學生會工作看板，它已經搬到新網址：";
+  }
+})();
+</script>
+</body>
+</html>

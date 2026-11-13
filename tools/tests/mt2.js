@@ -2,7 +2,7 @@
    會長室開放時編輯 → 儲存寫回該部門 → 修改記進秘書處的 minutes → 匯出會議紀錄預覽。也檢查會長室分頁（文件、小開關）。
    GitHub API 用 common.js 模擬。固定 8300 埠 */
 const c=require('./common');c.q='?d=secretariat';(async()=>{const {b,mk,login,st}=await c.setup();
-const API='https://api.github.com/repos/linkmasterking/-/contents/',d0=new Date(),T=`${d0.getFullYear()}-${String(d0.getMonth()+1).padStart(2,'0')}-${String(d0.getDate()).padStart(2,'0')}`;
+const API=c.API,d0=new Date(),T=`${d0.getFullYear()}-${String(d0.getMonth()+1).padStart(2,'0')}-${String(d0.getDate()).padStart(2,'0')}`;
 const ev=(id,name,desc)=>({id,name,desc,report:true,times:[{id:'t'+id,label:'場勘',start:T+'T16:00',end:'',place:'六宿'}],links:[],staff:[],labels:[],touched:[T],createdAt:T});
 st.puts[API+'data-president.json']={schemaVersion:11,id:'board-president',members:[],issues:[],events:[],weeks:[],meetGrant:{date:T,by:'小芸',at:T+' 09:00'}};
 st.puts[API+'data-marketing.json']={schemaVersion:11,id:'board-marketing',members:[],issues:[],events:[ev('m1','社群內容排程','十一月貼文'),ev('m2','世新學運報導','初版')],weeks:[]};
@@ -10,7 +10,7 @@ st.puts[API+'data-events.json']={schemaVersion:11,id:'board-events',members:[],i
 const p=await mk(412,860,'dark',true);
 /* 網站上的 data-*.json（測試資料夾裡可能有真的資料檔）一律當成不存在；先放權杖再重新整理，各部門資料都從模擬的 GitHub 讀 */
 await p.context().route(/127\.0\.0\.1:8300\/data-.*\.json/,r=>r.fulfill({status:404,body:''}));
-await p.evaluate(()=>{localStorage.setItem('workboard:ghtoken','T');localStorage.setItem('workboard:board-secretariat',JSON.stringify({id:'board-secretariat',issues:[],events:[],members:[],weeks:[],savedAt:'2000-01-01 00:00',sync:{owner:'linkmasterking',repo:'-',branch:'main',path:'data-secretariat.json'}}))});await p.reload();await p.waitForTimeout(3500);await login(p);await p.waitForTimeout(800);for(let i=0;i<3;i++){const t=await p.evaluate(()=>{const d=document.querySelector('#dlg[open]');if(!d)return null;const t=d.querySelector('#dlgForm>b')?.textContent;d.close('cancel');return t});if(!t)break;console.log('closed dialog after login:',t);await p.waitForTimeout(500)}
+await p.evaluate(([o,r])=>{localStorage.setItem('workboard:ghtoken','T');localStorage.setItem('workboard:board-secretariat',JSON.stringify({id:'board-secretariat',issues:[],events:[],members:[],weeks:[],savedAt:'2000-01-01 00:00',sync:{owner:o,repo:r,branch:'main',path:'data-secretariat.json'}}))},API.split('/repos/')[1].split('/').slice(0,2).map(decodeURIComponent));await p.reload();await p.waitForTimeout(3500);await login(p);await p.waitForTimeout(800);for(let i=0;i<3;i++){const t=await p.evaluate(()=>{const d=document.querySelector('#dlg[open]');if(!d)return null;const t=d.querySelector('#dlgForm>b')?.textContent;d.close('cancel');return t});if(!t)break;console.log('closed dialog after login:',t);await p.waitForTimeout(500)}
 console.log('tabs',await p.evaluate(()=>[...document.querySelectorAll('#tabbar .tab')].map(t=>t.dataset.tab).join(' ')),'done in live',await p.evaluate(()=>!!document.querySelector('.sgroup[data-sec=live] #donePanel')));
 await p.click('#tabbar [data-tab=ext]');await p.waitForTimeout(1200);
 console.log('chips',await p.evaluate(()=>[...document.querySelectorAll('#meetPick [data-mtpick]')].map(x=>x.textContent).join(' | ')),'shown',await p.evaluate(()=>[...document.querySelectorAll('#meetEdList .mt-dept')].map(x=>x.dataset.mtdept).join()));
